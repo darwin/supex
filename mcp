@@ -3,7 +3,6 @@
 # MCP server wrapper for Claude Code integration
 # This script provides clean stdio for MCP communication (no logging interference)
 # Logs stderr to .tmp/supex-mcp.log for debugging
-# For interactive development with logging, use: ./scripts/launch-mcp.sh
 
 set -e
 

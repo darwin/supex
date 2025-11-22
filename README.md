@@ -164,7 +164,6 @@ supex/
 ├── scripts/
 │   ├── launch-sketchup.sh          # Main SketchUp launcher
 │   ├── reload-extension.sh         # CLI reload wrapper (bash)
-│   ├── launch-mcp.sh               # MCP server launcher with logging
 │   └── helpers/                    # Helper scripts
 │       └── shutdown-sketchup.applescript  # Graceful SketchUp shutdown
 ├── src/
