@@ -169,10 +169,10 @@ Create and run your modeling scripts:
 This workflow is ideal for **AI-driven development** with tools like Claude Code:
 
 **How it works:**
-1. **AI writes SketchUp Ruby code** using the Supex MCP server
+1. **AI writes SketchUp Ruby code**
 2. **Code is being developed as project files** in your `scripts/` directory
-3. **AI executes the code** via `eval_ruby_file()`
-4. **AI verifies results** using introspection tools:
+3. **AI executes the code** in SketchUp (typically uses `eval_ruby_file()` tool in Supex MCP)
+4. **AI verifies results** using introspection tools in Supex MCP:
    - `get_model_info()` - Entity counts and model state
    - `take_screenshot()` - Visual verification
    - `list_entities()` - Inspect geometry hierarchy
