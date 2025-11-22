@@ -1,47 +1,52 @@
 # Supex: SketchUp Automation via Model Context Protocol
 
-A production-ready SketchUp automation platform that enables AI agents to execute native SketchUp Ruby code through the Model Context Protocol (MCP). Built for professional 3D modeling workflows with direct API access, unlimited flexibility, and comprehensive development tools.
+An experimental SketchUp automation platform that enables AI agents to execute native SketchUp Ruby code through the Model Context Protocol (MCP). Designed as a complement to traditional UI-based modeling, currently suitable for programmers with agentic coding experience who want to augment their SketchUp workflow with direct API access and flexible Ruby scripting.
 
 ## Architecture Overview
 
-Supex consists of two integrated components:
+Supex bridges AI agents with SketchUp through a client-server architecture:
 
-1. **Python MCP Server** (`src/driver/`) - Modern MCP server with FastMCP framework
-2. **Ruby SketchUp Extension** (`src/runtime/`) - Native SketchUp extension with modular architecture
+1. **Ruby SketchUp Extension** (`src/runtime/`)
+   - Runs inside SketchUp process
+   - Executes Ruby code in SketchUp's API context
+   - Provides socket server for external communication
 
-Communication happens via TCP sockets using JSON-RPC 2.0, providing direct access to SketchUp's Ruby API for AI agents.
+2. **Python MCP Driver** (`src/driver/`)
+   - MCP server for AI agent integration (FastMCP framework)
+   - CLI for status monitoring and diagnostics
+   - Connects to SketchUp via TCP socket adapter
+
+The driver and extension communicate via TCP sockets (localhost:9876) using JSON-RPC 2.0, enabling AI agents to execute Ruby code directly in SketchUp's context and inspect model state in real-time.
 
 ## Key Features
 
-### Ruby-First Approach
-- **eval_ruby Tool**: Primary interface for all SketchUp operations
-- **Native API Access**: Full SketchUp Ruby API available
-- **Unlimited Flexibility**: Any SketchUp operation possible via Ruby code
-- **Educational Value**: Learn valuable SketchUp scripting skills
+### Direct Ruby API Access
+- **Full SketchUp Ruby API**: Execute any SketchUp operation via Ruby code
+- **eval_ruby & eval_ruby_file**: Run code inline or from project scripts
+- **Unlimited Flexibility**: No constraints on what you can create or modify
+- **Educational Value**: Learn SketchUp scripting through AI-generated examples
 
-### Model Introspection (New!)
-- **Query Model State**: Get model info without writing Ruby code
-- **Entity Inspection**: List faces, edges, groups, components with details
-- **Visual Feedback**: Take screenshots to verify modeling results
-- **Selection Awareness**: Inspect currently selected entities
-- **Layer & Material Discovery**: Browse layers and materials in the model
-- **Camera Information**: Get current view position and settings
+### Model Introspection
+- **Entity Inspection**: List and examine faces, edges, groups, components with details
+- **Visual Verification**: Take screenshots to verify modeling results
+- **Selection & Context**: Inspect currently selected entities
+- **Materials & Layers**: Browse materials and layers in the model
+- **Camera Information**: Query current view position and settings
+- **Model Statistics**: Get comprehensive model state without writing code
 
-### Essential Tools
-- **Ruby Code Evaluation**: Execute any SketchUp Ruby code for modeling
-- **Project-Based Workflow**: Develop Ruby scripts directly in your project
+### Project-Based Development
+- **Scripts in Your Repository**: Ruby files live in your project directory structure
+- **Version Control Ready**: Full git integration for modeling scripts
+- **IDE Support**: Edit scripts with syntax highlighting and RuboCop
+- **Modular Organization**: Separate scripts for different features and utilities
 - **Export Capabilities**: SKP, OBJ, STL, PNG, JPG formats
-- **Model Introspection**: Query model state, entities, materials, and camera
-- **Connection Health**: Reliable communication with SketchUp
-- **Console Capture**: Comprehensive logging and output capture system
 
 ### Developer Experience
-- **Ruby Injection**: Direct source loading via `-RubyStartup` (no file deployment)
-- **Live Reloading**: Extension reload without SketchUp restart
-- **CLI Reload Scripts**: Command-line tools for instant extension reload during development
-- **Modern Toolchain**: UV package management, mise isolation, automated builds
+- **Live Reloading**: Reload extension without restarting SketchUp
+- **CLI Tools**: Status monitoring, diagnostics, and reload scripts
+- **Ruby Injection**: Direct source loading via `-RubyStartup` flag
 - **Comprehensive Logging**: Color-coded output with detailed progress tracking
-- **Git Integration**: Ruby scripts in your project, fully version controllable
+- **Console Capture**: Real-time Ruby console output and error reporting
 
 ## Quick Start
 
@@ -78,7 +83,14 @@ uv run supex-mcp
 
 ### 3. Connect Claude Code with Supex
 
-Add Supex to your Claude Code configuration:
+Add Supex to your Claude Code configuration via command line:
+
+```bash
+# Add MCP server to Claude Code configuration (stdio transport)
+claude mcp add --transport stdio --scope project supex -- /path/to/supex/mcp
+```
+
+Or manually add to `.claude/mcp.json` in your project (recommended for setting cwd):
 
 ```json
 {
@@ -90,89 +102,6 @@ Add Supex to your Claude Code configuration:
     }
   }
 }
-```
-
-**Detailed Setup Steps:**
-
-1. **Open Claude Code Settings**
-   - Use keyboard shortcut **⌘+,** (Cmd+Comma)
-   - Or go to **Claude Code > Settings** in the menu bar
-
-2. **Navigate to MCP Servers**
-   - Click **MCP Servers** in the left sidebar
-   - You'll see the MCP server configuration interface
-
-3. **Add Supex Server**
-   - Click the **Add Server** button (+ icon)
-   - Fill in the server configuration:
-     - **Name**: `supex`
-     - **Command**: `uv`
-     - **Arguments**: `["run", "supex-mcp"]`
-     - **Working Directory**: `/Users/yourname/path/to/supex/src/driver`
-
-4. **Update Paths**
-   - Replace `/Users/yourname/path/to/supex` with your actual directory
-   - Ensure the path points to the `src/driver` subdirectory
-   - Example: `/Users/darwin/x/lab/supex/src/driver`
-
-5. **Save and Restart**
-   - Click **Save** to store the configuration
-   - **Restart Claude Code** completely to activate the MCP connection
-   - The server should appear in the active MCP servers list
-
-### 4. Basic Usage Example
-
-```ruby
-# Create a table using SketchUp Ruby API with proper operations
-model = Sketchup.active_model
-entities = model.active_entities
-
-model.start_operation('Create Simple Table', true)
-
-begin
-  # Table dimensions (metric units)
-  table_length = 1.2.m
-  table_width = 0.8.m
-  table_height = 0.75.m
-  top_thickness = 0.04.m
-
-  # Create table top
-  table_top = entities.add_group
-  table_top.name = "Table Top"
-  top_face = table_top.entities.add_face(
-    [0, 0, table_height - top_thickness],
-    [table_length, 0, table_height - top_thickness],
-    [table_length, table_width, table_height - top_thickness],
-    [0, table_width, table_height - top_thickness]
-  )
-  top_face.pushpull(top_thickness)
-
-  # Apply wood material
-  wood_material = model.materials.add("Wood")
-  wood_material.color = Sketchup::Color.new(139, 69, 19)
-  table_top.entities.each { |e| e.material = wood_material if e.is_a?(Sketchup::Face) }
-
-  model.commit_operation
-  puts "Table created successfully!"
-
-rescue StandardError => e
-  model.abort_operation
-  puts "Error: #{e.message}"
-  raise
-end
-```
-
-Execute with:
-```ruby
-# Save script to your project
-eval_ruby_file("scripts/create_table.rb")
-
-# Verify with introspection tools
-get_model_info()
-take_screenshot()
-
-# Export the model
-export_scene("skp")
 ```
 
 ## Development Workflow
@@ -207,14 +136,8 @@ cd src/runtime
 # Install dependencies
 bundle install
 
-# Build .rbz package (for production)
-bundle exec rake build
-
 # Run code linting
 bundle exec rubocop
-
-# Generate documentation
-bundle exec yard
 ```
 
 ### Python Server Development
