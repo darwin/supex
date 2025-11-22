@@ -1,0 +1,48 @@
+# RuboCop configuration for SketchUp Ruby extension
+
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+
+# SketchUp specific adjustments
+Style/Documentation:
+  Enabled: false  # SketchUp extensions often don't need full class documentation
+
+Metrics/MethodLength:
+  Max: 25  # Allow slightly longer methods for SketchUp API calls
+
+Metrics/ClassLength:
+  Max: 150  # Allow longer classes for main server implementation
+
+Metrics/CyclomaticComplexity:
+  Max: 15  # Allow higher complexity for API handling
+
+Metrics/AbcSize:
+  Max: 20  # Allow higher ABC size for SketchUp operations
+
+Layout/LineLength:
+  Max: 100  # Reasonable line length for Ruby
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  SupportedStyles:
+    - single_quotes
+    - double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Naming/MethodParameterName:
+  MinNameLength: 2  # Allow short param names like 'id'
+
+Style/GlobalVars:
+  AllowedVariables:
+    - '$SKETCHUP_CONSOLE'  # SketchUp global console
+
+# Allow rescue without explicit error class for SketchUp compatibility
+Style/RescueStandardError:
+  Enabled: false
