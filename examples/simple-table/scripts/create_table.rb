@@ -117,16 +117,25 @@ module SupexSimpleTable
   # Metadata should be applied at orchestration level
   #
   # @param entities [Sketchup::Entities] Where to create the table (model obtained via entities.model)
-  # @param table_length [Length] Table length
-  # @param table_width [Length] Table width
-  # @param table_height [Length] Total table height
-  # @param top_thickness [Length] Thickness of table top
-  # @param leg_size [Length] Size of leg (square cross-section)
-  # @param leg_inset [Length] Inset from edge for leg placement
+  # @param params [Hash] Optional parameters with defaults
+  # @option params [Length] :table_length Table length (default: 1.2m)
+  # @option params [Length] :table_width Table width (default: 0.8m)
+  # @option params [Length] :table_height Total table height (default: 0.75m)
+  # @option params [Length] :top_thickness Thickness of table top (default: 0.04m)
+  # @option params [Length] :leg_size Size of leg square cross-section (default: 0.06m)
+  # @option params [Length] :leg_inset Inset from edge for leg placement (default: 0.05m)
   # @return [Sketchup::Group] The created table group (without name or attributes)
-  def self.create_simple_table(entities, table_length, table_width, table_height, top_thickness, leg_size, leg_inset)
+  def self.create_simple_table(entities, params = {})
     # Get model from entities
     model = entities.model
+
+    # Extract parameters with defaults
+    table_length = params[:table_length] || 1.2.m
+    table_width = params[:table_width] || 0.8.m
+    table_height = params[:table_height] || 0.75.m
+    top_thickness = params[:top_thickness] || 0.04.m
+    leg_size = params[:leg_size] || 0.06.m
+    leg_inset = params[:leg_inset] || 0.05.m
 
     # Create wood material
     wood_material = create_wood_material(model)
@@ -162,17 +171,8 @@ module SupexSimpleTable
       # Cleanup previous example instances (idempotent)
       cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
 
-      # Table dimensions (in meters)
-      table_length = 1.2.m
-      table_width = 0.8.m
-      table_height = 0.75.m
-      top_thickness = 0.04.m
-      leg_size = 0.06.m
-      leg_inset = 0.05.m
-
-      # Create the table (clean geometry without metadata)
-      table = create_simple_table(entities, table_length, table_width, table_height, top_thickness,
-                                   leg_size, leg_inset)
+      # Create the table (clean geometry without metadata, using defaults)
+      table = create_simple_table(entities)
 
       # Apply metadata (orchestration concern)
       table.name = table_name
@@ -182,7 +182,7 @@ module SupexSimpleTable
       model.commit_operation
 
       puts 'Table created successfully!'
-      puts "Dimensions: #{table_length.to_m}m x #{table_width.to_m}m x #{table_height.to_m}m"
+      puts 'Dimensions: 1.2m x 0.8m x 0.75m (default)'
       puts 'Structure: Table > Table Top + Table Legs (4 legs)'
       puts 'Use get_model_info() or take_screenshot() to verify the result'
     rescue StandardError => e

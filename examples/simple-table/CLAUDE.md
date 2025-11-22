@@ -82,6 +82,11 @@ Scripts follow SketchUp best practices:
   - Single source of truth for each configuration value
   - Example: `table_name = 'Table'` and `attribute_type = 'basic_table_example'` in `example`
   - Metadata (attributes, tags) applied in orchestration, not in geometry functions
+- **Use params hash for flexible APIs** - High-level functions accept optional `params = {}` hash with defaults
+  - Named parameters for clarity
+  - All parameters optional with sensible defaults
+  - Easy to override only specific values
+  - Example: `create_simple_table(entities, table_length: 2.0.m)` or `create_simple_table(entities)` for defaults
 - **Transaction management only in orchestration** - Only `example` methods (or similar top-level functions) should use `start_operation`/`commit_operation`
 - **Parametrize location** - Functions accept `entities` as "where" parameter for flexible placement
 - **Return created objects** - Functions return created groups/entities for further manipulation
@@ -128,13 +133,18 @@ module SupexSimpleTable
     # Creates all legs using create_table_leg
   end
 
-  def self.create_simple_table(entities, ...) # High-level
+  def self.create_simple_table(entities, params = {}) # High-level
     # Assembles complete table - pure geometry function
     # Returns clean object without ANY metadata (orchestration concern)
     # Model obtained from entities.model
     model = entities.model
-    main_table = entities.add_group
 
+    # Extract parameters with defaults
+    table_length = params[:table_length] || 1.2.m
+    table_width = params[:table_width] || 0.8.m
+    # ... other params with defaults ...
+
+    main_table = entities.add_group
     # ... create table top and legs ...
 
     main_table  # Return clean object for orchestration
@@ -153,8 +163,11 @@ module SupexSimpleTable
       # Cleanup previous instances (idempotent)
       cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
 
-      # Create clean geometry (no metadata, model obtained from entities)
-      table = create_simple_table(entities, ...)
+      # Create clean geometry (using defaults)
+      table = create_simple_table(entities)
+
+      # Or with custom dimensions:
+      # table = create_simple_table(entities, table_length: 2.0.m, table_width: 1.5.m)
 
       # Apply ALL metadata together (orchestration concern)
       table.name = table_name
