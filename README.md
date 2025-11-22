@@ -219,6 +219,8 @@ To use Supex, you need:
   - Only the latest SketchUp version is tested
   - Project is experimental - no backward compatibility guarantees
 - **Claude Code** - AI-powered development environment from [claude.ai/code](https://claude.ai/code)
+  - Only tested with Claude Code (experimental project)
+  - Other MCP-compatible AI agents might work but are untested
 - **macOS** - Currently the primary supported platform
 
 For development requirements, see [CONTRIBUTE.md](CONTRIBUTE.md).

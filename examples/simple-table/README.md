@@ -32,6 +32,8 @@ Download from [claude.ai/code](https://claude.ai/code) if you haven't already.
 - Can you launch Claude Code from your terminal?
 - Try running `claude --version`
 
+**Note:** This tutorial uses Claude Code, but other MCP-compatible AI agents might work (untested).
+
 ### 3. Supex Installation
 
 You should have cloned or downloaded the Supex repository.
