@@ -1,6 +1,7 @@
 /.idea/
 /inspiration/
 *.iml
-/.claude/settings.local.json
+settings.local.json
+.mcp.json
 .direnv/
 /.tmp/
