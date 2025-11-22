@@ -391,40 +391,94 @@ For project scripts, simply edit and re-run with `eval_ruby_file()`.
 
 ## 🔗 Claude Code Integration
 
-### Complete Workflow Setup
+### Project-Based Development Workflow
 
-To use Supex with Claude Code for AI-driven SketchUp automation:
+Supex enables AI-driven SketchUp automation through configured Claude Code projects. See `examples/simple-table/` for a complete working template.
 
-1. **Launch SketchUp**: `./scripts/launch-sketchup.sh`
-2. **Start MCP Server**: `cd src/driver && uv run supex-mcp`
-3. **Configure Claude Code**: Add server to MCP settings
-4. **Start Creating**: Ask Claude to design and build 3D models!
+**Setup Steps:**
 
-### Example Claude Code Session
+1. **Launch SketchUp** with Supex extension:
+   ```bash
+   ./scripts/launch-sketchup.sh  # From supex repo root
+   ```
+
+2. **Configure your Claude Code project** with `.claude/mcp.json`:
+   ```json
+   {
+     "mcpServers": {
+       "supex": {
+         "command": "uv",
+         "args": ["run", "supex-mcp"],
+         "cwd": "/path/to/supex/src/driver"
+       }
+     }
+   }
+   ```
+
+3. **Create project structure**:
+   ```
+   your-project/
+   ├── .claude/
+   │   └── mcp.json          # MCP server configuration
+   ├── CLAUDE.md             # Project-specific guidance for Claude
+   ├── scripts/              # Ruby modeling scripts (version controlled)
+   │   ├── create_model.rb
+   │   └── add_details.rb
+   └── _tmp/                 # Git-ignored temporary files
+       └── screenshots/      # Screenshot outputs
+   ```
+
+4. **Start creating**: Open project in Claude Code and describe what you want to build
+
+### Development Cycle
+
+The workflow follows a project-based approach where Ruby scripts live in your repository:
 
 ```
-You: "S: Create a spiral staircase with 12 steps"
+You: "Create a dining table with 4 legs"
 
-Claude will:
-1. Create Ruby script in your project: scripts/create_staircase.rb
-2. Write Ruby code with proper metric units and naming
-3. Use model.start_operation for undo/redo support
-4. Execute via eval_ruby_file with proper error reporting
-5. Organize geometry into named groups with materials
-6. Use introspection tools (get_model_info, take_screenshot) to verify results
-7. Show you the Ruby code for learning SketchUp API patterns
+Claude Code workflow:
+1. Creates scripts/create_table.rb with proper SketchUp API patterns
+2. Executes using eval_ruby_file (proper error reporting with line numbers)
+3. Verifies results using introspection tools:
+   - get_model_info() - Entity counts and model state
+   - take_screenshot() - Visual preview (saves to _tmp/screenshots/)
+   - list_entities() - Inspect created geometry
+4. Iterates based on your feedback - edit Ruby files and re-run
 
-All scripts remain in your project for version control and future modification.
+All Ruby scripts remain in your project for:
+- Version control (git)
+- IDE editing with syntax highlighting
+- Reuse and modification
+- Learning SketchUp API patterns
 ```
+
+**Key Tools:**
+- `eval_ruby_file` - Execute Ruby scripts with proper error context
+- `get_model_info()` - Check entity counts and model state
+- `take_screenshot()` - Save visual preview (returns path only, ~200 tokens vs 21k)
+- `list_entities()` - Inspect geometry hierarchy
+- `get_selection()` - Verify selections
+
+### Example Project Template
+
+See `examples/simple-table/` for a complete working example showing:
+- Project configuration (`.claude/mcp.json`, `CLAUDE.md`)
+- Ruby script organization (`scripts/create_table.rb`, `scripts/add_decorations.rb`)
+- Modular development approach (separate scripts for different features)
+- Best practices from SketchUp API (operations, groups, materials)
+
+Copy and adapt this template as a starting point for your own projects.
 
 ### AI-Driven Ruby Scripting
 
+- **Project-Based**: Ruby scripts in version-controlled directory structure
 - **Natural Language**: Describe what you want to build
 - **Ruby Expertise**: Built-in knowledge of SketchUp Ruby API patterns
-- **Educational Approach**: Learn SketchUp scripting through examples
-- **Code Generation**: AI writes efficient Ruby code for complex models
-- **Iterative Learning**: Understand and modify the generated Ruby code
-- **Live Feedback**: See Ruby code execute in real-time in SketchUp
+- **Educational Approach**: Learn SketchUp scripting through generated examples
+- **Modular Organization**: Separate scripts for different features and utilities
+- **Iterative Development**: Edit Ruby files in your IDE and re-run
+- **Live Feedback**: Introspection tools verify results in real-time
 
 ## Contributing
 
