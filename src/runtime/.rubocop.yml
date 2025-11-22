@@ -3,10 +3,6 @@
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
-  Exclude:
-    - 'vendor/**/*'
-    - 'tmp/**/*'
-    - '*.rbz'
 
 # SketchUp specific adjustments
 Style/Documentation:
