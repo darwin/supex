@@ -127,28 +127,33 @@ simple-table/
 ├── CLAUDE.md               # AI guidance for this project
 ├── README.md               # This file
 └── scripts/
-    ├── create_table.rb     # Main script - creates the table
-    └── add_decorations.rb  # Additional script - adds trim
+    ├── helpers.rb          # Shared utilities
+    ├── create_table.rb     # Table creation functions
+    └── add_decorations.rb  # Decoration functions
 ```
 
 ### Execute the Table Script
 
+The scripts use a **modular architecture** with the `SupexSimpleTable` module. To create a table, call the example method:
+
 In Claude Code, ask:
 
 ```
-Run the create_table.rb script to create a simple table in SketchUp
+Call SupexSimpleTable.example_table to create a table in SketchUp
 ```
 
-Or use the tool directly:
-```
-eval_ruby_file("scripts/create_table.rb")
+Or use the Ruby eval tool directly:
+```ruby
+SupexSimpleTable.example_table
 ```
 
 **What happens:**
 1. Claude Code sends the command to the MCP server
 2. MCP server forwards it to SketchUp
-3. SketchUp executes the Ruby code
+3. SketchUp executes the `example_table` orchestration method
 4. A table with 4 legs appears in your model!
+
+**Note:** The example methods are **idempotent** - you can run them multiple times and they'll replace the previous table instead of creating duplicates.
 
 ### Verify the Results
 
@@ -203,9 +208,17 @@ Now let's add decorative trim to the table.
 
 ### Execute the Decorations Script
 
+Call the decorations example method:
+
+```ruby
+SupexSimpleTable.example_decorations
 ```
-eval_ruby_file("scripts/add_decorations.rb")
-```
+
+This will:
+1. Find the existing table in your model
+2. Add decorative trim around the table edges
+3. Apply a gold material to the trim
+4. Use boolean union to create clean geometry
 
 ### Verify the Changes
 
@@ -214,7 +227,7 @@ Check the updated entity counts:
 get_model_info()
 ```
 
-You should see more faces and edges now!
+The trim is nested inside the Table group, so you'll still see 1 group at the root level. The decorations are part of the table structure!
 
 ## Step 5: Save Your Model
 
@@ -228,47 +241,99 @@ Now you have a SketchUp file you can open and modify anytime!
 
 ## Understanding the Code
 
-Let's look at what the `create_table.rb` script does.
+Let's look at how the modular architecture works.
 
-### Basic Structure
+### Modular Architecture
 
-Every SketchUp Ruby script follows this pattern:
+The scripts use a **procedural programming** approach organized into a module:
 
 ```ruby
-# Get the active model
-model = Sketchup.active_model
-entities = model.active_entities
+module SupexSimpleTable
+  # Low-level: Create individual components
+  def self.create_table_leg(...)
+    # Creates a single leg
+  end
 
-# Start an operation (enables undo/redo)
-model.start_operation('Operation Name', true)
+  # Mid-level: Create groups of components
+  def self.create_table_legs(...)
+    # Creates all 4 legs using create_table_leg
+  end
 
-begin
-  # Your modeling code here
+  # High-level: Assemble complete objects
+  def self.create_simple_table(entities, params = {})
+    # Assembles complete table with defaults
+  end
 
-  model.commit_operation  # Commit the changes
-rescue StandardError => e
-  model.abort_operation   # Rollback on error
-  raise
+  # Orchestration: Transaction management and metadata
+  def self.example_table
+    # Wraps in operation, handles cleanup, adds metadata
+  end
 end
 ```
 
-### Creating the Table Top
+### Function Levels
+
+**Low-level functions** create individual geometry:
+- `create_table_leg` - Creates one leg at a position
+- `create_table_top` - Creates the top surface
+
+**Mid-level functions** create collections:
+- `create_table_legs` - Creates all 4 legs by calling `create_table_leg`
+
+**High-level functions** assemble complete objects:
+- `create_simple_table` - Combines top + legs into a table
+- Accepts optional `params` hash with defaults
+- Returns clean geometry without metadata
+
+**Orchestration functions** manage transactions:
+- `example_table` - Wraps in operation, handles idempotence
+- Adds name and attributes to created objects
+- Provides error handling and user feedback
+
+### Hash Parameters with Defaults
+
+High-level functions use hash parameters for flexibility:
 
 ```ruby
-# Create a group for the table top
-table_top = entities.add_group
-table_top.name = "Table Top"
+# Use defaults
+table = SupexSimpleTable.create_simple_table(entities)
 
-# Create a rectangle face
-face = table_top.entities.add_face(
-  [-60.cm, -40.cm, 0],  # Bottom-left corner
-  [60.cm, -40.cm, 0],   # Bottom-right corner
-  [60.cm, 40.cm, 0],    # Top-right corner
-  [-60.cm, 40.cm, 0]    # Top-left corner
+# Override specific dimensions
+table = SupexSimpleTable.create_simple_table(entities,
+  table_length: 2.0.m,
+  table_width: 1.5.m,
+  table_height: 0.8.m
 )
+```
 
-# Extrude it to create thickness
-face.pushpull(-5.cm)
+### Idempotence Pattern
+
+Example methods can be run multiple times safely:
+
+```ruby
+def self.example_table
+  # Configuration
+  table_name = 'Table'
+  attribute_type = 'basic_table_example'
+
+  model.start_operation('Create Simple Table', true)
+  begin
+    # 1. Cleanup previous instances
+    cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
+
+    # 2. Create fresh geometry
+    table = create_simple_table(entities)
+
+    # 3. Apply metadata
+    table.name = table_name
+    table.set_attribute('supex', 'type', attribute_type)
+
+    model.commit_operation
+  rescue
+    model.abort_operation
+    raise
+  end
+end
 ```
 
 ### Key Concepts
@@ -300,43 +365,89 @@ Try making changes to learn more!
 
 ### Change Dimensions
 
-Edit `create_table.rb`:
+You can pass custom dimensions using the params hash:
 
 ```ruby
-# Make the table bigger
-table_width = 180.cm   # instead of 120.cm
-table_depth = 90.cm    # instead of 80.cm
-table_height = 75.cm   # instead of 73.cm
+# Create a bigger table
+SupexSimpleTable.create_simple_table(
+  Sketchup.active_model.entities,
+  table_length: 2.0.m,
+  table_width: 1.5.m,
+  table_height: 0.85.m,
+  top_thickness: 0.05.m,
+  leg_size: 0.08.m
+)
 ```
 
-Then re-run the script:
-```
-eval_ruby_file("scripts/create_table.rb")
+Or wrap it in a custom orchestration method in the script, then call it:
+
+```ruby
+# Add to create_table.rb
+def self.example_large_table
+  model = Sketchup.active_model
+  entities = model.entities
+
+  model.start_operation('Create Large Table', true)
+  begin
+    table = create_simple_table(entities,
+      table_length: 2.0.m,
+      table_width: 1.5.m
+    )
+    table.name = 'Large Table'
+    model.commit_operation
+  rescue
+    model.abort_operation
+    raise
+  end
+end
+
+# Then call it
+SupexSimpleTable.example_large_table
 ```
 
 ### Change Colors
 
-Try different materials:
+Modify the material creation function in `create_table.rb`:
 
 ```ruby
-# Make it a different wood color
-material.color = [101, 67, 33]  # Darker brown
+def self.create_wood_material(model, tag = 'basic_table_example')
+  # Change the color here
+  recreate_material(model, 'Wood', Sketchup::Color.new(101, 67, 33), tag)  # Darker brown
+end
+```
 
-# Or use a named color
-material.color = "BurlyWood"
+Or create a new material function:
+
+```ruby
+def self.create_mahogany_material(model, tag = 'basic_table_example')
+  recreate_material(model, 'Mahogany', Sketchup::Color.new(192, 64, 0), tag)
+end
 ```
 
 ### Add More Geometry
 
-Create a drawer:
+Create new functions following the same pattern:
 
 ```ruby
-drawer = entities.add_group
-drawer.name = "Drawer"
+# Add to scripts/create_table.rb
+def self.create_drawer(parent_entities, position_x, position_y, width, depth, height)
+  drawer = parent_entities.add_group
+  drawer.name = "Drawer"
 
-# Create drawer geometry
-drawer_face = drawer.entities.add_face(...)
-drawer_face.pushpull(...)
+  # Create drawer box
+  face = drawer.entities.add_face(
+    [position_x, position_y, 0],
+    [position_x + width, position_y, 0],
+    [position_x + width, position_y + depth, 0],
+    [position_x, position_y + depth, 0]
+  )
+  face.pushpull(-height)
+
+  drawer
+end
+
+# Use it
+drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.15.m)
 ```
 
 ## Troubleshooting
@@ -410,8 +521,32 @@ mkdir _tmp
 # Copy the .mcp.json template
 cp /path/to/supex/examples/simple-table/.mcp.json .
 
+# Copy the helpers template for shared utilities
+cp /path/to/supex/examples/simple-table/scripts/helpers.rb scripts/
+
 # Create your first script
-touch scripts/my_model.rb
+cat > scripts/my_model.rb << 'EOF'
+require_relative 'helpers'
+
+module SupexMyProject
+  def self.example_model
+    model = Sketchup.active_model
+    entities = model.entities
+
+    model.start_operation('Create Model', true)
+    begin
+      # Your modeling code here
+
+      model.commit_operation
+    rescue
+      model.abort_operation
+      raise
+    end
+  end
+end
+
+# Call it: SupexMyProject.example_model
+EOF
 ```
 
 ### 2. Learn More About SketchUp Ruby API
@@ -444,6 +579,10 @@ Check `src/driver/prompts/sketchup_workflow.md` for:
 
 ## Key Takeaways
 
+- **Modular architecture**: Code organized in reusable modules with clear function levels
+- **Procedural programming**: Functions broken down by responsibility (low/mid/high/orchestration)
+- **Hash parameters**: Flexible APIs with sensible defaults (`params = {}`)
+- **Idempotence**: Example methods can run multiple times safely
 - **Project-based workflow**: Ruby scripts live in your project directory
 - **Git-trackable**: All your modeling code is version controlled
 - **Iterative**: Edit scripts and re-run to see changes
