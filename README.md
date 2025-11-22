@@ -50,124 +50,67 @@ The driver and extension communicate via TCP sockets (localhost:9876) using JSON
 
 ## Quick Start
 
+The fastest way to get started with Supex is through our complete example project.
+
 ### Prerequisites
 
-- **SketchUp** (2020+) - Any recent version with Ruby API
-- **Ruby 3.4.7** - Managed via mise for extension development
-- **Python 3.14** - Latest Python with UV package manager
-- **Claude Code** - For AI-driven SketchUp automation
+- **SketchUp 2020+** - Download from [sketchup.com](https://www.sketchup.com)
+- **Claude Code** - AI-powered development environment from [claude.ai/code](https://claude.ai/code)
 
-### 1. Launch SketchUp with Extension
+### Try the Example Project
 
-```bash
-# One-command launch with Ruby injection
-./scripts/launch-sketchup.sh
+See the **[Simple Table Example](examples/simple-table/README.md)** for a complete step-by-step tutorial that covers:
 
-# For detailed loading info
-SUPEX_VERBOSE=1 ./scripts/launch-sketchup.sh
-```
+1. **Installation** - Setting up Supex extension in SketchUp
+2. **Configuration** - Connecting Claude Code with Supex
+3. **First Model** - Creating a table with Ruby scripts
+4. **Verification** - Using introspection tools to verify results
+5. **Next Steps** - Building your own projects
 
-The launcher automatically:
-- Validates extension sources
-- Injects Ruby extension via `-RubyStartup`
-- Starts SketchUp with extension loaded
-- Provides graceful shutdown handling
+The example project includes working Ruby scripts, detailed explanations, and troubleshooting help.
 
-### 2. Configure Claude Code with Supex
+### Quick Configuration Reference
 
-Add Supex to your Claude Code configuration via command line:
-
-```bash
-# Add MCP server to Claude Code configuration (stdio transport)
-claude mcp add --transport stdio --scope project supex -- /path/to/supex/mcp
-```
-
-Or manually add to `.mcp.json` in your project root:
+For experienced users, add Supex to your project's `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "supex": {
-      "command": "/path/to/supex/mcp"
+      "command": "/absolute/path/to/supex/mcp"
     }
   }
 }
 ```
 
-**Note**: Claude Code automatically starts the MCP server (via `./mcp`) when configured. No manual server startup is needed. The `./mcp` command is referenced in the configuration above, and Claude Code handles launching it via stdio transport.
+Claude Code automatically starts the MCP server when configured.
 
-## Development Workflow
+### For Developers
 
-### Ruby Extension Development
+If you want to contribute to Supex development, see [CONTRIBUTE.md](CONTRIBUTE.md) for development environment setup.
 
-```bash
-# 1. Edit Ruby source files in src/runtime/supex_runtime/
-# 2. Reload extension:
-./supex reload
+## Project Organization
 
-# With custom host/port:
-./supex reload --host 127.0.0.1 --port 9876
-```
-
-### Ruby Extension Build System
-
-```bash
-cd src/runtime
-
-# Install dependencies
-bundle install
-
-# Run code linting
-bundle exec rubocop
-```
-
-### Python Server Development
-
-```bash
-# Run tests
-cd src/driver
-uv run pytest tests/ -v
-
-# Code quality
-uv run ruff check src/ tests/
-uv run ruff format src/ tests/
-uv run mypy src/
-```
-
-## Project Structure
+Supex is organized to separate the core system from your modeling projects:
 
 ```
-supex/
-├── mcp                             # MCP server wrapper script
-├── supex                           # CLI wrapper script
-├── scripts/
-│   ├── launch-sketchup.sh          # Main SketchUp launcher
-│   └── helpers/                    # Helper scripts
-│       └── shutdown-sketchup.applescript  # Graceful SketchUp shutdown
-├── src/
-│   ├── driver/                     # Python MCP server
-│   │   ├── src/supex_driver/      # Server implementation
-│   │   ├── prompts/               # AI guidance prompts
-│   │   ├── resources/             # Resources and best practices
-│   │   ├── examples/              # Usage examples
-│   │   ├── tests/                 # Driver tests
-│   │   └── pyproject.toml         # UV package config
-│   └── runtime/                    # Ruby SketchUp extension
-│       ├── injector.rb            # Ruby injection script
-│       ├── supex_runtime.rb       # Extension registration
-│       ├── supex_runtime/         # Modular Ruby sources
-│       ├── Gemfile                # Ruby dependencies
-│       └── Rakefile               # Build automation
-├── tests/                          # End-to-end tests
-│   ├── e2e/                       # E2E test suite
-│   ├── helpers/                   # Test helpers
-│   └── data/                      # Test data
+supex/                          # Supex installation (this repository)
+├── mcp                         # MCP server (referenced in your .mcp.json)
 ├── examples/
-│   └── simple-table/               # Example project demonstrating workflow
-├── ARCHITECTURE.md                 # Technical architecture documentation
-├── CLAUDE.md                       # AI development guidelines
-└── README.md                       # This file
+│   └── simple-table/           # Example project - start here!
+└── [src/, scripts/, ...]       # Core implementation (see CONTRIBUTE.md)
+
+your-project/                   # Your SketchUp project
+├── .mcp.json                   # Supex configuration
+├── CLAUDE.md                   # Project-specific AI guidance
+├── scripts/                    # Your Ruby modeling scripts
+│   ├── create_model.rb
+│   └── add_details.rb
+└── _tmp/                       # Screenshots and temporary files
+    └── screenshots/
 ```
+
+For detailed implementation structure, see [CONTRIBUTE.md](CONTRIBUTE.md).
 
 ## Available MCP Tools
 
@@ -265,34 +208,7 @@ eval_ruby_file("scripts/create_spiral_staircase.rb")
 - **Team Collaboration**: Multiple developers can work on the same modeling scripts
 - **Example Projects**: See `examples/simple-table/` for complete workflow demonstration
 
-### Extension Development Cycle
-
-1. **Edit** Ruby extension sources in `src/runtime/supex_runtime/`
-2. **Reload** extension via CLI: `supex reload`
-3. **Test** changes immediately without SketchUp restart
-4. **Iterate** rapidly with instant feedback
-
-For project scripts, simply edit and re-run with `eval_ruby_file()`.
-
-## Technical Architecture
-
-### Ruby Injection System
-- **Direct Loading**: Sources loaded via `$LOAD_PATH` manipulation
-- **No File Copying**: Extension sources remain in development directory
-- **Injector Script**: `injector.rb` handles Ruby environment setup
-- **SketchUp Integration**: Uses `-RubyStartup` flag for seamless injection
-
-### Modern Ruby Development
-- **mise Isolation**: Ruby 3.4.7 environment isolation
-- **Modular Architecture**: Clean separation of concerns across focused modules
-- **Build Automation**: Comprehensive Rakefile with packaging, linting, documentation
-- **Code Quality**: RuboCop integration with SketchUp-specific rules
-
-### Python MCP Server
-- **FastMCP Framework**: Modern async MCP patterns with lifecycle management
-- **UV Package Management**: Fast dependency resolution and development workflow
-- **Comprehensive Testing**: Full test suite with async support
-- **Type Safety**: Complete type annotations with mypy validation
+**Workflow**: Create or edit Ruby scripts in your project's `scripts/` directory, then execute them with `eval_ruby_file()`. Iterate by modifying the scripts and re-running.
 
 ## Claude Code Integration
 
@@ -384,33 +300,27 @@ Copy and adapt this template as a starting point for your own projects.
 
 ## Contributing
 
-### Development Setup
+We welcome contributions to Supex! If you'd like to help improve Supex:
 
-1. **Clone repository**
-2. **Setup Ruby environment**: `mise install`
-3. **Setup Python environment**: `cd src/driver && uv sync --dev`
-4. **Launch development**: `./scripts/launch-sketchup.sh`
-5. **Configure Claude Code**: Add MCP server configuration
+- **Report Issues**: Found a bug? Open an issue on GitHub
+- **Suggest Features**: Have an idea? Start a discussion
+- **Submit Pull Requests**: Want to contribute code? See [CONTRIBUTE.md](CONTRIBUTE.md) for:
+  - Development environment setup
+  - Code quality standards
+  - Testing guidelines
+  - Contribution process
 
-### Code Quality
-
-- **Ruby**: RuboCop linting, YARD documentation, Test::Unit testing
-- **Python**: Ruff formatting/linting, mypy type checking, pytest testing
-- **Git**: Conventional commits with detailed change descriptions
+See [CONTRIBUTE.md](CONTRIBUTE.md) for complete development documentation.
 
 ## Requirements
 
-### System Requirements
-- **macOS** (primary target) - Full AppleScript integration
-- **SketchUp 2020+** - Modern Ruby API support
-- **Ruby 3.4.7** - Latest features and performance improvements
-- **Python 3.14** - Latest performance and type system enhancements
+To use Supex, you need:
 
-### Development Tools
-- **mise** - Multi-language version management
-- **bundler** - Ruby dependency management
-- **uv** - Python package management
-- **git** - Version control
+- **SketchUp 2020+** - Download from [sketchup.com](https://www.sketchup.com)
+- **Claude Code** - AI-powered development environment from [claude.ai/code](https://claude.ai/code)
+- **macOS** - Currently the primary supported platform
+
+For development requirements, see [CONTRIBUTE.md](CONTRIBUTE.md).
 
 ## License
 
