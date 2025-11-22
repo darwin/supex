@@ -73,13 +73,7 @@ The launcher automatically:
 - Starts SketchUp with extension loaded
 - Provides graceful shutdown handling
 
-### 2. Start Python MCP Server
-
-```bash
-./mcp
-```
-
-### 3. Connect Claude Code with Supex
+### 2. Configure Claude Code with Supex
 
 Add Supex to your Claude Code configuration via command line:
 
@@ -88,7 +82,7 @@ Add Supex to your Claude Code configuration via command line:
 claude mcp add --transport stdio --scope project supex -- /path/to/supex/mcp
 ```
 
-Or manually add to `.claude/mcp.json` in your project:
+Or manually add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -99,6 +93,8 @@ Or manually add to `.claude/mcp.json` in your project:
   }
 }
 ```
+
+**Note**: Claude Code automatically starts the MCP server (via `./mcp`) when configured. No manual server startup is needed. The `./mcp` command is referenced in the configuration above, and Claude Code handles launching it via stdio transport.
 
 ## Development Workflow
 
@@ -298,7 +294,7 @@ For project scripts, simply edit and re-run with `eval_ruby_file()`.
 - **Comprehensive Testing**: Full test suite with async support
 - **Type Safety**: Complete type annotations with mypy validation
 
-## 🔗 Claude Code Integration
+## Claude Code Integration
 
 ### Project-Based Development Workflow
 
@@ -311,7 +307,7 @@ Supex enables AI-driven SketchUp automation through configured Claude Code proje
    ./scripts/launch-sketchup.sh  # From supex repo root
    ```
 
-2. **Configure your Claude Code project** with `.claude/mcp.json`:
+2. **Configure your Claude Code project** with `.mcp.json` in project root:
    ```json
    {
      "mcpServers": {
@@ -325,8 +321,7 @@ Supex enables AI-driven SketchUp automation through configured Claude Code proje
 3. **Create project structure**:
    ```
    your-project/
-   ├── .claude/
-   │   └── mcp.json          # MCP server configuration
+   ├── .mcp.json             # MCP server configuration
    ├── CLAUDE.md             # Project-specific guidance for Claude
    ├── scripts/              # Ruby modeling scripts (version controlled)
    │   ├── create_model.rb
@@ -370,7 +365,7 @@ All Ruby scripts remain in your project for:
 ### Example Project Template
 
 See `examples/simple-table/` for a complete working example showing:
-- Project configuration (`.claude/mcp.json`, `CLAUDE.md`)
+- Project configuration (`.mcp.json`, `CLAUDE.md`)
 - Ruby script organization (`scripts/create_table.rb`, `scripts/add_decorations.rb`)
 - Modular development approach (separate scripts for different features)
 - Best practices from SketchUp API (operations, groups, materials)
@@ -414,7 +409,7 @@ Copy and adapt this template as a starting point for your own projects.
 ### Development Tools
 - **mise** - Multi-language version management
 - **bundler** - Ruby dependency management
-- **UV** - Python package management
+- **uv** - Python package management
 - **git** - Version control
 
 ## License

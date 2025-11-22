@@ -25,13 +25,19 @@ cd /path/to/supex
 ./scripts/launch-sketchup.sh
 ```
 
-And the MCP server is running:
+And Claude Code is configured with Supex MCP server in `.mcp.json` (project root):
 
-```bash
-# From supex repository root
-cd /path/to/supex
-./mcp
+```json
+{
+  "mcpServers": {
+    "supex": {
+      "command": "/path/to/supex/mcp"
+    }
+  }
+}
 ```
+
+**Note**: Claude Code automatically starts the MCP server when configured. No manual server startup is needed.
 
 ### 2. Run the Scripts
 

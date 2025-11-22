@@ -116,11 +116,14 @@ bundle exec rake build
 3. Changes are picked up immediately without restarting SketchUp
 
 ### Python MCP Driver (src/driver/)
-```bash
-# Run the MCP server
-./mcp
 
-# Run the CLI
+**MCP Server Usage:**
+- The MCP server (`./mcp`) is automatically started by Claude Code via stdio transport
+- Users configure `.mcp.json` in project root with the path to `./mcp` - no manual startup needed
+- For development/debugging only: manually run `./mcp` to test the server in isolation
+
+```bash
+# Run the CLI (for direct SketchUp interaction)
 ./supex --help
 ./supex status
 ./supex info
@@ -128,6 +131,9 @@ bundle exec rake build
 # Run tests
 cd src/driver
 uv run pytest tests/
+
+# Development/debugging only: manually run MCP server
+./mcp  # Only for testing - Claude Code auto-starts this normally
 ```
 
 ## Key Files

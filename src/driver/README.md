@@ -57,13 +57,19 @@ This automatically handles extension loading via Ruby injection.
 ./scripts/launch-sketchup.sh
 ```
 
-### 2. Run the MCP Server
+### 2. Configure MCP Client
 
+**For normal usage with Claude Code:**
+- The MCP server is automatically started via stdio transport
+- Configure `.mcp.json` in project root with the path to `./mcp`
+- No manual server startup is needed
+
+**For development/debugging only:**
 ```bash
-./mcp
+./mcp  # Manually run server for testing
 ```
 
-### 3. Connect with MCP Client
+### 3. Connect with MCP Client (or use Claude Code configuration)
 
 The server provides these tools:
 
