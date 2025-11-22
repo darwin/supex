@@ -142,6 +142,8 @@ uv run mypy src/
 
 ```
 supex/
+├── mcp                             # MCP server wrapper script
+├── supex                           # CLI wrapper script
 ├── scripts/
 │   ├── launch-sketchup.sh          # Main SketchUp launcher
 │   └── helpers/                    # Helper scripts
@@ -149,9 +151,10 @@ supex/
 ├── src/
 │   ├── driver/                     # Python MCP server
 │   │   ├── src/supex_driver/      # Server implementation
-│   │   ├── scripts/               # Utility scripts
+│   │   ├── prompts/               # AI guidance prompts
+│   │   ├── resources/             # Resources and best practices
 │   │   ├── examples/              # Usage examples
-│   │   ├── tests/                 # Test suite
+│   │   ├── tests/                 # Driver tests
 │   │   └── pyproject.toml         # UV package config
 │   └── runtime/                    # Ruby SketchUp extension
 │       ├── injector.rb            # Ruby injection script
@@ -159,8 +162,13 @@ supex/
 │       ├── supex_runtime/         # Modular Ruby sources
 │       ├── Gemfile                # Ruby dependencies
 │       └── Rakefile               # Build automation
+├── tests/                          # End-to-end tests
+│   ├── e2e/                       # E2E test suite
+│   ├── helpers/                   # Test helpers
+│   └── data/                      # Test data
 ├── examples/
 │   └── simple-table/               # Example project demonstrating workflow
+├── ARCHITECTURE.md                 # Technical architecture documentation
 ├── CLAUDE.md                       # AI development guidelines
 └── README.md                       # This file
 ```
