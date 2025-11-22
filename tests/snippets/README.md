@@ -29,11 +29,11 @@ Previously, Ruby code was embedded directly in Python test files using HEREDOC s
 
 By extracting Ruby code into separate `.rb` files organized in this directory, we gain:
 
-- ✅ Full IDE support with syntax highlighting and autocomplete
-- ✅ SketchUp API documentation and validation (when configured)
-- ✅ RuboCop integration for code quality
-- ✅ Better organization and reusability
-- ✅ Easier maintenance and refactoring
+- Full IDE support with syntax highlighting and autocomplete
+- SketchUp API documentation and validation (when configured)
+- RuboCop integration for code quality
+- Better organization and reusability
+- Easier maintenance and refactoring
 
 ## Design Decisions
 
@@ -210,16 +210,16 @@ direnv allow
 
 | Aspect | Before (Inline) | After (Loaded Files) |
 |--------|----------------|---------------------|
-| Syntax Highlighting | ❌ None | ✅ Full Ruby support |
-| IDE Autocomplete | ❌ No | ✅ Yes |
-| SketchUp API Docs | ❌ No | ✅ Yes (with setup) |
-| RuboCop Linting | ❌ No | ✅ Yes |
-| Code Navigation | ❌ Difficult | ✅ Easy |
-| Refactoring | ❌ Manual | ✅ IDE-assisted |
-| Reusability | ❌ Copy-paste | ✅ Shared functions |
-| Organization | ❌ Mixed in Python | ✅ Clean src/ directory |
-| **Error Context** | ❌ No file/line info | ✅ **Actual file:line in errors!** |
-| Debugging | ❌ Hard | ✅ Easy with stacktraces |
+| Syntax Highlighting | ❌ None | Full Ruby support |
+| IDE Autocomplete | ❌ No | Yes |
+| SketchUp API Docs | ❌ No | Yes (with setup) |
+| RuboCop Linting | ❌ No | Yes |
+| Code Navigation | ❌ Difficult | Easy |
+| Refactoring | ❌ Manual | IDE-assisted |
+| Reusability | ❌ Copy-paste | Shared functions |
+| Organization | ❌ Mixed in Python | Clean src/ directory |
+| **Error Context** | ❌ No file/line info | **Actual file:line in errors!** |
+| Debugging | ❌ Hard | Easy with stacktraces |
 
 ## Future Improvements
 

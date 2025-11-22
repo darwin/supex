@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **NEVER bump version numbers** unless explicitly asked by the user - version changes should be intentional and controlled
 - **NEVER commit changes** unless explicitly asked by the user - all git commits should be intentional and reviewed
 - **NEVER read files in git-ignored folders** unless explicitly asked by the user - these often contain sensitive data or temporary files
+- **NEVER use emojis in documentation** - documentation should be professional and emoji-free; use clear section headings instead
 - **Use `git ls-tree -r HEAD` to find project files** - do not look at other files unless explicitly asked by the user
 
 ## SketchUp Modeling Workflow

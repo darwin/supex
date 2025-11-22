@@ -2,7 +2,7 @@
 
 A production-ready SketchUp automation platform that enables AI agents to execute native SketchUp Ruby code through the Model Context Protocol (MCP). Built for professional 3D modeling workflows with direct API access, unlimited flexibility, and comprehensive development tools.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 Supex consists of two integrated components:
 
@@ -11,15 +11,15 @@ Supex consists of two integrated components:
 
 Communication happens via TCP sockets using JSON-RPC 2.0, providing direct access to SketchUp's Ruby API for AI agents.
 
-## ✨ Key Features
+## Key Features
 
-### 🎯 Ruby-First Approach
+### Ruby-First Approach
 - **eval_ruby Tool**: Primary interface for all SketchUp operations
 - **Native API Access**: Full SketchUp Ruby API available
 - **Unlimited Flexibility**: Any SketchUp operation possible via Ruby code
 - **Educational Value**: Learn valuable SketchUp scripting skills
 
-### 🔍 Model Introspection (New!)
+### Model Introspection (New!)
 - **Query Model State**: Get model info without writing Ruby code
 - **Entity Inspection**: List faces, edges, groups, components with details
 - **Visual Feedback**: Take screenshots to verify modeling results
@@ -27,7 +27,7 @@ Communication happens via TCP sockets using JSON-RPC 2.0, providing direct acces
 - **Layer & Material Discovery**: Browse layers and materials in the model
 - **Camera Information**: Get current view position and settings
 
-### 🎯 Essential Tools
+### Essential Tools
 - **Ruby Code Evaluation**: Execute any SketchUp Ruby code for modeling
 - **Project-Based Workflow**: Develop Ruby scripts directly in your project
 - **Export Capabilities**: SKP, OBJ, STL, PNG, JPG formats
@@ -35,7 +35,7 @@ Communication happens via TCP sockets using JSON-RPC 2.0, providing direct acces
 - **Connection Health**: Reliable communication with SketchUp
 - **Console Capture**: Comprehensive logging and output capture system
 
-### ⚡ Developer Experience
+### Developer Experience
 - **Ruby Injection**: Direct source loading via `-RubyStartup` (no file deployment)
 - **Live Reloading**: Extension reload without SketchUp restart
 - **CLI Reload Scripts**: Command-line tools for instant extension reload during development
@@ -43,7 +43,7 @@ Communication happens via TCP sockets using JSON-RPC 2.0, providing direct acces
 - **Comprehensive Logging**: Color-coded output with detailed progress tracking
 - **Git Integration**: Ruby scripts in your project, fully version controllable
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -175,7 +175,7 @@ take_screenshot()
 export_scene("skp")
 ```
 
-## 🛠️ Development Workflow
+## Development Workflow
 
 ### Ruby Extension Development
 
@@ -234,7 +234,7 @@ uv run ruff format src/ tests/
 uv run mypy src/
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 supex/
@@ -264,13 +264,13 @@ supex/
 └── README.md                       # This file
 ```
 
-## 🎛️ Available MCP Tools
+## Available MCP Tools
 
-### 🎯 Primary Execution Tools
+### Primary Execution Tools
 - **`eval_ruby(code)`** - Execute Ruby code in SketchUp context
 - **`eval_ruby_file(file_path)`** - Execute Ruby files with proper error reporting (RECOMMENDED)
 
-### 🔍 Introspection Tools (New!)
+### Introspection Tools (New!)
 - **`get_model_info()`** - Get model statistics (faces, edges, groups, etc.)
 - **`list_entities(entity_type?)`** - List entities in model (faces, edges, groups, components)
 - **`get_selection()`** - Get currently selected entities with details
@@ -282,18 +282,18 @@ supex/
   - Use Read tool to view screenshot only if needed
   - Default location: `.tmp/screenshots/screenshot-YYYYMMDD-HHMMSS.png`
 
-### 💾 Model Management Tools
+### Model Management Tools
 - **`open_model(path)`** - Open a SketchUp model file
 - **`save_model(path?)`** - Save current model (optionally to new path)
 - **`export_scene(format)`** - Export to SKP, OBJ, STL, PNG, JPG
 
-### 🔧 Connection & Status Tools
+### Connection & Status Tools
 - **`check_sketchup_status()`** - Verify connection health
 - **`console_capture_status()`** - Check console logging status
 
 **Note**: Extension reload is available via CLI (`./scripts/reload-extension.sh`) or SketchUp menu, not as an MCP tool.
 
-## 🔧 Advanced Features
+## Advanced Features
 
 ### Project-Based Ruby Workflow
 
@@ -369,7 +369,7 @@ eval_ruby_file("scripts/create_spiral_staircase.rb")
 
 For project scripts, simply edit and re-run with `eval_ruby_file()`.
 
-## 🏛️ Technical Architecture
+## Technical Architecture
 
 ### Ruby Injection System
 - **Direct Loading**: Sources loaded via `$LOAD_PATH` manipulation
@@ -426,7 +426,7 @@ All scripts remain in your project for version control and future modification.
 - **Iterative Learning**: Understand and modify the generated Ruby code
 - **Live Feedback**: See Ruby code execute in real-time in SketchUp
 
-## 🤝 Contributing
+## Contributing
 
 ### Development Setup
 
@@ -442,7 +442,7 @@ All scripts remain in your project for version control and future modification.
 - **Python**: Ruff formatting/linting, mypy type checking, pytest testing
 - **Git**: Conventional commits with detailed change descriptions
 
-## 📋 Requirements
+## Requirements
 
 ### System Requirements
 - **macOS** (primary target) - Full AppleScript integration
@@ -456,7 +456,7 @@ All scripts remain in your project for version control and future modification.
 - **UV** - Python package management
 - **git** - Version control
 
-## 📄 License
+## License
 
 MIT License - see LICENSE file for details.
 
