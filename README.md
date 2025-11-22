@@ -1,22 +1,60 @@
-# Supex: SketchUp Automation via Model Context Protocol
+# Supex: SketchUp Automation for AI Agents
 
 An experimental SketchUp automation platform that enables AI agents to execute native SketchUp Ruby code through the Model Context Protocol (MCP). Designed as a complement to traditional UI-based modeling, currently suitable for programmers with agentic coding experience who want to augment their SketchUp workflow with direct API access and flexible Ruby scripting.
 
 ## Architecture Overview
 
-Supex bridges AI agents with SketchUp through a client-server architecture:
+Supex bridges AI agents and CLI tools with SketchUp through a client-server architecture:
 
-1. **Ruby SketchUp Extension** (`src/runtime/`)
+```
+┌─────────────────┐                              ┌─────────────────┐
+│   Claude Code   │                              │   CLI Tools     │
+│   (AI Agent)    │                              │   ./supex       │
+└────────┬────────┘                              └────────┬────────┘
+         │                                                │
+         │ MCP Protocol                                   │ Direct
+         │ (stdio)                                        │ Commands
+         │                                                │
+         └────────────────┬───────────────────────────────┘
+                          ▼
+                 ┌─────────────────┐
+                 │  Python Driver  │
+                 │  (src/driver/)  │
+                 │                 │
+                 │  • MCP Server   │ ◄── Interface for AI agents
+                 │  • CLI Handler  │ ◄── Interface for commands
+                 │  • Socket Client│
+                 └────────┬────────┘
+                          │
+                          │ TCP Socket (localhost:9876)
+                          │ JSON-RPC 2.0
+                          ▼
+                 ┌─────────────────┐
+                 │ SketchUp Runtime│
+                 │ (src/runtime/)  │
+                 │                 │
+                 │ • Ruby Extension│
+                 │ • Socket Server │
+                 │ • SketchUp API  │
+                 └─────────────────┘
+                          │
+                          ▼
+                  [ SketchUp Process ]
+```
+
+**Key Components:**
+
+1. **Python Driver** (`src/driver/`) - Central hub with two interfaces:
+   - **MCP Server**: For AI agent integration (FastMCP framework)
+   - **CLI Handler**: For direct command-line interaction
+   - **Socket Client**: Communicates with SketchUp extension
+
+2. **SketchUp Runtime** (`src/runtime/`) - Ruby extension:
    - Runs inside SketchUp process
    - Executes Ruby code in SketchUp's API context
    - Provides socket server for external communication
 
-2. **Python MCP Driver** (`src/driver/`)
-   - MCP server for AI agent integration (FastMCP framework)
-   - CLI for status monitoring and diagnostics
-   - Connects to SketchUp via TCP socket adapter
-
-The driver and extension communicate via TCP sockets (localhost:9876) using JSON-RPC 2.0, enabling AI agents to execute Ruby code directly in SketchUp's context and inspect model state in real-time.
+**Communication**: TCP sockets (localhost:9876) with JSON-RPC 2.0 protocol enable AI agents and CLI tools to execute Ruby code directly in SketchUp's context and inspect model state in real-time.
 
 ## Key Features
 
