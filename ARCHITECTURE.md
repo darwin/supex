@@ -30,10 +30,11 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 - Complete type annotations and mypy validation
 
 **Tools Provided**:
-- Primary: `eval_ruby`, `eval_ruby_file`, `create_session`, `create_ruby_file`
-- Export: `export_scene` (SKP, OBJ, STL, PNG, JPG)
-- Health: `check_sketchup_status`, `console_capture_status`
-- Development: `reload_extension`
+- **Ruby Execution**: `eval_ruby`, `eval_ruby_file` (recommended)
+- **Model Introspection**: `get_model_info`, `list_entities`, `get_selection`, `get_layers`, `get_materials`, `get_camera_info`
+- **Visualization**: `take_screenshot` (saves to `.tmp/screenshots/`)
+- **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
+- **Connection Health**: `check_sketchup_status`, `console_capture_status`
 
 ### Ruby SketchUp Extension (`src/runtime/`)
 
@@ -43,16 +44,15 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 **Module Structure**:
 ```
 supex_runtime/
-├── main.rb          # Extension lifecycle and menu integration
-├── server.rb        # TCP server and JSON-RPC protocol handling
-├── geometry.rb      # 3D shape creation and manipulation
-├── materials.rb     # Color and material management
-├── export.rb        # Multi-format export functionality
-├── utils.rb         # Logging, error handling, common utilities
+├── main.rb            # Extension lifecycle and menu integration
+├── server.rb          # TCP server and JSON-RPC protocol handling
+├── export.rb          # Multi-format export functionality
+├── utils.rb           # Logging, error handling, common utilities
 ├── console_capture.rb # Output capture and logging system
-├── session_manager.rb # File-based execution and session management
-└── version.rb       # Version and metadata management
+└── version.rb         # Version and metadata management
 ```
+
+**Note**: Geometry and material operations are handled through direct Ruby code evaluation via `eval_ruby` and `eval_ruby_file` tools, providing unlimited flexibility for modeling operations.
 
 ## Communication Protocol
 
@@ -84,26 +84,9 @@ supex_runtime/
   -RubyStartup "/path/to/injector.rb"
 ```
 
-### File-Based Execution
-
-**Session Structure**:
-```
-.scratchpad/
-└── YYMMDD-HHmm-description/
-    ├── 001-first-script.rb
-    ├── 002-second-script.rb
-    └── session.json
-```
-
-**Advantages**:
-- Proper error reporting with line numbers
-- Code persistence for review and reuse
-- Sequential organization with descriptive naming
-- IDE integration for editing Ruby files
-
 ### Modern Toolchain
 
-**Python**: UV package management, Python 3.13+
+**Python**: UV package management, Python 3.14+
 **Ruby**: mise isolation, Ruby 3.4.7, Bundler dependency management
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
 **Testing**: pytest (Python), Test::Unit (Ruby)

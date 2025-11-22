@@ -31,7 +31,7 @@ Communication happens via TCP sockets using JSON-RPC 2.0, providing direct acces
 - **Ruby Code Evaluation**: Execute any SketchUp Ruby code for modeling
 - **Project-Based Workflow**: Develop Ruby scripts directly in your project
 - **Export Capabilities**: SKP, OBJ, STL, PNG, JPG formats
-- **Strategic AI Guidance**: Ruby scripting expertise and patterns
+- **Model Introspection**: Query model state, entities, materials, and camera
 - **Connection Health**: Reliable communication with SketchUp
 - **Console Capture**: Comprehensive logging and output capture system
 
@@ -290,7 +290,8 @@ supex/
 ### 🔧 Connection & Status Tools
 - **`check_sketchup_status()`** - Verify connection health
 - **`console_capture_status()`** - Check console logging status
-- **`reload_extension()`** - Reload Ruby extension during development
+
+**Note**: Extension reload is available via CLI (`./scripts/reload-extension.sh`) or SketchUp menu, not as an MCP tool.
 
 ## 🔧 Advanced Features
 

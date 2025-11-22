@@ -11,10 +11,9 @@ A modern, modular Ruby extension for SketchUp that provides MCP (Model Context P
 - **Comprehensive Logging**: Detailed progress tracking and error reporting
 
 ### 3D Modeling Capabilities
-- **Session Management**: Organized file-based Ruby scripting with timestamped sessions
 - **Direct Ruby Execution**: Execute Ruby code directly in SketchUp context
 - **Console Capture**: All output logged with timestamps for debugging
-- **File-based Workflow**: Create and execute Ruby scripts from organized sessions
+- **Project-based Workflow**: Execute Ruby scripts stored in your project directories
 
 ### Advanced Features
 - **Export Formats**: SKP, OBJ, STL, PNG, JPG support
@@ -31,15 +30,16 @@ supex_runtime/
 ├── version.rb         # Version and metadata management
 ├── utils.rb           # Common utilities and helpers
 ├── console_capture.rb # Console output logging and monitoring
-├── session_manager.rb # File-based Ruby scripting sessions
 ├── export.rb          # Multi-format export functionality
 ├── server.rb          # TCP server and JSON-RPC handling
 └── main.rb            # Orchestration and menu integration
 ```
 
+**Note**: The extension provides direct Ruby code evaluation through `eval_ruby` and `eval_ruby_file` tools, enabling unlimited modeling flexibility without predefined geometry modules.
+
 ## Requirements
 
-- **SketchUp 2019+**: Any version from 2019 onwards with Ruby API support
+- **SketchUp 2020+**: Any version from 2020 onwards with Ruby API support
 - **Ruby 3.4.7**: Managed via mise for environment isolation
 - **Bundler**: Dependency management
 
@@ -138,15 +138,6 @@ The launcher script automatically loads and starts the extension.
 ### Core Operations
 
 The extension provides these capabilities via MCP:
-
-#### Session Management
-```ruby
-# Create a new modeling session
-create_session("table-design")
-
-# Create a Ruby script in the session
-create_ruby_file(session_path, "table-legs", ruby_code)
-```
 
 #### Ruby Code Execution
 ```ruby
@@ -303,13 +294,14 @@ MIT License - see LICENSE file for details.
 
 ### Module Responsibilities
 
-- **Main**: Extension lifecycle, menu integration, coordination
-- **Server**: TCP socket server, JSON-RPC protocol handling
+- **Main**: Extension lifecycle, menu integration, server orchestration
+- **Server**: TCP socket server, JSON-RPC protocol handling, Ruby code evaluation
 - **ConsoleCapture**: Console output redirection and logging with timestamps
-- **SessionManager**: File-based Ruby scripting sessions with organized structure
 - **Export**: Multi-format export (SKP, OBJ, STL, PNG, JPG)
 - **Utils**: Logging, error handling, common utilities
-- **Version**: Metadata, version management, build information
+- **Version**: Metadata, version management, extension information
+
+**Note**: Geometry and modeling operations are handled through direct Ruby evaluation, providing unlimited flexibility without predefined modules.
 
 ### Performance Considerations
 

@@ -20,11 +20,11 @@ Supex is a modern SketchUp integration that enables AI agents to control and man
 
 ## Requirements
 
-- **Python 3.13+** - Latest Python with enhanced performance and new language features
+- **Python 3.14+** - Latest Python with enhanced performance and new language features
 - **UV** - Modern Python package manager ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
 - **SketchUp** - Any recent version with Ruby API support
 
-### Python 3.13 Benefits
+### Python 3.14 Benefits
 - **Enhanced Performance**: Improved bytecode interpreter and memory management
 - **Better Error Messages**: More precise and helpful error diagnostics  
 - **Type System Improvements**: Enhanced type annotations and better mypy support

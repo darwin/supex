@@ -32,7 +32,7 @@ Run Ruby scripts in SketchUp using the `eval_ruby_file` tool:
 After running scripts, use introspection tools:
 - `get_model_info()` - Check entity counts and model state
 - `take_screenshot()` - Get visual preview of the model
-  - **Save to `_tmp/` directory with descriptive name** (e.g., `_tmp/table-initial.png`)
+  - Automatically saved to `.tmp/screenshots/` directory
   - Tool returns file path only (saves ~21k tokens vs returning image data)
   - Only use Read tool on screenshot if user explicitly asks to see it
 - `list_entities('groups')` - Inspect created groups and components

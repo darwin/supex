@@ -5,7 +5,7 @@ module SupexRuntime
   VERSION = '0.3.0'
 
   # SketchUp API compatibility
-  REQUIRED_SKETCHUP_VERSION = '2019'
+  REQUIRED_SKETCHUP_VERSION = '2020'
 
   # MCP protocol version
   MCP_VERSION = '1.0'

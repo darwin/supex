@@ -113,7 +113,7 @@ bundle exec rake build
 2. Reload extension (choose one method):
    - **Via command line** (recommended): `./scripts/reload-extension.sh`
    - Via SketchUp menu: `Extensions > Supex Runtime > Reload Extension`
-   - Via MCP tool: `reload_extension`
+   - Via Ruby console: `SupexRuntime::Main.reload_extension`
 3. Changes are picked up immediately without restarting SketchUp
 
 ### Python MCP Driver (src/driver/)
