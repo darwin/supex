@@ -44,6 +44,13 @@ Use `save_model("model.skp")` to save the model to the project directory.
 
 ## Script Architecture
 
+**Procedural Programming Approach:**
+- **Use procedural style by default** - Structure code into well-defined functions unless user specifies otherwise
+- Break down modeling tasks into reusable functions (e.g., `create_table_leg()`, `create_table_top()`)
+- Each function should have a single, clear responsibility
+- Document functions with YARD comments describing parameters and return values
+- Main execution section should orchestrate high-level operations by calling functions
+
 Scripts follow SketchUp best practices:
 - Always use `model.start_operation()` / `model.commit_operation()` for undo/redo support
 - Organize geometry in named groups for better structure
