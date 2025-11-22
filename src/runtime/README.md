@@ -210,19 +210,6 @@ bundle exec rubocop -A
 bundle exec rubocop supex_runtime/geometry.rb
 ```
 
-### Documentation with YARD
-
-```bash
-# Generate documentation
-bundle exec yard
-
-# View documentation
-open doc/index.html
-
-# Document coverage
-bundle exec yard stats
-```
-
 ## Debugging
 
 ### Logging

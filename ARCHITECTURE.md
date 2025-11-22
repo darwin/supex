@@ -90,7 +90,6 @@ supex_runtime/
 **Ruby**: mise isolation, Ruby 3.4.7, Bundler dependency management
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
 **Testing**: pytest (Python), Test::Unit (Ruby)
-**Documentation**: YARD (Ruby), Sphinx (Python)
 
 ## Quality Assurance
 
@@ -121,7 +120,6 @@ supex_runtime/
 **Ruby Components**:
 - Unit tests with Test::Unit framework
 - Code style with RuboCop and SketchUp-specific rules
-- Documentation coverage with YARD
 
 ## Security Considerations
 

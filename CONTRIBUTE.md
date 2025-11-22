@@ -202,7 +202,6 @@ The project follows the MCP (Model Context Protocol) pattern:
 ### Ruby Code Standards
 
 - **RuboCop**: All Ruby code must pass RuboCop linting
-- **YARD Documentation**: Public methods should have YARD documentation
 - **SketchUp API Patterns**: Follow SketchUp best practices (operations, groups, error handling)
 - **Portable Shebangs**: Use `#!/usr/bin/env ruby` in executable scripts
 
