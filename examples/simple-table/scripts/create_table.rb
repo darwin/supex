@@ -3,9 +3,12 @@
 # Create a simple wooden table in SketchUp
 # This script demonstrates procedural programming approach with Supex
 
+require_relative 'helpers'
+
 # Module containing all table creation functions
 # Prevents namespace pollution when used as a library
-module SupexBasicTable
+# Reopens module from helpers.rb to add table-specific functions
+module SupexSimpleTable
   # Creates a wood material with saddle brown color
   #
   # @param model [Sketchup::Model] The active SketchUp model
@@ -110,6 +113,8 @@ module SupexBasicTable
   end
 
   # Creates a complete table with top and legs
+  # Returns a clean geometry object without metadata (name, attributes)
+  # Metadata should be applied at orchestration level
   #
   # @param entities [Sketchup::Entities] Where to create the table
   # @param model [Sketchup::Model] The active SketchUp model
@@ -119,15 +124,14 @@ module SupexBasicTable
   # @param top_thickness [Length] Thickness of table top
   # @param leg_size [Length] Size of leg (square cross-section)
   # @param leg_inset [Length] Inset from edge for leg placement
-  # @return [Sketchup::Group] The created table group
+  # @return [Sketchup::Group] The created table group (without name or attributes)
   def self.create_simple_table(entities, model, table_length, table_width, table_height, top_thickness, leg_size,
                                 leg_inset)
     # Create wood material
     wood_material = create_wood_material(model)
 
-    # Create main table group
+    # Create main table group (no metadata - orchestration will add name and attributes)
     main_table = entities.add_group
-    main_table.name = 'Table'
 
     # Create table top
     create_table_top(main_table.entities, table_length, table_width, table_height, top_thickness, wood_material)
@@ -146,10 +150,17 @@ module SupexBasicTable
     # Work in model root to avoid nesting when user is editing a group.
     entities = model.entities
 
+    # Configuration (single source of truth)
+    table_name = 'Table'
+    attribute_type = 'basic_table_example'
+
     # Start operation for undo/redo support
     model.start_operation('Create Simple Table', true)
 
     begin
+      # Cleanup previous example instances (idempotent)
+      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
+
       # Table dimensions (in meters)
       table_length = 1.2.m
       table_width = 0.8.m
@@ -158,9 +169,13 @@ module SupexBasicTable
       leg_size = 0.06.m
       leg_inset = 0.05.m
 
-      # Create the table
-      create_simple_table(entities, model, table_length, table_width, table_height, top_thickness, leg_size,
-                          leg_inset)
+      # Create the table (clean geometry without metadata)
+      table = create_simple_table(entities, model, table_length, table_width, table_height, top_thickness,
+                                   leg_size, leg_inset)
+
+      # Apply metadata (orchestration concern)
+      table.name = table_name
+      table.set_attribute('supex', 'type', attribute_type)
 
       # Commit the operation
       model.commit_operation

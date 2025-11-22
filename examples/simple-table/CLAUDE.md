@@ -64,6 +64,12 @@ Scripts follow SketchUp best practices:
 - **Wrap all functions in a module with Supex prefix** - Use `module SupexXxxYyy` to prevent naming conflicts with other extensions
 - **No automatic execution on load** - Never run code automatically when file is loaded/evaluated; allows use as library
 - **Implement example methods** - Create one or more `example` methods that demonstrate usage with default parameters
+- **Use helpers.rb for shared utilities** - Place reusable helper functions in `scripts/helpers.rb` with project-specific module
+  - Import with `require_relative 'helpers'` at the top of scripts
+  - Scripts "reopen" the same module to add their functions (Ruby feature)
+  - Prevents code duplication across scripts
+  - Use project-specific naming: `module SupexSimpleTable` (prevents conflicts with other Supex projects)
+  - All functions accessible as `SupexSimpleTable.method_name(...)`
 
 **Function Design:**
 - **Separate concerns by function level:**
@@ -71,14 +77,49 @@ Scripts follow SketchUp best practices:
   - Mid-level: Composite operations (e.g., `create_table_legs` - creates all four legs)
   - High-level: Complete assemblies (e.g., `create_simple_table`)
   - Orchestration: Example methods with transaction management (`example`)
+- **Configuration in orchestration layer** - All configuration values (names, dimensions, metadata, etc.) should be local variables in orchestration functions, not hardcoded in lower-level functions
+  - Lower-level functions accept parameters, don't decide values
+  - Single source of truth for each configuration value
+  - Example: `table_name = 'Table'` and `attribute_type = 'basic_table_example'` in `example`
+  - Metadata (attributes, tags) applied in orchestration, not in geometry functions
 - **Transaction management only in orchestration** - Only `example` methods (or similar top-level functions) should use `start_operation`/`commit_operation`
 - **Parametrize location** - Functions accept `entities` as "where" parameter for flexible placement
 - **Return created objects** - Functions return created groups/entities for further manipulation
 - **Document all public functions** - Use YARD comments with `@param` and `@return` tags
 
+**Idempotence Pattern:**
+- **Example methods MUST be idempotent** - Running example multiple times should produce same result, not duplicate objects
+- **Two-tier cleanup approach:**
+  1. **Name-based search** (fast) - Find groups by name
+  2. **Attribute verification** (precise) - Verify with `get_attribute` to prevent false positives
+- **Tag created objects** - Use `set_attribute('supex', 'type', 'module_example')` on created groups
+- **Cleanup before create** - Remove previous instances before creating new ones
+- **Consistent naming** - Use unique, descriptive names for groups
+
+**Cleanup Helper Pattern:**
+Place this in `scripts/helpers.rb` for reuse across scripts:
+```ruby
+module SupexSimpleTable
+  def self.cleanup_by_name_and_attribute(entities, name, attribute_dict, attribute_key, attribute_value)
+    entities.grep(Sketchup::Group).each do |group|
+      # First filter: name match (fast)
+      next unless group.name == name
+
+      # Second filter: attribute verification (precise, prevents false positives)
+      group.erase! if group.get_attribute(attribute_dict, attribute_key) == attribute_value
+    end
+  end
+end
+```
+
 **Example Structure:**
 ```ruby
-module SupexBasicTable
+# Import shared helpers (defines module SupexSimpleTable)
+require_relative 'helpers'
+
+# Reopen module to add table-specific functions
+module SupexSimpleTable
+
   def self.create_table_leg(...) # Low-level
     # Creates single leg, returns group
   end
@@ -87,15 +128,36 @@ module SupexBasicTable
     # Creates all legs using create_table_leg
   end
 
-  def self.create_simple_table(...) # High-level
-    # Assembles complete table
+  def self.create_simple_table(entities, model, ...) # High-level
+    # Assembles complete table - pure geometry function
+    # Returns clean object without ANY metadata (orchestration concern)
+    main_table = entities.add_group
+
+    # ... create table top and legs ...
+
+    main_table  # Return clean object for orchestration
   end
 
   def self.example # Orchestration
-    # Transaction management here
+    model = Sketchup.active_model
+    entities = model.entities
+
+    # Configuration (single source of truth)
+    table_name = 'Table'
+    attribute_type = 'basic_table_example'
+
     model.start_operation('Create Table', true)
     begin
-      create_simple_table(...)
+      # Cleanup previous instances (idempotent)
+      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
+
+      # Create clean geometry (no metadata)
+      table = create_simple_table(entities, model, ...)
+
+      # Apply ALL metadata together (orchestration concern)
+      table.name = table_name
+      table.set_attribute('supex', 'type', attribute_type)
+
       model.commit_operation
     rescue
       model.abort_operation
