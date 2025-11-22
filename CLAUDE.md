@@ -103,7 +103,7 @@ bundle exec rake build
 ```
 
 **SketchUp Launcher Features:**
-- Automatically detects SketchUp installation (2020-2024)
+- Automatically detects SketchUp 2026 installation
 - Deploys Ruby sources directly (no .rbz building required)
 - SketchUp loads sources from development directory
 - Extension can reload itself during development

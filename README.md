@@ -215,7 +215,9 @@ See [CONTRIBUTE.md](CONTRIBUTE.md) for complete development documentation.
 
 To use Supex, you need:
 
-- **SketchUp 2020+** - Download from [sketchup.com](https://www.sketchup.com)
+- **SketchUp 2026** - Download from [sketchup.com](https://www.sketchup.com)
+  - Only the latest SketchUp version is tested
+  - Project is experimental - no backward compatibility guarantees
 - **Claude Code** - AI-powered development environment from [claude.ai/code](https://claude.ai/code)
 - **macOS** - Currently the primary supported platform
 

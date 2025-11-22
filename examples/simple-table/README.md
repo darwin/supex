@@ -15,13 +15,14 @@ By the end of this tutorial, you'll know how to:
 
 Before starting, make sure you have:
 
-### 1. SketchUp 2020 or newer
+### 1. SketchUp 2026
 
 Download from [sketchup.com](https://www.sketchup.com) if you haven't already.
 
 **Verify installation:**
 - Can you launch SketchUp?
-- Is it version 2020 or newer? (Check SketchUp → About SketchUp)
+- Is it version 2026? (Check SketchUp → About SketchUp)
+- Note: Only latest SketchUp is tested (project is experimental)
 
 ### 2. Claude Code
 

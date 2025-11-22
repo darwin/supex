@@ -6,7 +6,8 @@ Thank you for your interest in contributing to Supex! This guide will help you s
 
 ### Required Tools
 
-- **SketchUp 2020+** - Any recent version with Ruby API
+- **SketchUp 2026** - Latest SketchUp version with Ruby API
+  - Only latest version is tested (experimental project)
 - **Ruby 3.4.7** - Managed via mise for extension development
 - **Python 3.14** - Latest Python with UV package manager
 - **mise** - Multi-language version management
@@ -165,7 +166,7 @@ The development environment uses a direct Ruby injection system:
 
 The `./scripts/launch-sketchup.sh` launcher provides:
 
-- Automatically detects SketchUp installation (2020-2024)
+- Automatically detects SketchUp 2026 installation
 - Validates extension sources before launch
 - Deploys Ruby sources directly (no .rbz building required)
 - SketchUp loads sources from development directory
@@ -305,7 +306,6 @@ Then create a pull request on GitHub with:
 - Use `puts` statements for logging (output appears in Ruby Console)
 - Check `.tmp/supex-runtime.log` for extension logs
 - Use `./supex reload` frequently during development
-- Test with different SketchUp versions if possible
 
 ### Python Server Debugging
 
