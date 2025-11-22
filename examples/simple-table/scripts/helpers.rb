@@ -22,7 +22,8 @@ module SupexSimpleTable
   #   SupexSimpleTable.cleanup_by_name_and_attribute(
   #     entities, 'Table', 'supex', 'type', 'basic_table_example'
   #   )
-  def self.cleanup_by_name_and_attribute(entities, name, attribute_dict, attribute_key, attribute_value)
+  def self.cleanup_by_name_and_attribute(entities, name, attribute_dict, attribute_key,
+                                         attribute_value)
     entities.grep(Sketchup::Group).each do |group|
       # First filter: name match (fast)
       next unless group.name == name

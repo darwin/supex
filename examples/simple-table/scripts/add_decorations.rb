@@ -27,7 +27,7 @@ module SupexSimpleTable
     return nil if groups.empty?
 
     result = groups[0]
-    groups[1..-1].each do |group|
+    groups[1..].each do |group|
       result = result.union(group)
     end
 
@@ -63,9 +63,9 @@ module SupexSimpleTable
     # Pushpull extrudes in the direction of the normal
     # If extruding up (distance > 0), normal should point up (z > 0)
     # If extruding down (distance < 0), normal should point down (z < 0)
-    if (extrude_distance > 0 && face.normal.z < 0) || (extrude_distance < 0 && face.normal.z > 0)
-      face.reverse!
-    end
+    needs_reversal = (extrude_distance.positive? && face.normal.z.negative?) ||
+                     (extrude_distance.negative? && face.normal.z.positive?)
+    face.reverse! if needs_reversal
 
     face.pushpull(extrude_distance)
 
@@ -119,6 +119,7 @@ module SupexSimpleTable
 
     trim_group
   end
+  # rubocop:enable Metrics/AbcSize
 
   # Creates decorative trim for a table
   # Pure geometry function - creates trim based on table dimensions
@@ -129,6 +130,7 @@ module SupexSimpleTable
   # @option params [Length] :trim_width Width of trim overhang (default: 0.01m)
   # @return [Sketchup::Group] The created trim group (without attributes)
   # @raise [RuntimeError] If table top not found inside table group
+  # rubocop:disable Metrics/AbcSize
   def self.create_table_decorations(table_group, params = {})
     # Get model from table_group
     model = table_group.model
@@ -167,9 +169,14 @@ module SupexSimpleTable
 
     trim_group
   end
+  # rubocop:enable Metrics/AbcSize, Metrics/PerceivedComplexity
 
   # Example usage with default settings
   # Orchestrates decoration addition with transaction management
+  #
+  # @api orchestration
+  # @return [void]
+  # rubocop:disable Metrics/AbcSize
   def self.example_decorations
     model = Sketchup.active_model
     # Work at model root to avoid nesting when user is editing a group
@@ -192,9 +199,9 @@ module SupexSimpleTable
       end.each(&:erase!)
 
       # Create decorations (pure geometry)
-      trim = create_table_decorations(table_group)
+      create_table_decorations(table_group)
 
-      # Note: Trim is nested inside the Table group, so no metadata needed at root level
+      # NOTE: Trim is nested inside the Table group, so no metadata needed at root level
       # The trim group itself gets erased/recreated on re-run for idempotence
 
       # Commit the operation
@@ -210,4 +217,5 @@ module SupexSimpleTable
       raise
     end
   end
+  # rubocop:enable Metrics/AbcSize
 end

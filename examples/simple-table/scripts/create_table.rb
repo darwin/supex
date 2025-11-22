@@ -52,24 +52,24 @@ module SupexSimpleTable
   # Creates a single table leg as a group
   #
   # @param parent_entities [Sketchup::Entities] Parent entities collection
-  # @param x [Length] X position of leg
-  # @param y [Length] Y position of leg
+  # @param x_pos [Length] X position of leg
+  # @param y_pos [Length] Y position of leg
   # @param leg_size [Length] Size of leg (square cross-section)
   # @param leg_height [Length] Height of leg
   # @param material [Sketchup::Material] Material to apply
   # @param index [Integer] Leg index for naming (1-based)
   # @return [Sketchup::Group] The created leg group
-  def self.create_table_leg(parent_entities, x, y, leg_size, leg_height, material, index)
+  def self.create_table_leg(parent_entities, x_pos, y_pos, leg_size, leg_height, material, index)
     leg = parent_entities.add_group
     leg.name = "Table Leg #{index}"
 
     # Create square leg profile at ground level
     # Vertices in clockwise order (viewed from above) so normal points down
     leg_face = leg.entities.add_face(
-      [x, y, 0],
-      [x, y + leg_size, 0],
-      [x + leg_size, y + leg_size, 0],
-      [x + leg_size, y, 0]
+      [x_pos, y_pos, 0],
+      [x_pos, y_pos + leg_size, 0],
+      [x_pos + leg_size, y_pos + leg_size, 0],
+      [x_pos + leg_size, y_pos, 0]
     )
 
     # Extrude up to meet the table top (negative value since normal points down)
@@ -91,7 +91,8 @@ module SupexSimpleTable
   # @param leg_height [Length] Height of legs
   # @param material [Sketchup::Material] Material to apply
   # @return [Sketchup::Group] The created legs group
-  def self.create_table_legs(parent_entities, table_length, table_width, leg_size, leg_inset, leg_height, material)
+  def self.create_table_legs(parent_entities, table_length, table_width, leg_size, leg_inset,
+                             leg_height, material)
     table_legs_group = parent_entities.add_group
     table_legs_group.name = 'Table Legs'
 
@@ -105,8 +106,9 @@ module SupexSimpleTable
 
     # Create each leg
     leg_positions.each_with_index do |pos, i|
-      x, y = pos
-      create_table_leg(table_legs_group.entities, x, y, leg_size, leg_height, material, i + 1)
+      x_pos, y_pos = pos
+      create_table_leg(table_legs_group.entities, x_pos, y_pos, leg_size, leg_height, material,
+                       i + 1)
     end
 
     table_legs_group
@@ -116,7 +118,7 @@ module SupexSimpleTable
   # Returns a clean geometry object without metadata (name, attributes)
   # Metadata should be applied at orchestration level
   #
-  # @param entities [Sketchup::Entities] Where to create the table (model obtained via entities.model)
+  # @param entities [Sketchup::Entities] Where to create the table (model via entities.model)
   # @param params [Hash] Optional parameters with defaults
   # @option params [Length] :table_length Table length (default: 1.2m)
   # @option params [Length] :table_width Table width (default: 0.8m)
@@ -144,17 +146,22 @@ module SupexSimpleTable
     main_table = entities.add_group
 
     # Create table top
-    create_table_top(main_table.entities, table_length, table_width, table_height, top_thickness, wood_material)
+    create_table_top(main_table.entities, table_length, table_width, table_height, top_thickness,
+                     wood_material)
 
     # Create table legs
     leg_height = table_height - top_thickness
-    create_table_legs(main_table.entities, table_length, table_width, leg_size, leg_inset, leg_height, wood_material)
+    create_table_legs(main_table.entities, table_length, table_width, leg_size, leg_inset,
+                      leg_height, wood_material)
 
     main_table
   end
 
   # Example usage with default dimensions
   # Orchestrates table creation with transaction management
+  #
+  # @api orchestration
+  # @return [void]
   def self.example_table
     model = Sketchup.active_model
     # Work in model root to avoid nesting when user is editing a group.

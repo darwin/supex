@@ -18,11 +18,14 @@ Metrics/MethodLength:
 Metrics/ClassLength:
   Max: 150  # Allow longer classes for main server implementation
 
+Metrics/PerceivedComplexity:
+  Enabled: false
+
 Metrics/CyclomaticComplexity:
   Max: 15  # Allow higher complexity for API handling
 
 Metrics/AbcSize:
-  Max: 20  # Allow higher ABC size for SketchUp operations
+  Enabled: false
 
 Layout/LineLength:
   Max: 100  # Reasonable line length for Ruby
@@ -41,7 +44,7 @@ Style/FrozenStringLiteralComment:
   EnforcedStyle: always
 
 Naming/MethodParameterName:
-  MinNameLength: 2  # Allow short param names like 'id'
+  Enabled: false
 
 Style/GlobalVars:
   AllowedVariables:

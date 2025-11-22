@@ -91,6 +91,7 @@ Scripts follow SketchUp best practices:
 - **Parametrize location** - Functions accept `entities` as "where" parameter for flexible placement
 - **Return created objects** - Functions return created groups/entities for further manipulation
 - **Document all public functions** - Use YARD comments with `@param` and `@return` tags
+- **Annotate orchestration functions** - Mark orchestration-level functions with `@api orchestration` tag for clarity
 
 **Idempotence Pattern:**
 - **Example methods MUST be idempotent** - Running example multiple times should produce same result, not duplicate objects
@@ -150,6 +151,7 @@ module SupexSimpleTable
     main_table  # Return clean object for orchestration
   end
 
+  # @api orchestration
   def self.example_table # Orchestration
     model = Sketchup.active_model
     entities = model.entities
