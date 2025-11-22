@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # MCP server wrapper for Claude Code integration
 # This script provides clean stdio for MCP communication (no logging interference)

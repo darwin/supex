@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **NEVER read files in git-ignored folders** unless explicitly asked by the user - these often contain sensitive data or temporary files
 - **NEVER use emojis in documentation** - documentation should be professional and emoji-free; use clear section headings instead
 - **Use `git ls-tree -r HEAD` to find project files** - do not look at other files unless explicitly asked by the user
+- **Use portable shebangs in all executable scripts** - use `#!/usr/bin/env bash` for bash scripts, `#!/usr/bin/env python3` for Python, etc. This ensures scripts work across different systems where interpreters may be installed in different locations
 
 ## SketchUp Modeling Workflow
 

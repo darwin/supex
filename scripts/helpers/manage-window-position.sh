@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Window position management for SketchUp
 # Handles saving and restoring window positions
