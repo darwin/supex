@@ -203,13 +203,13 @@ If you'd like to help improve Supex:
 
 - **Report Issues**: Found a bug? Open an issue on GitHub
 - **Suggest Features**: Have an idea? Start a discussion
-- **Submit Pull Requests**: Want to contribute code? See [CONTRIBUTE.md](CONTRIBUTE.md) for:
+- **Submit Pull Requests**: Want to contribute code? See [CONTRIBUTE.md](docs/CONTRIBUTE.md) for:
   - Development environment setup
   - Code quality standards
   - Testing guidelines
   - Contribution process
 
-See [CONTRIBUTE.md](CONTRIBUTE.md) for complete development documentation.
+See [CONTRIBUTE.md](docs/CONTRIBUTE.md) for complete development documentation.
 
 ## Requirements
 
@@ -223,7 +223,7 @@ To use Supex, you need:
   - Other MCP-compatible AI agents might work but are untested
 - **macOS** - Currently the primary supported platform
 
-For development requirements, see [CONTRIBUTE.md](CONTRIBUTE.md).
+For development requirements, see [CONTRIBUTE.md](docs/CONTRIBUTE.md).
 
 ## License
 

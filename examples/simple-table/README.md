@@ -440,7 +440,7 @@ Check `src/driver/prompts/sketchup_workflow.md` for:
 
 - **Issues**: Report bugs on GitHub
 - **Discussions**: Ask questions and share your projects
-- **Documentation**: Check the main README and CONTRIBUTE.md
+- **Documentation**: Check the main README and [CONTRIBUTE.md](../../docs/CONTRIBUTE.md)
 
 ## Key Takeaways
 
