@@ -75,6 +75,31 @@ def status(
         raise typer.Exit(1)
 
 
+@app.command()
+def reload(
+    host: HostOption = "localhost",
+    port: PortOption = 9876,
+):
+    """Reload the SketchUp extension without restarting SketchUp."""
+    try:
+        console.print("[yellow]Reloading SketchUp extension...[/yellow]")
+        conn = get_connection(host, port)
+        result = conn.send_command("reload_extension")
+
+        if result.get("success"):
+            console.print("[green]Extension reloaded successfully[/green]")
+            if "message" in result:
+                console.print(result["message"])
+        else:
+            console.print("[red]Failed to reload extension[/red]")
+            error_msg = result.get("error", "Unknown error")
+            console.print(error_msg)
+            raise typer.Exit(1)
+
+    except Exception as e:
+        handle_error(e)
+
+
 @app.command("eval")
 def eval_ruby(
     code: Annotated[str, typer.Argument(help="Ruby code to execute")],

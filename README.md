@@ -112,11 +112,12 @@ Or manually add to `.claude/mcp.json` in your project (recommended for setting c
 # 1. Edit Ruby source files in src/runtime/supex_runtime/
 # 2. Reload extension (choose one):
 
-# Via command line (recommended for development)
-./scripts/reload-extension.sh
+# Via supex CLI (recommended for development)
+cd src/driver
+uv run supex reload
 
-# Or using Python script with options
-./src/driver/scripts/reload_extension.py --host 127.0.0.1 --port 9876
+# With custom host/port
+uv run supex reload --host 127.0.0.1 --port 9876
 
 # Via SketchUp menu
 Extensions > Supex Runtime > Reload Extension
@@ -163,14 +164,12 @@ uv run mypy src/
 supex/
 ├── scripts/
 │   ├── launch-sketchup.sh          # Main SketchUp launcher
-│   ├── reload-extension.sh         # CLI reload wrapper (bash)
 │   └── helpers/                    # Helper scripts
 │       └── shutdown-sketchup.applescript  # Graceful SketchUp shutdown
 ├── src/
 │   ├── driver/                     # Python MCP server
 │   │   ├── src/supex_driver/      # Server implementation
 │   │   ├── scripts/               # Utility scripts
-│   │   │   └── reload_extension.py # CLI reload tool (Python)
 │   │   ├── examples/              # Usage examples
 │   │   ├── tests/                 # Test suite
 │   │   └── pyproject.toml         # UV package config
@@ -213,7 +212,7 @@ supex/
 - **`check_sketchup_status()`** - Verify connection health
 - **`console_capture_status()`** - Check console logging status
 
-**Note**: Extension reload is available via CLI (`./scripts/reload-extension.sh`) or SketchUp menu, not as an MCP tool.
+**Note**: Extension reload is available via CLI (`supex reload`) or SketchUp menu, not as an MCP tool.
 
 ## Advanced Features
 
@@ -285,7 +284,7 @@ eval_ruby_file("scripts/create_spiral_staircase.rb")
 ### Extension Development Cycle
 
 1. **Edit** Ruby extension sources in `src/runtime/supex_runtime/`
-2. **Reload** extension via CLI: `./scripts/reload-extension.sh`
+2. **Reload** extension via CLI: `supex reload`
 3. **Test** changes immediately without SketchUp restart
 4. **Iterate** rapidly with instant feedback
 

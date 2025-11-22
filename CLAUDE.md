@@ -112,7 +112,7 @@ bundle exec rake build
 **Development Workflow:**
 1. Edit Ruby source files in `src/runtime/supex_runtime/`
 2. Reload extension (choose one method):
-   - **Via command line** (recommended): `./scripts/reload-extension.sh`
+   - **Via supex CLI** (recommended): `cd src/driver && uv run supex reload`
    - Via SketchUp menu: `Extensions > Supex Runtime > Reload Extension`
    - Via Ruby console: `SupexRuntime::Main.reload_extension`
 3. Changes are picked up immediately without restarting SketchUp
