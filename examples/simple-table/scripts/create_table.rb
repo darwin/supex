@@ -155,7 +155,7 @@ module SupexSimpleTable
 
   # Example usage with default dimensions
   # Orchestrates table creation with transaction management
-  def self.example
+  def self.example_table
     model = Sketchup.active_model
     # Work in model root to avoid nesting when user is editing a group.
     entities = model.entities

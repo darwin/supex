@@ -63,7 +63,7 @@ Scripts follow SketchUp best practices:
 **Module Organization:**
 - **Wrap all functions in a module with Supex prefix** - Use `module SupexXxxYyy` to prevent naming conflicts with other extensions
 - **No automatic execution on load** - Never run code automatically when file is loaded/evaluated; allows use as library
-- **Implement example methods** - Create one or more `example` methods that demonstrate usage with default parameters
+- **Implement example methods** - Create descriptive example methods (e.g., `example_table`, `example_decorations`) that demonstrate usage with default parameters
 - **Use helpers.rb for shared utilities** - Place reusable helper functions in `scripts/helpers.rb` with project-specific module
   - Import with `require_relative 'helpers'` at the top of scripts
   - Scripts "reopen" the same module to add their functions (Ruby feature)
@@ -76,18 +76,18 @@ Scripts follow SketchUp best practices:
   - Low-level: Individual component creation (e.g., `create_table_leg`, `create_table_top`)
   - Mid-level: Composite operations (e.g., `create_table_legs` - creates all four legs)
   - High-level: Complete assemblies (e.g., `create_simple_table`)
-  - Orchestration: Example methods with transaction management (`example`)
+  - Orchestration: Example methods with transaction management (`example_table`, `example_decorations`)
 - **Configuration in orchestration layer** - All configuration values (names, dimensions, metadata, etc.) should be local variables in orchestration functions, not hardcoded in lower-level functions
   - Lower-level functions accept parameters, don't decide values
   - Single source of truth for each configuration value
-  - Example: `table_name = 'Table'` and `attribute_type = 'basic_table_example'` in `example`
+  - Example: `table_name = 'Table'` and `attribute_type = 'basic_table_example'` in `example_table`
   - Metadata (attributes, tags) applied in orchestration, not in geometry functions
 - **Use params hash for flexible APIs** - High-level functions accept optional `params = {}` hash with defaults
   - Named parameters for clarity
   - All parameters optional with sensible defaults
   - Easy to override only specific values
   - Example: `create_simple_table(entities, table_length: 2.0.m)` or `create_simple_table(entities)` for defaults
-- **Transaction management only in orchestration** - Only `example` methods (or similar top-level functions) should use `start_operation`/`commit_operation`
+- **Transaction management only in orchestration** - Only example methods (or similar top-level orchestration functions) should use `start_operation`/`commit_operation`
 - **Parametrize location** - Functions accept `entities` as "where" parameter for flexible placement
 - **Return created objects** - Functions return created groups/entities for further manipulation
 - **Document all public functions** - Use YARD comments with `@param` and `@return` tags
@@ -150,7 +150,7 @@ module SupexSimpleTable
     main_table  # Return clean object for orchestration
   end
 
-  def self.example # Orchestration
+  def self.example_table # Orchestration
     model = Sketchup.active_model
     entities = model.entities
 
