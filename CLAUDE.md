@@ -112,27 +112,21 @@ bundle exec rake build
 
 **Development Workflow:**
 1. Edit Ruby source files in `src/runtime/supex_runtime/`
-2. Reload extension (choose one method):
-   - **Via supex CLI** (recommended): `cd src/driver && uv run supex reload`
-   - Via SketchUp menu: `Extensions > Supex Runtime > Reload Extension`
-   - Via Ruby console: `SupexRuntime::Main.reload_extension`
+2. Reload extension: `./supex reload`
 3. Changes are picked up immediately without restarting SketchUp
 
 ### Python MCP Driver (src/driver/)
 ```bash
-# Install dependencies with UV
-cd src/driver
-uv sync --dev
-
 # Run the MCP server
-uv run supex-mcp
+./mcp
 
 # Run the CLI
-uv run supex --help
-uv run supex status
-uv run supex info
+./supex --help
+./supex status
+./supex info
 
 # Run tests
+cd src/driver
 uv run pytest tests/
 ```
 

@@ -76,9 +76,7 @@ The launcher automatically:
 ### 2. Start Python MCP Server
 
 ```bash
-cd src/driver
-uv sync --dev
-uv run supex-mcp
+./mcp
 ```
 
 ### 3. Connect Claude Code with Supex
@@ -90,15 +88,13 @@ Add Supex to your Claude Code configuration via command line:
 claude mcp add --transport stdio --scope project supex -- /path/to/supex/mcp
 ```
 
-Or manually add to `.claude/mcp.json` in your project (recommended for setting cwd):
+Or manually add to `.claude/mcp.json` in your project:
 
 ```json
 {
   "mcpServers": {
     "supex": {
-      "command": "uv",
-      "args": ["run", "supex-mcp"],
-      "cwd": "/path/to/supex/src/driver"
+      "command": "/path/to/supex/mcp"
     }
   }
 }
@@ -110,23 +106,11 @@ Or manually add to `.claude/mcp.json` in your project (recommended for setting c
 
 ```bash
 # 1. Edit Ruby source files in src/runtime/supex_runtime/
-# 2. Reload extension (choose one):
+# 2. Reload extension:
+./supex reload
 
-# Via supex CLI (recommended for development)
-cd src/driver
-uv run supex reload
-
-# With custom host/port
-uv run supex reload --host 127.0.0.1 --port 9876
-
-# Via SketchUp menu
-Extensions > Supex Runtime > Reload Extension
-
-# Via MCP tool
-reload_extension
-
-# Via Ruby console
-SupexRuntime::Main.reload_extension
+# With custom host/port:
+./supex reload --host 127.0.0.1 --port 9876
 ```
 
 ### Ruby Extension Build System
@@ -144,12 +128,8 @@ bundle exec rubocop
 ### Python Server Development
 
 ```bash
-cd src/driver
-
-# Install with development dependencies
-uv sync --dev
-
 # Run tests
+cd src/driver
 uv run pytest tests/ -v
 
 # Code quality
@@ -328,9 +308,7 @@ Supex enables AI-driven SketchUp automation through configured Claude Code proje
    {
      "mcpServers": {
        "supex": {
-         "command": "uv",
-         "args": ["run", "supex-mcp"],
-         "cwd": "/path/to/supex/src/driver"
+         "command": "/path/to/supex/mcp"
        }
      }
    }

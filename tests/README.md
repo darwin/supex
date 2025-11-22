@@ -127,7 +127,7 @@ SketchUpConnectionError: Connection refused
 **Solution:**
 1. Check console log: `cat .tmp/sketchup_console.log`
 2. Verify extension is loaded: Check **Extensions** menu in SketchUp
-3. Test connection manually: `cd src/driver && uv run supex status`
+3. Test connection manually: `./supex status` (from repository root)
 
 ### Tests Fail with "Model Not Empty"
 
@@ -135,9 +135,8 @@ SketchUpConnectionError: Connection refused
 
 **Solution:** The `fresh_model` fixture should handle this. If it fails:
 ```bash
-# Clear model manually via CLI
-cd src/driver
-uv run supex eval "Sketchup.active_model.entities.clear!"
+# Clear model manually via CLI (from repository root)
+./supex eval "Sketchup.active_model.entities.clear!"
 ```
 
 ### Template File Missing

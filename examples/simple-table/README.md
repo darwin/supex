@@ -20,8 +20,17 @@ simple-table/
 Make sure SketchUp is running with the Supex extension loaded:
 
 ```bash
+# From supex repository root
 cd /path/to/supex
 ./scripts/launch-sketchup.sh
+```
+
+And the MCP server is running:
+
+```bash
+# From supex repository root
+cd /path/to/supex
+./mcp
 ```
 
 ### 2. Run the Scripts

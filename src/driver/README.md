@@ -36,63 +36,31 @@ Supex is a modern SketchUp integration that enables AI agents to control and man
 
 ```bash
 cd src/driver
-
-# Install with UV (recommended)
 uv sync
-
-# Alternative: Install with pip
-pip install -e .
 ```
 
 ### 2. Install SketchUp Extension
 
-**Recommended: Use the launcher script from the repository root:**
+Use the launcher script from the repository root:
 
 ```bash
-# From the main supex directory
-./launch-sketchup.sh
+./scripts/launch-sketchup.sh
 ```
 
 This automatically handles extension loading via Ruby injection.
-
-**Alternative: Manual installation:**
-
-1. Build and install the extension:
-   ```bash
-   cd src/runtime
-   bundle install
-   bundle exec rake build
-   bundle exec rake install
-   ```
-
-2. Restart SketchUp
-
-3. Go to **Extensions > Extension Manager** and enable "Supex Runtime"
 
 ## Usage
 
 ### 1. Start the SketchUp Extension
 
-**With Launcher Script (Recommended):**
 ```bash
-# From repository root - automatically starts extension
-./launch-sketchup.sh
+./scripts/launch-sketchup.sh
 ```
-
-**Manual Method:**
-In SketchUp:
-- Go to **Extensions > Supex Runtime > Start Server**
-- The extension will start listening on localhost:9876
 
 ### 2. Run the MCP Server
 
 ```bash
-# UV method (recommended)
-uv run supex-mcp
-
-# Alternative methods
-supex-mcp                  # If installed globally
-python -m supex_driver    # Module execution
+./mcp
 ```
 
 ### 3. Connect with MCP Client
@@ -231,7 +199,6 @@ supex/
 ### Setup Development Environment
 
 ```bash
-# From repository root
 cd src/driver
 uv sync --dev
 
@@ -243,10 +210,12 @@ bundle install
 ### Development Commands
 
 ```bash
+cd src/driver
+
 # Run linting
 uv run ruff check src/ tests/
 
-# Format code  
+# Format code
 uv run ruff format src/ tests/
 
 # Type checking
@@ -254,9 +223,6 @@ uv run mypy src/
 
 # Run tests
 uv run pytest tests/ -v
-
-# Run server in development mode
-uv run python -m supex_driver
 ```
 
 ### Testing Connection

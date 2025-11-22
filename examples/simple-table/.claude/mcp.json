@@ -1,9 +1,7 @@
 {
   "mcpServers": {
     "supex": {
-      "command": "uv",
-      "args": ["run", "supex-mcp"],
-      "cwd": "/Users/darwin/x/lab/supex/src/driver"
+      "command": "/Users/darwin/x/lab/supex/mcp"
     }
   }
 }
