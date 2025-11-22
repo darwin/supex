@@ -10,13 +10,13 @@ require_relative 'helpers'
 # Reopens module from helpers.rb to add table-specific functions
 module SupexSimpleTable
   # Creates a wood material with saddle brown color
+  # Uses recreate_material for idempotence
   #
   # @param model [Sketchup::Model] The active SketchUp model
+  # @param tag [String] Tag value for idempotence (default: 'basic_table_example')
   # @return [Sketchup::Material] The created wood material
-  def self.create_wood_material(model)
-    wood_material = model.materials.add('Wood')
-    wood_material.color = Sketchup::Color.new(139, 69, 19) # Saddle brown
-    wood_material
+  def self.create_wood_material(model, tag = 'basic_table_example')
+    recreate_material(model, 'Wood', Sketchup::Color.new(139, 69, 19), tag)
   end
 
   # Creates a table top as a group

@@ -31,4 +31,57 @@ module SupexSimpleTable
       group.erase! if group.get_attribute(attribute_dict, attribute_key) == attribute_value
     end
   end
+
+  # Creates a simple material with name and color
+  # Low-level material creation function
+  #
+  # @param model [Sketchup::Model] The active SketchUp model
+  # @param name [String] Name for the material
+  # @param color [Sketchup::Color] Color for the material
+  # @return [Sketchup::Material] The created material
+  def self.create_simple_material(model, name, color)
+    material = model.materials.add(name)
+    material.color = color
+    material
+  end
+
+  # Gets or creates a material with idempotence (check-and-reuse pattern)
+  # Reuses existing material if it has our tag, otherwise creates new one
+  #
+  # This function implements a robust check-and-reuse approach:
+  # 1. First, search for ANY material with our tag (regardless of name)
+  # 2. If found -> reuse it and update color (true idempotence)
+  # 3. If not found, check if requested name is available
+  # 4. If name taken by user's material -> create with unique name
+  # 5. If name available -> create with requested name
+  #
+  # @param model [Sketchup::Model] The active SketchUp model
+  # @param name [String] Preferred name for the material
+  # @param color [Sketchup::Color] Color for the material
+  # @param tag [String] Tag value for attribute verification (e.g., 'basic_table_example')
+  # @return [Sketchup::Material] The material with tag attribute
+  #
+  # @example Create wood material idempotently
+  #   wood = SupexSimpleTable.recreate_material(
+  #     model, 'Wood', Sketchup::Color.new(139, 69, 19), 'basic_table_example'
+  #   )
+  def self.recreate_material(model, name, color, tag)
+    # First, try to find ANY existing material with our tag (regardless of name)
+    tagged_material = model.materials.find { |mat| mat.get_attribute('supex', 'type') == tag }
+
+    if tagged_material
+      # We already have a tagged material, reuse it (true idempotence)
+      tagged_material.color = color
+      return tagged_material
+    end
+
+    # No tagged material exists yet - create one
+    # materials.add() automatically creates unique name if name is taken
+    material = create_simple_material(model, name, color)
+
+    # Tag it so we can find it next time (by tag, not name!)
+    material.set_attribute('supex', 'type', tag)
+
+    material
+  end
 end
