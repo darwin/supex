@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# MCP server wrapper for Claude Code integration
+# This script provides clean stdio for MCP communication (no logging interference)
+# Logs stderr to .tmp/supex-mcp.log for debugging
+# For interactive development with logging, use: ./scripts/launch-mcp.sh
+
+set -e
+
+# Change to supex project root (directory containing this script)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT_DIR" || exit 1
+
+# Setup logging (stderr only - stdout must stay clean for MCP)
+LOG_DIR=".tmp"
+LOG_FILE="$LOG_DIR/supex-mcp.log"
+mkdir -p "$LOG_DIR"
+
+# Log startup info
+{
+    echo "=== MCP Server Start: $(date '+%Y-%m-%d %H:%M:%S') ==="
+    echo "Working directory: $ROOT_DIR"
+    echo "Log file: $LOG_FILE"
+    echo "Command: uv run supex-mcp"
+    echo "=========================================="
+} >> "$LOG_FILE" 2>&1
+
+# Change to MCP driver directory
+cd src/driver || exit 1
+
+# Run MCP server with stderr logging (stdout clean for MCP communication)
+exec uv run supex-mcp 2>> "$ROOT_DIR/$LOG_FILE"
