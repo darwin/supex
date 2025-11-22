@@ -58,6 +58,53 @@ Scripts follow SketchUp best practices:
 - Wrap operations in begin/rescue blocks with `model.abort_operation` on error
 - Add materials for visual appearance
 
+## Best Practices for Reusable Scripts
+
+**Module Organization:**
+- **Wrap all functions in a module with Supex prefix** - Use `module SupexXxxYyy` to prevent naming conflicts with other extensions
+- **No automatic execution on load** - Never run code automatically when file is loaded/evaluated; allows use as library
+- **Implement example methods** - Create one or more `example` methods that demonstrate usage with default parameters
+
+**Function Design:**
+- **Separate concerns by function level:**
+  - Low-level: Individual component creation (e.g., `create_table_leg`, `create_table_top`)
+  - Mid-level: Composite operations (e.g., `create_table_legs` - creates all four legs)
+  - High-level: Complete assemblies (e.g., `create_simple_table`)
+  - Orchestration: Example methods with transaction management (`example`)
+- **Transaction management only in orchestration** - Only `example` methods (or similar top-level functions) should use `start_operation`/`commit_operation`
+- **Parametrize location** - Functions accept `entities` as "where" parameter for flexible placement
+- **Return created objects** - Functions return created groups/entities for further manipulation
+- **Document all public functions** - Use YARD comments with `@param` and `@return` tags
+
+**Example Structure:**
+```ruby
+module SupexBasicTable
+  def self.create_table_leg(...) # Low-level
+    # Creates single leg, returns group
+  end
+
+  def self.create_table_legs(...) # Mid-level
+    # Creates all legs using create_table_leg
+  end
+
+  def self.create_simple_table(...) # High-level
+    # Assembles complete table
+  end
+
+  def self.example # Orchestration
+    # Transaction management here
+    model.start_operation('Create Table', true)
+    begin
+      create_simple_table(...)
+      model.commit_operation
+    rescue
+      model.abort_operation
+      raise
+    end
+  end
+end
+```
+
 ## Modifying the Example
 
 When editing scripts:
