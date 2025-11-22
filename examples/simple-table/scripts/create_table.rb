@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Create a simple wooden table in SketchUp
 # This script demonstrates project-based workflow with Supex
 
@@ -48,7 +50,7 @@ begin
 
   # Create four table legs
   leg_positions = [
-    [leg_inset, leg_inset],                                    # Front left
+    [leg_inset, leg_inset], # Front left
     [table_length - leg_inset - leg_size, leg_inset],         # Front right
     [leg_inset, table_width - leg_inset - leg_size],          # Back left
     [table_length - leg_inset - leg_size, table_width - leg_inset - leg_size] # Back right
@@ -82,7 +84,6 @@ begin
   puts "Dimensions: #{table_length.to_m}m x #{table_width.to_m}m x #{table_height.to_m}m"
   puts 'Structure: Table > Table Top + Table Legs (4 legs)'
   puts 'Use get_model_info() or take_screenshot() to verify the result'
-
 rescue StandardError => e
   # Abort operation on error
   model.abort_operation

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Add decorative elements to the table
 # This demonstrates modular scripting - extending the model with additional features
 
@@ -36,10 +38,10 @@ begin
   zs = corners.map(&:z)
   table_length = xs.max - xs.min
   table_width  = ys.max - ys.min
-  table_height = zs.max          # top surface height in group space
+  table_height = zs.max # top surface height in group space
 
   trim_height = 0.01.m
-  trim_width  = 0.01.m  # small overhang on all sides
+  trim_width  = 0.01.m # small overhang on all sides
 
   # Create / reuse decorative trim material
   trim_material = model.materials['Trim'] || model.materials.add('Trim')
@@ -47,7 +49,9 @@ begin
 
   # Add trim around table edge; keep it grouped with the table so moves stay in sync
   # Remove old trim if script is re-run
-  table_group.entities.grep(Sketchup::Group).select { |g| g.name == 'Decorative Trim' }.each(&:erase!)
+  table_group.entities.grep(Sketchup::Group).select do |g|
+    g.name == 'Decorative Trim'
+  end.each(&:erase!)
 
   trim_group = table_group.entities.add_group
   trim_group.name = 'Decorative Trim'
@@ -68,8 +72,8 @@ begin
     ]
 
     face = entities.add_face(pts)
-    face.reverse! if face.normal.z < 0 # ensure front face points up
-    face.pushpull(z2 - z1)             # generates side faces with correct orientation
+    face.reverse! if face.normal.z.negative? # ensure front face points up
+    face.pushpull(z2 - z1) # generates side faces with correct orientation
   end
 
   # Front trim: extends full width with overhang, sits on front edge
@@ -89,7 +93,7 @@ begin
   trim_group.entities.grep(Sketchup::Face).each do |f|
     c = f.bounds.center
     outward = Geom::Vector3d.new(c.x - center.x, c.y - center.y, c.z - center.z)
-    f.reverse! if outward.valid? && outward.dot(f.normal) < 0
+    f.reverse! if outward.valid? && outward.dot(f.normal).negative?
     f.material = trim_material
     f.back_material = trim_material
   end
@@ -99,7 +103,6 @@ begin
   puts 'Decorative trim added successfully!'
   puts 'The table now has enhanced visual detail'
   puts 'Use take_screenshot() to see the updated model'
-
 rescue StandardError => e
   model.abort_operation
   puts "Error adding decorations: #{e.message}"

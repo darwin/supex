@@ -6,9 +6,10 @@ ruby '3.4.7'
 
 # Development dependencies
 group :development do
-  gem 'rubocop'
-  gem 'rubocop-performance'
-  gem 'sketchup-api-stubs'
   gem 'bundler'
   gem 'rake'
+  gem 'rubocop'
+  gem 'rubocop-performance'
+  gem 'rubocop-rake'
+  gem 'sketchup-api-stubs'
 end

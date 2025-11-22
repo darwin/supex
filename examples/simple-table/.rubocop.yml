@@ -1,5 +1,9 @@
 # RuboCop configuration for SketchUp Ruby extension
 
+plugins:
+  - rubocop-performance
+  - rubocop-rake
+
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
@@ -45,4 +49,7 @@ Style/GlobalVars:
 
 # Allow rescue without explicit error class for SketchUp compatibility
 Style/RescueStandardError:
+  Enabled: false
+
+Metrics/ParameterLists:
   Enabled: false
