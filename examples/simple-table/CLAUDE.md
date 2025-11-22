@@ -128,9 +128,11 @@ module SupexSimpleTable
     # Creates all legs using create_table_leg
   end
 
-  def self.create_simple_table(entities, model, ...) # High-level
+  def self.create_simple_table(entities, ...) # High-level
     # Assembles complete table - pure geometry function
     # Returns clean object without ANY metadata (orchestration concern)
+    # Model obtained from entities.model
+    model = entities.model
     main_table = entities.add_group
 
     # ... create table top and legs ...
@@ -151,8 +153,8 @@ module SupexSimpleTable
       # Cleanup previous instances (idempotent)
       cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
 
-      # Create clean geometry (no metadata)
-      table = create_simple_table(entities, model, ...)
+      # Create clean geometry (no metadata, model obtained from entities)
+      table = create_simple_table(entities, ...)
 
       # Apply ALL metadata together (orchestration concern)
       table.name = table_name

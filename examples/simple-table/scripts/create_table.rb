@@ -116,8 +116,7 @@ module SupexSimpleTable
   # Returns a clean geometry object without metadata (name, attributes)
   # Metadata should be applied at orchestration level
   #
-  # @param entities [Sketchup::Entities] Where to create the table
-  # @param model [Sketchup::Model] The active SketchUp model
+  # @param entities [Sketchup::Entities] Where to create the table (model obtained via entities.model)
   # @param table_length [Length] Table length
   # @param table_width [Length] Table width
   # @param table_height [Length] Total table height
@@ -125,8 +124,10 @@ module SupexSimpleTable
   # @param leg_size [Length] Size of leg (square cross-section)
   # @param leg_inset [Length] Inset from edge for leg placement
   # @return [Sketchup::Group] The created table group (without name or attributes)
-  def self.create_simple_table(entities, model, table_length, table_width, table_height, top_thickness, leg_size,
-                                leg_inset)
+  def self.create_simple_table(entities, table_length, table_width, table_height, top_thickness, leg_size, leg_inset)
+    # Get model from entities
+    model = entities.model
+
     # Create wood material
     wood_material = create_wood_material(model)
 
@@ -170,7 +171,7 @@ module SupexSimpleTable
       leg_inset = 0.05.m
 
       # Create the table (clean geometry without metadata)
-      table = create_simple_table(entities, model, table_length, table_width, table_height, top_thickness,
+      table = create_simple_table(entities, table_length, table_width, table_height, top_thickness,
                                    leg_size, leg_inset)
 
       # Apply metadata (orchestration concern)
