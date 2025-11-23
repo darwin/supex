@@ -1,0 +1,47 @@
+# Documentation filtering configuration
+# Defines which namespaces and patterns to exclude from generated documentation
+
+# Top-level namespaces to exclude completely
+excluded_namespaces:
+  - Layout          # Layout API (2D documentation and presentations)
+  - UI              # User interface components (dialogs, toolbars, menus)
+
+# Patterns to exclude (supports glob-style wildcards)
+# Patterns are converted to regex: * becomes .*
+excluded_patterns:
+  # Event handling:
+  - "*Observer"                    # All Observer classes (event handling)
+
+  # Extensions & APIs:
+  - "Sketchup::Extension*"         # Extensions API (ExtensionsManager, Extension)
+  - "Sketchup::Licensing*"         # Licensing API
+  - "Sketchup::Http*"              # HTTP/web request API
+
+  # View/Animation (keeping Camera, Pages, Rendering):
+  - "Sketchup::Animation"          # Camera animations
+  - "Sketchup::View"               # Viewport rendering + OpenGL draw methods
+  - "Sketchup::Shadow*"            # Shadows and sun positioning
+  - "Sketchup::Overlay*"           # 2D overlay graphics
+
+  # UI/Tools/Interactivity:
+  - "Sketchup::Tool*"              # Custom tool system (includes OpenGL)
+  - "Sketchup::Menu"               # Menu system
+  - "Sketchup::PickHelper"         # Mouse picking
+  - "Sketchup::InputPoint"         # Inference system
+  - "Sketchup::Console"            # Ruby console
+
+  # Advanced/Low-level:
+  - "Sketchup::Options*"           # Application settings
+  - "Sketchup::Regional*"          # Locale/formatting
+  - "Sketchup::UVHelper"           # Texture mapping helper
+  - "Sketchup::ImageRep"           # Low-level image handling
+  - "Sketchup::Behavior"           # Component behavior flags
+
+  # OpenGL constants:
+  - "GL_*"                         # All OpenGL primitive constants
+
+# Notes:
+# - excluded_namespaces: Excludes entire namespace (e.g., "Layout" excludes Layout::*)
+# - excluded_patterns: Matches against full object path (e.g., "Sketchup::Model")
+# - Case-sensitive matching
+# - Changes require regeneration: ./scripts/generate_docs.sh

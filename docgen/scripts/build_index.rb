@@ -3,20 +3,64 @@
 
 require 'yard'
 require 'fileutils'
+require 'yaml'
 
 # Build a concise INDEX.md for Claude Code to navigate the API documentation
 
 puts "Loading YARD registry..."
 YARD::Registry.load!('.yardoc')
 
+# Load filtering configuration
+config_path = 'filter_config.yml'
+if File.exist?(config_path)
+  puts "Loading filter configuration from #{config_path}..."
+  filter_config = YAML.load_file(config_path)
+  excluded_namespaces = filter_config['excluded_namespaces'] || []
+  excluded_patterns = (filter_config['excluded_patterns'] || []).map do |pattern|
+    # Convert glob-style wildcards to regex
+    # Don't anchor at end ($) so patterns match paths and their children
+    # e.g., "*Observer" matches "Sketchup::AppObserver" AND "Sketchup::AppObserver#onNewModel"
+    Regexp.new(pattern.gsub('*', '.*'))
+  end
+  puts "  Excluded namespaces: #{excluded_namespaces.join(', ')}"
+  puts "  Excluded patterns: #{filter_config['excluded_patterns'].join(', ')}"
+else
+  puts "No filter configuration found, including all objects..."
+  excluded_namespaces = []
+  excluded_patterns = []
+end
+
+# Check if an object should be excluded based on filter configuration
+def should_exclude?(obj, excluded_namespaces, excluded_patterns)
+  # Check top-level namespace
+  top_namespace = obj.path.split('::').first
+  return true if excluded_namespaces.include?(top_namespace)
+
+  # Check patterns
+  return true if excluded_patterns.any? { |regex| regex.match?(obj.path) }
+
+  false
+end
+
 # Group objects by top-level namespace
 grouped_objects = Hash.new { |h, k| h[k] = [] }
 
-# Collect all documented objects
+# Collect all documented objects (with filtering)
+total_objects = 0
+excluded_objects = 0
+
 [:class, :module, :method, :constant].each do |type|
   YARD::Registry.all(type).each do |obj|
+    total_objects += 1
+
     # Skip undocumented objects
     next if obj.docstring.blank?
+
+    # Skip excluded objects based on filter configuration
+    if should_exclude?(obj, excluded_namespaces, excluded_patterns)
+      excluded_objects += 1
+      next
+    end
 
     # Extract summary (first sentence)
     summary = obj.docstring.summary.strip
@@ -35,7 +79,10 @@ grouped_objects = Hash.new { |h, k| h[k] = [] }
   end
 end
 
-puts "Found #{grouped_objects.values.flatten.size} documented objects"
+included_objects = grouped_objects.values.flatten.size
+puts "Total objects found: #{total_objects}"
+puts "Excluded objects: #{excluded_objects}"
+puts "Included objects: #{included_objects}"
 puts "Grouped into #{grouped_objects.keys.size} namespaces"
 
 # Sort namespaces alphabetically
@@ -51,7 +98,14 @@ File.open(output_path, 'w') do |f|
   f.puts "This index provides a concise overview of the SketchUp Ruby API for Claude Code."
   f.puts "Use this to quickly find relevant classes, modules, and methods before diving into detailed documentation."
   f.puts ""
-  f.puts "**Total documented objects:** #{grouped_objects.values.flatten.size}"
+  f.puts "**Included objects:** #{included_objects}"
+
+  if excluded_objects > 0
+    f.puts "**Excluded objects:** #{excluded_objects} (filtered via filter_config.yml)"
+    f.puts ""
+    f.puts "_Filtered namespaces:_ #{excluded_namespaces.join(', ')}" unless excluded_namespaces.empty?
+  end
+
   f.puts ""
   f.puts "---"
   f.puts ""

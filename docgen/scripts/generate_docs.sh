@@ -21,6 +21,11 @@ fi
 echo "==> Generating Markdown documentation with YARD..."
 bundle exec yardoc
 
+echo "==> Cleaning up excluded namespaces..."
+# Remove excluded namespace directories (belt-and-suspenders with YARD --exclude)
+rm -rf generated-sketchup-docs-md/Layout/
+rm -rf generated-sketchup-docs-md/UI/
+
 echo "==> Building INDEX.md for Claude Code..."
 bundle exec ruby scripts/build_index.rb
 

@@ -6,6 +6,8 @@
 --no-private
 --hide-api Internal
 --plugin yard-sketchup
+--exclude sketchup-api-stubs/lib/sketchup-api-stubs/stubs/Layout
+--exclude sketchup-api-stubs/lib/sketchup-api-stubs/stubs/UI
 --asset sketchup-api-stubs/images:images
 sketchup-api-stubs/lib/sketchup-api-stubs/stubs/**/*.rb
 -

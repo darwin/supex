@@ -69,6 +69,66 @@ generated-sketchup-docs-md/
 └── ...
 ```
 
+## Filtering Documentation
+
+The generator supports filtering to exclude irrelevant API namespaces and patterns. This is configured via `filter_config.yml`.
+
+### Configuration File
+
+Edit `filter_config.yml` to customize filtering:
+
+```yaml
+# Top-level namespaces to exclude completely
+excluded_namespaces:
+  - Layout          # Layout API (2D documentation)
+  - UI              # User interface components
+
+# Patterns to exclude (glob-style wildcards)
+excluded_patterns:
+  - "*Observer"               # All Observer classes
+  - "Sketchup::Extension*"    # Extensions API
+  - "Sketchup::Licensing*"    # Licensing API
+```
+
+### Default Filtering
+
+By default, the following are excluded to focus on 3D modeling API:
+
+- **Layout::*** - Layout API for 2D documentation and presentations
+- **UI::*** - User interface components (dialogs, toolbars, menus)
+- ***Observer** - All Observer classes (event handling system)
+- **Sketchup::Extension*** - Extensions API (ExtensionsManager, Extension)
+- **Sketchup::Licensing*** - Licensing API
+
+### Filtered vs Unfiltered
+
+- **With filtering:** ~1,500-1,800 objects (core 3D modeling API)
+- **Without filtering:** ~2,700 objects (complete API)
+
+Filtered documentation is optimized for:
+- Creating and manipulating 3D geometry
+- Working with entities, faces, edges, groups, components
+- Geometric operations (Geom:: namespace)
+- Materials, layers, and model management
+
+### Customizing Filters
+
+To include more or less content:
+
+1. Edit `filter_config.yml`
+2. Add/remove namespaces or patterns
+3. Regenerate: `./scripts/generate_docs.sh`
+
+Example - include UI but exclude Layout:
+
+```yaml
+excluded_namespaces:
+  - Layout    # Remove "UI" to include it
+
+excluded_patterns:
+  - "*Observer"
+```
+
 ## Updating SketchUp API Version
 
 To update to the latest SketchUp API version:
