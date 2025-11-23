@@ -1,7 +1,5 @@
 --title "SketchUp Ruby API Documentation"
---plugin markdown
---format markdown
---output-dir generated-sketchup-docs-md
+--output-dir tmp/yard-html
 --no-api
 --no-private
 --hide-api Internal

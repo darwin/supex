@@ -3,7 +3,6 @@
 source 'https://rubygems.org'
 
 gem 'yard', '~> 0.9'
-gem 'yard-markdown', '~> 0.4'
 
 # SketchUp-specific YARD plugin
 # Note: This may already be included in the sketchup-api-stubs submodule

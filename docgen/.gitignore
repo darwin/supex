@@ -1,6 +1,9 @@
 # Generated documentation output
 generated-sketchup-docs-md/
 
+# Temporary YARD HTML output
+tmp/
+
 # YARD cache
 .yardoc
 
