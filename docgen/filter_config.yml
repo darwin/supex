@@ -14,6 +14,8 @@ excluded_patterns:
 
   # Extensions & APIs:
   - "Sketchup::Extension*"         # Extensions API (ExtensionsManager, Extension)
+  - "SketchupExtension*"           # Top-level SketchupExtension class
+  - "LanguageHandler*"             # Language/localization handler
   - "Sketchup::Licensing*"         # Licensing API
   - "Sketchup::Http*"              # HTTP/web request API
 
