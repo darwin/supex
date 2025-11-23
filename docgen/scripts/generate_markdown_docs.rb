@@ -4,6 +4,7 @@
 require 'yard'
 require 'fileutils'
 require 'yaml'
+require_relative 'doc_helpers'
 
 # Generate clean Markdown documentation directly from YARD registry
 # This bypasses YARD's HTML generation and HTML→Markdown conversion pipeline
@@ -49,16 +50,32 @@ end
 def format_param(param)
   parts = []
   parts << "`#{param.name}`" if param.name
-  parts << "(#{param.types.join(', ')})" if param.types && !param.types.empty?
-  parts << "— #{param.text}" if param.text && !param.text.strip.empty?
+  if param.types && !param.types.empty?
+    # Add "as" separator if we have a parameter name
+    parts << "as" if param.name
+    # Wrap each type in backticks
+    types_formatted = param.types.map { |t| "`#{t}`" }.join(', ')
+    # Only use parentheses if there's more than one type
+    parts << (param.types.length > 1 ? "(#{types_formatted})" : types_formatted)
+  end
+  if param.text && !param.text.strip.empty?
+    parts << "— #{DocHelpers.process_yard_text(param.text)}"
+  end
   parts.join(' ')
 end
 
 # Format return information
 def format_return(tag)
   parts = []
-  parts << "(#{tag.types.join(', ')})" if tag.types && !tag.types.empty?
-  parts << "— #{tag.text}" if tag.text && !tag.text.strip.empty?
+  if tag.types && !tag.types.empty?
+    # Wrap each type in backticks
+    types_formatted = tag.types.map { |t| "`#{t}`" }.join(', ')
+    # Only use parentheses if there's more than one type
+    parts << (tag.types.length > 1 ? "(#{types_formatted})" : types_formatted)
+  end
+  if tag.text && !tag.text.strip.empty?
+    parts << "— #{DocHelpers.process_yard_text(tag.text)}"
+  end
   parts.empty? ? nil : parts.join(' ')
 end
 
@@ -72,7 +89,7 @@ def generate_class_markdown(obj)
 
   # Inheritance information
   if obj.type == :class && obj.superclass && obj.superclass.path != 'Object'
-    md << "**Inherits:** #{obj.superclass.path}"
+    md << "**Inherits:** `#{obj.superclass.path}`"
     md << ""
   end
 
@@ -80,14 +97,9 @@ def generate_class_markdown(obj)
   if obj.docstring && !obj.docstring.empty?
     md << "## Overview"
     md << ""
-    md << obj.docstring.to_s.strip
-    md << ""
-  end
-
-  # Version tag
-  version_tag = obj.tag(:version)
-  if version_tag
-    md << "**Version:** #{format_tag(version_tag)}"
+    # Process YARD text (normalize and convert references)
+    overview = DocHelpers.process_yard_text(obj.docstring.to_s.strip)
+    md << overview
     md << ""
   end
 
@@ -97,7 +109,7 @@ def generate_class_markdown(obj)
     unless subclasses.empty?
       md << "## Direct Known Subclasses"
       md << ""
-      subclasses.each { |sc| md << "- #{sc.path}" }
+      subclasses.each { |sc| md << "- `#{sc.path}`" }
       md << ""
     end
   end
@@ -108,10 +120,12 @@ def generate_class_markdown(obj)
     md << "## Constants"
     md << ""
     constants.each do |const|
-      md << "### `#{const.name}`"
+      md << "### #{const.name}"
       md << ""
       if const.docstring && !const.docstring.empty?
-        md << const.docstring.to_s.strip
+        # Process YARD text (normalize and convert references)
+        const_desc = DocHelpers.process_yard_text(const.docstring.to_s.strip)
+        md << const_desc
         md << ""
       end
       if const.value
@@ -150,7 +164,7 @@ def generate_method_markdown(method)
 
   # Method signature
   sig = method.signature || "def #{method.name}"
-  md << "### `#{method.name}`"
+  md << "### #{method.name}"
   md << ""
   md << "```ruby"
   md << sig
@@ -159,7 +173,9 @@ def generate_method_markdown(method)
 
   # Method description
   if method.docstring && !method.docstring.empty?
-    md << method.docstring.to_s.strip
+    # Process YARD text (normalize and convert references)
+    description = DocHelpers.process_yard_text(method.docstring.to_s.strip)
+    md << description
     md << ""
   end
 
@@ -167,7 +183,6 @@ def generate_method_markdown(method)
   params = method.tags(:param)
   unless params.empty?
     md << "**Parameters:**"
-    md << ""
     params.each do |param|
       md << "- #{format_param(param)}"
     end
@@ -177,23 +192,39 @@ def generate_method_markdown(method)
   # Return value
   return_tags = method.tags(:return)
   unless return_tags.empty?
-    md << "**Returns:**"
-    md << ""
-    return_tags.each do |ret|
-      formatted = format_return(ret)
-      md << "- #{formatted}" if formatted
+    if return_tags.length == 1
+      # Single return: compact format on one line
+      formatted = format_return(return_tags.first)
+      md << "**Returns:** #{formatted}" if formatted
+      md << ""
+    else
+      # Multiple returns: use list format
+      md << "**Returns:**"
+      return_tags.each do |ret|
+        formatted = format_return(ret)
+        md << "- #{formatted}" if formatted
+      end
+      md << ""
     end
-    md << ""
   end
 
   # Raises
   raises_tags = method.tags(:raise)
   unless raises_tags.empty?
     md << "**Raises:**"
-    md << ""
     raises_tags.each do |raise_tag|
-      types = raise_tag.types ? raise_tag.types.join(', ') : ''
-      text = raise_tag.text || ''
+      if raise_tag.types && !raise_tag.types.empty?
+        # Wrap each type in backticks, use parentheses only for multiple types
+        types_formatted = raise_tag.types.map { |t| "`#{t}`" }.join(', ')
+        types = raise_tag.types.length > 1 ? "(#{types_formatted})" : types_formatted
+      else
+        types = ''
+      end
+      if raise_tag.text
+        text = DocHelpers.process_yard_text(raise_tag.text)
+      else
+        text = ''
+      end
       md << "- #{types} — #{text}".strip
     end
     md << ""
@@ -203,11 +234,12 @@ def generate_method_markdown(method)
   examples = method.tags(:example)
   unless examples.empty?
     md << "**Examples:**"
-    md << ""
     examples.each do |example|
-      title = example.name || "Example"
-      md << "_#{title}_"
-      md << ""
+      # Only output title if it's meaningful (not empty, not default "Example")
+      if example.name && !example.name.strip.empty? && example.name.strip != "Example"
+        md << "_#{example.name}_"
+        md << ""
+      end
       md << "```ruby"
       md << example.text.strip
       md << "```"
@@ -215,20 +247,12 @@ def generate_method_markdown(method)
     end
   end
 
-  # Version
-  version_tag = method.tag(:version)
-  if version_tag
-    md << "**Version:** #{format_tag(version_tag)}"
-    md << ""
-  end
-
   # See also
   see_tags = method.tags(:see)
   unless see_tags.empty?
     md << "**See also:**"
-    md << ""
     see_tags.each do |see_tag|
-      md << "- #{see_tag.name}"
+      md << "- #{DocHelpers.convert_yard_references(see_tag.name)}"
     end
     md << ""
   end
