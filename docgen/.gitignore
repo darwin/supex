@@ -1,0 +1,9 @@
+# Generated documentation output
+generated-sketchup-docs-md/
+
+# YARD cache
+.yardoc
+
+# Bundler
+.bundle/
+vendor/bundle/

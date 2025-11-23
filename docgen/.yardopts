@@ -1,0 +1,12 @@
+--title "SketchUp Ruby API Documentation"
+--plugin markdown
+--format markdown
+--output-dir generated-sketchup-docs-md
+--no-api
+--no-private
+--hide-api Internal
+--plugin yard-sketchup
+--asset sketchup-api-stubs/images:images
+sketchup-api-stubs/lib/sketchup-api-stubs/stubs/**/*.rb
+-
+sketchup-api-stubs/pages/*.md

@@ -1,0 +1,3 @@
+[submodule "docgen/sketchup-api-stubs"]
+	path = docgen/sketchup-api-stubs
+	url = https://github.com/SketchUp/ruby-api-stubs.git

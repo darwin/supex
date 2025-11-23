@@ -1,0 +1,24 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    csv (3.3.5)
+    rouge (3.30.0)
+    yard (0.9.37)
+    yard-markdown (0.5.0)
+      csv
+      yard
+    yard-sketchup (1.6.0)
+      rouge (~> 3.26)
+      yard (~> 0.9.37)
+
+PLATFORMS
+  arm64-darwin-24
+  ruby
+
+DEPENDENCIES
+  yard (~> 0.9)
+  yard-markdown (~> 0.4)
+  yard-sketchup (~> 1.6)
+
+BUNDLED WITH
+   2.7.2
