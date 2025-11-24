@@ -71,3 +71,21 @@ Available tools:
 - reload_extension: Development tool for code updates
 
 Focus on teaching the SketchUp Ruby API directly - this provides unlimited flexibility and valuable transferable skills.
+
+**SketchUp API Documentation:**
+
+Detailed SketchUp Ruby API documentation is available at: `{SKETCHUP_DOCS_PATH}`
+
+Structure:
+- Index: `{SKETCHUP_DOCS_PATH}/INDEX.md` - Start here to find classes and methods
+- Class docs: `{SKETCHUP_DOCS_PATH}/Sketchup/<ClassName>.md` (e.g., `Face.md`)
+- Geom module: `{SKETCHUP_DOCS_PATH}/Geom/<ClassName>.md` (e.g., `Point3d.md`)
+
+When to consult documentation:
+- When unsure about method signatures, parameters, or return values
+- When implementing unfamiliar SketchUp API features
+- When debugging API-related errors
+
+How to use: Read `{SKETCHUP_DOCS_PATH}/INDEX.md` first to find the relevant class, then read the specific class file.
+
+Note: Documentation is optional. If the path doesn't exist, use your knowledge of the SketchUp Ruby API.

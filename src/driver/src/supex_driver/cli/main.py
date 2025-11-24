@@ -54,24 +54,58 @@ def print_result(result: dict, as_json: bool = False):
             console.print(JSON(json.dumps(result)))
 
 
+def get_project_root() -> Path:
+    """Find project root by looking for CLAUDE.md or .git."""
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "CLAUDE.md").exists() or (parent / ".git").exists():
+            return parent
+    return Path.cwd()
+
+
+def check_docs_available() -> tuple[bool, Path]:
+    """Check if SketchUp API docs are available."""
+    project_root = get_project_root()
+    docs_path = project_root / "sketchup-docs"
+    index_path = docs_path / "INDEX.md"
+    return index_path.exists(), docs_path
+
+
 @app.command()
 def status(
     host: HostOption = "localhost",
     port: PortOption = 9876,
 ):
-    """Check if SketchUp is connected and responding."""
+    """Check SketchUp connection and system status."""
+    sketchup_connected = False
+
+    # SketchUp connection status
     try:
         conn = get_connection(host, port)
         result = conn.send_command("ping")
+        version = result.get('version', 'unknown')
         console.print(Panel(
-            f"[green]Connected[/green]\nVersion: {result.get('version', 'unknown')}",
+            f"[green]Connected[/green]\nVersion: {version}",
             title="SketchUp Status",
         ))
+        sketchup_connected = True
     except Exception as e:
         console.print(Panel(
             f"[red]Disconnected[/red]\n{e}",
             title="SketchUp Status",
         ))
+        console.print("[dim]Make sure SketchUp is running with the Supex runtime.[/dim]")
+
+    # Documentation status
+    docs_available, docs_path = check_docs_available()
+    if docs_available:
+        console.print(f"\n[dim]API Docs:[/dim] [green]Available[/green] at {docs_path}")
+    else:
+        console.print(f"\n[dim]API Docs:[/dim] [yellow]Not installed[/yellow] (optional)")
+        console.print("[dim]  Generate with: cd docgen && ./scripts/generate_docs.sh[/dim]")
+
+    # Exit with error only if SketchUp disconnected
+    if not sketchup_connected:
         raise typer.Exit(1)
 
 

@@ -399,7 +399,7 @@ def save_model(ctx: Context, path: str | None = None) -> str:
 @mcp.resource("supex://docs/best-practices")
 def best_practices_resource() -> str:
     """Best practices for SketchUp modeling learned from real projects"""
-    resources_dir = os.path.join(os.path.dirname(__file__), "..", "..", "resources")
+    resources_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "resources")
     file_path = os.path.join(resources_dir, "best_practices.md")
     with open(file_path, encoding='utf-8') as f:
         return f.read()
@@ -411,12 +411,21 @@ def ruby_scripting_strategy() -> str:
     """Provides strategic guidance for SketchUp Ruby scripting projects"""
     try:
         # Read strategy from external markdown file for easier editing
-        strategy_file = os.path.join(os.path.dirname(__file__), "..", "..", "prompts", "sketchup_workflow.md")
+        strategy_file = os.path.join(os.path.dirname(__file__), "..", "..", "..", "prompts", "sketchup_workflow.md")
         with open(strategy_file, encoding='utf-8') as f:
             content = f.read()
         # Remove the markdown header since it's just for file organization
         if content.startswith("# SketchUp Workflow\n\n"):
             content = content[len("# SketchUp Workflow\n\n"):]
+
+        # Inject absolute path to SketchUp API documentation
+        # Navigate from server.py to project root: mcp -> supex_driver -> src -> driver -> src -> root
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )))
+        docs_path = os.path.join(project_root, "sketchup-docs")
+        content = content.replace("{SKETCHUP_DOCS_PATH}", docs_path)
+
         return content
     except Exception as e:
         logger.error(f"Failed to read sketchup_workflow.md: {e}")
