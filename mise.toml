@@ -1,0 +1,8 @@
+[tools]
+# Python: Latest stable version for modern features and performance
+python = "3.14"
+# Ruby: Matches SketchUp 2026 runtime to prevent compatibility issues between our code and SketchUp
+ruby = "3.2.2"
+
+[settings]
+python.uv_venv_auto = true
