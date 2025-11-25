@@ -12,7 +12,7 @@ Rake::TestTask.new do |t|
   t.libs << 'test'
   t.libs << 'src/supex_runtime'
   t.test_files = FileList['test/**/test_*.rb']
-  t.verbose = true
+  t.verbose = false
 end
 
 # RuboCop task
