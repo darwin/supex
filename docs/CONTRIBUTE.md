@@ -78,7 +78,6 @@ supex/
 │   │   ├── src/supex_driver/      # Server implementation
 │   │   ├── prompts/               # AI guidance prompts
 │   │   ├── resources/             # Resources and best practices
-│   │   ├── examples/              # Usage examples
 │   │   ├── tests/                 # Driver tests
 │   │   └── pyproject.toml         # UV package config
 │   └── runtime/                    # Ruby SketchUp extension
