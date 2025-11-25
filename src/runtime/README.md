@@ -1,298 +1,162 @@
-# Supex Runtime: Ruby SketchUp Extension
+# Supex Runtime
 
-A modern, modular Ruby extension for SketchUp that provides MCP (Model Context Protocol) integration for AI-driven 3D modeling and design automation.
+Ruby SketchUp extension that exposes SketchUp API to external tools via TCP/JSON-RPC.
 
-## Features
+## Overview
 
-### Core Architecture
-- **Modular Design**: Clean separation of concerns across focused modules
-- **Ruby 3.4.7**: Latest Ruby with performance improvements and enhanced features
-- **Live Reloading**: Change code without restarting SketchUp
-- **Comprehensive Logging**: Detailed progress tracking and error reporting
+Supex Runtime is part of the Supex platform:
 
-### 3D Modeling Capabilities
-- **Direct Ruby Execution**: Execute Ruby code directly in SketchUp context
-- **Console Capture**: All output logged with timestamps for debugging
-- **Project-based Workflow**: Execute Ruby scripts stored in your project directories
+- **TCP Server**: Listens on localhost:9876 for JSON-RPC requests
+- **Tool Dispatch**: Routes requests to appropriate handlers
+- **Console Capture**: Logs all Ruby output for debugging
 
-### Advanced Features
-- **Export Formats**: SKP, OBJ, STL, PNG, JPG support
-- **Ruby Code Evaluation**: Direct SketchUp API access for complex operations
-- **Strategic Guidance**: Built-in 3D modeling expertise integration
-- **Component Naming**: Organized model structure with descriptive names
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `ping` | Connection health check |
+| `eval_ruby(code)` | Execute Ruby code directly |
+| `eval_ruby_file(path)` | Execute Ruby script from file |
+| `reload_extension()` | Hot reload without restart |
+| `get_model_info()` | Entity counts, units, modified state |
+| `list_entities(type)` | List geometry (all/faces/edges/groups/components) |
+| `get_selection()` | Currently selected entities |
+| `get_layers()` | All layers/tags |
+| `get_materials()` | All materials with colors |
+| `get_camera_info()` | Camera position and settings |
+| `take_screenshot(path?)` | Save view to file |
+| `open_model(path)` | Open .skp file |
+| `save_model(path?)` | Save model |
+| `export_scene(format)` | Export: skp, obj, stl, png, jpg |
+| `console_capture_status()` | Console capture info |
 
 ## Architecture
 
-The extension is organized into focused modules:
-
 ```
-supex_runtime/
-├── version.rb         # Version and metadata management
-├── utils.rb           # Common utilities and helpers
-├── console_capture.rb # Console output logging and monitoring
-├── export.rb          # Multi-format export functionality
-├── server.rb          # TCP server and JSON-RPC handling
-└── main.rb            # Orchestration and menu integration
-```
-
-**Note**: The extension provides direct Ruby code evaluation through `eval_ruby` and `eval_ruby_file` tools, enabling unlimited modeling flexibility without predefined geometry modules.
-
-## Requirements
-
-- **SketchUp 2020+**: Any version from 2020 onwards with Ruby API support
-- **Ruby 3.4.7**: Managed via mise for environment isolation
-- **Bundler**: Dependency management
-
-## Installation
-
-### Recommended: Use Launcher Script
-
-From the repository root:
-
-```bash
-./launch-sketchup.sh
+Python Driver (MCP)
+      |
+      | TCP Socket (localhost:9876)
+      | JSON-RPC 2.0
+      v
++----------------------------------+
+|  Ruby Runtime (src/runtime/)     |
+|  +-- Server         (TCP/JSON)   |
+|  +-- Export         (formats)    |
+|  +-- ConsoleCapture (logging)    |
+|  +-- Utils          (helpers)    |
++----------------------------------+
+      |
+      v
+  SketchUp Process (Ruby API)
 ```
 
-This automatically handles Ruby injection and extension loading.
+## Project Structure
 
-### Manual Installation
-
-1. **Setup Ruby Environment**:
-   ```bash
-   mise install
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   bundle install
-   ```
-
-3. **Build Extension Package**:
-   ```bash
-   bundle exec rake build
-   ```
-
-4. **Install to SketchUp**:
-   ```bash
-   bundle exec rake install
-   ```
-
-## Development Workflow
-
-### Live Development Cycle
-
-1. **Edit** Ruby source files in `supex_runtime/`
-2. **Reload** extension via one of these methods:
-   - **SketchUp Menu**: `Extensions > Supex Runtime > Reload Extension`
-   - **MCP Tool**: Call `reload_extension` via MCP server
-   - **Ruby Console**: `SupexRuntime::Main.reload_extension`
-3. **Test** changes immediately without SketchUp restart
-4. **Iterate** rapidly with instant feedback
-
-### Ruby Injection System
-
-The extension uses Ruby injection for optimal development experience:
-
-- **Direct Source Loading**: Extension loads from development directory
-- **No File Copying**: Sources remain in place, no deployment needed
-- **Environment Setup**: Proper Ruby environment configuration via `injector.rb`
-- **Auto-start**: Extension automatically starts server on load
-
-### Build Commands
-
-```bash
-# Install dependencies
-bundle install
-
-# Build .rbz package for production
-bundle exec rake build
-
-# Install extension to SketchUp
-bundle exec rake install
-
-# Run code linting
-bundle exec rubocop
-
-# Auto-fix linting issues
-bundle exec rubocop -A
-
-# Generate documentation
-bundle exec yard
-
-# Run tests
-bundle exec rake test
 ```
+src/runtime/
++-- supex_runtime.rb       # Extension loader
++-- injector.rb            # Ruby injection for dev
++-- supex_runtime/
+    +-- main.rb            # Entry point, menu integration
+    +-- server.rb          # TCP server, tool dispatch
+    +-- export.rb          # Multi-format export
+    +-- console_capture.rb # Output logging
+    +-- utils.rb           # Helpers
+    +-- version.rb         # Metadata
+```
+
+## Module Responsibilities
+
+| Module | Purpose |
+|--------|---------|
+| Main | Extension lifecycle, SketchUp menu, server orchestration |
+| Server | TCP socket server, JSON-RPC protocol, tool execution |
+| Export | SKP, OBJ, STL, PNG, JPG export |
+| ConsoleCapture | stdout/stderr redirection to log files |
+| Utils | Logging, JSON-RPC response helpers, entity utilities |
 
 ## Usage
 
-### Starting the Extension
+### Starting the Server
 
-**With Launcher (Recommended)**:
-The launcher script automatically loads and starts the extension.
+**Automatic**: Server starts when SketchUp loads the extension.
 
-**Manual Method**:
-1. Open SketchUp
-2. Go to `Extensions > Supex Runtime > Start Server`
-3. Extension starts listening on localhost:9876
+**Manual**: `Extensions > Supex > Server Status`
 
-### Core Operations
+**Menu Options**:
+- Server Status - Show current status
+- Stop Server - Stop TCP server
+- Restart Server - Restart TCP server
+- Reload Extension - Hot reload code changes
+- Show Console - Open Ruby console
 
-The extension provides these capabilities via MCP:
+### Default Configuration
 
-#### Ruby Code Execution
-```ruby
-# Execute Ruby code directly
-eval_ruby("model = Sketchup.active_model")
-
-# Execute Ruby file from session
-eval_ruby_file("/path/to/script.rb")
-```
-
-#### Export and Evaluation
-```ruby
-# Export scene
-export_scene("skp")
-
-# Execute Ruby code
-eval_ruby("puts 'Hello from SketchUp!'")
-```
-
-## Configuration
-
-### Socket Communication
-
-Default configuration:
-- **Host**: localhost
+- **Host**: 127.0.0.1
 - **Port**: 9876
 - **Protocol**: JSON-RPC 2.0
 
-### Extension Settings
+## Development
 
-Configure via SketchUp menu: `Extensions > Supex Runtime > Settings`
-
-Options include:
-- Server host and port configuration
-- Logging levels and output preferences
-- Auto-start behavior
-- Development mode toggles
-
-## Testing
-
-### Running Tests
+### Setup
 
 ```bash
-# Run all tests
-bundle exec rake test
-
-# Run specific test file
-bundle exec ruby tests/test_geometry.rb
-
-# Run with verbose output
-bundle exec rake test TESTOPTS="-v"
+cd src/runtime
+bundle install
 ```
 
-### Test Structure
+### Commands
 
-Tests are organized to cover the main functionality of each module. The test suite validates server operations, export functionality, and session management.
+| Command | Description |
+|---------|-------------|
+| `bundle exec rake build` | Build .rbz package |
+| `bundle exec rake install` | Install to SketchUp |
+| `bundle exec rake clean` | Clean generated files |
+| `bundle exec rubocop` | Code linting |
+| `bundle exec rubocop -A` | Auto-fix lint issues |
+| `bundle exec yard` | Generate API docs |
 
-## Code Quality
+### Launch SketchUp (Development)
 
-### Linting with RuboCop
+From repository root:
 
 ```bash
-# Check code style
-bundle exec rubocop
-
-# Auto-fix issues
-bundle exec rubocop -A
-
-# Check specific files
-bundle exec rubocop supex_runtime/geometry.rb
+./scripts/launch-sketchup.sh
 ```
 
-## Debugging
+This uses Ruby injection to load sources directly from development directory.
 
-### Logging
+### Live Reload
 
-The extension provides comprehensive logging:
+Change code and reload without restarting SketchUp:
 
-```ruby
-# Console output is automatically captured to log files
-# Check log file location
-SupexRuntime::ConsoleCapture.log_file_path
+1. **Menu**: `Extensions > Supex > Reload Extension`
+2. **MCP Tool**: Call `reload_extension()` via Python driver
+3. **Ruby Console**: `SupexRuntime::Main.reload_extension`
 
-# View current capture status
-SupexRuntime::Main.console_capture_status
-```
+### Debugging
 
-### Ruby Console
-
-Access SketchUp's Ruby Console (`Window > Ruby Console`) for interactive debugging:
+Console output is logged to `.tmp/sketchup_console.log`:
 
 ```ruby
-# Check extension status
-SupexRuntime::Main.server_running?
-
-# Reload extension
-SupexRuntime::Main.reload_extension
-
-# Test server status
+# Check capture status
 SupexRuntime::Main.server_status
+
+# View log path
+# Log location: <repo>/.tmp/sketchup_console.log
 ```
 
-## Contributing
+## Requirements
 
-### Development Setup
+- **SketchUp 2026**: Latest official version only
+- **Bundler**: For dependency management (development only)
 
-1. **Fork the repository**
-2. **Setup Ruby environment**: `mise install`
-3. **Install dependencies**: `bundle install`
-4. **Launch development**: `./launch-sketchup.sh` (from repo root)
-5. **Make changes** and test with live reloading
+## Export Formats
 
-### Code Style
-
-- Follow RuboCop configuration
-- Add tests for new functionality
-- Update documentation for API changes
-- Use conventional commit messages
-
-### Submitting Changes
-
-1. Create a feature branch
-2. Make your changes with tests
-3. Run linting: `bundle exec rubocop`
-4. Run tests: `bundle exec rake test`
-5. Generate docs: `bundle exec yard`
-6. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Architecture Notes
-
-### Ruby Injection Benefits
-
-- **Faster Development**: No build/deploy cycle
-- **Live Debugging**: Change code and reload instantly
-- **Source Control**: Work directly with source files
-- **Environment Isolation**: mise ensures consistent Ruby version
-
-### Module Responsibilities
-
-- **Main**: Extension lifecycle, menu integration, server orchestration
-- **Server**: TCP socket server, JSON-RPC protocol handling, Ruby code evaluation
-- **ConsoleCapture**: Console output redirection and logging with timestamps
-- **Export**: Multi-format export (SKP, OBJ, STL, PNG, JPG)
-- **Utils**: Logging, error handling, common utilities
-- **Version**: Metadata, version management, extension information
-
-**Note**: Geometry and modeling operations are handled through direct Ruby evaluation, providing unlimited flexibility without predefined modules.
-
-### Performance Considerations
-
-- **Lazy Loading**: Modules loaded on demand
-- **Connection Pooling**: Efficient socket management
-- **Error Boundaries**: Isolated error handling per operation
-- **Memory Management**: Proper cleanup of SketchUp entities
+| Format | Extension | Notes |
+|--------|-----------|-------|
+| SketchUp | .skp | Native format |
+| Wavefront | .obj | Triangulated, with textures |
+| STL | .stl | For 3D printing |
+| PNG | .png | Transparent background support |
+| JPEG | .jpg | Compressed image |
