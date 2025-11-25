@@ -1,301 +1,227 @@
-# Supex Driver: SketchUp Model Context Protocol Server
+# Supex Driver
 
-Supex is a modern SketchUp integration that enables AI agents to control and manipulate 3D scenes through the Model Context Protocol (MCP). This is a complete reimplementation that incorporates the latest MCP patterns while preserving all SketchUp-specific functionality.
+Python MCP server and CLI for SketchUp automation. Enables AI agents and command-line tools to execute Ruby code in SketchUp through the Model Context Protocol.
 
-## Features
+## Overview
 
-### Core Geometry
-- **Basic Shapes**: Create cubes, cylinders, spheres, and cones
-- **Transformations**: Position, rotate, and scale components
-- **Materials**: Apply colors and materials to objects
-- **Selection**: Get and manipulate selected entities
+Supex Driver is part of the Supex platform - a bridge between AI agents and SketchUp. It provides:
 
-### Advanced Features
-- **Export Options**: Multiple format support (SKP, OBJ, STL, images)
-- **Ruby Code Evaluation**: Execute arbitrary Ruby code in SketchUp context
-- **Status Checking**: Monitor connection health
-- **Strategic AI Guidance**: Built-in 3D modeling expertise prompts
-- **Component Naming**: Organized models with descriptive names
-- **Robust Error Handling**: Comprehensive logging and recovery
+- **MCP Server**: 14 tools for AI agents via Model Context Protocol
+- **CLI**: 14 commands for direct terminal interaction
+- **Connection Layer**: TCP/JSON-RPC client for SketchUp runtime
 
-## Requirements
+## MCP Tools
 
-- **Python 3.14+** - Latest Python with enhanced performance and new language features
-- **UV** - Modern Python package manager ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
-- **SketchUp** - Any recent version with Ruby API support
+### Execution
 
-### Python 3.14 Benefits
-- **Enhanced Performance**: Improved bytecode interpreter and memory management
-- **Better Error Messages**: More precise and helpful error diagnostics  
-- **Type System Improvements**: Enhanced type annotations and better mypy support
-- **Security Enhancements**: Latest security patches and hardening features
+| Tool | Description |
+|------|-------------|
+| `eval_ruby(code)` | Execute Ruby code directly |
+| `eval_ruby_file(path)` | Execute Ruby script from file (preferred) |
+| `reload_extension()` | Reload runtime without restarting SketchUp |
 
-## Installation
+### Introspection
 
-### 1. Install Python Package
+| Tool | Description |
+|------|-------------|
+| `get_model_info()` | Entity counts, units, modified state |
+| `list_entities(type)` | List geometry (all/faces/edges/groups/components) |
+| `get_selection()` | Currently selected entities |
+| `get_layers()` | All layers/tags |
+| `get_materials()` | All materials with colors |
+| `get_camera_info()` | Camera position and settings |
+| `take_screenshot(output_path?)` | Save view to file |
 
-```bash
-cd src/driver
-uv sync
-```
+### Model Management
 
-### 2. Install SketchUp Extension
+| Tool | Description |
+|------|-------------|
+| `open_model(path)` | Open .skp file |
+| `save_model(path?)` | Save model |
+| `export_scene(format)` | Export: skp, obj, dae, stl, png, jpg |
 
-Use the launcher script from the repository root:
+### Status
 
-```bash
-./scripts/launch-sketchup.sh
-```
+| Tool | Description |
+|------|-------------|
+| `check_sketchup_status()` | Verify connection health |
+| `console_capture_status()` | Ruby console capture info |
 
-This automatically handles extension loading via Ruby injection.
-
-## Usage
-
-### 1. Start the SketchUp Extension
+## CLI Commands
 
 ```bash
-./scripts/launch-sketchup.sh
+./supex <command> [options]
 ```
 
-### 2. Configure MCP Client
+| Command | Description |
+|---------|-------------|
+| `status` | Check connection and docs status |
+| `reload` | Reload extension |
+| `eval <code>` | Execute Ruby code |
+| `eval-file <path>` | Execute Ruby script |
+| `info` | Model information |
+| `entities [type]` | List entities |
+| `selection` | Selected entities |
+| `layers` | List layers |
+| `materials` | List materials |
+| `camera` | Camera info |
+| `screenshot` | Capture view |
+| `open <path>` | Open model |
+| `save [path]` | Save model |
+| `export <format>` | Export scene |
 
-**For normal usage with Claude Code:**
-- The MCP server is automatically started via stdio transport
-- Configure `.mcp.json` in project root with the path to `./mcp`
-- No manual server startup is needed
+**Common Options:**
+- `--host/-h` - SketchUp host (default: localhost)
+- `--port/-p` - SketchUp port (default: 9876)
+- `--raw/-r` - Output raw JSON
 
-**For development/debugging only:**
-```bash
-./mcp  # Manually run server for testing
-```
+## Example Usage
 
-### 3. Connect with MCP Client (or use Claude Code configuration)
-
-The server provides these tools:
-
-#### Geometry Creation
-- `create_component(type, position, dimensions)` - Create basic shapes
-- `delete_component(id)` - Remove components
-- `transform_component(id, position, rotation, scale)` - Transform objects
-
-#### Materials & Selection
-- `set_material(id, material)` - Apply colors/materials
-- `get_selection()` - Get selected entities
-- `check_sketchup_status()` - Verify connection
-
-#### Export & Evaluation
-- `export_scene(format)` - Export to various formats
-- `eval_ruby(code)` - Execute Ruby code in SketchUp
-
-#### AI Guidance
-- `modeling_strategy()` - Get strategic 3D modeling advice
-
-## Examples
-
-### Basic Shapes
-```python
-# Create a table top with descriptive name
-table_top = create_component("cube", [0, 0, 0], [6, 4, 0.5], "Table Top")
-set_material(table_top["id"], "#8B4513")
-
-# Create cylindrical table legs
-for i, pos in enumerate([[0, 0, -2], [5.5, 0, -2], [0, 3.5, -2], [5.5, 3.5, -2]]):
-    leg = create_component("cylinder", pos, [0.3, 0.3, 2], f"Table Leg {i+1}")
-    set_material(leg["id"], "#8B4513")
-```
-
-### Complex Model
-```python
-# Create a modern chair design
-seat = create_component("cube", [0, 0, 1.5], [2, 2, 0.2], "Chair Seat")
-backrest = create_component("cube", [0, 1.8, 1.7], [2, 0.2, 1.5], "Chair Back")
-set_material(seat["id"], "#4A4A4A")
-set_material(backrest["id"], "#4A4A4A")
-
-# Add decorative sphere
-accent = create_component("sphere", [1, 1, 3.5], [0.3, 0.3, 0.3], "Accent Sphere")
-set_material(accent["id"], "#FF6B35")
-```
-
-### Advanced Ruby Scripting
-```python
-# Create complex geometry with Ruby
-code = '''
-# Create a parametric spiral staircase
+```ruby
+# Create a simple box (execute via eval_ruby_file)
 model = Sketchup.active_model
-entities = model.active_entities
+model.start_operation('Create Box', true)
 
-steps = 12
-radius = 5.feet
-height_per_step = 8.inches
+group = model.entities.add_group
+face = group.entities.add_face(
+  [0, 0, 0], [1.m, 0, 0], [1.m, 1.m, 0], [0, 1.m, 0]
+)
+face.pushpull(50.cm)
+group.name = 'Box'
 
-(0...steps).each do |i|
-  angle = (2 * Math::PI * i) / steps
-  x = radius * Math.cos(angle)
-  y = radius * Math.sin(angle)
-  z = height_per_step * i
-  
-  # Create step
-  group = entities.add_group
-  face = group.entities.add_face(
-    [x-1, y-0.5, z],
-    [x+1, y-0.5, z], 
-    [x+1, y+0.5, z],
-    [x-1, y+0.5, z]
-  )
-  face.pushpull(2.inches)
-end
-'''
-
-eval_ruby(code)
+model.commit_operation
 ```
+
+For complete examples, see `examples/simple-table/`.
 
 ## Architecture
 
-Supex uses a dual-process architecture:
+```
+AI Agent / CLI
+      |
+      | MCP Protocol (stdio) / Direct calls
+      v
++----------------------------------+
+|  Python Driver (src/driver/)    |
+|  +-- mcp/server.py   (FastMCP)  |
+|  +-- cli/main.py     (Typer)    |
+|  +-- connection/     (Socket)   |
++----------------------------------+
+      |
+      | TCP Socket (localhost:9876)
+      | JSON-RPC 2.0
+      v
++----------------------------------+
+|  Ruby Runtime (src/runtime/)    |
+|  +-- SketchUp Process           |
++----------------------------------+
+```
 
-1. **Python MCP Server** (`src/supex_driver/mcp/server.py`)
-   - Handles MCP protocol communication
-   - Provides tool interfaces for AI agents
-   - Manages connection lifecycle
-   - Implements robust error handling
+## Project Structure
 
-2. **Ruby SketchUp Extension** (`src/runtime/`)
-   - Runs inside SketchUp process with Ruby injection
-   - Modular architecture with focused components
-   - Executes actual geometry operations
-   - Provides socket server for communication
-   - Integrates with SketchUp Ruby API
-   - Supports live reloading during development
-
-Communication happens over TCP sockets using JSON-RPC 2.0 protocol.
+```
+src/driver/
++-- src/supex_driver/
+|   +-- __init__.py          # Package exports
+|   +-- mcp/
+|   |   +-- server.py        # FastMCP server, 14 tools
+|   +-- cli/
+|   |   +-- main.py          # Typer CLI, 14 commands
+|   +-- connection/
+|       +-- connection.py    # TCP socket client
+|       +-- exceptions.py    # Error hierarchy
++-- prompts/
+|   +-- sketchup_workflow.md # AI code guidance
++-- resources/
+|   +-- best_practices.md    # Modeling wisdom
++-- tests/                   # pytest suite
++-- pyproject.toml           # Package config
++-- README.md
+```
 
 ## AI Guidance Documents
 
-Supex includes two complementary documents for AI agents:
-
 ### Workflow Prompt (`prompts/sketchup_workflow.md`)
 
-**Purpose**: How to write code and use tools
-
-Contains:
+Loaded as MCP prompt `ruby_scripting_strategy`. Contains:
 - Core workflow (write, execute, verify, iterate)
 - Execution rules (eval_ruby vs eval_ruby_file)
-- Code patterns (transactions, organization, modules, idempotence)
-- Function hierarchy guidelines
+- Code patterns (transactions, modules, idempotence)
 - Units and coordinate system
 - Tools reference
-- API documentation paths
 
-**When to update**: Add new patterns, tools, or code guidelines here.
+### Best Practices (`resources/best_practices.md`)
 
-### Best Practices Resource (`resources/best_practices.md`)
+Available as MCP resource `supex://docs/best-practices`. Contains:
+- Profile-first geometry
+- Pushpull direction gotchas
+- Edge treatment
+- Common pitfalls
 
-**Purpose**: Modeling wisdom and gotchas learned from experience
+### When to Update What
 
-Contains:
-- Profile-first geometry strategy
-- Pushpull direction and face normals
-- Edge treatment for realism
-- Material timing
-- Common pitfalls (coplanar faces, tiny edges, etc.)
-
-**When to update**: Add lessons learned from real modeling sessions here.
-
-### Separation Principle
-
-| Workflow | Best Practices |
-|----------|----------------|
-| How to write code | How to model well |
-| Tool usage | Geometry gotchas |
-| Code patterns | Practical tips |
-| API reference | Lessons learned |
-
-Keep them complementary - don't duplicate content between them.
+| Document | Add |
+|----------|-----|
+| Workflow | New tools, code patterns, API changes |
+| Best Practices | Modeling lessons, gotchas, tips |
 
 ## Development
 
-### Project Structure
-```
-supex/
-├── scripts/
-│   └── launch-sketchup.sh     # Main launcher script
-├── src/
-│   ├── driver/               # Python MCP server
-│   │   ├── src/supex_driver/ # Server implementation
-│   │   ├── examples/         # Usage examples
-│   │   ├── tests/            # Test suite
-│   │   └── pyproject.toml    # Python package config
-│   └── runtime/              # Ruby SketchUp extension
-│       ├── supex_runtime/    # Modular Ruby sources
-│       ├── injector.rb       # Ruby injection script
-│       ├── Gemfile           # Ruby dependencies
-│       └── Rakefile          # Build automation
-├── CLAUDE.md                 # AI development guidelines
-└── README.md                 # Main documentation
-```
-
-### Key Implementation Details
-
-- **Modern MCP Patterns**: Uses latest FastMCP framework with async lifecycle management
-- **Robust Connection Handling**: Automatic reconnection and health checking  
-- **Comprehensive Error Handling**: Multi-layer error handling with user-friendly messages
-- **SketchUp Integration**: Full Ruby API access with geometry operations
-- **3D Modeling Focus**: Comprehensive tools for general 3D modeling and design
-
-## Development
-
-### Setup Development Environment
+### Setup
 
 ```bash
 cd src/driver
 uv sync --dev
-
-# Ruby extension setup
-cd ../runtime
-bundle install
 ```
 
-### Development Commands
+### Commands
 
 ```bash
-cd src/driver
-
-# Run linting
+# Linting
 uv run ruff check src/ tests/
 
-# Format code
+# Formatting
 uv run ruff format src/ tests/
 
 # Type checking
 uv run mypy src/
 
-# Run tests
+# Tests
 uv run pytest tests/ -v
 ```
+
+### Entry Points
+
+| Script | Purpose |
+|--------|---------|
+| `./mcp` | MCP server (for Claude Code) |
+| `./supex` | CLI interface |
+| `supex-mcp` | Direct MCP entry point |
+| `supex` | Direct CLI entry point |
 
 ### Testing Connection
 
 ```bash
-# Test SketchUp connection
+# Quick connection test
+./supex status
+
+# Or programmatically
 uv run python -c "
-from supex_driver.adapter.connection import get_sketchup_connection
+from supex_driver.connection import get_sketchup_connection
 conn = get_sketchup_connection()
-result = conn.send_command('ping')
-print('Connected:', result)
+print(conn.send_command('ping'))
 "
 ```
 
-## License
+## Error Handling
 
-MIT License - see LICENSE file for details.
+Exception hierarchy:
+- `SketchUpError` - Base exception
+- `SketchUpConnectionError` - Connection failures
+- `SketchUpTimeoutError` - Timeout errors
+- `SketchUpProtocolError` - JSON/protocol errors
 
-## Contributing
+### Logging
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-For issues and feature requests, please use the GitHub issue tracker.
+- MCP server logs: `.tmp/supex-mcp.log`
+- Extension logs: `~/.supex/logs/`
