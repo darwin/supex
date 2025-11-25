@@ -170,6 +170,49 @@ Supex uses a dual-process architecture:
 
 Communication happens over TCP sockets using JSON-RPC 2.0 protocol.
 
+## AI Guidance Documents
+
+Supex includes two complementary documents for AI agents:
+
+### Workflow Prompt (`prompts/sketchup_workflow.md`)
+
+**Purpose**: How to write code and use tools
+
+Contains:
+- Core workflow (write, execute, verify, iterate)
+- Execution rules (eval_ruby vs eval_ruby_file)
+- Code patterns (transactions, organization, modules, idempotence)
+- Function hierarchy guidelines
+- Units and coordinate system
+- Tools reference
+- API documentation paths
+
+**When to update**: Add new patterns, tools, or code guidelines here.
+
+### Best Practices Resource (`resources/best_practices.md`)
+
+**Purpose**: Modeling wisdom and gotchas learned from experience
+
+Contains:
+- Profile-first geometry strategy
+- Pushpull direction and face normals
+- Edge treatment for realism
+- Material timing
+- Common pitfalls (coplanar faces, tiny edges, etc.)
+
+**When to update**: Add lessons learned from real modeling sessions here.
+
+### Separation Principle
+
+| Workflow | Best Practices |
+|----------|----------------|
+| How to write code | How to model well |
+| Tool usage | Geometry gotchas |
+| Code patterns | Practical tips |
+| API reference | Lessons learned |
+
+Keep them complementary - don't duplicate content between them.
+
 ## Development
 
 ### Project Structure

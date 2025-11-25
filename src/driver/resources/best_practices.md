@@ -1,33 +1,58 @@
-# Modeling Best Practices (Lessons Learned)
+# Modeling Best Practices
 
-## Coordinate System Awareness
-- X-axis (red) = right, Y-axis (green) = forward, Z-axis (blue) = up
-- Always verify orientation - handles should extend along X-axis, not Z-axis
-- Test geometry orientation early in modeling process
+Lessons learned from real SketchUp modeling projects. For code patterns and workflow, see the main prompt.
 
-## Scene Structure and Naming is Critical
-- ALWAYS create named groups/components for ALL geometry - never leave loose entities
-- Without proper groups, Outliner shows empty and models become unmanageable
-- Use descriptive names that clearly identify each part (e.g., "3D Heart", "Table Leg Front Left")
-- Group ALL entities immediately after creation: `entities.add_group(entities.to_a)`
-- Set meaningful names: `group.name = "Descriptive Name"`
-- Apply materials to groups/faces, not loose geometry
-- Proper scene organization is essential for professional workflows
+## Profile-First Geometry
 
-## Edge Treatment and Realism
-- Real objects rarely have perfectly sharp edges
-- Use chamfered profiles instead of complex fillets for clean geometry
-- Create octagonal cross-sections for fully chamfered rectangular parts
-- Avoid complex fillet operations that create overlapping geometry
+Build 3D shapes by extruding 2D profiles rather than complex boolean operations:
 
-## Geometry Creation Strategy
-- Start with simple profiles and extrude rather than complex 3D operations
-- Use pushpull operations carefully - verify direction (positive vs negative)
-- For rounded edges: chamfer corners in the profile, then extrude
-- Test each major step to catch orientation/connection issues early
+```ruby
+# Good: Draw profile, then extrude
+profile = entities.add_face(profile_points)
+profile.pushpull(depth)
 
-## Iterative Development
-- Build models incrementally with frequent testing
-- Create separate groups for each logical component
-- Apply materials after geometry is complete and verified
-- Use descriptive names for groups to aid in debugging
+# Avoid: Complex 3D boolean operations
+# They often create broken geometry or unexpected results
+```
+
+## Pushpull Direction
+
+Face normals determine pushpull direction. If pushpull goes the wrong way:
+
+```ruby
+# Check/flip normal before pushpull
+face.reverse! if face.normal.z < 0
+
+# Or use negative value
+face.pushpull(-depth)  # Extrude in opposite direction
+```
+
+## Edge Treatment for Realism
+
+Real objects have slightly rounded edges. For clean geometry:
+
+- **Chamfer in profile** - Add angled corners to 2D profile before extrusion
+- **Octagonal sections** - For fully rounded rectangular parts, use 8-sided profile
+- **Avoid complex fillets** - SketchUp fillets often create overlapping/broken geometry
+
+```ruby
+# Instead of sharp corner [0,0], [1,0], [0,1]
+# Use chamfered corner [0,0.1], [0.1,0], [1,0], [0,1]
+```
+
+## Material Timing
+
+Apply materials after geometry is verified:
+
+1. Create all geometry first
+2. Verify with `list_entities` or `take_screenshot`
+3. Apply materials only after structure is correct
+
+Materials on broken geometry are wasted effort.
+
+## Common Pitfalls
+
+- **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1.mm
+- **Tiny edges** - Edges < 1mm can cause issues. Use reasonable minimums
+- **Reversed faces** - Back faces (blue) showing means normals are wrong
+- **Stray edges** - Leftover edges break face creation. Clean up with `entities.grep(Sketchup::Edge)`
