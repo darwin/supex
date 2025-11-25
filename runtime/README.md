@@ -39,7 +39,7 @@ Python Driver (MCP)
       | JSON-RPC 2.0
       v
 +----------------------------------+
-|  Ruby Runtime (src/runtime/)     |
+|  Ruby Runtime (runtime/)     |
 |  +-- Server         (TCP/JSON)   |
 |  +-- Export         (formats)    |
 |  +-- ConsoleCapture (logging)    |
@@ -53,7 +53,7 @@ Python Driver (MCP)
 ## Project Structure
 
 ```
-src/runtime/
+runtime/
 +-- Rakefile               # Build tasks
 +-- Gemfile                # Dependencies
 +-- src/
@@ -104,7 +104,7 @@ src/runtime/
 ### Setup
 
 ```bash
-cd src/runtime
+cd runtime
 bundle install
 ```
 

@@ -459,7 +459,7 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 **Solutions:**
 1. Check the Ruby Console for errors (Window → Ruby Console)
 2. Verify you're using `./scripts/launch-sketchup.sh` from the supex repo root
-3. Check file permissions on `src/runtime/` directory
+3. Check file permissions on `runtime/` directory
 4. Try: `SUPEX_VERBOSE=1 ./scripts/launch-sketchup.sh` for detailed output
 
 ### MCP Connection Failed
@@ -553,7 +553,7 @@ EOF
 
 - [SketchUp Ruby API Documentation](https://ruby.sketchup.com)
 - [SketchUp Developer Center](https://developer.sketchup.com)
-- Try the examples in `src/driver/resources/`
+- Try the examples in `driver/resources/`
 
 ### 3. Explore Supex Tools
 
@@ -565,7 +565,7 @@ See the main [README.md](../../README.md) for:
 
 ### 4. Read the Workflow Guide
 
-Check `src/driver/prompts/sketchup_workflow.md` for:
+Check `driver/prompts/sketchup_workflow.md` for:
 - Best practices
 - Common patterns
 - Tips and tricks

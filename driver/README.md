@@ -102,7 +102,7 @@ AI Agent / CLI
       | MCP Protocol (stdio) / Direct calls
       v
 +----------------------------------+
-|  Python Driver (src/driver/)    |
+|  Python Driver (driver/)    |
 |  +-- mcp/server.py   (FastMCP)  |
 |  +-- cli/main.py     (Typer)    |
 |  +-- connection/     (Socket)   |
@@ -112,7 +112,7 @@ AI Agent / CLI
       | JSON-RPC 2.0
       v
 +----------------------------------+
-|  Ruby Runtime (src/runtime/)    |
+|  Ruby Runtime (runtime/)    |
 |  +-- SketchUp Process           |
 +----------------------------------+
 ```
@@ -120,7 +120,7 @@ AI Agent / CLI
 ## Project Structure
 
 ```
-src/driver/
+driver/
 +-- src/supex_driver/
 |   +-- __init__.py          # Package exports
 |   +-- mcp/
@@ -170,7 +170,7 @@ Available as MCP resource `supex://docs/best-practices`. Contains:
 ### Setup
 
 ```bash
-cd src/driver
+cd driver
 uv sync --dev
 ```
 

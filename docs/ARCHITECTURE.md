@@ -18,7 +18,7 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 
 ## Component Architecture
 
-### Python MCP Server (`src/driver/`)
+### Python MCP Server (`driver/`)
 
 **Framework**: FastMCP with async lifecycle management
 **Purpose**: MCP protocol handling and tool interface provision
@@ -36,7 +36,7 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 - **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
 - **Connection Health**: `check_sketchup_status`, `console_capture_status`
 
-### Ruby SketchUp Extension (`src/runtime/`)
+### Ruby SketchUp Extension (`runtime/`)
 
 **Architecture**: Modular Ruby extension with clean separation of concerns
 **Purpose**: SketchUp Ruby API access and geometry operations

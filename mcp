@@ -25,7 +25,7 @@ mkdir -p "$LOG_DIR"
 } >> "$LOG_FILE" 2>&1
 
 # Change to MCP driver directory
-cd src/driver || exit 1
+cd driver || exit 1
 
 # Run MCP server with stderr logging (stdout clean for MCP communication)
 exec uv run supex-mcp 2>> "$ROOT_DIR/$LOG_FILE"

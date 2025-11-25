@@ -42,14 +42,14 @@ cd supex
 mise install
 
 # Install Ruby dependencies
-cd src/runtime
+cd runtime
 bundle install
 ```
 
 ### 3. Setup Python Environment
 
 ```bash
-cd src/driver
+cd driver
 uv sync --dev
 ```
 
@@ -73,28 +73,29 @@ supex/
 │   ├── launch-sketchup.sh          # Main SketchUp launcher
 │   └── helpers/                    # Helper scripts
 │       └── shutdown-sketchup.applescript  # Graceful SketchUp shutdown
-├── src/
-│   ├── driver/                     # Python MCP server
-│   │   ├── src/supex_driver/      # Server implementation
-│   │   ├── prompts/               # AI guidance prompts
-│   │   ├── resources/             # Resources and best practices
-│   │   ├── tests/                 # Driver tests
-│   │   └── pyproject.toml         # UV package config
-│   └── runtime/                    # Ruby SketchUp extension
-│       ├── injector.rb            # Ruby injection script
-│       ├── supex_runtime.rb       # Extension registration
-│       ├── supex_runtime/         # Modular Ruby sources
-│       ├── Gemfile                # Ruby dependencies
-│       └── Rakefile               # Build automation
+├── driver/                         # Python MCP server
+│   ├── src/supex_driver/           # Server implementation
+│   ├── prompts/                    # AI guidance prompts
+│   ├── resources/                  # Resources and best practices
+│   ├── tests/                      # Driver tests
+│   └── pyproject.toml              # UV package config
+├── runtime/                        # Ruby SketchUp extension
+│   └── src/
+│       ├── injector.rb             # Ruby injection script
+│       ├── supex_runtime.rb        # Extension registration
+│       └── supex_runtime/          # Modular Ruby sources
+│   ├── Gemfile                     # Ruby dependencies
+│   └── Rakefile                    # Build automation
 ├── tests/                          # End-to-end tests
-│   ├── e2e/                       # E2E test suite
-│   ├── helpers/                   # Test helpers
-│   └── data/                      # Test data
+│   ├── e2e/                        # E2E test suite
+│   ├── helpers/                    # Test helpers
+│   └── data/                       # Test data
 ├── examples/
 │   └── simple-table/               # Example project demonstrating workflow
-├── ARCHITECTURE.md                 # Technical architecture documentation
+├── docs/
+│   ├── ARCHITECTURE.md             # Technical architecture documentation
+│   └── CONTRIBUTE.md               # This file
 ├── CLAUDE.md                       # AI development guidelines
-├── CONTRIBUTE.md                   # This file
 └── README.md                       # User-facing documentation
 ```
 
@@ -105,7 +106,7 @@ supex/
 The Ruby extension can be developed with live reloading:
 
 ```bash
-# 1. Edit Ruby source files in src/runtime/supex_runtime/
+# 1. Edit Ruby source files in runtime/supex_runtime/
 
 # 2. Reload extension without restarting SketchUp
 ./supex reload
@@ -115,7 +116,7 @@ The Ruby extension can be developed with live reloading:
 ```
 
 **Extension Development Cycle:**
-1. Edit Ruby extension sources in `src/runtime/supex_runtime/`
+1. Edit Ruby extension sources in `runtime/supex_runtime/`
 2. Reload extension via CLI: `./supex reload`
 3. Test changes immediately without SketchUp restart
 4. Iterate rapidly with instant feedback
@@ -123,7 +124,7 @@ The Ruby extension can be developed with live reloading:
 ### Ruby Extension Build System
 
 ```bash
-cd src/runtime
+cd runtime
 
 # Install dependencies
 bundle install
@@ -138,7 +139,7 @@ bundle exec rake build
 ### Python MCP Server Development
 
 ```bash
-cd src/driver
+cd driver
 
 # Run tests
 uv run pytest tests/ -v
@@ -224,7 +225,7 @@ The project follows the MCP (Model Context Protocol) pattern:
 ### Python Tests
 
 ```bash
-cd src/driver
+cd driver
 uv run pytest tests/ -v
 
 # Run specific test file

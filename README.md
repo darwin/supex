@@ -19,7 +19,7 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
                           ▼
                  ┌─────────────────┐
                  │  Python Driver  │
-                 │  (src/driver/)  │
+                 │  (driver/)  │
                  │                 │
                  │  • MCP Server   │ ◄── Interface for AI agents
                  │  • CLI Handler  │ ◄── Interface for commands
@@ -31,7 +31,7 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
                           ▼
                  ┌─────────────────┐
                  │ SketchUp Runtime│
-                 │ (src/runtime/)  │
+                 │ (runtime/)  │
                  │                 │
                  │ • Ruby Extension│
                  │ • Socket Server │
@@ -44,12 +44,12 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 
 **Key Components:**
 
-1. **Python Driver** (`src/driver/`) - Central hub with two interfaces:
+1. **Python Driver** (`driver/`) - Central hub with two interfaces:
    - **MCP Server**: For AI agent integration (FastMCP framework)
    - **CLI Handler**: For direct command-line interaction
    - **Socket Client**: Communicates with SketchUp extension
 
-2. **SketchUp Runtime** (`src/runtime/`) - Ruby extension:
+2. **SketchUp Runtime** (`runtime/`) - Ruby extension:
    - Runs inside SketchUp process
    - Executes Ruby code in SketchUp's API context
    - Provides socket server for external communication

@@ -30,7 +30,7 @@ class CLIRunner:
 
     def __init__(self, driver_path: Path | None = None):
         self._driver_path = driver_path or (
-            Path(__file__).parent.parent.parent / "src" / "driver"
+            Path(__file__).parent.parent.parent / "driver"
         )
         self._snippets_loaded = False
 

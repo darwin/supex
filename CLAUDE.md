@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 1. **Create Ruby scripts in the project** - e.g., `scripts/create_table.rb`
    - Write clean, well-commented Ruby code
-   - Follow guidelines in `src/driver/prompts/sketchup_workflow.md`
+   - Follow guidelines in `driver/prompts/sketchup_workflow.md`
    - Use proper SketchUp API patterns
 
 2. **Execute scripts with `eval_ruby_file`** - Run the Ruby file in SketchUp context
@@ -61,17 +61,17 @@ This is a production-ready SketchUp automation platform using Model Context Prot
 
 ```
 supex/
-├── src/
-│   ├── driver/                # Python MCP driver + CLI
-│   │   └── src/supex_driver/
-│   │       ├── adapter/       # SketchupRuntime connection
-│   │       ├── mcp/           # MCP server
-│   │       └── cli/           # CLI interface
-│   └── runtime/               # Ruby SketchUp extension
+├── driver/                    # Python MCP driver + CLI
+│   └── src/supex_driver/
+│       ├── connection/        # SketchupRuntime connection
+│       ├── mcp/               # MCP server
+│       └── cli/               # CLI interface
+├── runtime/                   # Ruby SketchUp extension
+│   └── src/
 │       ├── supex_runtime.rb
 │       └── supex_runtime/
 ├── scripts/                   # Development automation scripts
-└── inspiration/               # Reference implementations
+└── examples/                  # Example projects
 ```
 
 ## Architecture
@@ -82,8 +82,8 @@ The project follows the MCP (Model Context Protocol) pattern with:
 - **Socket Communication**: The Python driver communicates with the Ruby runtime via TCP sockets
 
 **Current Implementation:**
-- `src/driver/` - Python MCP driver with FastMCP framework
-- `src/runtime/` - Ruby SketchUp extension with modular architecture
+- `driver/` - Python MCP driver with FastMCP framework
+- `runtime/` - Ruby SketchUp extension with modular architecture
 - Socket communication on localhost:9876 (default port)
 - Ruby injection via `-RubyStartup` for seamless development workflow
 
@@ -98,7 +98,7 @@ The repository includes a streamlined launcher system for SketchUp development:
 ./scripts/launch-sketchup.sh
 
 # Manual extension building (for production .rbz)
-cd src/runtime
+cd runtime
 bundle exec rake build
 ```
 
@@ -111,11 +111,11 @@ bundle exec rake build
 - Comprehensive logging and error handling
 
 **Development Workflow:**
-1. Edit Ruby source files in `src/runtime/supex_runtime/`
+1. Edit Ruby source files in `runtime/supex_runtime/`
 2. Reload extension: `./supex reload`
 3. Changes are picked up immediately without restarting SketchUp
 
-### Python MCP Driver (src/driver/)
+### Python MCP Driver (driver/)
 
 **MCP Server Usage:**
 - The MCP server (`./mcp`) is automatically started by Claude Code via stdio transport
@@ -129,7 +129,7 @@ bundle exec rake build
 ./supex info
 
 # Run tests
-cd src/driver
+cd driver
 uv run pytest tests/
 
 # Development/debugging only: manually run MCP server
@@ -138,11 +138,11 @@ uv run pytest tests/
 
 ## Key Files
 
-- `src/driver/src/supex_driver/mcp/server.py` - Main MCP server implementation
-- `src/driver/src/supex_driver/adapter/connection.py` - SketchupRuntime adapter
-- `src/driver/src/supex_driver/cli/main.py` - CLI implementation
-- `src/runtime/supex_runtime/main.rb` - SketchUp extension entry point
-- `src/runtime/supex_runtime/` - Modular Ruby extension components
+- `driver/src/supex_driver/mcp/server.py` - Main MCP server implementation
+- `driver/src/supex_driver/adapter/connection.py` - SketchupRuntime adapter
+- `driver/src/supex_driver/cli/main.py` - CLI implementation
+- `runtime/supex_runtime/main.rb` - SketchUp extension entry point
+- `runtime/supex_runtime/` - Modular Ruby extension components
 - `scripts/launch-sketchup.sh` - Main development launcher script
 
 ## Development Notes

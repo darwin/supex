@@ -148,14 +148,14 @@ main() {
     # Run Python Driver tests
     run_test_suite \
         "Python Driver Tests" \
-        "${PROJECT_ROOT}/src/driver" \
+        "${PROJECT_ROOT}/driver" \
         "uv run pytest tests/" \
         || true  # Continue even if failed
 
     # Run Ruby Runtime tests
     run_test_suite \
         "Ruby Runtime Tests" \
-        "${PROJECT_ROOT}/src/runtime" \
+        "${PROJECT_ROOT}/runtime" \
         "bundle exec rake test" \
         || true  # Continue even if failed
 

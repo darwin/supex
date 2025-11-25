@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Supex CLI wrapper for convenient access from project root
-# This script allows running supex commands without cd to src/driver
+# This script allows running supex commands without cd to driver/
 
 set -e
 
@@ -10,7 +10,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 # Change to driver directory
-cd src/driver || exit 1
+cd driver || exit 1
 
 # Run supex CLI with all arguments passed through
 exec uv run supex "$@"

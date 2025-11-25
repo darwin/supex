@@ -229,4 +229,4 @@ Potential enhancements for the future:
 2. **Snippet Documentation**: Add Ruby comments documenting expected outputs/behavior
 3. **Test Data Separation**: Extract test data (coordinates, colors, etc.) into constants
 4. **Snippet Categories**: Further organize snippets into subdirectories by category
-5. **Driver Refactoring**: Apply the same pattern to `src/driver/` Ruby code (planned separately)
+5. **Driver Refactoring**: Apply the same pattern to `driver/` Ruby code (planned separately)

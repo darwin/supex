@@ -19,7 +19,7 @@ pushd .
 cd "$(dirname "${BASH_SOURCE[0]}")"
 SCRIPTS=$(pwd)
 ROOT="$(cd .. && pwd)"
-EXTENSION_DIR="$ROOT/src/runtime"
+EXTENSION_DIR="$ROOT/runtime"
 popd
 
 # Configuration
