@@ -30,7 +30,7 @@ class SketchUpProcess:
     @property
     def injector_script(self) -> Path:
         """Path to the Ruby injector script."""
-        return self._project_root / "src" / "runtime" / "injector.rb"
+        return self._project_root / "src" / "runtime" / "src" / "injector.rb"
 
     @property
     def template_path(self) -> Path:
