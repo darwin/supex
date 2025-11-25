@@ -76,7 +76,7 @@ module SupexRuntime
     # Setup console capture for output logging
     def setup_console_capture
       # Create .tmp directory if it doesn't exist
-      tmp_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '.tmp')
+      tmp_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '..', '.tmp')
       log_file_path = File.expand_path(File.join(tmp_dir, 'sketchup_console.log'))
 
       @console_capture = ConsoleCapture.new(log_file_path)
@@ -793,7 +793,7 @@ module SupexRuntime
           FileUtils.mkdir_p(File.dirname(screenshot_path))
         else
           # Default: save to .tmp/screenshots/ in supex repo with timestamp
-          screenshots_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '.tmp',
+          screenshots_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '..', '.tmp',
                                       'screenshots')
           FileUtils.mkdir_p(screenshots_dir)
           timestamp = Time.now.strftime('%Y%m%d-%H%M%S')

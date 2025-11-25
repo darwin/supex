@@ -54,15 +54,18 @@ Python Driver (MCP)
 
 ```
 src/runtime/
-+-- supex_runtime.rb       # Extension loader
-+-- injector.rb            # Ruby injection for dev
-+-- supex_runtime/
-    +-- main.rb            # Entry point, menu integration
-    +-- server.rb          # TCP server, tool dispatch
-    +-- export.rb          # Multi-format export
-    +-- console_capture.rb # Output logging
-    +-- utils.rb           # Helpers
-    +-- version.rb         # Metadata
++-- Rakefile               # Build tasks
++-- Gemfile                # Dependencies
++-- src/
+    +-- injector.rb        # Ruby injection for dev
+    +-- supex_runtime.rb   # Extension loader
+    +-- supex_runtime/
+        +-- main.rb        # Entry point, menu integration
+        +-- server.rb      # TCP server, tool dispatch
+        +-- export.rb      # Multi-format export
+        +-- console_capture.rb # Output logging
+        +-- utils.rb       # Helpers
+        +-- version.rb     # Metadata
 ```
 
 ## Module Responsibilities

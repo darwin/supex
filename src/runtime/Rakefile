@@ -10,7 +10,7 @@ task default: %i[test rubocop]
 # Test task
 Rake::TestTask.new do |t|
   t.libs << 'test'
-  t.libs << 'supex_runtime'
+  t.libs << 'src/supex_runtime'
   t.test_files = FileList['test/**/test_*.rb']
   t.verbose = true
 end
@@ -27,7 +27,7 @@ end
 begin
   require 'yard'
   YARD::Rake::YardocTask.new do |t|
-    t.files = ['supex_runtime/**/*.rb']
+    t.files = ['src/supex_runtime/**/*.rb']
     t.options = ['--output-dir', 'docs/api']
   end
 rescue LoadError
@@ -45,8 +45,8 @@ task :build do
   FileUtils.mkdir_p(build_dir)
 
   # Copy extension files (excluding development files)
-  FileUtils.cp('supex_runtime.rb', build_dir)
-  FileUtils.cp_r('supex_runtime', build_dir)
+  FileUtils.cp('src/supex_runtime.rb', build_dir)
+  FileUtils.cp_r('src/supex_runtime', build_dir)
 
   # Create .rbz file (which is just a renamed .zip)
   require 'zip'

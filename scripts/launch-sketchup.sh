@@ -85,21 +85,21 @@ prepare_extension() {
     log_info "Preparing extension for injection..."
 
     # Check if injector script exists
-    local injector_script="$EXTENSION_DIR/injector.rb"
+    local injector_script="$EXTENSION_DIR/src/injector.rb"
     if [[ ! -f "$injector_script" ]]; then
         log_error "Injector script not found: $injector_script"
         exit 1
     fi
 
     # Check if main extension file exists
-    local main_extension="$EXTENSION_DIR/supex_runtime.rb"
+    local main_extension="$EXTENSION_DIR/src/supex_runtime.rb"
     if [[ ! -f "$main_extension" ]]; then
         log_error "Main extension file not found: $main_extension"
         exit 1
     fi
 
     # Check if source directory exists
-    local source_dir="$EXTENSION_DIR/supex_runtime"
+    local source_dir="$EXTENSION_DIR/src/supex_runtime"
     if [[ ! -d "$source_dir" ]]; then
         log_error "Extension source directory not found: $source_dir"
         exit 1
@@ -114,7 +114,7 @@ launch_sketchup() {
     log_info "Launching SketchUp with Ruby injector..."
 
     # Path to our injector script
-    local injector_script="$EXTENSION_DIR/injector.rb"
+    local injector_script="$EXTENSION_DIR/src/injector.rb"
 
     # Prepare launch arguments
     local args=()
