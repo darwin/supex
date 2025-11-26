@@ -84,39 +84,34 @@ If you see any errors, check the [Troubleshooting](#troubleshooting) section bel
 
 You need to tell Claude Code where to find the Supex MCP server.
 
-### Create .mcp.json
+### Option A: Command Line (Recommended)
 
-In this project directory, create a file named `.mcp.json`:
+Run this command in your project directory:
+
+```bash
+claude mcp add supex /absolute/path/to/supex/mcp --scope project
+```
+
+Replace `/absolute/path/to/supex/mcp` with the actual path to the `mcp` file in your Supex installation.
+
+### Option B: Manual Configuration
+
+Alternatively, create a file named `.mcp.json` in this project directory:
 
 ```json
 {
   "mcpServers": {
     "supex": {
-      "command": "/absolute/path/to/supex/mcp"
+      "type": "stdio",
+      "command": "/absolute/path/to/supex/mcp",
+      "args": [],
+      "env": {}
     }
   }
 }
 ```
 
 **Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation.
-
-Example:
-```json
-{
-  "mcpServers": {
-    "supex": {
-      "command": "/Users/yourusername/projects/supex/mcp"
-    }
-  }
-}
-```
-
-**Note**: The path must be absolute (not relative). Use `pwd` in the supex directory to get the full path:
-
-```bash
-cd /path/to/supex
-pwd  # Copy this path and append /mcp
-```
 
 ### Verify Configuration
 

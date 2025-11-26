@@ -15,7 +15,7 @@ Read MCP resources for SketchUp API documentation:
 1. `supex://docs/index` - Start here, lists all available resources
 2. `supex://docs/workflow` - Complete workflow guide
 3. `supex://docs/best-practices` - Geometry lessons and pitfalls
-4. `supex://docs/api/Sketchup/Face` - API docs for specific classes
+4. `supex://docs/api/Sketchup::Face` - API docs for specific classes (use Ruby `::` syntax)
 
 ### Project Scripts
 

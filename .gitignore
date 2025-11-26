@@ -5,3 +5,4 @@ _tmp/
 .envrc
 *.iml
 .DS_Store
+/.claude/
