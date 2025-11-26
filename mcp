@@ -11,7 +11,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 # Setup logging (stderr only - stdout must stay clean for MCP)
-LOG_DIR=".tmp"
+LOG_DIR="$ROOT_DIR/.tmp"
 LOG_FILE="$LOG_DIR/supex-mcp.log"
 mkdir -p "$LOG_DIR"
 
@@ -28,4 +28,4 @@ mkdir -p "$LOG_DIR"
 cd driver || exit 1
 
 # Run MCP server with stderr logging (stdout clean for MCP communication)
-exec uv run supex-mcp 2>> "$ROOT_DIR/$LOG_FILE"
+exec uv run supex-mcp 2>> "$LOG_FILE"
