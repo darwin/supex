@@ -18,7 +18,6 @@ Supex Driver is part of the Supex platform - a bridge between AI agents and Sket
 |------|-------------|
 | `eval_ruby(code)` | Execute Ruby code directly |
 | `eval_ruby_file(path)` | Execute Ruby script from file (preferred) |
-| `reload_extension()` | Reload runtime without restarting SketchUp |
 
 ### Introspection
 
@@ -124,46 +123,51 @@ driver/
 +-- src/supex_driver/
 |   +-- __init__.py          # Package exports
 |   +-- mcp/
-|   |   +-- server.py        # FastMCP server, 14 tools
+|   |   +-- server.py        # FastMCP server, 14 tools + resources
+|   |   +-- resources.py     # Documentation helpers
 |   +-- cli/
 |   |   +-- main.py          # Typer CLI, 14 commands
 |   +-- connection/
 |       +-- connection.py    # TCP socket client
 |       +-- exceptions.py    # Error hierarchy
-+-- prompts/
-|   +-- sketchup_workflow.md # AI code guidance
 +-- resources/
+|   +-- index.md             # Documentation index
+|   +-- workflow.md          # AI workflow guidance
 |   +-- best_practices.md    # Modeling wisdom
 +-- tests/                   # pytest suite
 +-- pyproject.toml           # Package config
 +-- README.md
 ```
 
-## AI Guidance Documents
+## MCP Resources
 
-### Workflow Prompt (`prompts/sketchup_workflow.md`)
+Documentation is exposed via MCP resources (readable by Claude Code):
 
-Loaded as MCP prompt `ruby_scripting_strategy`. Contains:
-- Core workflow (write, execute, verify, iterate)
-- Execution rules (eval_ruby vs eval_ruby_file)
-- Code patterns (transactions, modules, idempotence)
-- Units and coordinate system
-- Tools reference
+| Resource URI | Description |
+|--------------|-------------|
+| `supex://docs/index` | Documentation overview - start here |
+| `supex://docs/workflow` | Complete workflow guide for Ruby scripting |
+| `supex://docs/best-practices` | Geometry lessons and common pitfalls |
+| `supex://docs/api/index` | Full SketchUp API index (~30k tokens) |
+| `supex://docs/api/{class}` | Class documentation (e.g., `Sketchup/Face`, `Geom/Point3d`) |
 
-### Best Practices (`resources/best_practices.md`)
+### Resource Files
 
-Available as MCP resource `supex://docs/best-practices`. Contains:
-- Profile-first geometry
-- Pushpull direction gotchas
-- Edge treatment
-- Common pitfalls
+| File | Resource | Contents |
+|------|----------|----------|
+| `resources/index.md` | `supex://docs/index` | Quick start, resource overview |
+| `resources/workflow.md` | `supex://docs/workflow` | Execution patterns, code organization |
+| `resources/best_practices.md` | `supex://docs/best-practices` | Profile-first geometry, gotchas |
+| `sketchup-docs/INDEX.md` | `supex://docs/api/index` | Generated API index |
+| `sketchup-docs/{Class}.md` | `supex://docs/api/{class}` | Generated class docs |
 
 ### When to Update What
 
 | Document | Add |
 |----------|-----|
-| Workflow | New tools, code patterns, API changes |
-| Best Practices | Modeling lessons, gotchas, tips |
+| `workflow.md` | New tools, code patterns, API changes |
+| `best_practices.md` | Modeling lessons, gotchas, tips |
+| `index.md` | New resources, navigation changes |
 
 ## Development
 
@@ -223,5 +227,6 @@ Exception hierarchy:
 
 ### Logging
 
-- MCP server logs: `.tmp/supex-mcp.log`
-- Extension logs: `~/.supex/logs/`
+MCP server logs to `~/.supex/logs/`:
+- `stdout.log` - Standard output
+- `stderr.log` - Errors and warnings
