@@ -7,6 +7,13 @@ from mcp.server import fastmcp
 from mcp.server.fastmcp import Context, FastMCP
 
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
+from supex_driver.mcp.resources import (
+    find_similar_classes,
+    get_docs_path,
+    load_api_doc,
+    load_api_index,
+    load_resource_file,
+)
 
 # Setup file logging for stdout and stderr
 log_dir = os.path.expanduser("~/.supex/logs")
@@ -399,37 +406,85 @@ def save_model(ctx: Context, path: str | None = None) -> str:
 @mcp.resource("supex://docs/best-practices")
 def best_practices_resource() -> str:
     """Best practices for SketchUp modeling learned from real projects"""
-    resources_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "resources")
-    file_path = os.path.join(resources_dir, "best_practices.md")
-    with open(file_path, encoding='utf-8') as f:
-        return f.read()
+    content = load_resource_file("best_practices.md")
+    if content:
+        return content
+    return "Error: best_practices.md not found"
+
+
+@mcp.resource("supex://docs/index")
+def docs_index_resource() -> str:
+    """Documentation index - start here to discover available resources"""
+    content = load_resource_file("index.md")
+    if content:
+        return content
+    return "Error: index.md not found"
+
+
+@mcp.resource("supex://docs/workflow")
+def workflow_resource() -> str:
+    """Complete SketchUp workflow guide for Ruby scripting"""
+    content = load_resource_file("workflow.md")
+    if content:
+        # Remove the markdown header since it's just for file organization
+        if content.startswith("# SketchUp Workflow\n\n"):
+            content = content[len("# SketchUp Workflow\n\n"):]
+        # Inject absolute path to SketchUp API documentation
+        docs_path = str(get_docs_path())
+        content = content.replace("{SKETCHUP_DOCS_PATH}", docs_path)
+        return content
+    return "Error: workflow.md not found"
+
+
+@mcp.resource("supex://docs/api/index")
+def api_index_resource() -> str:
+    """Complete SketchUp Ruby API index - lists all classes and methods (~30k tokens)"""
+    content = load_api_index()
+    if content:
+        return content
+    return "Error: API documentation not found. Run docgen/scripts/generate_docs.sh first."
+
+
+@mcp.resource("supex://docs/api/{class_path}")
+def api_class_resource(class_path: str) -> str:
+    """API documentation for a specific SketchUp class.
+
+    Examples:
+    - supex://docs/api/Sketchup/Face
+    - supex://docs/api/Geom/Point3d
+    - supex://docs/api/Array
+    """
+    content = load_api_doc(class_path)
+    if content:
+        return content
+
+    # Provide helpful error with suggestions
+    similar = find_similar_classes(class_path)
+    error_msg = f"# Documentation Not Found\n\nNo documentation found for: `{class_path}`\n\n"
+    if similar:
+        error_msg += "**Similar classes:**\n"
+        for cls in similar:
+            error_msg += f"- `supex://docs/api/{cls}`\n"
+    else:
+        error_msg += "Use `supex://docs/api/index` to see all available documentation."
+    return error_msg
 
 
 # Strategic AI guidance for SketchUp Ruby scripting
 @mcp.prompt()
 def ruby_scripting_strategy() -> str:
     """Provides strategic guidance for SketchUp Ruby scripting projects"""
-    try:
-        # Read strategy from external markdown file for easier editing
-        strategy_file = os.path.join(os.path.dirname(__file__), "..", "..", "..", "prompts", "sketchup_workflow.md")
-        with open(strategy_file, encoding='utf-8') as f:
-            content = f.read()
+    content = load_resource_file("workflow.md")
+    if content:
         # Remove the markdown header since it's just for file organization
         if content.startswith("# SketchUp Workflow\n\n"):
             content = content[len("# SketchUp Workflow\n\n"):]
-
         # Inject absolute path to SketchUp API documentation
-        # Navigate from server.py to project root: mcp -> supex_driver -> src -> driver -> src -> root
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        )))
-        docs_path = os.path.join(project_root, "sketchup-docs")
+        docs_path = str(get_docs_path())
         content = content.replace("{SKETCHUP_DOCS_PATH}", docs_path)
-
         return content
-    except Exception as e:
-        logger.error(f"Failed to read sketchup_workflow.md: {e}")
-        return "Error loading SketchUp workflow. Please check the sketchup_workflow.md file."
+    logger.error("Failed to read workflow.md")
+    return "Error loading SketchUp workflow. Please check the workflow.md file."
 
 
 def main():
