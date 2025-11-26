@@ -68,6 +68,35 @@ module SupexProjectName
 end
 ```
 
+**Key rules:**
+- **No automatic execution** - Never run code when file is loaded; allows use as library
+- **Use `example_` prefix** for orchestration methods that demonstrate usage
+
+**Helpers pattern** - For larger projects, split code across files:
+
+```ruby
+# helpers.rb - shared utilities
+module SupexProjectName
+  def self.cleanup_by_name_and_attribute(entities, name, dict, key, value)
+    entities.grep(Sketchup::Group).each do |group|
+      next unless group.name == name
+      group.erase! if group.get_attribute(dict, key) == value
+    end
+  end
+end
+
+# main.rb - reopen module to add more functions
+require_relative 'helpers'
+
+module SupexProjectName
+  def self.create_object(entities, params = {})
+    # ... uses helpers from helpers.rb
+  end
+end
+```
+
+Ruby allows reopening modules - functions from all files are accessible as `SupexProjectName.method_name`.
+
 ### 4. Idempotence Pattern
 
 Example methods should be idempotent - running multiple times produces same result:
@@ -77,19 +106,21 @@ def self.example_create
   model = Sketchup.active_model
   entities = model.entities
 
-  # Configuration
+  # Configuration (single source of truth)
   object_name = 'My Object'
-  tag = 'my_example'
+  attribute_tag = 'my_example'
 
   model.start_operation('Create Object', true)
   begin
-    # Cleanup previous instances first
-    cleanup_by_attribute(entities, 'supex', 'type', tag)
+    # Cleanup previous instances first (two-tier: name + attribute)
+    cleanup_by_name_and_attribute(entities, object_name, 'supex', 'type', attribute_tag)
 
     # Create new geometry
     obj = create_object(entities)
+
+    # Apply metadata in orchestration layer
     obj.name = object_name
-    obj.set_attribute('supex', 'type', tag)
+    obj.set_attribute('supex', 'type', attribute_tag)
 
     model.commit_operation
   rescue
@@ -98,12 +129,19 @@ def self.example_create
   end
 end
 
-def self.cleanup_by_attribute(entities, dict, key, value)
-  entities.grep(Sketchup::Group).each do |g|
-    g.erase! if g.get_attribute(dict, key) == value
+# Two-tier cleanup: name filter (fast) + attribute verification (precise)
+def self.cleanup_by_name_and_attribute(entities, name, dict, key, value)
+  entities.grep(Sketchup::Group).each do |group|
+    next unless group.name == name  # Fast filter
+    group.erase! if group.get_attribute(dict, key) == value  # Precise check
   end
 end
 ```
+
+**Why two-tier cleanup:**
+- Name-based search is fast but may have false positives
+- Attribute verification prevents deleting unrelated objects with same name
+- Both checks together ensure precise cleanup
 
 ### 5. Function Hierarchy
 
@@ -138,12 +176,18 @@ module SupexProjectName
   # Orchestration: Transaction + metadata + idempotence
   def self.example_table
     model = Sketchup.active_model
+    entities = model.entities
+
+    # Configuration (single source of truth)
+    table_name = 'Table'
+    attribute_tag = 'table_example'
+
     model.start_operation('Create Table', true)
     begin
-      cleanup_by_attribute(model.entities, 'supex', 'type', 'table_example')
-      table = create_table(model.entities)
-      table.name = 'Table'
-      table.set_attribute('supex', 'type', 'table_example')
+      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_tag)
+      table = create_table(entities)
+      table.name = table_name
+      table.set_attribute('supex', 'type', attribute_tag)
       model.commit_operation
     rescue
       model.abort_operation
