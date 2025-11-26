@@ -102,7 +102,7 @@ def status(
         console.print(f"\n[dim]API Docs:[/dim] [green]Available[/green] at {docs_path}")
     else:
         console.print(f"\n[dim]API Docs:[/dim] [yellow]Not installed[/yellow] (optional)")
-        console.print("[dim]  Generate with: cd docgen && ./scripts/generate_docs.sh[/dim]")
+        console.print("[dim]  Generate with: ./scripts/regenerate-sketchup-api-docs.sh[/dim]")
 
     # Exit with error only if SketchUp disconnected
     if not sketchup_connected:

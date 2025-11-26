@@ -20,7 +20,7 @@ def get_docs_not_generated_message() -> str:
     """Return message for when API documentation is not generated."""
     return (
         "API documentation is not generated. "
-        "Run `docgen/scripts/generate_docs.sh` to generate it (recommended), "
+        "Run `scripts/regenerate-sketchup-api-docs.sh` to generate it (recommended), "
         "or consult online documentation at https://ruby.sketchup.com/"
     )
 
