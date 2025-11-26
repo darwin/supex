@@ -36,23 +36,46 @@ Download from [claude.ai/code](https://claude.ai/code) if you haven't already.
 
 ### 3. Supex Installation
 
-You should have cloned or downloaded the Supex repository.
+You should have cloned or downloaded the Supex repository as a sibling directory.
+
+**Expected workspace structure:**
+```
+supex-workspace/
+├── supex/                    # Main Supex repository
+│   ├── mcp                   # MCP wrapper script
+│   └── scripts/launch-sketchup.sh
+└── example-simple-table/     # This project
+    ├── scripts/
+    └── ...
+```
 
 **Verify you have Supex:**
 ```bash
-# Check if you have the Supex directory
-ls /path/to/supex/mcp  # Should show the mcp wrapper script
+# Check if you have the Supex directory (sibling to this project)
+ls ../supex/mcp  # Should show the mcp wrapper script
+```
+
+### 4. Ruby Environment (Optional)
+
+This project uses Ruby 3.2.2 to match SketchUp 2026 runtime. If you use [mise](https://mise.jdx.dev/):
+
+```bash
+# mise will automatically use Ruby 3.2.2 from mise.toml
+mise install
+
+# If you use direnv, allow the .envrc
+direnv allow
 ```
 
 ## Step 1: Install Supex Extension in SketchUp
 
 ### For Testing/Development
 
-If you're using Supex from the repository:
+If you're using Supex from the sibling repository:
 
 ```bash
-# From the Supex repository root
-cd /path/to/supex
+# From the Supex repository (sibling directory)
+cd ../supex
 ./scripts/launch-sketchup.sh
 ```
 
@@ -74,7 +97,7 @@ You need to tell Claude Code where to find the Supex MCP server.
 
 ### Create .mcp.json
 
-In the `examples/simple-table/` directory (this directory), create a file named `.mcp.json`:
+In this project directory, create a file named `.mcp.json`:
 
 ```json
 {
@@ -86,14 +109,14 @@ In the `examples/simple-table/` directory (this directory), create a file named 
 }
 ```
 
-**Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation.
+**Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation (the sibling `supex/` directory).
 
 Example:
 ```json
 {
   "mcpServers": {
     "supex": {
-      "command": "/Users/yourusername/projects/supex/mcp"
+      "command": "/Users/yourusername/supex-workspace/supex/mcp"
     }
   }
 }
@@ -102,7 +125,7 @@ Example:
 **Note**: The path must be absolute (not relative). Use `pwd` in the supex directory to get the full path:
 
 ```bash
-cd /path/to/supex
+cd ../supex
 pwd  # Copy this path and append /mcp
 ```
 
@@ -111,7 +134,7 @@ pwd  # Copy this path and append /mcp
 **Claude Code automatically starts the MCP server** - you don't need to run anything manually.
 
 To verify it's working:
-1. Open Claude Code in the `examples/simple-table/` directory
+1. Open Claude Code in this project directory
 2. The MCP server should automatically connect
 3. You should have access to Supex tools like `check_sketchup_status`
 
@@ -122,10 +145,12 @@ Now you're ready to create your first 3D model! Let's build a simple table.
 ### Understanding the Project Structure
 
 ```
-simple-table/
-├── .mcp.json               # Supex configuration (you just created this)
+example-simple-table/
+├── .mcp.json               # Supex MCP configuration (create this)
 ├── CLAUDE.md               # AI guidance for this project
 ├── README.md               # This file
+├── mise.toml               # Ruby version (3.2.2 for SketchUp 2026)
+├── Gemfile                 # Ruby dependencies
 └── scripts/
     ├── helpers.rb          # Shared utilities
     ├── create_table.rb     # Table creation functions
@@ -518,11 +543,10 @@ cd my-sketchup-project
 mkdir scripts
 mkdir _tmp
 
-# Copy the .mcp.json template
-cp /path/to/supex/examples/simple-table/.mcp.json .
-
-# Copy the helpers template for shared utilities
-cp /path/to/supex/examples/simple-table/scripts/helpers.rb scripts/
+# Copy files from this example as templates
+cp ../example-simple-table/.mcp.json .        # Edit path to your supex/mcp
+cp ../example-simple-table/mise.toml .         # Ruby version config
+cp ../example-simple-table/scripts/helpers.rb scripts/
 
 # Create your first script
 cat > scripts/my_model.rb << 'EOF'
@@ -553,11 +577,11 @@ EOF
 
 - [SketchUp Ruby API Documentation](https://ruby.sketchup.com)
 - [SketchUp Developer Center](https://developer.sketchup.com)
-- Try the examples in `driver/resources/`
+- Try the examples in `../supex/driver/resources/`
 
 ### 3. Explore Supex Tools
 
-See the main [README.md](../../README.md) for:
+See the main Supex repository README (`../supex/README.md`) for:
 - Complete MCP tools reference
 - Advanced features
 - Architecture overview
@@ -565,7 +589,7 @@ See the main [README.md](../../README.md) for:
 
 ### 4. Read the Workflow Guide
 
-Check `driver/prompts/sketchup_workflow.md` for:
+Check `../supex/driver/prompts/sketchup_workflow.md` for:
 - Best practices
 - Common patterns
 - Tips and tricks
@@ -573,9 +597,9 @@ Check `driver/prompts/sketchup_workflow.md` for:
 
 ### 5. Get Help
 
-- **Issues**: Report bugs on GitHub
+- **Issues**: Report bugs on Supex GitHub repository
 - **Discussions**: Ask questions and share your projects
-- **Documentation**: Check the main README and [CONTRIBUTE.md](../../docs/CONTRIBUTE.md)
+- **Documentation**: Check the main Supex README
 
 ## Key Takeaways
 
