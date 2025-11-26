@@ -9,7 +9,8 @@ from mcp.server.fastmcp import Context, FastMCP
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
 from supex_driver.mcp.resources import (
     find_similar_classes,
-    get_docs_path,
+    get_docs_not_generated_message,
+    get_resources_path,
     load_api_doc,
     load_api_index,
     load_resource_file,
@@ -430,8 +431,8 @@ def workflow_resource() -> str:
         if content.startswith("# SketchUp Workflow\n\n"):
             content = content[len("# SketchUp Workflow\n\n"):]
         # Inject absolute path to SketchUp API documentation
-        docs_path = str(get_docs_path())
-        content = content.replace("{SKETCHUP_DOCS_PATH}", docs_path)
+        api_path = str(get_resources_path() / "docs" / "api")
+        content = content.replace("{SKETCHUP_DOCS_PATH}", api_path)
         return content
     return "Error: workflow.md not found"
 
@@ -442,7 +443,7 @@ def api_index_resource() -> str:
     content = load_api_index()
     if content:
         return content
-    return "Error: API documentation not found. Run docgen/scripts/generate_docs.sh first."
+    return get_docs_not_generated_message()
 
 
 @mcp.resource("supex://docs/api/{class_name}")
@@ -461,7 +462,12 @@ def api_class_resource(class_name: str) -> str:
     if content:
         return content
 
-    # Provide helpful error with suggestions
+    # Check if API docs exist at all
+    api_path = get_resources_path() / "docs" / "api"
+    if not api_path.exists():
+        return get_docs_not_generated_message()
+
+    # Docs exist but class not found - provide helpful suggestions
     similar = find_similar_classes(class_path)
     error_msg = f"# Documentation Not Found\n\nNo documentation found for: `{class_name}`\n\n"
     if similar:
@@ -485,8 +491,8 @@ def ruby_scripting_strategy() -> str:
         if content.startswith("# SketchUp Workflow\n\n"):
             content = content[len("# SketchUp Workflow\n\n"):]
         # Inject absolute path to SketchUp API documentation
-        docs_path = str(get_docs_path())
-        content = content.replace("{SKETCHUP_DOCS_PATH}", docs_path)
+        api_path = str(get_resources_path() / "docs" / "api")
+        content = content.replace("{SKETCHUP_DOCS_PATH}", api_path)
         return content
     logger.error("Failed to read workflow.md")
     return "Error loading SketchUp workflow. Please check the workflow.md file."
