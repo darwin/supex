@@ -66,7 +66,7 @@ def get_project_root() -> Path:
 def check_docs_available() -> tuple[bool, Path]:
     """Check if SketchUp API docs are available."""
     project_root = get_project_root()
-    docs_path = project_root / "sketchup-docs"
+    docs_path = project_root / "docgen" / "generated-sketchup-docs-md"
     index_path = docs_path / "INDEX.md"
     return index_path.exists(), docs_path
 
