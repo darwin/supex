@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+ruby '3.4.7'
+
+# Development dependencies
+group :development do
+  gem 'bundler'
+  gem 'rake'
+  gem 'rubocop'
+  gem 'rubocop-performance'
+  gem 'rubocop-rake'
+  gem 'sketchup-api-stubs'
+end

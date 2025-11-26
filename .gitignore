@@ -1,0 +1,7 @@
+_tmp/
+/.idea/
+.mcp.json
+.direnv/
+.envrc
+*.iml
+.DS_Store
