@@ -6,3 +6,19 @@ ruby = "3.2.2"
 
 [settings]
 python.uv_venv_auto = true
+
+[tasks.sketchup]
+description = "Launch SketchUp with Supex extension for development"
+run = "./scripts/launch-sketchup.sh"
+
+[tasks.test]
+description = "Run all tests (Python driver + Ruby runtime)"
+run = "./scripts/launch-tests.sh"
+
+[tasks."test:e2e"]
+description = "Run all tests including E2E (requires SketchUp running)"
+run = "./scripts/launch-tests.sh --e2e"
+
+[tasks.docs]
+description = "Regenerate SketchUp API documentation"
+run = "./scripts/regenerate-sketchup-api-docs.sh"
