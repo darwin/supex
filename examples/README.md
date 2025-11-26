@@ -1,15 +1,48 @@
 # Supex Examples
 
-This directory contains example projects demonstrating the project-based workflow for Supex.
+Example projects are stored in **orphan branches** to keep them isolated from the main Supex repository. This ensures users working with examples don't inherit Supex-specific context.
 
 ## Available Examples
 
-### [simple-table](./simple-table/)
-Demonstrates the basic workflow of creating a wooden table with:
-- Project structure with scripts directory
-- Modular Ruby scripts for different features
-- Use of introspection tools
-- Git-trackable code
+| Example | Branch | Description |
+|---------|--------|-------------|
+| simple-table | [`example-simple-table`](https://github.com/darwin/supex/tree/example-simple-table) | Basic workflow: creating a wooden table with modular Ruby scripts |
+
+## Cloning an Example
+
+Clone the example as a standalone project:
+
+```bash
+# Clone the simple-table example
+git clone -b example-simple-table --single-branch git@github.com:darwin/supex.git simple-table
+
+# Or using HTTPS:
+git clone -b example-simple-table --single-branch https://github.com/darwin/supex.git simple-table
+
+cd simple-table
+```
+
+## Browsing Online
+
+You can browse example code directly on GitHub:
+
+- [simple-table](https://github.com/darwin/supex/tree/example-simple-table)
+
+## Creating New Examples
+
+New examples follow the same pattern:
+
+1. Create an orphan branch with prefix `example-`:
+   ```bash
+   git checkout --orphan example-my-project
+   git rm -rf .
+   # Add your example files
+   git add .
+   git commit -m "Initial commit: my-project example"
+   git push -u origin example-my-project
+   ```
+
+2. Update this README with the new example entry.
 
 ## Running Examples
 
@@ -21,34 +54,16 @@ Demonstrates the basic workflow of creating a wooden table with:
 
 2. **Open example in Claude Code:**
    ```bash
-   cd examples/simple-table
+   cd simple-table
    # Ask Claude Code to help with the project
    ```
 
 3. **Execute scripts:**
    - Claude Code can execute scripts using `eval_ruby_file`
-   - You can edit scripts in your IDE
-   - Re-run scripts after making changes
+   - Edit scripts in your IDE
+   - Re-run after changes
 
 4. **Verify results:**
-   - Use `get_model_info()` to check model statistics
-   - Use `take_screenshot()` for visual preview
-   - Use `list_entities()` to inspect geometry
-
-## Creating Your Own Projects
-
-Use these examples as templates for your own SketchUp projects:
-
-1. Create project directory with `scripts/` subdirectory
-2. Write Ruby scripts following SketchUp best practices
-3. Execute with `eval_ruby_file`
-4. Use introspection tools to verify
-5. Commit to git for version control
-
-## Key Workflow Benefits
-
-- **Git Integration**: All scripts are version controllable
-- **IDE Support**: Full syntax highlighting and linting
-- **Iterative Development**: Edit and re-run easily
-- **Team Collaboration**: Share scripts with team members
-- **Documentation**: Scripts serve as documentation
+   - `get_model_info()` - Check entity counts
+   - `take_screenshot()` - Visual preview
+   - `list_entities()` - Inspect geometry
