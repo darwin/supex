@@ -67,3 +67,67 @@ New examples follow the same pattern:
    - `get_model_info()` - Check entity counts
    - `take_screenshot()` - Visual preview
    - `list_entities()` - Inspect geometry
+
+## Setting Up Your Own Project
+
+### 1. Configure MCP Server
+
+Create `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "supex": {
+      "command": "/path/to/supex/mcp"
+    }
+  }
+}
+```
+
+### 2. Create CLAUDE.md
+
+Create `CLAUDE.md` with project-specific instructions and MCP resource references:
+
+```markdown
+# CLAUDE.md
+
+## Project Overview
+
+[Brief description of your project]
+
+## SketchUp Modeling with Supex
+
+This project uses Supex MCP for SketchUp automation.
+
+### Documentation
+
+Read MCP resources for SketchUp API documentation:
+
+1. `supex://docs/index` - Start here, lists all available resources
+2. `supex://docs/workflow` - Complete workflow guide
+3. `supex://docs/best-practices` - Geometry lessons and pitfalls
+4. `supex://docs/api/Sketchup/Face` - API docs for specific classes
+
+### Workflow
+
+1. Write Ruby scripts in your project
+2. Execute with `eval_ruby_file(path)`
+3. Verify with `get_model_info()`, `take_screenshot()`
+4. Iterate until correct
+
+### Conventions
+
+- Use metric units (meters, centimeters)
+- Wrap operations in `model.start_operation` / `commit_operation`
+- Organize geometry in groups/components
+```
+
+### 3. Example Project Structure
+
+```
+my-project/
+├── .mcp.json           # MCP server configuration
+├── CLAUDE.md           # AI guidance
+└── src/                # Ruby scripts (or any structure you prefer)
+    └── main.rb
+```
