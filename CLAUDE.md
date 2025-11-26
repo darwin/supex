@@ -6,16 +6,7 @@ Example project demonstrating the Supex workflow for SketchUp automation. Create
 
 ## SketchUp Modeling with Supex
 
-This project uses Supex MCP for SketchUp automation.
-
-### Documentation
-
-Read MCP resources for SketchUp API documentation:
-
-1. `supex://docs/index` - Start here, lists all available resources
-2. `supex://docs/workflow` - Complete workflow guide
-3. `supex://docs/best-practices` - Geometry lessons and pitfalls
-4. `supex://docs/api/Sketchup::Face` - API docs for specific classes (use Ruby `::` syntax)
+@../supex-workspace/supex/examples/USER-CLAUDE.md
 
 ### Project Scripts
 
@@ -23,13 +14,6 @@ Read MCP resources for SketchUp API documentation:
 - `src/create_table.rb` - Creates a basic wooden table with four legs
 
 All scripts use `module SupexSimpleTable` - call functions as `SupexSimpleTable.method_name()`.
-
-### Workflow
-
-1. Write Ruby scripts in `src/` directory
-2. Execute with `eval_ruby_file(path)`
-3. Verify with `get_model_info()`, `take_screenshot()`
-4. Iterate until correct
 
 ### Running the Example
 
