@@ -86,41 +86,23 @@ Create `.mcp.json` in your project root:
 
 ### 2. Create CLAUDE.md
 
-Create `CLAUDE.md` with project-specific instructions and MCP resource references:
+Create `CLAUDE.md` with project-specific instructions. Use the template from [USER-CLAUDE.md](USER-CLAUDE.md) as a starting point:
+
+```bash
+# Copy the template to your project
+cp /path/to/supex/examples/USER-CLAUDE.md ./CLAUDE.md
+# Then customize for your project
+```
+
+**Alternative: Include via Claude Code context**
+
+Instead of copying, you can include the template directly in your CLAUDE.md using Claude Code's `@` syntax:
 
 ```markdown
-# CLAUDE.md
-
-## Project Overview
-
-[Brief description of your project]
-
-## SketchUp Modeling with Supex
-
-This project uses Supex MCP for SketchUp automation.
-
-### Documentation
-
-Read MCP resources for SketchUp API documentation:
-
-1. `supex://docs/index` - Start here, lists all available resources
-2. `supex://docs/workflow` - Complete workflow guide
-3. `supex://docs/best-practices` - Geometry lessons and pitfalls
-4. `supex://docs/api/Sketchup::Face` - API docs for specific classes (use Ruby `::` syntax)
-
-### Workflow
-
-1. Write Ruby scripts in your project
-2. Execute with `eval_ruby_file(path)`
-3. Verify with `get_model_info()`, `take_screenshot()`
-4. Iterate until correct
-
-### Conventions
-
-- Use metric units (meters, centimeters)
-- Wrap operations in `model.start_operation` / `commit_operation`
-- Organize geometry in groups/components
+@/path/to/supex/examples/USER-CLAUDE.md
 ```
+
+This keeps your project in sync with Supex updates. Add project-specific instructions below the include
 
 ### 3. Example Project Structure
 
