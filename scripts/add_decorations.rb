@@ -19,10 +19,12 @@ module SupexSimpleTable
   end
 
   # Helper to union multiple groups and optionally explode the result
+  # When explode: true, geometry is merged into the parent entities collection
   #
   # @param groups [Array<Sketchup::Group>] Array of groups to union
   # @param explode [Boolean] Whether to explode the result (default: true)
-  # @return [Array<Sketchup::Entity>, Sketchup::Group] Exploded entities or union group
+  # @return [nil] When explode: true (geometry merged into parent)
+  # @return [Sketchup::Group] When explode: false (returns the union result)
   def self.union_groups(groups, explode: true)
     return nil if groups.empty?
 
@@ -31,45 +33,12 @@ module SupexSimpleTable
       result = result.union(group)
     end
 
-    explode ? result.explode : result
-  end
-
-  # Helper to create a box from min/max corners
-  # Each box is created in its own group for better organization
-  #
-  # @param entities [Sketchup::Entities] Entities collection to add box to
-  # @param x1 [Length] Minimum X coordinate
-  # @param y1 [Length] Minimum Y coordinate
-  # @param z1 [Length] Minimum Z coordinate
-  # @param x2 [Length] Maximum X coordinate
-  # @param y2 [Length] Maximum Y coordinate
-  # @param z2 [Length] Maximum Z coordinate
-  # @return [Sketchup::Group] The created box group
-  def self.create_box(entities, x1, y1, z1, x2, y2, z2)
-    # Create a group for this box
-    box_group = entities.add_group
-
-    pts = [
-      Geom::Point3d.new(x1, y1, z1),
-      Geom::Point3d.new(x2, y1, z1),
-      Geom::Point3d.new(x2, y2, z1),
-      Geom::Point3d.new(x1, y2, z1)
-    ]
-
-    face = box_group.entities.add_face(pts)
-    extrude_distance = z2 - z1
-
-    # Ensure face orientation matches extrusion direction
-    # Pushpull extrudes in the direction of the normal
-    # If extruding up (distance > 0), normal should point up (z > 0)
-    # If extruding down (distance < 0), normal should point down (z < 0)
-    needs_reversal = (extrude_distance.positive? && face.normal.z.negative?) ||
-                     (extrude_distance.negative? && face.normal.z.positive?)
-    face.reverse! if needs_reversal
-
-    face.pushpull(extrude_distance)
-
-    box_group
+    if explode
+      result.explode
+      nil # Geometry merged into parent, no return value needed
+    else
+      result
+    end
   end
 
   # Creates decorative trim geometry around table edges
@@ -89,6 +58,13 @@ module SupexSimpleTable
     table_height = params[:table_height]
     trim_height = params[:trim_height]
     trim_width = params[:trim_width]
+
+    # Validate required parameters
+    required = { table_length: table_length, table_width: table_width,
+                 table_height: table_height, trim_height: trim_height,
+                 trim_width: trim_width }
+    missing = required.select { |_k, v| v.nil? }.keys
+    raise ArgumentError, "Missing required parameters: #{missing.join(', ')}" unless missing.empty?
 
     trim_group = parent_entities.add_group
     trim_group.name = 'Decorative Trim'
@@ -119,7 +95,6 @@ module SupexSimpleTable
 
     trim_group
   end
-  # rubocop:enable Metrics/AbcSize
 
   # Creates decorative trim for a table
   # Pure geometry function - creates trim based on table dimensions
@@ -130,7 +105,6 @@ module SupexSimpleTable
   # @option params [Length] :trim_width Width of trim overhang (default: 0.01m)
   # @return [Sketchup::Group] The created trim group (without attributes)
   # @raise [RuntimeError] If table top not found inside table group
-  # rubocop:disable Metrics/AbcSize
   def self.create_table_decorations(table_group, params = {})
     # Get model from table_group
     model = table_group.model
@@ -169,14 +143,12 @@ module SupexSimpleTable
 
     trim_group
   end
-  # rubocop:enable Metrics/AbcSize, Metrics/PerceivedComplexity
 
   # Example usage with default settings
   # Orchestrates decoration addition with transaction management
   #
   # @api orchestration
   # @return [void]
-  # rubocop:disable Metrics/AbcSize
   def self.example_decorations
     model = Sketchup.active_model
     # Work at model root to avoid nesting when user is editing a group
@@ -217,5 +189,4 @@ module SupexSimpleTable
       raise
     end
   end
-  # rubocop:enable Metrics/AbcSize
 end

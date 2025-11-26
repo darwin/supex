@@ -85,4 +85,42 @@ module SupexSimpleTable
 
     material
   end
+
+  # Creates a box (rectangular prism) as a group
+  # Generic geometry helper for creating 3D boxes from corner coordinates
+  #
+  # @param entities [Sketchup::Entities] Entities collection to add box to
+  # @param x1 [Length] Minimum X coordinate
+  # @param y1 [Length] Minimum Y coordinate
+  # @param z1 [Length] Minimum Z coordinate
+  # @param x2 [Length] Maximum X coordinate
+  # @param y2 [Length] Maximum Y coordinate
+  # @param z2 [Length] Maximum Z coordinate
+  # @return [Sketchup::Group] The created box group
+  def self.create_box(entities, x1, y1, z1, x2, y2, z2)
+    # Create a group for this box
+    box_group = entities.add_group
+
+    pts = [
+      Geom::Point3d.new(x1, y1, z1),
+      Geom::Point3d.new(x2, y1, z1),
+      Geom::Point3d.new(x2, y2, z1),
+      Geom::Point3d.new(x1, y2, z1)
+    ]
+
+    face = box_group.entities.add_face(pts)
+    extrude_distance = z2 - z1
+
+    # Ensure face orientation matches extrusion direction
+    # Pushpull extrudes in the direction of the normal
+    # If extruding up (distance > 0), normal should point up (z > 0)
+    # If extruding down (distance < 0), normal should point down (z < 0)
+    needs_reversal = (extrude_distance.positive? && face.normal.z.negative?) ||
+                     (extrude_distance.negative? && face.normal.z.positive?)
+    face.reverse! if needs_reversal
+
+    face.pushpull(extrude_distance)
+
+    box_group
+  end
 end
