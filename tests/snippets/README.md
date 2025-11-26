@@ -7,9 +7,11 @@ This directory contains Ruby code snippets extracted from Python test files to e
 ```
 tests/snippets/
 ├── README.md           # This file - documentation
-├── .envrc              # direnv configuration (optional)
-├── .mise.toml          # mise configuration (optional)
+├── Gemfile             # Ruby dependencies
+├── Gemfile.lock        # Locked dependency versions
+├── .rubocop.yml        # RuboCop configuration
 └── src/                # Ruby source files
+    ├── loader.rb
     ├── conftest.rb
     ├── helpers.rb
     ├── test_introspection.rb
@@ -43,13 +45,14 @@ Ruby snippets are organized into `.rb` files in the `src/` subdirectory that mir
 
 ```
 tests/snippets/src/
+├── loader.rb                # Loads all snippet files
 ├── conftest.rb              # Snippets from tests/conftest.py
 ├── test_introspection.rb    # Snippets from tests/e2e/test_introspection.py
 ├── test_model_operations.rb # Snippets from tests/e2e/test_model_operations.py
 └── helpers.rb               # Snippets from tests/helpers/cli_runner.py
 ```
 
-**Why in src/?** Keeps the project root clean - configuration files (mise, direnv) and documentation stay at the root level, while all Ruby code is organized in the `src/` subdirectory.
+**Why in src/?** Keeps the project root clean - configuration files (Gemfile, RuboCop) and documentation stay at the root level, while all Ruby code is organized in the `src/` subdirectory.
 
 **Why by test file?** Makes it easy to locate the Ruby code corresponding to a specific Python test. When working on `test_introspection.py`, you know exactly where to find the Ruby snippets.
 
@@ -180,30 +183,16 @@ end
    - Install SketchUp API stubs gem for full API support
    - Configure the gem path in Ruby extension settings
 
-### mise / direnv Setup
+### Ruby Dependencies
 
-This project uses **mise** (formerly rtx) and **direnv** for environment management instead of `.ruby-version`.
+This directory includes a `Gemfile` for managing Ruby dependencies (like RuboCop). To install:
 
-**mise configuration** (`.mise.toml` in this directory):
-- Automatically sets Ruby 2.7.0 when entering this directory
-- Manages Ruby installation and PATH
-
-**direnv configuration** (`.envrc` in this directory):
-- Activates mise environment
-- Can set additional environment variables
-
-To use:
 ```bash
-# Install mise
-brew install mise
-
-# Install direnv
-brew install direnv
-
-# Allow direnv for this directory
 cd tests/snippets
-direnv allow
+bundle install
 ```
+
+The project root may use **mise** for Ruby version management. If so, the Ruby version will be automatically detected when entering the project directory.
 
 
 ## Benefits Summary
