@@ -54,7 +54,7 @@ DEPENDENCIES
   sketchup-api-stubs
 
 RUBY VERSION
-   ruby 3.4.7p58
+   ruby 3.2.2p53
 
 BUNDLED WITH
    2.7.2
