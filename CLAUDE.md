@@ -19,14 +19,14 @@ Read MCP resources for SketchUp API documentation:
 
 ### Project Scripts
 
-- `scripts/helpers.rb` - Shared utilities (cleanup, common operations)
-- `scripts/create_table.rb` - Creates a basic wooden table with four legs
+- `src/helpers.rb` - Shared utilities (cleanup, common operations)
+- `src/create_table.rb` - Creates a basic wooden table with four legs
 
 All scripts use `module SupexSimpleTable` - call functions as `SupexSimpleTable.method_name()`.
 
 ### Workflow
 
-1. Write Ruby scripts in `scripts/` directory
+1. Write Ruby scripts in `src/` directory
 2. Execute with `eval_ruby_file(path)`
 3. Verify with `get_model_info()`, `take_screenshot()`
 4. Iterate until correct
@@ -35,7 +35,7 @@ All scripts use `module SupexSimpleTable` - call functions as `SupexSimpleTable.
 
 ```ruby
 # Execute the table creation script
-eval_ruby_file('scripts/create_table.rb')
+eval_ruby_file('src/create_table.rb')
 
 # Run the example (idempotent - safe to run multiple times)
 SupexSimpleTable.example_table
