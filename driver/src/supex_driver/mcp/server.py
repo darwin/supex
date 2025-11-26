@@ -481,23 +481,6 @@ def api_class_resource(class_name: str) -> str:
     return error_msg
 
 
-# Strategic AI guidance for SketchUp Ruby scripting
-@mcp.prompt()
-def ruby_scripting_strategy() -> str:
-    """Provides strategic guidance for SketchUp Ruby scripting projects"""
-    content = load_resource_file("workflow.md")
-    if content:
-        # Remove the markdown header since it's just for file organization
-        if content.startswith("# SketchUp Workflow\n\n"):
-            content = content[len("# SketchUp Workflow\n\n"):]
-        # Inject absolute path to SketchUp API documentation
-        api_path = str(get_resources_path() / "docs" / "api")
-        content = content.replace("{SKETCHUP_DOCS_PATH}", api_path)
-        return content
-    logger.error("Failed to read workflow.md")
-    return "Error loading SketchUp workflow. Please check the workflow.md file."
-
-
 def main():
     """Main entry point for the server"""
     mcp.run()
