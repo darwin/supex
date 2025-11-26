@@ -149,7 +149,7 @@ Documentation is exposed via MCP resources (readable by Claude Code):
 | `supex://docs/workflow` | Complete workflow guide for Ruby scripting |
 | `supex://docs/best-practices` | Geometry lessons and common pitfalls |
 | `supex://docs/api/index` | Full SketchUp API index (~30k tokens) |
-| `supex://docs/api/{class}` | Class documentation (e.g., `Sketchup/Face`, `Geom/Point3d`) |
+| `supex://docs/api/{class}` | Class documentation using Ruby syntax (e.g., `Sketchup::Face`, `Geom::Point3d`) |
 
 ### Resource Files
 

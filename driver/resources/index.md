@@ -20,34 +20,34 @@ This index provides guidance on available MCP resources for SketchUp Ruby develo
 | Resource | Description |
 |----------|-------------|
 | `supex://docs/api/index` | Full API index (~30k tokens) - complete class and method listing |
-| `supex://docs/api/Sketchup/{Class}` | Class documentation (e.g., Face, Model, Group, Entities) |
-| `supex://docs/api/Geom/{Class}` | Geometry classes (e.g., Point3d, Vector3d, Transformation) |
-| `supex://docs/api/{Class}` | Top-level classes (e.g., Array, Length, Numeric) |
+| `supex://docs/api/Sketchup::Face` | Class documentation using Ruby syntax |
+| `supex://docs/api/Geom::Point3d` | Geometry classes |
+| `supex://docs/api/Array` | Top-level classes (no namespace prefix) |
 
 ## When to Use Each Resource
 
 - **Starting a modeling task**: Read `supex://docs/workflow` first
 - **Geometry not working as expected**: Read `supex://docs/best-practices`
-- **Need method signatures**: Read `supex://docs/api/Sketchup/{Class}` or `supex://docs/api/Geom/{Class}`
+- **Need method signatures**: Read `supex://docs/api/Sketchup::Face` (use Ruby `::` syntax)
 - **Searching for a class/method**: Read `supex://docs/api/index` for full listing
 
 ## Essential Classes
 
 ### Modeling
-- `Sketchup/Model` - Main model object, entry point
-- `Sketchup/Entities` - Collection of entities, add geometry here
-- `Sketchup/Face` - Faces with pushpull, materials
-- `Sketchup/Edge` - Edges connecting vertices
-- `Sketchup/Group` - Grouped entities for organization
+- `supex://docs/api/Sketchup::Model` - Main model object, entry point
+- `supex://docs/api/Sketchup::Entities` - Collection of entities, add geometry here
+- `supex://docs/api/Sketchup::Face` - Faces with pushpull, materials
+- `supex://docs/api/Sketchup::Edge` - Edges connecting vertices
+- `supex://docs/api/Sketchup::Group` - Grouped entities for organization
 
 ### Geometry Math
-- `Geom/Point3d` - 3D points
-- `Geom/Vector3d` - 3D vectors
-- `Geom/Transformation` - Transformations (move, rotate, scale)
-- `Geom/BoundingBox` - Bounding boxes
+- `supex://docs/api/Geom::Point3d` - 3D points
+- `supex://docs/api/Geom::Vector3d` - 3D vectors
+- `supex://docs/api/Geom::Transformation` - Transformations (move, rotate, scale)
+- `supex://docs/api/Geom::BoundingBox` - Bounding boxes
 
 ### Organization
-- `Sketchup/ComponentDefinition` - Component definitions
-- `Sketchup/ComponentInstance` - Component instances
-- `Sketchup/Layer` - Layers/tags
-- `Sketchup/Material` - Materials and colors
+- `supex://docs/api/Sketchup::ComponentDefinition` - Component definitions
+- `supex://docs/api/Sketchup::ComponentInstance` - Component instances
+- `supex://docs/api/Sketchup::Layer` - Layers/tags
+- `supex://docs/api/Sketchup::Material` - Materials and colors

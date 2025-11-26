@@ -445,26 +445,31 @@ def api_index_resource() -> str:
     return "Error: API documentation not found. Run docgen/scripts/generate_docs.sh first."
 
 
-@mcp.resource("supex://docs/api/{class_path}")
-def api_class_resource(class_path: str) -> str:
+@mcp.resource("supex://docs/api/{class_name}")
+def api_class_resource(class_name: str) -> str:
     """API documentation for a specific SketchUp class.
 
-    Examples:
-    - supex://docs/api/Sketchup/Face
-    - supex://docs/api/Geom/Point3d
+    Uses Ruby syntax for namespaced classes:
+    - supex://docs/api/Sketchup::Face
+    - supex://docs/api/Geom::Point3d
     - supex://docs/api/Array
     """
+    # Convert Ruby namespace syntax (::) to path (/)
+    class_path = class_name.replace("::", "/")
+
     content = load_api_doc(class_path)
     if content:
         return content
 
     # Provide helpful error with suggestions
     similar = find_similar_classes(class_path)
-    error_msg = f"# Documentation Not Found\n\nNo documentation found for: `{class_path}`\n\n"
+    error_msg = f"# Documentation Not Found\n\nNo documentation found for: `{class_name}`\n\n"
     if similar:
         error_msg += "**Similar classes:**\n"
         for cls in similar:
-            error_msg += f"- `supex://docs/api/{cls}`\n"
+            # Convert back to Ruby syntax for display
+            ruby_name = cls.replace("/", "::")
+            error_msg += f"- `supex://docs/api/{ruby_name}`\n"
     else:
         error_msg += "Use `supex://docs/api/index` to see all available documentation."
     return error_msg
