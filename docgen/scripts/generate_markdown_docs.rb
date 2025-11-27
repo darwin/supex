@@ -120,19 +120,18 @@ def generate_class_markdown(obj)
     md << "## Constants"
     md << ""
     constants.each do |const|
-      md << "### #{const.name}"
-      md << ""
-      if const.docstring && !const.docstring.empty?
-        # Process YARD text (normalize and convert references)
-        const_desc = DocHelpers.process_yard_text(const.docstring.to_s.strip)
-        md << const_desc
-        md << ""
-      end
-      if const.value
-        md << "**Value:** `#{const.value}`"
-        md << ""
+      desc = const.docstring.to_s.strip
+      # Skip useless "Stub value." descriptions
+      desc = nil if desc == 'Stub value.'
+      desc = DocHelpers.process_yard_text(desc) if desc && !desc.empty?
+
+      if desc && !desc.empty?
+        md << "- `#{const.name}` - #{desc}"
+      else
+        md << "- `#{const.name}`"
       end
     end
+    md << ""
   end
 
   # Class methods
