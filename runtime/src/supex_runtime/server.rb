@@ -26,6 +26,7 @@ module SupexRuntime
       @timer_id = nil
       @console_capture = nil
       @verbose = ENV['SUPEX_VERBOSE'] == '1'
+      @client_info = nil # Stores current connection's client identification
 
       setup_console
       setup_console_capture
@@ -180,7 +181,7 @@ module SupexRuntime
         # Accept connection with timeout protection
         begin
           client = @server.accept_nonblock
-          log 'Client accepted'
+          log_verbose 'Client socket accepted'
           process_client_request(client)
         rescue IO::WaitReadable
           # No connection actually ready, this is normal
@@ -202,52 +203,82 @@ module SupexRuntime
     end
 
     # Process request from connected client
+    # Supports multiple requests per connection with mandatory hello handshake
     # @param client [TCPSocket] client connection
     def process_client_request(client)
       # Set a reasonable timeout to prevent hanging
       client.setsockopt(Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, [5, 0].pack('L!L!'))
 
-      # Use non-blocking read with timeout
+      # Reset client info for this connection
+      @client_info = nil
+
+      # Process requests in a loop until client disconnects or error
+      loop do
+        break unless process_single_request(client)
+      end
+    rescue Errno::EWOULDBLOCK, Errno::EAGAIN, IO::TimeoutError
+      log 'Client connection timed out'
+    ensure
+      log_client_closed
+      @client_info = nil
+      begin
+        client.close
+      rescue StandardError
+        nil
+      end
+    end
+
+    # Process a single request from client
+    # @param client [TCPSocket] client connection
+    # @return [Boolean] true to continue processing, false to close connection
+    def process_single_request(client)
       data = read_with_timeout(client, 5.0)
       log_verbose "Raw data: #{data.inspect}"
 
-      return unless data && !data.empty?
+      return false unless data && !data.empty?
 
       begin
-        # Handle potential multi-line JSON by trying to parse incrementally
         json_data = data.strip
         request = JSON.parse(json_data)
         log_verbose "Parsed request: #{request.inspect}"
 
         response = handle_jsonrpc_request(request)
-        response_json = "#{response.to_json}\n"
+        send_response(client, response)
 
-        log_verbose "Sending response: #{response_json.strip}"
-        client.write(response_json)
-        client.flush
-        log 'Response sent'
-
-        # Give the client time to read the response before closing
-        # Increased delay to ensure Python server can read response reliably
-        sleep(0.25)
+        # Continue loop only for hello requests, close after other requests
+        request['method'] == 'hello'
       rescue JSON::ParserError => e
         log "JSON parse error: #{e.message}"
         log "Raw data was: #{data.inspect}"
         send_error_response(client, 'Parse error', -32_700, nil)
+        false
       rescue StandardError => e
         log "Request error: #{e.message}"
         log e.backtrace.join("\n")
         send_error_response(client, e.message, -32_603, request&.dig('id'))
-      ensure
-        client.close
-        log 'Client closed'
+        false
       end
-    rescue Errno::EWOULDBLOCK, Errno::EAGAIN, IO::TimeoutError
-      log 'Client connection timed out'
-      begin
-        client.close
-      rescue
-        nil
+    end
+
+    # Send response to client
+    # @param client [TCPSocket] client connection
+    # @param response [Hash] response to send
+    def send_response(client, response)
+      response_json = "#{response.to_json}\n"
+      log_verbose "Sending response: #{response_json.strip}"
+      client.write(response_json)
+      client.flush
+      log 'Response sent'
+      # Small delay to ensure client can read response
+      sleep(0.1)
+    end
+
+    # Log client closed message with identification if available
+    def log_client_closed
+      if @client_info
+        log "Client closed: #{@client_info[:name]}/#{@client_info[:version]} [PID:#{@client_info[:pid]}]"
+      else
+        log_verbose 'Client closed (unidentified)'
       end
     end
 
@@ -294,6 +325,12 @@ module SupexRuntime
     def handle_jsonrpc_request(request)
       log_verbose "Handling JSON-RPC request: #{request.inspect}"
 
+      # Handle hello method first (no identification required)
+      return handle_hello(request) if request['method'] == 'hello'
+
+      # Require client identification for all other methods
+      return require_identification_error(request) unless @client_info
+
       # Handle legacy command format for backwards compatibility
       return handle_legacy_command(request) if request['command']
 
@@ -308,6 +345,58 @@ module SupexRuntime
       else
         Utils.create_error_response(request, "Method not found: #{request['method']}", -32_601)
       end
+    end
+
+    # Handle hello handshake request
+    # @param request [Hash] JSON-RPC request with client identification
+    # @return [Hash] JSON-RPC response
+    def handle_hello(request)
+      params = request['params'] || {}
+
+      # Validate required fields
+      name = params['name']
+      version = params['version']
+      agent = params['agent']
+      pid = params['pid']
+
+      unless name && version && agent && pid
+        return Utils.create_error_response(
+          request,
+          'Missing required params: name, version, agent, pid',
+          -32_600
+        )
+      end
+
+      # Store client info
+      @client_info = {
+        name: name,
+        version: version,
+        agent: agent,
+        pid: pid
+      }
+
+      log "Client connected: #{name}/#{version} [PID:#{pid}] (agent: #{agent})"
+
+      Utils.create_success_response(request, {
+                                      success: true,
+                                      message: 'Client identified',
+                                      server: {
+                                        name: 'supex-runtime',
+                                        version: VERSION
+                                      }
+                                    })
+    end
+
+    # Return error for unidentified clients
+    # @param request [Hash] JSON-RPC request
+    # @return [Hash] JSON-RPC error response
+    def require_identification_error(request)
+      Utils.create_error_response(
+        request,
+        "Client must identify with 'hello' method first",
+        -32_600,
+        { hint: 'Send hello method with params: name, version, agent, pid' }
+      )
     end
 
     # Handle legacy command format

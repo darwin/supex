@@ -19,17 +19,32 @@ class TestSketchupConnection:
 
     @patch("socket.socket")
     def test_connect_success(self, mock_socket: Mock) -> None:
-        """Test successful connection to SketchUp."""
+        """Test successful connection to SketchUp with hello handshake."""
         mock_sock_instance = Mock()
         mock_socket.return_value = mock_sock_instance
 
-        conn = SketchupConnection(host="localhost", port=9876)
+        # Mock the hello response
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True, "message": "Client identified"},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+        mock_sock_instance.recv.return_value = hello_response
+
+        conn = SketchupConnection(host="localhost", port=9876, agent="test")
         result = conn.connect()
 
         assert result is True
         mock_socket.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
         mock_sock_instance.connect.assert_called_once_with(("localhost", 9876))
+        # Verify hello was sent
+        mock_sock_instance.sendall.assert_called_once()
+        sent_data = mock_sock_instance.sendall.call_args[0][0]
+        sent_json = json.loads(sent_data.decode("utf-8").strip())
+        assert sent_json["method"] == "hello"
+        assert sent_json["params"]["agent"] == "test"
         assert conn.sock == mock_sock_instance
+        assert conn._identified is True
 
     @patch("socket.socket")
     def test_connect_failure(self, mock_socket: Mock) -> None:

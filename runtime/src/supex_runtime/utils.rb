@@ -81,14 +81,18 @@ module SupexRuntime
     # @param request [Hash] original JSON-RPC request
     # @param error_message [String] error message
     # @param error_code [Integer] JSON-RPC error code
+    # @param data [Hash, nil] optional additional error data
     # @return [Hash] formatted JSON-RPC error response
-    def self.create_error_response(request, error_message, error_code = -32_603)
+    def self.create_error_response(request, error_message, error_code = -32_603, data = nil)
+      error_data = data || { success: false }
+      error_data[:success] = false unless error_data.key?(:success)
+
       {
         jsonrpc: request['jsonrpc'] || '2.0',
         error: {
           code: error_code,
           message: error_message,
-          data: { success: false }
+          data: error_data
         },
         id: request['id']
       }

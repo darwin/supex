@@ -26,6 +26,51 @@ __version__ = "0.3.0"
 # Logger instance (configured when server starts)
 logger = logging.getLogger("supex.mcp")
 
+# MCP client identification (captured from clientInfo during initialization)
+_mcp_client_name: str | None = None
+
+
+def get_agent_name(ctx: Context | None = None) -> str:
+    """Get agent name from MCP client info or environment.
+
+    Priority:
+    1. MCP clientInfo.name (from session.client_params.clientInfo)
+    2. SUPEX_AGENT environment variable
+    3. Default to "mcp"
+    """
+    global _mcp_client_name
+
+    # Try to get from Context
+    if ctx is not None:
+        try:
+            # Access: ctx.request_context.session.client_params.clientInfo.name
+            request_context = getattr(ctx, 'request_context', None)
+            if request_context:
+                session = getattr(request_context, 'session', None)
+                if session:
+                    client_params = getattr(session, 'client_params', None)
+                    if client_params:
+                        client_info = getattr(client_params, 'clientInfo', None)
+                        if client_info:
+                            name = getattr(client_info, 'name', None)
+                            if name:
+                                logger.info(f"Got client name from MCP clientInfo: {name}")
+                                _mcp_client_name = name
+                                return name
+        except Exception as e:
+            logger.debug(f"Error accessing MCP clientInfo: {e}")
+
+    # Use stored MCP client name if available
+    if _mcp_client_name:
+        return _mcp_client_name
+
+    # Fallback to environment variable
+    if agent := os.environ.get("SUPEX_AGENT"):
+        return agent
+
+    # Default
+    return "mcp"
+
 # Flag to track if logging has been configured
 _logging_configured = False
 
@@ -95,7 +140,7 @@ mcp = FastMCP("Supex")
 def check_sketchup_status(ctx: Context) -> str:
     """Check if SketchUp is connected and responding"""
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="ping", params={}, request_id=ctx.request_id
         )
@@ -125,7 +170,7 @@ def export_scene(ctx: Context, format: str = "skp") -> str:
         format: Export format (skp, obj, dae, stl, png, jpg)
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="export", params={"format": format}, request_id=ctx.request_id
         )
@@ -145,7 +190,7 @@ def eval_ruby(ctx: Context, code: str) -> str:
     try:
         logger.info(f"Evaluating Ruby code ({len(code)} characters)")
 
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
 
         result = sketchup.send_command(
             method="eval_ruby", params={"code": code}, request_id=ctx.request_id
@@ -173,7 +218,7 @@ def eval_ruby(ctx: Context, code: str) -> str:
 def console_capture_status(ctx: Context) -> str:
     """Get console capture status and log file information"""
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="console_capture_status", params={}, request_id=ctx.request_id
         )
@@ -193,7 +238,7 @@ def eval_ruby_file(ctx: Context, file_path: str) -> str:
     try:
         logger.info(f"Evaluating Ruby file: {file_path}")
 
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="eval_ruby_file",
             params={"file_path": file_path},
@@ -220,7 +265,7 @@ def get_model_info(ctx: Context) -> str:
     - modified: Whether model has unsaved changes
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="get_model_info",
             params={},
@@ -242,7 +287,7 @@ def list_entities(ctx: Context, entity_type: str = "all") -> str:
     Returns list of entities with type, name, and layer information
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="list_entities",
             params={"entity_type": entity_type},
@@ -263,7 +308,7 @@ def get_selection(ctx: Context) -> str:
     - entities: List of selected entities with details (type, properties)
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="get_selection",
             params={},
@@ -282,7 +327,7 @@ def get_layers(ctx: Context) -> str:
     Returns list of layers with name, visible state, and entity count
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="get_layers",
             params={},
@@ -301,7 +346,7 @@ def get_materials(ctx: Context) -> str:
     Returns list of materials with name, color, and texture information
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="get_materials",
             params={},
@@ -320,7 +365,7 @@ def get_camera_info(ctx: Context) -> str:
     Returns camera eye position, target, up vector, and field of view
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="get_camera_info",
             params={},
@@ -357,7 +402,7 @@ def take_screenshot(
         Use Read tool on the file_path to view screenshot if necessary
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         params = {
             "width": width,
             "height": height,
@@ -387,7 +432,7 @@ def open_model(ctx: Context, path: str) -> str:
     Returns success status and model information
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="open_model",
             params={"path": path},
@@ -409,7 +454,7 @@ def save_model(ctx: Context, path: str | None = None) -> str:
     Returns success status and saved file path
     """
     try:
-        sketchup = get_sketchup_connection()
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         params = {"path": path} if path else {}
         result = sketchup.send_command(
             method="save_model",

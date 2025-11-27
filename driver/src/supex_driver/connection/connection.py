@@ -3,8 +3,10 @@
 import contextlib
 import json
 import logging
+import os
 import socket
 from dataclasses import dataclass, field
+from importlib.metadata import version as get_version
 from typing import Any
 
 from supex_driver.connection.exceptions import (
@@ -20,6 +22,13 @@ DEFAULT_PORT = 9876
 DEFAULT_TIMEOUT = 15.0
 MAX_RETRIES = 2
 
+# Client identification
+CLIENT_NAME = "supex-driver"
+try:
+    CLIENT_VERSION = get_version("supex-driver")
+except Exception:
+    CLIENT_VERSION = "0.0.0"
+
 
 @dataclass
 class SketchupConnection:
@@ -29,7 +38,7 @@ class SketchupConnection:
     using JSON-RPC 2.0 protocol for request/response.
 
     Example:
-        >>> conn = SketchupConnection()
+        >>> conn = SketchupConnection(agent="user")
         >>> result = conn.send_command("get_model_info")
         >>> print(result)
     """
@@ -37,26 +46,76 @@ class SketchupConnection:
     host: str = DEFAULT_HOST
     port: int = DEFAULT_PORT
     timeout: float = DEFAULT_TIMEOUT
+    agent: str = "unknown"
     sock: socket.socket | None = field(default=None, repr=False)
+    _identified: bool = field(default=False, repr=False)
 
     def connect(self) -> bool:
-        """Connect to the SketchUp runtime socket server.
+        """Connect to the SketchUp runtime socket server and send hello handshake.
 
         Returns:
-            True if connection successful, False otherwise.
+            True if connection and identification successful, False otherwise.
         """
-        # Always create fresh connections since Ruby closes after each request
+        # Always create fresh connections
         self.disconnect()
 
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.sock.connect((self.host, self.port))
-            logger.debug(f"Created fresh connection to SketchUp at {self.host}:{self.port}")
+            logger.debug(f"Created connection to SketchUp at {self.host}:{self.port}")
+
+            # Send hello handshake
+            if not self._send_hello():
+                logger.error("Failed to identify with SketchUp server")
+                self.disconnect()
+                return False
+
+            self._identified = True
             return True
         except Exception as e:
             logger.error(f"Failed to connect to SketchUp: {e}")
             self.sock = None
+            self._identified = False
+            return False
+
+    def _send_hello(self) -> bool:
+        """Send hello handshake to identify this client.
+
+        Returns:
+            True if identification successful, False otherwise.
+        """
+        if not self.sock:
+            return False
+
+        hello_request = {
+            "jsonrpc": "2.0",
+            "method": "hello",
+            "params": {
+                "name": CLIENT_NAME,
+                "version": CLIENT_VERSION,
+                "agent": self.agent,
+                "pid": os.getpid(),
+            },
+            "id": "hello",
+        }
+
+        try:
+            request_bytes = json.dumps(hello_request).encode("utf-8") + b"\n"
+            self.sock.sendall(request_bytes)
+
+            response_data = self.receive_full_response(self.sock)
+            response = json.loads(response_data.decode("utf-8"))
+
+            if "error" in response:
+                error_msg = response["error"].get("message", "Hello failed")
+                logger.error(f"Hello handshake failed: {error_msg}")
+                return False
+
+            logger.debug(f"Hello handshake successful: {response.get('result', {})}")
+            return True
+        except Exception as e:
+            logger.error(f"Hello handshake error: {e}")
             return False
 
     def disconnect(self):
@@ -68,6 +127,7 @@ class SketchupConnection:
                 logger.error(f"Error disconnecting from SketchUp: {e}")
             finally:
                 self.sock = None
+                self._identified = False
 
     def receive_full_response(
         self, sock: socket.socket, buffer_size: int = 8192
@@ -258,21 +318,30 @@ class SketchupConnection:
 
 # Global connection management
 _sketchup_connection: SketchupConnection | None = None
+_connection_agent: str | None = None
 
 
 def get_sketchup_connection(
-    host: str = DEFAULT_HOST, port: int = DEFAULT_PORT
+    host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, agent: str = "unknown"
 ) -> SketchupConnection:
     """Get or create a persistent SketchUp connection.
 
     Args:
         host: Host to connect to.
         port: Port to connect to.
+        agent: Agent identifier (e.g., "user", "Claude", "mcp").
 
     Returns:
         A SketchupConnection instance.
     """
-    global _sketchup_connection
+    global _sketchup_connection, _connection_agent
+
+    # If agent changed, recreate connection
+    if _sketchup_connection is not None and _connection_agent != agent:
+        logger.debug(f"Agent changed from {_connection_agent} to {agent}, recreating connection")
+        with contextlib.suppress(Exception):
+            _sketchup_connection.disconnect()
+        _sketchup_connection = None
 
     if _sketchup_connection is not None:
         try:
@@ -286,9 +355,10 @@ def get_sketchup_connection(
             _sketchup_connection = None
 
     if _sketchup_connection is None:
-        _sketchup_connection = SketchupConnection(host=host, port=port)
+        _sketchup_connection = SketchupConnection(host=host, port=port, agent=agent)
+        _connection_agent = agent
         # Note: Don't try to connect here - let individual commands handle connection attempts
         # This allows the server to remain available even when SketchUp isn't running
-        logger.debug("Created SketchUp connection (will be established on first use)")
+        logger.debug(f"Created SketchUp connection (agent: {agent}, will be established on first use)")
 
     return _sketchup_connection
