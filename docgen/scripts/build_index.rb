@@ -101,13 +101,6 @@ def categorize_classes(classes, categories)
   categorized
 end
 
-# Get key methods for a class (up to limit)
-def get_key_methods(methods_by_parent, class_path, limit = 5)
-  methods = methods_by_parent[class_path] || []
-  method_names = methods.map { |m| m[:path].split(/[#.]/).last }
-  method_names.first(limit)
-end
-
 # Generate namespace index file (e.g., Geom/INDEX.md or Sketchup/INDEX.md)
 def generate_namespace_index(namespace, objects, methods_by_parent, categories)
   output_dir = "generated-sketchup-docs-md/#{namespace}"
@@ -167,16 +160,14 @@ def generate_namespace_index(namespace, objects, methods_by_parent, categories)
 
       f.puts "### #{category}"
       f.puts ""
-      f.puts "| Class | Description | Key Methods |"
-      f.puts "|-------|-------------|-------------|"
+      f.puts "| Class | Description |"
+      f.puts "|-------|-------------|"
 
       category_classes.sort_by { |c| c[:path] }.each do |cls|
         class_name = cls[:path].split('::').last
         file_path = "#{class_name}.md"
-        description = cls[:summary].empty? ? '-' : cls[:summary].gsub('|', '\\|').truncate(80)
-        key_methods = get_key_methods(methods_by_parent, cls[:path], 4)
-        methods_str = key_methods.empty? ? '-' : key_methods.map { |m| "`#{m}`" }.join(', ')
-        f.puts "| [#{class_name}](#{file_path}) | #{description} | #{methods_str} |"
+        description = cls[:summary].empty? ? '-' : cls[:summary].gsub('|', '\\|').truncate(100)
+        f.puts "| [#{class_name}](#{file_path}) | #{description} |"
       end
 
       f.puts ""
