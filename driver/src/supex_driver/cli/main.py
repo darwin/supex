@@ -45,7 +45,9 @@ PortOption = Annotated[int, typer.Option("--port", "-p", help="SketchUp port")]
 
 def get_connection(host: str = "localhost", port: int = 9876) -> SketchupConnection:
     """Get a connection to SketchUp."""
-    return get_sketchup_connection(host=host, port=port, agent="user")
+    # Allow overriding agent via environment variable (useful for testing)
+    agent = os.environ.get("SUPEX_AGENT", "user")
+    return get_sketchup_connection(host=host, port=port, agent=agent)
 
 
 def handle_error(e: Exception, exit_code: int = 1):

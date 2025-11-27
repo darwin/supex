@@ -1,6 +1,7 @@
 """CLI wrapper for e2e tests."""
 
 import json
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +28,9 @@ class CLIResult:
 
 class CLIRunner:
     """Wrapper around the supex CLI for testing."""
+
+    # Agent name used for client identification in logs
+    AGENT_NAME = "e2e-test"
 
     def __init__(self, driver_path: Path | None = None):
         self._driver_path = driver_path or (
@@ -99,12 +103,15 @@ class CLIRunner:
     def _run(self, *args: str, timeout: float = 30.0) -> CLIResult:
         """Run a supex CLI command."""
         cmd = ["uv", "run", "supex", *args]
+        # Pass SUPEX_AGENT to identify as e2e test in logs
+        env = {**os.environ, "SUPEX_AGENT": self.AGENT_NAME}
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             cwd=self._driver_path,
             timeout=timeout,
+            env=env,
         )
         return CLIResult(
             exit_code=result.returncode,
