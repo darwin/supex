@@ -11,7 +11,7 @@ require_relative 'doc_helpers'
 
 OUTPUT_DIR = 'generated-sketchup-api-docs'
 
-puts "Loading YARD registry..."
+puts 'Loading YARD registry...'
 YARD::Registry.load!('.yardoc')
 
 # Load filtering configuration
@@ -26,7 +26,7 @@ if File.exist?(config_path)
   puts "  Excluded namespaces: #{excluded_namespaces.join(', ')}"
   puts "  Excluded patterns: #{filter_config['excluded_patterns'].join(', ')}"
 else
-  puts "No filter configuration found, including all objects..."
+  puts 'No filter configuration found, including all objects...'
   excluded_namespaces = []
   excluded_patterns = []
 end
@@ -36,12 +36,14 @@ def should_exclude?(obj, excluded_namespaces, excluded_patterns)
   top_namespace = obj.path.split('::').first
   return true if excluded_namespaces.include?(top_namespace)
   return true if excluded_patterns.any? { |regex| regex.match?(obj.path) }
+
   false
 end
 
 # Format a tag value
 def format_tag(tag)
   return nil unless tag
+
   text = tag.text.to_s.strip
   text.empty? ? nil : text
 end
@@ -52,15 +54,13 @@ def format_param(param)
   parts << "`#{param.name}`" if param.name
   if param.types && !param.types.empty?
     # Add "as" separator if we have a parameter name
-    parts << "as" if param.name
+    parts << 'as' if param.name
     # Wrap each type in backticks
     types_formatted = param.types.map { |t| "`#{t}`" }.join(', ')
     # Only use parentheses if there's more than one type
     parts << (param.types.length > 1 ? "(#{types_formatted})" : types_formatted)
   end
-  if param.text && !param.text.strip.empty?
-    parts << "— #{DocHelpers.process_yard_text(param.text)}"
-  end
+  parts << "— #{DocHelpers.process_yard_text(param.text)}" if param.text && !param.text.strip.empty?
   parts.join(' ')
 end
 
@@ -73,9 +73,7 @@ def format_return(tag)
     # Only use parentheses if there's more than one type
     parts << (tag.types.length > 1 ? "(#{types_formatted})" : types_formatted)
   end
-  if tag.text && !tag.text.strip.empty?
-    parts << "— #{DocHelpers.process_yard_text(tag.text)}"
-  end
+  parts << "— #{DocHelpers.process_yard_text(tag.text)}" if tag.text && !tag.text.strip.empty?
   parts.empty? ? nil : parts.join(' ')
 end
 
@@ -85,70 +83,72 @@ def generate_class_markdown(obj)
 
   # Header
   md << "# #{obj.type.to_s.capitalize}: #{obj.path}"
-  md << ""
+  md << ''
 
   # Inheritance information
   if obj.type == :class && obj.superclass && obj.superclass.path != 'Object'
     md << "**Inherits:** `#{obj.superclass.path}`"
-    md << ""
+    md << ''
   end
 
   # Overview section
   if obj.docstring && !obj.docstring.empty?
-    md << "## Overview"
-    md << ""
+    md << '## Overview'
+    md << ''
     # Process YARD text (normalize and convert references)
     overview = DocHelpers.process_yard_text(obj.docstring.to_s.strip)
     md << overview
-    md << ""
+    md << ''
   end
 
   # Subclasses
   if obj.type == :class
     subclasses = YARD::Registry.all(:class).select { |c| c.superclass == obj }
     unless subclasses.empty?
-      md << "## Direct Known Subclasses"
-      md << ""
+      md << '## Direct Known Subclasses'
+      md << ''
       subclasses.each { |sc| md << "- `#{sc.path}`" }
-      md << ""
+      md << ''
     end
   end
 
   # Constants
   constants = obj.constants(included: false)
   unless constants.empty?
-    md << "## Constants"
-    md << ""
+    md << '## Constants'
+    md << ''
     constants.each do |const|
       desc = const.docstring.to_s.strip
       # Skip useless "Stub value." descriptions
       desc = nil if desc == 'Stub value.'
       desc = DocHelpers.process_yard_text(desc) if desc && !desc.empty?
 
-      if desc && !desc.empty?
-        md << "- `#{const.name}` - #{desc}"
-      else
-        md << "- `#{const.name}`"
-      end
+      md << if desc && !desc.empty?
+              "- `#{const.name}` - #{desc}"
+            else
+              "- `#{const.name}`"
+            end
     end
-    md << ""
+    md << ''
   end
 
   # Class methods
   class_methods = obj.meths(scope: :class, included: false).reject { |m| m.visibility == :private }
   unless class_methods.empty?
-    md << "## Class Methods"
-    md << ""
+    md << '## Class Methods'
+    md << ''
     class_methods.sort_by(&:name).each do |method|
       md.concat(generate_method_markdown(method))
     end
   end
 
   # Instance methods
-  instance_methods = obj.meths(scope: :instance, included: false).reject { |m| m.visibility == :private }
+  instance_methods = obj.meths(scope: :instance, included: false).reject do |m|
+    m.visibility == :private
+  end
   unless instance_methods.empty?
-    md << "## Instance Methods"
-    md << ""
+    md << '## Instance Methods'
+    md << ''
     instance_methods.sort_by(&:name).each do |method|
       md.concat(generate_method_markdown(method))
     end
@@ -164,28 +164,28 @@ def generate_method_markdown(method)
   # Method signature
   sig = method.signature || "def #{method.name}"
   md << "### #{method.name}"
-  md << ""
-  md << "```ruby"
+  md << ''
+  md << '```ruby'
   md << sig
-  md << "```"
-  md << ""
+  md << '```'
+  md << ''
 
   # Method description
   if method.docstring && !method.docstring.empty?
     # Process YARD text (normalize and convert references)
     description = DocHelpers.process_yard_text(method.docstring.to_s.strip)
     md << description
-    md << ""
+    md << ''
   end
 
   # Parameters
   params = method.tags(:param)
   unless params.empty?
-    md << "**Parameters:**"
+    md << '**Parameters:**'
     params.each do |param|
       md << "- #{format_param(param)}"
     end
-    md << ""
+    md << ''
   end
 
   # Return value
@@ -195,22 +195,21 @@ def generate_method_markdown(method)
       # Single return: compact format on one line
       formatted = format_return(return_tags.first)
       md << "**Returns:** #{formatted}" if formatted
-      md << ""
     else
       # Multiple returns: use list format
-      md << "**Returns:**"
+      md << '**Returns:**'
       return_tags.each do |ret|
         formatted = format_return(ret)
         md << "- #{formatted}" if formatted
       end
-      md << ""
     end
+    md << ''
   end
 
   # Raises
   raises_tags = method.tags(:raise)
   unless raises_tags.empty?
-    md << "**Raises:**"
+    md << '**Raises:**'
     raises_tags.each do |raise_tag|
       if raise_tag.types && !raise_tag.types.empty?
         # Wrap each type in backticks, use parentheses only for multiple types
@@ -219,42 +218,42 @@ def generate_method_markdown(method)
       else
         types = ''
       end
-      if raise_tag.text
-        text = DocHelpers.process_yard_text(raise_tag.text)
-      else
-        text = ''
-      end
+      text = if raise_tag.text
+               DocHelpers.process_yard_text(raise_tag.text)
+             else
+               ''
+             end
       md << "- #{types} — #{text}".strip
     end
-    md << ""
+    md << ''
   end
 
   # Examples
   examples = method.tags(:example)
   unless examples.empty?
-    md << "**Examples:**"
+    md << '**Examples:**'
     examples.each do |example|
       # Only output title if it's meaningful (not empty, not default "Example")
-      if example.name && !example.name.strip.empty? && example.name.strip != "Example"
+      if example.name && !example.name.strip.empty? && example.name.strip != 'Example'
         md << "_#{example.name}_"
-        md << ""
+        md << ''
       end
-      md << "```ruby"
+      md << '```ruby'
       md << example.text.strip
-      md << "```"
-      md << ""
+      md << '```'
+      md << ''
     end
   end
 
   # See also
   see_tags = method.tags(:see)
   unless see_tags.empty?
-    md << "**See also:**"
+    md << '**See also:**'
     see_tags.each do |see_tag|
       ref = see_tag.name.to_s.strip
       # Convert #method or .method to anchor link
       if ref.start_with?('#', '.')
-        method_name = ref[1..-1]  # Remove leading # or .
+        method_name = ref[1..] # Remove leading # or .
         # GitHub-flavored markdown removes special chars from anchors
         anchor = method_name.gsub(/[^a-zA-Z0-9_-]/, '')
         md << "- [#{method_name}](##{anchor})"
@@ -262,28 +261,28 @@ def generate_method_markdown(method)
         md << "- #{DocHelpers.convert_yard_references(ref)}"
       end
     end
-    md << ""
+    md << ''
   end
 
-  md << "---"
-  md << ""
+  md << '---'
+  md << ''
 
   md
 end
 
 # Clean output directory
-puts "Cleaning output directory..."
+puts 'Cleaning output directory...'
 FileUtils.rm_rf(OUTPUT_DIR)
 FileUtils.mkdir_p(OUTPUT_DIR)
 
 # Generate documentation for classes and modules
-puts "Generating Markdown documentation..."
+puts 'Generating Markdown documentation...'
 
 total_objects = 0
 excluded_objects = 0
 generated_files = 0
 
-[:class, :module].each do |type|
+%i[class module].each do |type|
   YARD::Registry.all(type).each do |obj|
     total_objects += 1
 
@@ -310,7 +309,7 @@ generated_files = 0
     File.write(md_path, markdown)
 
     generated_files += 1
-    puts "  ✓ #{rel_path}.md" if generated_files % 20 == 0
+    puts "  ✓ #{rel_path}.md" if (generated_files % 20).zero?
   end
 end
 
@@ -343,7 +342,7 @@ if included_pages.any?
     # Extract title from @title directive (e.g., "# @title Generating Geometry")
     title = page_name.gsub('_', ' ').split.map(&:capitalize).join(' ')
     if content =~ /^#\s*@title\s+(.+)$/
-      title = $1.strip
+      title = Regexp.last_match(1).strip
       # Remove the @title line from content
       content = content.sub(/^#\s*@title\s+.+\n?/, '')
     end
@@ -355,15 +354,10 @@ if included_pages.any?
     content.each_line do |line|
       # Convert !!!lang code block hints to standard markdown
       # e.g., "!!!cpp" at start of code block becomes "cpp" language hint
-      if line =~ /^```(\S*)$/
-        processed << line
-      elsif line =~ /^!!!(\w+)$/
-        # This is a language hint inside a code block, skip it
-        # The next code block will use this language
-        next
-      else
-        processed << line
-      end
+      # Skip language hints inside code blocks (e.g., "!!!ruby")
+      next if line =~ /^!!!(\w+)$/
+
+      processed << line
     end
 
     # Process YARD cross-references
@@ -396,7 +390,7 @@ def should_exclude_constant?(const_name, excluded_constant_patterns)
 end
 
 # Get root namespace
-root = YARD::Registry.root
+YARD::Registry.root
 
 # Collect root-level constants (not inside any class/module)
 root_constants = YARD::Registry.all(:constant).select do |const|
@@ -450,58 +444,58 @@ end
 
 # Build the markdown
 md = []
-md << "# Top-Level Namespace"
-md << ""
-md << "Global constants and methods available in SketchUp Ruby scripts."
-md << ""
+md << '# Top-Level Namespace'
+md << ''
+md << 'Global constants and methods available in SketchUp Ruby scripts.'
+md << ''
 
 # Constants section
 if filtered_constants.any?
-  md << "## Constants"
-  md << ""
+  md << '## Constants'
+  md << ''
 
   # Output categorized constants first
-  constant_categories.keys.each do |category|
+  constant_categories.each_key do |category|
     constants = categorized_constants[category]
-    next unless constants && constants.any?
+    next unless constants&.any?
 
     md << "### #{category}"
-    md << ""
+    md << ''
     constants.sort_by(&:name).each do |const|
       desc = const.docstring.to_s.strip
       desc = desc.split("\n").first if desc # Take first line only
       desc = DocHelpers.process_yard_text(desc) if desc && !desc.empty?
-      if desc && !desc.empty?
-        md << "- `#{const.name}` — #{desc}"
-      else
-        md << "- `#{const.name}`"
-      end
+      md << if desc && !desc.empty?
+              "- `#{const.name}` — #{desc}"
+            else
+              "- `#{const.name}`"
+            end
     end
-    md << ""
+    md << ''
   end
 
   # Output uncategorized constants
   if uncategorized_constants.any?
-    md << "### Other Constants"
-    md << ""
+    md << '### Other Constants'
+    md << ''
     uncategorized_constants.sort_by(&:name).each do |const|
       desc = const.docstring.to_s.strip
       desc = desc.split("\n").first if desc
       desc = DocHelpers.process_yard_text(desc) if desc && !desc.empty?
-      if desc && !desc.empty?
-        md << "- `#{const.name}` — #{desc}"
-      else
-        md << "- `#{const.name}`"
-      end
+      md << if desc && !desc.empty?
+              "- `#{const.name}` — #{desc}"
+            else
+              "- `#{const.name}`"
+            end
     end
-    md << ""
+    md << ''
   end
 end
 
 # Methods section
 if root_methods.any?
-  md << "## Methods"
-  md << ""
+  md << '## Methods'
+  md << ''
 
   root_methods.sort_by(&:name).each do |method|
     md.concat(generate_method_markdown(method))
@@ -512,6 +506,6 @@ end
 output_path = File.join(OUTPUT_DIR, 'TOP-LEVEL.md')
 File.write(output_path, md.join("\n"))
 
-puts "  ✓ TOP-LEVEL.md"
+puts '  ✓ TOP-LEVEL.md'
 puts "    Constants: #{filtered_constants.size} (#{root_constants.size - filtered_constants.size} excluded)"
 puts "    Methods: #{root_methods.size}"

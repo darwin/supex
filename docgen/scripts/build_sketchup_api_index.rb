@@ -14,13 +14,16 @@ NAMESPACES_WITH_INDEX = %w[Geom Sketchup].freeze
 
 # Category groupings for Sketchup namespace classes
 SKETCHUP_CATEGORIES = {
-  'Model Structure' => %w[Model Entities Selection DefinitionList RenderingOptions ShadowInfo OptionsManager OptionsProvider],
-  'Geometry Primitives' => %w[Face Edge Vertex Curve ArcCurve ConstructionLine ConstructionPoint SectionPlane],
+  'Model Structure' => %w[Model Entities Selection DefinitionList RenderingOptions ShadowInfo
+                          OptionsManager OptionsProvider],
+  'Geometry Primitives' => %w[Face Edge Vertex Curve ArcCurve ConstructionLine ConstructionPoint
+                              SectionPlane],
   'Containers' => %w[Group ComponentInstance ComponentDefinition Image],
   'Appearance' => %w[Material Materials Texture],
   'Organization' => %w[Layer Layers Page Pages Scenes Styles Style],
   'Annotations' => %w[Text Dimension DimensionLinear DimensionRadial],
-  'Metadata' => %w[Entity Drawingelement AttributeDictionary AttributeDictionaries Classification Classifications],
+  'Metadata' => %w[Entity Drawingelement AttributeDictionary AttributeDictionaries Classification
+                   Classifications],
   'Camera & View' => %w[Camera Axes RenderingOptions],
   'Other' => [] # Catch-all for uncategorized classes
 }.freeze
@@ -33,7 +36,7 @@ GEOM_CATEGORIES = {
   'Coordinates' => %w[LatLong UTM]
 }.freeze
 
-puts "Loading YARD registry..."
+puts 'Loading YARD registry...'
 YARD::Registry.load!('.yardoc')
 
 # Load filtering configuration
@@ -51,7 +54,7 @@ if File.exist?(config_path)
   puts "  Excluded namespaces: #{excluded_namespaces.join(', ')}"
   puts "  Excluded patterns: #{filter_config['excluded_patterns'].join(', ')}"
 else
-  puts "No filter configuration found, including all objects..."
+  puts 'No filter configuration found, including all objects...'
   excluded_namespaces = []
   excluded_patterns = []
 end
@@ -79,11 +82,12 @@ def categorize_classes(classes, categories)
 
     categories.each do |category, class_names|
       next if category == 'Other'
-      if class_names.include?(class_name)
-        categorized[category] << cls
-        found = true
-        break
-      end
+
+      next unless class_names.include?(class_name)
+
+      categorized[category] << cls
+      found = true
+      break
     end
 
     uncategorized << cls unless found
@@ -100,30 +104,30 @@ def generate_namespace_index(namespace, objects, methods_by_parent, categories)
   output_path = "#{output_dir}/INDEX.md"
 
   # Separate classes/modules from the main namespace object
-  classes_and_modules = objects.select { |o| o[:type] == 'class' || o[:type] == 'module' }
+  classes_and_modules = objects.select { |o| %w[class module].include?(o[:type]) }
   main_obj = classes_and_modules.find { |obj| obj[:path] == namespace }
   other_classes = classes_and_modules.reject { |obj| obj[:path] == namespace }
 
   File.open(output_path, 'w') do |f|
     f.puts "# #{namespace} Namespace"
-    f.puts ""
+    f.puts ''
 
     # Module description if exists
     if main_obj && !main_obj[:summary].empty?
       f.puts main_obj[:summary]
-      f.puts ""
+      f.puts ''
     end
 
-    f.puts "---"
-    f.puts ""
+    f.puts '---'
+    f.puts ''
 
     # Module methods section
     module_methods = methods_by_parent[namespace] || []
     unless module_methods.empty?
-      f.puts "## Module Methods"
-      f.puts ""
+      f.puts '## Module Methods'
+      f.puts ''
       f.puts "The `#{namespace}` module provides utility methods:"
-      f.puts ""
+      f.puts ''
       module_methods.each do |method|
         method_name = method[:path].split(/[#.]/).last
         if method[:summary] && !method[:summary].strip.empty?
@@ -132,26 +136,26 @@ def generate_namespace_index(namespace, objects, methods_by_parent, categories)
           f.puts "- `#{namespace}.#{method_name}`"
         end
       end
-      f.puts ""
+      f.puts ''
       f.puts "Full module documentation: [#{namespace}.md](../#{namespace}.md)"
-      f.puts ""
-      f.puts "---"
-      f.puts ""
+      f.puts ''
+      f.puts '---'
+      f.puts ''
     end
 
     # Categorize classes
     categorized = categorize_classes(other_classes, categories)
 
     # Output by category
-    f.puts "## Classes"
-    f.puts ""
+    f.puts '## Classes'
+    f.puts ''
 
-    categories.keys.each do |category|
+    categories.each_key do |category|
       category_classes = categorized[category]
-      next unless category_classes && category_classes.any?
+      next unless category_classes&.any?
 
       f.puts "### #{category}"
-      f.puts ""
+      f.puts ''
 
       category_classes.sort_by { |c| c[:path] }.each do |cls|
         class_name = cls[:path].split('::').last
@@ -163,9 +167,8 @@ def generate_namespace_index(namespace, objects, methods_by_parent, categories)
         end
       end
 
-      f.puts ""
+      f.puts ''
     end
-
   end
 
   puts "Generated #{output_path}"
@@ -178,7 +181,7 @@ grouped_objects = Hash.new { |h, k| h[k] = [] }
 total_objects = 0
 excluded_objects = 0
 
-[:class, :module, :method].each do |type|
+%i[class module method].each do |type|
   YARD::Registry.all(type).each do |obj|
     total_objects += 1
 
@@ -193,7 +196,7 @@ excluded_objects = 0
 
     # Extract summary (first sentence)
     summary = obj.docstring.summary.strip
-    #summary = summary[0..100] + '...' if summary.length > 100
+    # summary = summary[0..100] + '...' if summary.length > 100
 
     # Process YARD text (normalize and convert references)
     summary = DocHelpers.process_yard_text(summary)
@@ -205,12 +208,11 @@ excluded_objects = 0
       # Method: extract parent (e.g., "Array#cross" -> "Array", "Sketchup::Face#area" -> "Sketchup")
       parent_path = obj.path.split(/[#.]/).first
       path_parts = parent_path.split('::')
-      namespace = path_parts.first || 'Global'
     else
       # Class/Module: use top-level namespace
       path_parts = obj.path.split('::')
-      namespace = path_parts.first || 'Global'
     end
+    namespace = path_parts.first || 'Global'
 
     grouped_objects[namespace] << {
       path: obj.path,
@@ -232,7 +234,7 @@ sorted_namespaces = ['Global'] + (sorted_namespaces - ['Global']) if sorted_name
 
 # Pre-compute methods_by_parent for all namespaces (needed for namespace indexes)
 all_methods_by_parent = {}
-grouped_objects.each do |namespace, objects|
+grouped_objects.each_value do |objects|
   methods = objects.select { |o| o[:type] == 'method' }
   methods.each do |m|
     parent = m[:path].split(/[#.]/).first
@@ -256,31 +258,31 @@ output_path = 'generated-sketchup-api-docs/INDEX.md'
 FileUtils.mkdir_p('generated-sketchup-api-docs')
 
 File.open(output_path, 'w') do |f|
-  f.puts "# SketchUp Ruby API - Documentation Index"
-  f.puts ""
-  f.puts "This is a subset of the official SketchUp Ruby API documentation, filtered to include"
-  f.puts "only the classes and methods relevant for 3D modeling with Supex."
-  f.puts ""
-  f.puts "For complete documentation, see: https://ruby.sketchup.com"
-  f.puts ""
-  f.puts "---"
-  f.puts ""
+  f.puts '# SketchUp Ruby API - Documentation Index'
+  f.puts ''
+  f.puts 'This is a subset of the official SketchUp Ruby API documentation, filtered to include'
+  f.puts 'only the classes and methods relevant for 3D modeling with Supex.'
+  f.puts ''
+  f.puts 'For complete documentation, see: https://ruby.sketchup.com'
+  f.puts ''
+  f.puts '---'
+  f.puts ''
 
   # Namespace listings
   sorted_namespaces.each do |namespace|
     # Special handling for Global namespace - link to TOP-LEVEL.md
     if namespace == 'Global'
-      f.puts "## [Top-Level Namespace](TOP-LEVEL.md)"
-      f.puts ""
-      f.puts "Global constants and methods available in all SketchUp Ruby scripts."
-      f.puts ""
+      f.puts '## [Top-Level Namespace](TOP-LEVEL.md)'
+      f.puts ''
+      f.puts 'Global constants and methods available in all SketchUp Ruby scripts.'
+      f.puts ''
 
       # List global methods with descriptions
       objects = grouped_objects[namespace].sort_by { |o| o[:path] }
       methods = objects.select { |o| o[:type] == 'method' }
       unless methods.empty?
-        f.puts "**Methods:**"
-        f.puts ""
+        f.puts '**Methods:**'
+        f.puts ''
         methods.each do |method|
           method_name = method[:path].split(/[#.]/).last
           if method[:summary] && !method[:summary].strip.empty?
@@ -289,48 +291,48 @@ File.open(output_path, 'w') do |f|
             f.puts "- `#{method_name}`"
           end
         end
-        f.puts ""
+        f.puts ''
       end
 
-      f.puts "Full documentation → [TOP-LEVEL.md](TOP-LEVEL.md)"
-      f.puts ""
-      f.puts ""
+      f.puts 'Full documentation → [TOP-LEVEL.md](TOP-LEVEL.md)'
+      f.puts ''
+      f.puts ''
       next
     end
 
     # Special handling for namespaces with their own index file
     if NAMESPACES_WITH_INDEX.include?(namespace)
       objects = grouped_objects[namespace].sort_by { |o| o[:path] }
-      classes_and_modules = objects.select { |o| o[:type] == 'class' || o[:type] == 'module' }
+      classes_and_modules = objects.select { |o| %w[class module].include?(o[:type]) }
       main_obj = classes_and_modules.find { |obj| obj[:path] == namespace }
       other_classes = classes_and_modules.reject { |obj| obj[:path] == namespace }
 
       # Output heading with link to namespace index
       f.puts "## [#{namespace}](#{namespace}/INDEX.md) (#{main_obj ? main_obj[:type] : 'module'})"
-      f.puts ""
+      f.puts ''
 
       # Output summary if exists
       if main_obj && !main_obj[:summary].empty?
         f.puts main_obj[:summary]
-        f.puts ""
+        f.puts ''
       end
 
       # Output class count and list
       class_names = other_classes.map { |c| c[:path].split('::').last }.sort
-      f.puts "**Classes (#{class_names.size}):** #{class_names.first(8).join(', ')}#{class_names.size > 8 ? ', ...' : ''}"
-      f.puts ""
+      f.puts "**Classes (#{class_names.size}):** #{class_names.first(8).join(', ')}#{', ...' if class_names.size > 8}"
+      f.puts ''
 
       # Output key module methods
       module_methods = all_methods_by_parent[namespace] || []
       unless module_methods.empty?
         method_names = module_methods.map { |m| "`#{m[:path].split(/[#.]/).last}`" }.first(6)
         f.puts "**Module methods:** #{method_names.join(', ')}"
-        f.puts ""
+        f.puts ''
       end
 
       f.puts "Full index → [#{namespace}/INDEX.md](#{namespace}/INDEX.md)"
-      f.puts ""
-      f.puts ""
+      f.puts ''
+      f.puts ''
       next
     end
 
@@ -338,7 +340,7 @@ File.open(output_path, 'w') do |f|
     objects = grouped_objects[namespace].sort_by { |o| o[:path] }
 
     # Separate classes/modules from methods
-    classes_and_modules = objects.select { |o| o[:type] == 'class' || o[:type] == 'module' }
+    classes_and_modules = objects.select { |o| %w[class module].include?(o[:type]) }
     methods = objects.select { |o| o[:type] == 'method' }
 
     # Group methods by their parent class/module
@@ -353,20 +355,20 @@ File.open(output_path, 'w') do |f|
     if main_obj
       # Include type in ## heading for main class/module
       # Add link to the actual .md file
-      file_path = main_obj[:path].gsub('::', '/') + '.md'
+      file_path = "#{main_obj[:path].gsub('::', '/')}.md"
       f.puts "## [#{namespace}](#{file_path}) (#{main_obj[:type]})"
-      f.puts ""
+      f.puts ''
 
       unless main_obj[:summary].empty?
         f.puts main_obj[:summary]
-        f.puts ""
+        f.puts ''
       end
 
       # Output methods for the main class/module
       parent_methods = methods_by_parent[main_obj[:path]] || []
       unless parent_methods.empty?
-        f.puts "**Methods:**"
-        f.puts ""
+        f.puts '**Methods:**'
+        f.puts ''
         parent_methods.each do |method|
           method_name = method[:path].split(/[#.]/).last
           if method[:summary] && !method[:summary].strip.empty?
@@ -375,19 +377,19 @@ File.open(output_path, 'w') do |f|
             f.puts "- `#{method_name}`"
           end
         end
-        f.puts ""
+        f.puts ''
       end
 
       # Add explicit link to full documentation
       f.puts "Full documentation → [#{file_path}](#{file_path})"
-      f.puts ""
+      f.puts ''
 
       # Filter out the main object from classes_and_modules for later processing
       other_classes_and_modules = classes_and_modules.reject { |obj| obj[:path] == namespace }
     else
       # No main class/module, just output namespace heading
       f.puts "## #{namespace}"
-      f.puts ""
+      f.puts ''
 
       other_classes_and_modules = classes_and_modules
     end
@@ -396,19 +398,19 @@ File.open(output_path, 'w') do |f|
     other_classes_and_modules.each do |obj|
       type_label = obj[:type]
       # Add link to the actual .md file
-      file_path = obj[:path].gsub('::', '/') + '.md'
+      file_path = "#{obj[:path].gsub('::', '/')}.md"
       f.puts "### [#{obj[:path]}](#{file_path}) (#{type_label})"
-      f.puts ""
+      f.puts ''
       unless obj[:summary].empty?
         f.puts obj[:summary]
-        f.puts ""
+        f.puts ''
       end
 
       # Output methods for this class/module as a list
       parent_methods = methods_by_parent[obj[:path]] || []
       unless parent_methods.empty?
-        f.puts "**Methods:**"
-        f.puts ""
+        f.puts '**Methods:**'
+        f.puts ''
         parent_methods.each do |method|
           # Extract method name (e.g., "Sketchup::Face#area" -> "area")
           method_name = method[:path].split(/[#.]/).last
@@ -418,24 +420,26 @@ File.open(output_path, 'w') do |f|
             f.puts "- `#{method_name}`"
           end
         end
-        f.puts ""
+        f.puts ''
       end
 
       # Add explicit link to full documentation
       f.puts "Full documentation → [#{file_path}](#{file_path})"
-      f.puts ""
+      f.puts ''
     end
 
     # Handle orphaned methods (methods without a corresponding class/module in this namespace)
     # This happens for global functions like #file_loaded, #inputbox, etc.
     class_module_paths = classes_and_modules.map { |obj| obj[:path] }
-    orphaned_methods = methods.reject { |m| class_module_paths.include?(m[:path].split(/[#.]/).first) }
+    orphaned_methods = methods.reject do |m|
+      class_module_paths.include?(m[:path].split(/[#.]/).first)
+    end
 
     unless orphaned_methods.empty?
       # Don't output heading for Global namespace (methods are already under "## Global")
       unless namespace == 'Global'
-        f.puts "### Global Methods"
-        f.puts ""
+        f.puts '### Global Methods'
+        f.puts ''
       end
       orphaned_methods.each do |method|
         # Extract method name (e.g., "#file_loaded" -> "file_loaded")
@@ -446,12 +450,11 @@ File.open(output_path, 'w') do |f|
           f.puts "- `#{method_name}`"
         end
       end
-      f.puts ""
+      f.puts ''
     end
 
-    f.puts ""
+    f.puts ''
   end
-
 end
 
 puts "✓ INDEX.md generated at: #{output_path}"

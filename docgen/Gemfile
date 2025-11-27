@@ -8,3 +8,5 @@ gem 'yard', '~> 0.9'
 # Note: This may already be included in the sketchup-api-stubs submodule
 # but we include it here for explicit dependency management
 gem 'yard-sketchup', '~> 1.6'
+
+gem 'rubocop', '~> 1.75', require: false

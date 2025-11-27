@@ -20,9 +20,7 @@ module DocHelpers
     text = text.gsub(/\{([#.]?)([^}]+)\}/, '`\2`')
 
     # Convert +text+ to markdown code (YARD inline code format)
-    text = text.gsub(/\+([^+]+)\+/, '`\1`')
-
-    text
+    text.gsub(/\+([^+]+)\+/, '`\1`')
   end
 
   # Normalize text by removing line wrapping while preserving paragraph breaks
@@ -49,7 +47,7 @@ module DocHelpers
       lines = lines.reject { |line| line.strip.empty? }
 
       result = []
-      current = ""
+      current = ''
 
       lines.each do |line|
         stripped = line.strip
@@ -61,20 +59,18 @@ module DocHelpers
 
         if is_formatted
           # Formatted line - finish current accumulated text and start new line
-          result << current.strip if !current.strip.empty?
+          result << current.strip unless current.strip.empty?
+          current = stripped
+        elsif current.empty?
+          # Regular text - join with previous (remove wrapping)
           current = stripped
         else
-          # Regular text - join with previous (remove wrapping)
-          if current.empty?
-            current = stripped
-          else
-            current += " " + stripped
-          end
+          current += " #{stripped}"
         end
       end
 
       # Add final accumulated text
-      result << current.strip if !current.strip.empty?
+      result << current.strip unless current.strip.empty?
 
       result.join("\n")
     end.reject(&:empty?)
