@@ -50,7 +50,7 @@ Run the generation script:
 ```
 
 This will:
-1. Clean previous output (`generated-sketchup-docs-md/`)
+1. Clean previous output (`generated-sketchup-api-docs/`)
 2. Parse SketchUp API with YARD
 3. Generate clean Markdown documentation from YARD registry
 4. Generate TOP-LEVEL.md for global constants and methods
@@ -60,7 +60,7 @@ This will:
 ### Output Structure
 
 ```
-generated-sketchup-docs-md/
+generated-sketchup-api-docs/
 ├── INDEX.md                  # Concise API overview
 ├── TOP-LEVEL.md              # Global constants and methods
 ├── Array.md                  # Top-level class extensions
@@ -173,7 +173,7 @@ The generated documentation is optimized for Claude Code workflow:
 
 Example Claude Code prompt:
 ```
-Read generated-sketchup-docs-md/INDEX.md to see available SketchUp APIs, then help me create a script that...
+Read generated-sketchup-api-docs/INDEX.md to see available SketchUp APIs, then help me create a script that...
 ```
 
 ## Configuration
@@ -220,7 +220,7 @@ Dependencies:
           └──────────┬───────────┘
                      ▼
 ┌──────────────────────────────────────────┐
-│ generated-sketchup-docs-md/              │
+│ generated-sketchup-api-docs/              │
 │ - Clean Markdown files (no HTML)         │
 │ - AI-ready documentation                 │
 │ - Optimized for Claude Code              │

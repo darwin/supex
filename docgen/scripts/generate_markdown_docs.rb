@@ -9,7 +9,7 @@ require_relative 'doc_helpers'
 # Generate clean Markdown documentation directly from YARD registry
 # This bypasses YARD's HTML generation and HTML→Markdown conversion pipeline
 
-OUTPUT_DIR = 'generated-sketchup-docs-md'
+OUTPUT_DIR = 'generated-sketchup-api-docs'
 
 puts "Loading YARD registry..."
 YARD::Registry.load!('.yardoc')

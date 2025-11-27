@@ -95,7 +95,7 @@ end
 
 # Generate namespace index file (e.g., Geom/INDEX.md or Sketchup/INDEX.md)
 def generate_namespace_index(namespace, objects, methods_by_parent, categories)
-  output_dir = "generated-sketchup-docs-md/#{namespace}"
+  output_dir = "generated-sketchup-api-docs/#{namespace}"
   FileUtils.mkdir_p(output_dir)
   output_path = "#{output_dir}/INDEX.md"
 
@@ -252,8 +252,8 @@ NAMESPACES_WITH_INDEX.each do |namespace|
 end
 
 # Build master INDEX.md
-output_path = 'generated-sketchup-docs-md/INDEX.md'
-FileUtils.mkdir_p('generated-sketchup-docs-md')
+output_path = 'generated-sketchup-api-docs/INDEX.md'
+FileUtils.mkdir_p('generated-sketchup-api-docs')
 
 File.open(output_path, 'w') do |f|
   f.puts "# SketchUp Ruby API - Documentation Index"

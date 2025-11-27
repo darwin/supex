@@ -8,7 +8,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
 echo "==> Cleaning previous output..."
-rm -rf generated-sketchup-docs-md/
+rm -rf generated-sketchup-api-docs/
 rm -rf tmp/yard-html/
 
 echo "==> Checking for sketchup-api-stubs submodule..."
@@ -33,5 +33,5 @@ rm -rf tmp/
 
 echo ""
 echo "==> Documentation generated successfully!"
-echo "    Output: generated-sketchup-docs-md/"
-echo "    Index: generated-sketchup-docs-md/INDEX.md"
+echo "    Output: generated-sketchup-api-docs/"
+echo "    Index: generated-sketchup-api-docs/INDEX.md"
