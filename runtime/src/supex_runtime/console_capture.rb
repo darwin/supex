@@ -36,10 +36,10 @@ module SupexRuntime
         $stderr = OutputCapture.new(@original_stderr, @log_file, 'STDERR')
 
         @capture_enabled = true
-        puts "Console capture started - output will be logged to: #{@log_file_path}"
+        puts "Supex: Console capture started - output will be logged to: #{@log_file_path}"
       rescue StandardError => e
         # Fallback gracefully if capture fails
-        puts "Warning: Could not start console capture: #{e.message}"
+        puts "Supex: Warning: Could not start console capture: #{e.message}"
         @capture_enabled = false
       end
     end
@@ -65,9 +65,9 @@ module SupexRuntime
         @log_file = nil
         @capture_enabled = false
 
-        puts 'Console capture stopped'
+        puts 'Supex: Console capture stopped'
       rescue StandardError => e
-        puts "Warning: Error stopping console capture: #{e.message}"
+        puts "Supex: Warning: Error stopping console capture: #{e.message}"
       end
     end
 
@@ -85,7 +85,7 @@ module SupexRuntime
         @log_file.write(marker)
         @log_file.flush
       rescue StandardError => e
-        puts "Warning: Could not write marker to log: #{e.message}"
+        puts "Supex: Warning: Could not write marker to log: #{e.message}"
       end
     end
 
@@ -96,7 +96,7 @@ module SupexRuntime
       log_dir = File.dirname(@log_file_path)
       FileUtils.mkdir_p(log_dir)
     rescue StandardError => e
-      puts "Warning: Could not create log directory: #{e.message}"
+      puts "Supex: Warning: Could not create log directory: #{e.message}"
     end
 
     # Initialize log file with header
@@ -110,7 +110,7 @@ module SupexRuntime
           File.rename(@log_file_path, backup_path) if File.exist?(@log_file_path)
         end
       rescue StandardError => e
-        puts "Warning: Could not rotate log file: #{e.message}"
+        puts "Supex: Warning: Could not rotate log file: #{e.message}"
       end
     end
 
