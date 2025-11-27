@@ -6,14 +6,6 @@ require 'fileutils'
 require 'yaml'
 require_relative 'doc_helpers'
 
-# Simple string truncation helper
-class String
-  def truncate(limit, omission = '...')
-    return self if length <= limit
-    self[0, limit - omission.length] + omission
-  end
-end
-
 # Build hierarchical INDEX.md for AI agents to navigate the API documentation
 # Generates: Master INDEX.md -> Namespace indexes (Geom/INDEX.md, Sketchup/INDEX.md) -> Class docs
 
@@ -160,14 +152,15 @@ def generate_namespace_index(namespace, objects, methods_by_parent, categories)
 
       f.puts "### #{category}"
       f.puts ""
-      f.puts "| Class | Description |"
-      f.puts "|-------|-------------|"
 
       category_classes.sort_by { |c| c[:path] }.each do |cls|
         class_name = cls[:path].split('::').last
         file_path = "#{class_name}.md"
-        description = cls[:summary].empty? ? '-' : cls[:summary].gsub('|', '\\|').truncate(100)
-        f.puts "| [#{class_name}](#{file_path}) | #{description} |"
+        if cls[:summary].empty?
+          f.puts "- [#{class_name}](#{file_path})"
+        else
+          f.puts "- [#{class_name}](#{file_path}) - #{cls[:summary]}"
+        end
       end
 
       f.puts ""
