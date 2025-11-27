@@ -80,9 +80,9 @@ def tree_docs():
     if pages:
         pages_branch = tree.add("[bold]pages/[/bold]")
         page_descriptions = {
-            "generating_geometry": "Geometry creation approaches",
-            "importer_options": "Importer configuration",
-            "exporter_options": "Exporter configuration",
+            "generating-geometry": "Geometry creation approaches",
+            "importer-options": "Importer configuration",
+            "exporter-options": "Exporter configuration",
         }
         for page in pages:
             desc = page_descriptions.get(page, "")

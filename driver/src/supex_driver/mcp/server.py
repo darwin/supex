@@ -548,9 +548,9 @@ def pages_resource(page_name: str) -> str:
     """Tutorial and guide pages for SketchUp Ruby API.
 
     Available pages:
-    - supex://docs/pages/generating_geometry
-    - supex://docs/pages/importer_options
-    - supex://docs/pages/exporter_options
+    - supex://docs/pages/generating-geometry
+    - supex://docs/pages/importer-options
+    - supex://docs/pages/exporter-options
     """
     content = load_page_doc(page_name)
     if content:

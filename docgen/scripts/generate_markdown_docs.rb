@@ -369,12 +369,13 @@ if included_pages.any?
     # Process YARD cross-references
     processed = DocHelpers.convert_yard_references(processed)
 
-    # Write to output
-    output_path = File.join(pages_dir, "#{page_name}.md")
+    # Convert underscores to hyphens for URI-friendly output filename
+    output_name = page_name.gsub('_', '-')
+    output_path = File.join(pages_dir, "#{output_name}.md")
     File.write(output_path, processed)
 
     pages_generated += 1
-    puts "  ✓ pages/#{page_name}.md"
+    puts "  ✓ pages/#{output_name}.md"
   end
 
   puts "\n==> Extra pages complete!"
