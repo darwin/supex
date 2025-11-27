@@ -1,6 +1,8 @@
 """Main CLI entry point for SketchUp automation."""
 
 import json
+import logging
+import os
 import sys
 from pathlib import Path
 from typing import Annotated, Optional
@@ -11,6 +13,18 @@ from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
+
+# Configure logging to file only (suppress console output)
+_log_dir = os.path.expanduser("~/.supex/logs")
+os.makedirs(_log_dir, exist_ok=True)
+_cli_log_file = os.path.join(_log_dir, "cli.log")
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename=_cli_log_file,
+    filemode="a",
+)
 
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
 from supex_driver.connection.exceptions import SketchUpConnectionError, SketchUpError

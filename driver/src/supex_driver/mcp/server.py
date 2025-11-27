@@ -20,20 +20,15 @@ from supex_driver.mcp.resources import (
     load_resource_file,
 )
 
-# Setup file logging for stdout and stderr
-log_dir = os.path.expanduser("~/.supex/logs")
-os.makedirs(log_dir, exist_ok=True)
+# Version
+__version__ = "0.3.0"
 
-stdout_log_file = os.path.join(log_dir, "stdout.log")
-stderr_log_file = os.path.join(log_dir, "stderr.log")
+# Logger instance (configured when server starts)
+logger = logging.getLogger("supex.mcp")
 
-# Redirect stdout to log file while preserving original
-original_stdout = sys.stdout
-stdout_logger = open(stdout_log_file, 'a', encoding='utf-8')
+# Flag to track if logging has been configured
+_logging_configured = False
 
-# Redirect stderr to log file while preserving original
-original_stderr = sys.stderr
-stderr_logger = open(stderr_log_file, 'a', encoding='utf-8')
 
 class TeeStream:
     """Stream that writes to both original stream and log file"""
@@ -53,22 +48,42 @@ class TeeStream:
     def __getattr__(self, name):
         return getattr(self.original_stream, name)
 
-# Replace sys.stdout and sys.stderr with tee streams
-sys.stdout = TeeStream(original_stdout, stdout_logger)
-sys.stderr = TeeStream(original_stderr, stderr_logger)
 
-# Configure logging to stderr to avoid interfering with MCP stdio
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stderr
-)
-logger = logging.getLogger("supex.mcp")
+def setup_logging():
+    """Configure logging for the MCP server.
 
-# Version
-__version__ = "0.3.0"
-logger.info(f"Supex MCP Server version {__version__} starting up")
-logger.info(f"FastMCP version: {fastmcp.__version__}")
+    Sets up file logging and configures the logging format.
+    Only runs once, even if called multiple times.
+    """
+    global _logging_configured
+    if _logging_configured:
+        return
+    _logging_configured = True
+
+    # Setup file logging for stdout and stderr
+    log_dir = os.path.expanduser("~/.supex/logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    stdout_log_file = os.path.join(log_dir, "stdout.log")
+    stderr_log_file = os.path.join(log_dir, "stderr.log")
+
+    # Redirect stdout to log file while preserving original
+    stdout_logger = open(stdout_log_file, 'a', encoding='utf-8')
+    stderr_logger = open(stderr_log_file, 'a', encoding='utf-8')
+
+    # Replace sys.stdout and sys.stderr with tee streams
+    sys.stdout = TeeStream(sys.stdout, stdout_logger)
+    sys.stderr = TeeStream(sys.stderr, stderr_logger)
+
+    # Configure logging to stderr to avoid interfering with MCP stdio
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        stream=sys.stderr
+    )
+
+    logger.info(f"Supex MCP Server version {__version__} starting up")
+    logger.info(f"FastMCP version: {fastmcp.__version__}")
 
 
 # Create MCP server
@@ -558,6 +573,7 @@ def pages_resource(page_name: str) -> str:
 
 def main():
     """Main entry point for the server"""
+    setup_logging()
     mcp.run()
 
 
