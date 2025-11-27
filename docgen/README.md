@@ -8,6 +8,8 @@ This project generates Markdown documentation from the official SketchUp Ruby AP
 
 - **Markdown files** - One file per class/module, human and AI-readable
 - **INDEX.md** - Concise overview for quick navigation (designed for Claude Code)
+- **Namespace indexes** - Per-namespace INDEX.md files (Geom/INDEX.md, Sketchup/INDEX.md)
+- **Tutorial pages** - Guide pages with URI-friendly hyphenated names
 
 ## Requirements
 
@@ -51,23 +53,34 @@ This will:
 1. Clean previous output (`generated-sketchup-docs-md/`)
 2. Parse SketchUp API with YARD
 3. Generate clean Markdown documentation from YARD registry
-4. Build `INDEX.md` for quick navigation
+4. Generate TOP-LEVEL.md for global constants and methods
+5. Generate tutorial pages (with hyphenated filenames)
+6. Build INDEX.md files (main + per-namespace)
 
 ### Output Structure
 
 ```
 generated-sketchup-docs-md/
-├── INDEX.md              # Concise overview for Claude Code
-├── Sketchup/
-│   ├── Model.md
-│   ├── Entity.md
-│   ├── Curve.md
-│   └── ...
+├── INDEX.md                  # Concise API overview
+├── TOP-LEVEL.md              # Global constants and methods
+├── Array.md                  # Top-level class extensions
+├── Length.md
+├── Numeric.md
+├── String.md
 ├── Geom/
+│   ├── INDEX.md              # Namespace index
 │   ├── Point3d.md
 │   ├── Vector3d.md
 │   └── ...
-└── ...
+├── Sketchup/
+│   ├── INDEX.md              # Namespace index
+│   ├── Model.md
+│   ├── Entity.md
+│   └── ...
+└── pages/
+    ├── generating-geometry.md    # Tutorial pages (hyphenated names)
+    ├── importer-options.md
+    └── exporter-options.md
 ```
 
 ## Filtering Documentation
@@ -184,7 +197,7 @@ Dependencies:
 ┌─────────────────────────────────────────┐
 │ sketchup-api-stubs (git submodule)      │
 │ - Official SketchUp Ruby API stubs      │
-│ - YARD comments + pages                 │
+│ - YARD comments + tutorial pages        │
 └────────────────┬────────────────────────┘
                  │
                  ▼
@@ -196,12 +209,13 @@ Dependencies:
                  │
           ┌──────┴──────┐
           ▼             ▼
-┌──────────────────────┐  ┌─────────────────┐
-│ generate_markdown_   │  │ build_index.rb  │
-│ docs.rb              │  │                 │
-│ - Read YARD registry │  │ - Create INDEX  │
-│ - Generate clean MD  │  │                 │
-└──────────────────────┘  └─────────────────┘
+┌──────────────────────┐  ┌──────────────────────┐
+│ generate_markdown_   │  │ build_index.rb       │
+│ docs.rb              │  │                      │
+│ - Class/module docs  │  │ - INDEX.md (main)    │
+│ - TOP-LEVEL.md       │  │ - Geom/INDEX.md      │
+│ - pages/*.md         │  │ - Sketchup/INDEX.md  │
+└──────────────────────┘  └──────────────────────┘
           │                      │
           └──────────┬───────────┘
                      ▼
@@ -218,8 +232,9 @@ Dependencies:
 ### Scripts
 
 - **generate_docs.sh** - Main generation pipeline orchestration
-- **generate_markdown_docs.rb** - Generates clean Markdown from YARD registry
-- **build_index.rb** - Creates INDEX.md from YARD registry
+- **generate_markdown_docs.rb** - Generates class/module docs, TOP-LEVEL.md, and tutorial pages
+- **build_index.rb** - Creates INDEX.md files (main and per-namespace)
+- **doc_helpers.rb** - Shared utilities for YARD text processing
 
 ### Customization
 
