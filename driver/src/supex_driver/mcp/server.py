@@ -435,10 +435,10 @@ def best_practices_resource() -> str:
 @mcp.resource("supex://docs/INDEX")
 def docs_index_resource() -> str:
     """Documentation index - start here to discover available resources"""
-    content = load_resource_file("index.md")
+    content = load_resource_file("INDEX.md")
     if content:
         return content
-    return "Error: index.md not found"
+    return "Error: INDEX.md not found"
 
 
 @mcp.resource("supex://docs/workflow")

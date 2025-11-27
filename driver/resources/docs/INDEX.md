@@ -10,28 +10,22 @@ This index provides guidance on available MCP resources for SketchUp Ruby develo
 
 ## Core Documentation
 
-| Resource | Description |
-|----------|-------------|
-| `supex://docs/workflow` | Complete workflow guide - execution patterns, transaction management, code organization |
-| `supex://docs/best-practices` | Geometry lessons learned - profile-first approach, pushpull direction, common pitfalls |
+- `supex://docs/workflow` - Complete workflow guide: execution patterns, transaction management, code organization
+- `supex://docs/best-practices` - Geometry lessons learned: profile-first approach, pushpull direction, common pitfalls
 
 ## Guides
 
-| Resource | Description |
-|----------|-------------|
-| `supex://docs/quick-reference` | Quick reference - most used classes and common entry points |
-| `supex://docs/pages/generating_geometry` | Different approaches to create geometry via Ruby API |
-| `supex://docs/pages/importer_options` | Configuration options for file importers |
-| `supex://docs/pages/exporter_options` | Configuration options for file exporters |
+- `supex://docs/quick-reference` - Quick reference: most used classes and common entry points
+- `supex://docs/pages/generating_geometry` - Different approaches to create geometry via Ruby API
+- `supex://docs/pages/importer_options` - Configuration options for file importers
+- `supex://docs/pages/exporter_options` - Configuration options for file exporters
 
 ## API Reference
 
-| Resource | Description |
-|----------|-------------|
-| `supex://docs/api/index` | Full API index (~30k tokens) - complete class and method listing |
-| `supex://docs/api/Sketchup::Face` | Class documentation using Ruby syntax |
-| `supex://docs/api/Geom::Point3d` | Geometry classes |
-| `supex://docs/api/Array` | Top-level classes (no namespace prefix) |
+- `supex://docs/api/index` - Full API index (~30k tokens): complete class and method listing
+- `supex://docs/api/Sketchup::Face` - Class documentation using Ruby syntax
+- `supex://docs/api/Geom::Point3d` - Geometry classes
+- `supex://docs/api/Array` - Top-level classes (no namespace prefix)
 
 ## When to Use Each Resource
 

@@ -13,10 +13,8 @@ All scripts are git-trackable and editable in user's IDE with full syntax highli
 
 ## Execution Rules
 
-| Tool | Use For |
-|------|---------|
-| `eval_ruby_file(path)` | ALL code - proper line numbers, stack traces, debugging |
-| `eval_ruby(code)` | Simple queries only: `model.entities.count`, `Sketchup.version` |
+- `eval_ruby_file(path)` - ALL code: proper line numbers, stack traces, debugging
+- `eval_ruby(code)` - Simple queries only: `model.entities.count`, `Sketchup.version`
 
 Always prefer file-based execution for better error reporting.
 
