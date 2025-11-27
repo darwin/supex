@@ -60,7 +60,9 @@ def _format_entry(name: str, description: str, depth: int = 0) -> str:
 
 
 @app.command("tree")
-def tree_docs():
+def tree_docs(
+    full: bool = typer.Option(False, "--full", "-f", help="Show all classes without truncation"),
+):
     """Show documentation hierarchy with URIs."""
     if not check_docs_available():
         console.print("[red]Documentation not available.[/red]")
@@ -118,15 +120,14 @@ def tree_docs():
         class_count = len(ns_classes)
         ns_branch.add(_format_entry("index", f"{class_count} classes", depth=2))
 
-        # Show first few classes
-        shown = 0
-        for cls_path in sorted(ns_classes)[:5]:
+        # Show classes (all if --full, otherwise first 5)
+        classes_to_show = sorted(ns_classes) if full else sorted(ns_classes)[:5]
+        for cls_path in classes_to_show:
             cls_name = cls_path.split("/")[-1]
             ns_branch.add(f"[cyan]{cls_name}[/cyan]")
-            shown += 1
 
-        if len(ns_classes) > shown:
-            ns_branch.add(f"[dim]... and {len(ns_classes) - shown} more[/dim]")
+        if not full and len(ns_classes) > len(classes_to_show):
+            ns_branch.add(f"[dim]... and {len(ns_classes) - len(classes_to_show)} more[/dim]")
 
     console.print(tree)
     console.print()
