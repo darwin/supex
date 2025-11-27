@@ -313,9 +313,9 @@ File.open(output_path, 'w') do |f|
 
   # Namespace listings
   sorted_namespaces.each do |namespace|
-    # Special handling for Global namespace - link to top_level_namespace.md
+    # Special handling for Global namespace - link to TOP_LEVEL.md
     if namespace == 'Global'
-      f.puts "## [Top-Level Namespace](top_level_namespace.md)"
+      f.puts "## [Top-Level Namespace](TOP_LEVEL.md)"
       f.puts ""
       f.puts "Global constants and methods available in all SketchUp Ruby scripts."
       f.puts ""
@@ -337,7 +337,7 @@ File.open(output_path, 'w') do |f|
         f.puts ""
       end
 
-      f.puts "Full documentation → [top_level_namespace.md](top_level_namespace.md)"
+      f.puts "Full documentation → [TOP_LEVEL.md](TOP_LEVEL.md)"
       f.puts ""
       f.puts ""
       next

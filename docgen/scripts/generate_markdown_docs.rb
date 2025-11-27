@@ -373,7 +373,7 @@ if included_pages.any?
   puts "    Generated: #{pages_generated}"
 end
 
-# Generate top_level_namespace.md
+# Generate TOP_LEVEL.md
 puts "\nGenerating top-level namespace documentation..."
 
 # Load constant exclusion patterns
@@ -500,9 +500,9 @@ if root_methods.any?
 end
 
 # Write the file
-output_path = File.join(OUTPUT_DIR, 'top_level_namespace.md')
+output_path = File.join(OUTPUT_DIR, 'TOP_LEVEL.md')
 File.write(output_path, md.join("\n"))
 
-puts "  ✓ top_level_namespace.md"
+puts "  ✓ TOP_LEVEL.md"
 puts "    Constants: #{filtered_constants.size} (#{root_constants.size - filtered_constants.size} excluded)"
 puts "    Methods: #{root_methods.size}"
