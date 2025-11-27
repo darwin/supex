@@ -311,3 +311,64 @@ puts "    Total objects: #{total_objects}"
 puts "    Excluded: #{excluded_objects}"
 puts "    Generated files: #{generated_files}"
 puts "    Output: #{OUTPUT_DIR}/"
+
+# Process extra pages (guides, tutorials, etc.)
+included_pages = filter_config['included_pages'] || []
+
+if included_pages.any?
+  puts "\nProcessing extra pages..."
+  pages_dir = File.join(OUTPUT_DIR, 'pages')
+  FileUtils.mkdir_p(pages_dir)
+
+  pages_generated = 0
+
+  included_pages.each do |page_name|
+    source_path = "sketchup-api-stubs/pages/#{page_name}.md"
+
+    unless File.exist?(source_path)
+      puts "  ✗ #{page_name}.md not found at #{source_path}"
+      next
+    end
+
+    content = File.read(source_path)
+
+    # Extract title from @title directive (e.g., "# @title Generating Geometry")
+    title = page_name.gsub('_', ' ').split.map(&:capitalize).join(' ')
+    if content =~ /^#\s*@title\s+(.+)$/
+      title = $1.strip
+      # Remove the @title line from content
+      content = content.sub(/^#\s*@title\s+.+\n?/, '')
+    end
+
+    # Add proper markdown header
+    processed = "# #{title}\n\n"
+
+    # Process the content line by line to handle special cases
+    content.each_line do |line|
+      # Convert !!!lang code block hints to standard markdown
+      # e.g., "!!!cpp" at start of code block becomes "cpp" language hint
+      if line =~ /^```(\S*)$/
+        processed << line
+      elsif line =~ /^!!!(\w+)$/
+        # This is a language hint inside a code block, skip it
+        # The next code block will use this language
+        next
+      else
+        processed << line
+      end
+    end
+
+    # Process YARD cross-references
+    processed = DocHelpers.convert_yard_references(processed)
+
+    # Write to output
+    output_path = File.join(pages_dir, "#{page_name}.md")
+    File.write(output_path, processed)
+
+    pages_generated += 1
+    puts "  ✓ pages/#{page_name}.md"
+  end
+
+  puts "\n==> Extra pages complete!"
+  puts "    Generated: #{pages_generated}"
+end

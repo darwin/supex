@@ -42,8 +42,16 @@ excluded_patterns:
   # OpenGL constants:
   - "GL_*"                         # All OpenGL primitive constants
 
+# Extra pages to include from sketchup-api-stubs/pages/
+# These are tutorial/guide pages that supplement the API reference
+included_pages:
+  - generating_geometry    # Tutorial on geometry creation methods
+  - importer_options       # Guide for importer configuration options
+  - exporter_options       # Guide for exporter configuration options
+
 # Notes:
 # - excluded_namespaces: Excludes entire namespace (e.g., "Layout" excludes Layout::*)
 # - excluded_patterns: Matches against full object path (e.g., "Sketchup::Model")
+# - included_pages: List of page names (without .md extension) from sketchup-api-stubs/pages/
 # - Case-sensitive matching
 # - Changes require regeneration: ./scripts/generate_docs.sh

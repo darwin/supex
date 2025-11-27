@@ -109,20 +109,38 @@ FileUtils.mkdir_p('generated-sketchup-docs-md')
 File.open(output_path, 'w') do |f|
   f.puts "# SketchUp Ruby API - Documentation Index"
   f.puts ""
-  f.puts "This index provides a concise overview of the SketchUp Ruby API for AI agents."
-  f.puts "Use this to quickly find relevant classes, modules, and methods before diving into detailed documentation."
+  f.puts "This is a subset of the official SketchUp Ruby API documentation, filtered to include"
+  f.puts "only the classes and methods relevant for 3D modeling with Supex."
   f.puts ""
-  f.puts "**Included objects:** #{included_objects}"
-
-  if excluded_objects > 0
-    f.puts "**Excluded objects:** #{excluded_objects} (filtered via filter_config.yml)"
-    f.puts ""
-    f.puts "_Filtered namespaces:_ #{excluded_namespaces.join(', ')}" unless excluded_namespaces.empty?
-  end
-
+  f.puts "For complete documentation, see: https://ruby.sketchup.com"
   f.puts ""
   f.puts "---"
   f.puts ""
+
+  # Pages section (guides, tutorials, etc.)
+  included_pages = filter_config['included_pages'] || []
+  if included_pages.any?
+    f.puts "## Pages"
+    f.puts ""
+    included_pages.each do |page_name|
+      # Generate a human-readable title from the filename
+      title = page_name.gsub('_', ' ').split.map(&:capitalize).join(' ')
+
+      # Try to read the actual title from the generated file
+      generated_path = "generated-sketchup-docs-md/pages/#{page_name}.md"
+      if File.exist?(generated_path)
+        first_line = File.open(generated_path, &:readline).strip rescue nil
+        if first_line && first_line.start_with?('# ')
+          title = first_line[2..-1]
+        end
+      end
+
+      f.puts "- [#{title}](pages/#{page_name}.md)"
+    end
+    f.puts ""
+    f.puts "---"
+    f.puts ""
+  end
 
   # Namespace listings
   sorted_namespaces.each do |namespace|
