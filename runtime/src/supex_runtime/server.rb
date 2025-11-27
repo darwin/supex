@@ -25,6 +25,7 @@ module SupexRuntime
       @running = false
       @timer_id = nil
       @console_capture = nil
+      @verbose = ENV['SUPEX_VERBOSE'] == '1'
 
       setup_console
       setup_console_capture
@@ -113,6 +114,26 @@ module SupexRuntime
       $stdout.flush
     end
 
+    # Log message only when SUPEX_VERBOSE=1
+    # @param message [String] message to log
+    def log_verbose(message)
+      return unless @verbose
+
+      log(message)
+    end
+
+    # Format arguments hash for user-friendly logging
+    # @param args [Hash] tool arguments
+    # @return [String] formatted arguments
+    def format_args(args)
+      return '' if args.nil? || args.empty?
+
+      args.map do |key, value|
+        formatted = value.is_a?(String) && value.length > 200 ? "\"#{value[0..197]}...\"" : value.inspect
+        "#{key}: #{formatted}"
+      end.join(', ')
+    end
+
     # Start the request handler timer
     def start_request_handler
       # Use a more reasonable interval (0.25s) to reduce SketchUp UI load
@@ -188,7 +209,7 @@ module SupexRuntime
 
       # Use non-blocking read with timeout
       data = read_with_timeout(client, 5.0)
-      log "Raw data: #{data.inspect}"
+      log_verbose "Raw data: #{data.inspect}"
 
       return unless data && !data.empty?
 
@@ -196,12 +217,12 @@ module SupexRuntime
         # Handle potential multi-line JSON by trying to parse incrementally
         json_data = data.strip
         request = JSON.parse(json_data)
-        log "Parsed request: #{request.inspect}"
+        log_verbose "Parsed request: #{request.inspect}"
 
         response = handle_jsonrpc_request(request)
         response_json = "#{response.to_json}\n"
 
-        log "Sending response: #{response_json.strip}"
+        log_verbose "Sending response: #{response_json.strip}"
         client.write(response_json)
         client.flush
         log 'Response sent'
@@ -271,7 +292,7 @@ module SupexRuntime
     # @param request [Hash] parsed JSON-RPC request
     # @return [Hash] JSON-RPC response
     def handle_jsonrpc_request(request)
-      log "Handling JSON-RPC request: #{request.inspect}"
+      log_verbose "Handling JSON-RPC request: #{request.inspect}"
 
       # Handle legacy command format for backwards compatibility
       return handle_legacy_command(request) if request['command']
@@ -332,9 +353,10 @@ module SupexRuntime
     # @param request [Hash] JSON-RPC request
     # @return [Hash] JSON-RPC response
     def handle_tool_call(request)
-      log "Handling tool call: #{request.inspect}"
+      log_verbose "Handling tool call: #{request.inspect}"
       tool_name = request['params']['name']
       args = request['params']['arguments']
+      log "Calling #{tool_name}(#{format_args(args)})"
 
       begin
         result = execute_tool(tool_name, args)
