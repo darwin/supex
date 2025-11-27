@@ -14,12 +14,14 @@ from rich.table import Table
 
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
 from supex_driver.connection.exceptions import SketchUpConnectionError, SketchUpError
+from supex_driver.cli.docs import app as docs_app
 
 app = typer.Typer(
     name="supex",
     help="CLI for SketchUp automation via Supex runtime.",
     no_args_is_help=True,
 )
+app.add_typer(docs_app, name="docs")
 console = Console()
 
 # Common options

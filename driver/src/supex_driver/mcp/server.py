@@ -12,9 +12,11 @@ from supex_driver.mcp.resources import (
     get_docs_not_generated_message,
     get_resources_path,
     list_available_namespaces,
+    list_available_pages,
     load_api_doc,
     load_api_index,
     load_namespace_index,
+    load_page_doc,
     load_resource_file,
 )
 
@@ -514,6 +516,43 @@ def api_class_resource(class_name: str) -> str:
             error_msg += f"- `supex://docs/api/{ruby_name}`\n"
     else:
         error_msg += "Use `supex://docs/api/index` to see all available documentation."
+    return error_msg
+
+
+@mcp.resource("supex://docs/quick-reference")
+def quick_reference_resource() -> str:
+    """Quick reference for most used SketchUp classes and entry points"""
+    content = load_resource_file("quick_reference.md")
+    if content:
+        return content
+    return "Error: quick_reference.md not found"
+
+
+@mcp.resource("supex://docs/pages/{page_name}")
+def pages_resource(page_name: str) -> str:
+    """Tutorial and guide pages for SketchUp Ruby API.
+
+    Available pages:
+    - supex://docs/pages/generating_geometry
+    - supex://docs/pages/importer_options
+    - supex://docs/pages/exporter_options
+    """
+    content = load_page_doc(page_name)
+    if content:
+        return content
+
+    # Check if pages directory exists
+    api_path = get_resources_path() / "docs" / "api" / "pages"
+    if not api_path.exists():
+        return get_docs_not_generated_message()
+
+    # Pages exist but requested page not found
+    available = list_available_pages()
+    error_msg = f"# Page Not Found\n\nNo page found: `{page_name}`\n\n"
+    if available:
+        error_msg += "**Available pages:**\n"
+        for page in available:
+            error_msg += f"- `supex://docs/pages/{page}`\n"
     return error_msg
 
 

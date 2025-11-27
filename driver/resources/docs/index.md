@@ -15,6 +15,15 @@ This index provides guidance on available MCP resources for SketchUp Ruby develo
 | `supex://docs/workflow` | Complete workflow guide - execution patterns, transaction management, code organization |
 | `supex://docs/best-practices` | Geometry lessons learned - profile-first approach, pushpull direction, common pitfalls |
 
+## Guides
+
+| Resource | Description |
+|----------|-------------|
+| `supex://docs/quick-reference` | Quick reference - most used classes and common entry points |
+| `supex://docs/pages/generating_geometry` | Different approaches to create geometry via Ruby API |
+| `supex://docs/pages/importer_options` | Configuration options for file importers |
+| `supex://docs/pages/exporter_options` | Configuration options for file exporters |
+
 ## API Reference
 
 | Resource | Description |

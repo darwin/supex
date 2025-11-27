@@ -93,6 +93,37 @@ def load_resource_file(filename: str) -> str | None:
     return None
 
 
+def load_page_doc(page_name: str) -> str | None:
+    """Load a page from the api/pages directory.
+
+    Args:
+        page_name: Page name without .md extension (e.g., "generating_geometry")
+
+    Returns:
+        Page content as string, or None if not found.
+    """
+    page_path = get_resources_path() / "docs" / "api" / "pages" / f"{page_name}.md"
+    if page_path.exists():
+        return page_path.read_text(encoding="utf-8")
+    return None
+
+
+def list_available_pages() -> list[str]:
+    """List all available pages in the api/pages directory.
+
+    Returns:
+        List of page names without .md extension.
+    """
+    pages_path = get_resources_path() / "docs" / "api" / "pages"
+    if not pages_path.exists():
+        return []
+
+    pages = []
+    for md_file in pages_path.glob("*.md"):
+        pages.append(md_file.stem)
+    return sorted(pages)
+
+
 def list_available_classes() -> list[str]:
     """List all available class documentation paths.
 

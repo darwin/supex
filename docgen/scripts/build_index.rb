@@ -266,51 +266,6 @@ File.open(output_path, 'w') do |f|
   f.puts "---"
   f.puts ""
 
-  # Pages section (guides, tutorials, etc.)
-  included_pages = filter_config['included_pages'] || []
-  if included_pages.any?
-    f.puts "## Pages"
-    f.puts ""
-    included_pages.each do |page_name|
-      # Generate a human-readable title from the filename
-      title = page_name.gsub('_', ' ').split.map(&:capitalize).join(' ')
-
-      # Try to read the actual title from the generated file
-      generated_path = "generated-sketchup-docs-md/pages/#{page_name}.md"
-      if File.exist?(generated_path)
-        first_line = File.open(generated_path, &:readline).strip rescue nil
-        if first_line && first_line.start_with?('# ')
-          title = first_line[2..-1]
-        end
-      end
-
-      f.puts "- [#{title}](pages/#{page_name}.md)"
-    end
-    f.puts ""
-    f.puts "---"
-    f.puts ""
-  end
-
-  # Quick Reference section
-  f.puts "## Quick Reference"
-  f.puts ""
-  f.puts "**Most Used Classes:**"
-  f.puts "- `Sketchup::Model` - The active model (entry point for all operations)"
-  f.puts "- `Sketchup::Entities` - Entity collection (add geometry here)"
-  f.puts "- `Sketchup::Face` / `Sketchup::Edge` - Basic geometry primitives"
-  f.puts "- `Geom::Point3d` / `Geom::Vector3d` - 3D coordinates and directions"
-  f.puts "- `Geom::Transformation` - Positioning and scaling"
-  f.puts ""
-  f.puts "**Common Entry Points:**"
-  f.puts "```ruby"
-  f.puts "model = Sketchup.active_model        # Get active model"
-  f.puts "entities = model.active_entities     # Get entities collection"
-  f.puts "selection = model.selection          # Get selected entities"
-  f.puts "```"
-  f.puts ""
-  f.puts "---"
-  f.puts ""
-
   # Namespace listings
   sorted_namespaces.each do |namespace|
     # Special handling for Global namespace - link to TOP_LEVEL.md
