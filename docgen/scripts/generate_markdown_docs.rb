@@ -251,7 +251,16 @@ def generate_method_markdown(method)
   unless see_tags.empty?
     md << "**See also:**"
     see_tags.each do |see_tag|
-      md << "- #{DocHelpers.convert_yard_references(see_tag.name)}"
+      ref = see_tag.name.to_s.strip
+      # Convert #method or .method to anchor link
+      if ref.start_with?('#', '.')
+        method_name = ref[1..-1]  # Remove leading # or .
+        # GitHub-flavored markdown removes special chars from anchors
+        anchor = method_name.gsub(/[^a-zA-Z0-9_-]/, '')
+        md << "- [#{method_name}](##{anchor})"
+      else
+        md << "- #{DocHelpers.convert_yard_references(ref)}"
+      end
     end
     md << ""
   end
