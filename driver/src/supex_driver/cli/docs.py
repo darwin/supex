@@ -72,7 +72,7 @@ def tree_docs(
     tree = Tree("[bold]supex://docs/[/bold]")
 
     # Core documentation (depth 0)
-    tree.add(_format_entry("index", "Documentation index", depth=0))
+    tree.add(_format_entry("INDEX", "Documentation index", depth=0))
     tree.add(_format_entry("workflow", "Complete workflow guide", depth=0))
     tree.add(_format_entry("best-practices", "Geometry lessons learned", depth=0))
     tree.add(_format_entry("quick-reference", "Quick reference", depth=0))
@@ -92,7 +92,7 @@ def tree_docs(
 
     # API documentation (depth 1)
     api_branch = tree.add("[bold]api/[/bold]")
-    api_branch.add(_format_entry("index", "API overview", depth=1))
+    api_branch.add(_format_entry("INDEX", "API overview", depth=1))
 
     # Top-level classes (exclude namespace modules and special files)
     all_classes = list_available_classes()
@@ -118,7 +118,7 @@ def tree_docs(
 
         # Count classes
         class_count = len(ns_classes)
-        ns_branch.add(_format_entry("index", f"{class_count} classes", depth=2))
+        ns_branch.add(_format_entry("INDEX", f"{class_count} classes", depth=2))
 
         # Show classes (all if --full, otherwise first 5)
         classes_to_show = sorted(ns_classes) if full else sorted(ns_classes)[:5]
@@ -161,7 +161,7 @@ def show_docs(
     content = None
 
     # Try to resolve the URI
-    if normalized == "index":
+    if normalized == "INDEX":
         content = load_resource_file("index.md")
     elif normalized == "workflow":
         content = load_resource_file("workflow.md")
@@ -175,12 +175,12 @@ def show_docs(
     elif normalized.startswith("api/"):
         # API documentation
         api_path = normalized[4:]  # Remove api/
-        if api_path == "index":
+        if api_path == "INDEX":
             from supex_driver.mcp.resources import load_api_index
             content = load_api_index()
-        elif api_path.endswith("/index"):
+        elif api_path.endswith("/INDEX"):
             # Namespace index
-            ns = api_path[:-6]  # Remove /index
+            ns = api_path[:-6]  # Remove /INDEX
             from supex_driver.mcp.resources import load_namespace_index
             content = load_namespace_index(ns)
         else:

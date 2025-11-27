@@ -432,7 +432,7 @@ def best_practices_resource() -> str:
     return "Error: best_practices.md not found"
 
 
-@mcp.resource("supex://docs/index")
+@mcp.resource("supex://docs/INDEX")
 def docs_index_resource() -> str:
     """Documentation index - start here to discover available resources"""
     content = load_resource_file("index.md")
@@ -456,13 +456,13 @@ def workflow_resource() -> str:
     return "Error: workflow.md not found"
 
 
-@mcp.resource("supex://docs/api/index")
+@mcp.resource("supex://docs/api/INDEX")
 def api_index_resource() -> str:
     """Lightweight API overview with Quick Reference and namespace summaries (~3k tokens).
 
     For detailed namespace documentation, use:
-    - supex://docs/api/Geom/index - Geometry classes (~3k tokens)
-    - supex://docs/api/Sketchup/index - SketchUp modeling classes (~8k tokens)
+    - supex://docs/api/Geom/INDEX - Geometry classes (~3k tokens)
+    - supex://docs/api/Sketchup/INDEX - SketchUp modeling classes (~8k tokens)
     """
     content = load_api_index()
     if content:
@@ -470,13 +470,13 @@ def api_index_resource() -> str:
     return get_docs_not_generated_message()
 
 
-@mcp.resource("supex://docs/api/{namespace}/index")
+@mcp.resource("supex://docs/api/{namespace}/INDEX")
 def namespace_index_resource(namespace: str) -> str:
     """Namespace-specific API index with categorized class listings.
 
     Available namespaces:
-    - supex://docs/api/Geom/index - Points, vectors, transformations (~3k tokens)
-    - supex://docs/api/Sketchup/index - Model, entities, materials (~8k tokens)
+    - supex://docs/api/Geom/INDEX - Points, vectors, transformations (~3k tokens)
+    - supex://docs/api/Sketchup/INDEX - Model, entities, materials (~8k tokens)
     """
     content = load_namespace_index(namespace)
     if content:
@@ -493,9 +493,9 @@ def namespace_index_resource(namespace: str) -> str:
     if available:
         error_msg += "**Available namespace indexes:**\n"
         for ns in available:
-            error_msg += f"- `supex://docs/api/{ns}/index`\n"
+            error_msg += f"- `supex://docs/api/{ns}/INDEX`\n"
     else:
-        error_msg += "Use `supex://docs/api/index` for the main API overview."
+        error_msg += "Use `supex://docs/api/INDEX` for the main API overview."
     return error_msg
 
 
@@ -530,7 +530,7 @@ def api_class_resource(class_name: str) -> str:
             ruby_name = cls.replace("/", "::")
             error_msg += f"- `supex://docs/api/{ruby_name}`\n"
     else:
-        error_msg += "Use `supex://docs/api/index` to see all available documentation."
+        error_msg += "Use `supex://docs/api/INDEX` to see all available documentation."
     return error_msg
 
 
