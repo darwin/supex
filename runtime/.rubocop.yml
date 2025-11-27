@@ -3,25 +3,29 @@
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
+  SuggestExtensions: false
 
 # SketchUp specific adjustments
 Style/Documentation:
   Enabled: false  # SketchUp extensions often don't need full class documentation
 
 Metrics/MethodLength:
-  Max: 25  # Allow slightly longer methods for SketchUp API calls
+  Max: 40  # Allow longer methods for SketchUp API calls and request handling
 
 Metrics/ClassLength:
-  Max: 150  # Allow longer classes for main server implementation
+  Max: 200  # Allow longer classes for main server implementation
+
+Metrics/ModuleLength:
+  Max: 250  # Allow longer modules for tool implementations
 
 Metrics/CyclomaticComplexity:
   Max: 15  # Allow higher complexity for API handling
 
 Metrics/AbcSize:
-  Max: 20  # Allow higher ABC size for SketchUp operations
+  Max: 40  # Allow higher ABC size for SketchUp operations with many API calls
 
 Layout/LineLength:
-  Max: 100  # Reasonable line length for Ruby
+  Max: 120  # Allow longer lines for hash literals and API calls
 
 Style/StringLiterals:
   EnforcedStyle: single_quotes
@@ -39,10 +43,18 @@ Style/FrozenStringLiteralComment:
 Naming/MethodParameterName:
   MinNameLength: 2  # Allow short param names like 'id'
 
+# shutdown_server is a command, not a predicate
+Naming/PredicateMethod:
+  Enabled: false
+
 Style/GlobalVars:
   AllowedVariables:
     - '$SKETCHUP_CONSOLE'  # SketchUp global console
 
 # Allow rescue without explicit error class for SketchUp compatibility
 Style/RescueStandardError:
+  Enabled: false
+
+# Allow duplicate rescue branches for clarity in socket error handling
+Lint/DuplicateBranch:
   Enabled: false

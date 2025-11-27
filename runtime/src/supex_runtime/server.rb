@@ -7,10 +7,14 @@ require_relative 'version'
 require_relative 'utils'
 require_relative 'export'
 require_relative 'console_capture'
+require_relative 'tools'
 
 module SupexRuntime
   # TCP server for handling JSON-RPC requests from the Python MCP server
+  # rubocop:disable Metrics/ClassLength
   class Server
+    include Tools
+
     DEFAULT_PORT = 9876
     DEFAULT_HOST = '127.0.0.1'
 
@@ -145,7 +149,9 @@ module SupexRuntime
 
       begin
         # Check for incoming connections with a short timeout
+        # rubocop:disable Lint/IncompatibleIoSelectWithFiberScheduler
         ready = IO.select([@server], nil, nil, 0)
+        # rubocop:enable Lint/IncompatibleIoSelectWithFiberScheduler
         return unless ready
 
         log 'Connection waiting...'
@@ -229,27 +235,36 @@ module SupexRuntime
     # @param timeout [Float] timeout in seconds
     # @return [String, nil] received data or nil on timeout
     def read_with_timeout(client, timeout)
+      # rubocop:disable Lint/IncompatibleIoSelectWithFiberScheduler
       ready = IO.select([client], nil, nil, timeout)
+      # rubocop:enable Lint/IncompatibleIoSelectWithFiberScheduler
       return nil unless ready
 
-      # Try to read available data
-      data = ''
-      begin
-        while (chunk = client.read_nonblock(1024))
-          data += chunk
-          # Check if we have a complete JSON object (simple heuristic)
-          if data.include?("\n") || (data.count('{').positive? && data.count('{') == data.count('}'))
-            break
-          end
-        end
-      rescue IO::WaitReadable
-        # No more data available right now
-      rescue EOFError
-        # Client disconnected
-        return nil if data.empty?
-      end
+      read_available_data(client)
+    end
 
+    # Read all available data from client socket
+    # @param client [TCPSocket] client connection
+    # @return [String, nil] received data or nil if empty
+    def read_available_data(client)
+      data = ''
+      loop do
+        chunk = client.read_nonblock(1024)
+        data += chunk
+        break if complete_json?(data)
+      end
       data.empty? ? nil : data
+    rescue IO::WaitReadable
+      data.empty? ? nil : data
+    rescue EOFError
+      data.empty? ? nil : data
+    end
+
+    # Check if data contains a complete JSON object
+    # @param data [String] data to check
+    # @return [Boolean] true if complete
+    def complete_json?(data)
+      data.include?("\n") || (data.count('{').positive? && data.count('{') == data.count('}'))
     end
 
     # Handle JSON-RPC request
@@ -337,40 +352,36 @@ module SupexRuntime
     # @param args [Hash] tool arguments
     # @return [Hash] tool execution result
     def execute_tool(tool_name, args)
+      execute_core_tool(tool_name, args) || execute_introspection_tool(tool_name, args) ||
+        (raise "Unknown tool: #{tool_name}")
+    end
+
+    # Execute core tools (eval, export, etc.)
+    # @return [Hash, nil] result or nil if not a core tool
+    def execute_core_tool(tool_name, args)
       case tool_name
-      when 'ping'
-        ping
-      when 'export_scene'
-        Export.export_scene(args)
-      when 'eval_ruby'
-        eval_ruby(args)
-      when 'reload_extension'
-        reload_extension
-      when 'console_capture_status'
-        console_capture_status
-      when 'eval_ruby_file'
-        eval_ruby_file(args)
-      # Introspection tools
-      when 'get_model_info'
-        get_model_info
-      when 'list_entities'
-        list_entities(args)
-      when 'get_selection'
-        get_selection
-      when 'get_layers'
-        get_layers
-      when 'get_materials'
-        get_materials
-      when 'get_camera_info'
-        get_camera_info
-      when 'take_screenshot'
-        take_screenshot(args)
-      when 'open_model'
-        open_model(args)
-      when 'save_model'
-        save_model(args)
-      else
-        raise "Unknown tool: #{tool_name}"
+      when 'ping' then ping
+      when 'export_scene' then Export.export_scene(args)
+      when 'eval_ruby' then eval_ruby(args)
+      when 'reload_extension' then reload_extension
+      when 'console_capture_status' then console_capture_status
+      when 'eval_ruby_file' then eval_ruby_file(args)
+      end
+    end
+
+    # Execute introspection and file tools
+    # @return [Hash, nil] result or nil if not an introspection tool
+    def execute_introspection_tool(tool_name, args)
+      case tool_name
+      when 'get_model_info' then model_info
+      when 'list_entities' then list_entities(args)
+      when 'get_selection' then selection_info
+      when 'get_layers' then layers_info
+      when 'get_materials' then materials_info
+      when 'get_camera_info' then camera_info
+      when 'take_screenshot' then take_screenshot(args)
+      when 'open_model' then open_model(args)
+      when 'save_model' then save_model(args)
       end
     end
 
@@ -396,19 +407,14 @@ module SupexRuntime
       log "Evaluating Ruby code (#{params['code'].length} chars)"
 
       begin
-        # Add marker for Ruby code execution
         @console_capture&.add_marker('EVAL_RUBY START')
-
-        # Create safe binding for evaluation
         binding = TOPLEVEL_BINDING.dup
+        # rubocop:disable Security/Eval
         result = eval(params['code'], binding)
-
+        # rubocop:enable Security/Eval
         @console_capture&.add_marker('EVAL_RUBY END')
 
-        {
-          success: true,
-          result: result.to_s
-        }
+        { success: true, result: result.to_s }
       rescue StandardError => e
         @console_capture&.add_marker("EVAL_RUBY ERROR: #{e.message}")
         log "Ruby eval error: #{e.message}"
@@ -445,19 +451,16 @@ module SupexRuntime
     # @return [Hash] console capture status
     def console_capture_status
       if @console_capture
+        status_msg = @console_capture.capturing? ? 'Console capture is active' : 'Console capture is inactive'
         {
           success: true,
           capturing: @console_capture.capturing?,
           log_file: @console_capture.log_file_path,
-          message: @console_capture.capturing? ? 'Console capture is active' : 'Console capture is inactive'
+          message: status_msg
         }
       else
-        {
-          success: false,
-          capturing: false,
-          log_file: nil,
-          message: 'Console capture not initialized'
-        }
+        { success: false, capturing: false, log_file: nil,
+          message: 'Console capture not initialized' }
       end
     end
 
@@ -466,441 +469,49 @@ module SupexRuntime
     # @return [Hash] evaluation result with file context
     def eval_ruby_file(params)
       file_path = params['file_path']
-
       raise "Ruby file not found: #{file_path}" unless File.exist?(file_path)
 
       log "Evaluating Ruby file: #{File.basename(file_path)}"
-
-      begin
-        # Add enhanced marker for file evaluation
-        @console_capture&.add_marker("EVAL_RUBY_FILE START: #{file_path}")
-
-        # Read and evaluate file with proper file context
-        ruby_code = File.read(file_path)
-        result = eval(ruby_code, TOPLEVEL_BINDING, file_path, 1)
-
-        @console_capture&.add_marker("EVAL_RUBY_FILE END: #{file_path}")
-
-        {
-          success: true,
-          result: result.to_s,
-          file_path: file_path,
-          file_name: File.basename(file_path)
-        }
-      rescue StandardError => e
-        @console_capture&.add_marker("EVAL_RUBY_FILE ERROR: #{e.message}")
-        log "Ruby file eval error: #{e.message}"
-
-        # Enhanced error reporting with file context
-        error_msg = "Error in #{File.basename(file_path)}: #{e.message}"
-        error_msg += "\nFile: #{file_path}"
-        error_msg += "\nLine: #{e.backtrace&.first&.split(':')&.[](1)}" if e.backtrace
-
-        raise error_msg
-      end
+      execute_ruby_file(file_path)
     end
 
-    # Get basic information about the current SketchUp model
-    # @return [Hash] model statistics and metadata
-    def get_model_info
-      model = Sketchup.active_model
+    # Execute Ruby file and return result
+    # @param file_path [String] path to Ruby file
+    # @return [Hash] execution result
+    def execute_ruby_file(file_path)
+      @console_capture&.add_marker("EVAL_RUBY_FILE START: #{file_path}")
+      ruby_code = File.read(file_path)
+      # rubocop:disable Security/Eval
+      result = eval(ruby_code, TOPLEVEL_BINDING, file_path, 1)
+      # rubocop:enable Security/Eval
+      @console_capture&.add_marker("EVAL_RUBY_FILE END: #{file_path}")
 
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        # Get units setting
-        units_options = model.options['UnitsOptions']
-        length_unit = units_options['LengthUnit']
-        units_map = {
-          0 => 'inches',
-          1 => 'feet',
-          2 => 'millimeters',
-          3 => 'centimeters',
-          4 => 'meters'
-        }
-
-        {
-          success: true,
-          title: model.title.empty? ? 'Untitled' : model.title,
-          units: units_map[length_unit] || 'unknown',
-          num_faces: model.entities.grep(Sketchup::Face).count,
-          num_edges: model.entities.grep(Sketchup::Edge).count,
-          num_groups: model.entities.grep(Sketchup::Group).count,
-          num_components: model.entities.grep(Sketchup::ComponentInstance).count,
-          modified: model.modified?
-        }
-      rescue StandardError => e
-        log "Error getting model info: #{e.message}"
-        raise "Failed to get model info: #{e.message}"
-      end
+      { success: true, result: result.to_s, file_path: file_path,
+        file_name: File.basename(file_path) }
+    rescue StandardError => e
+      handle_ruby_file_error(file_path, e)
     end
 
-    # List entities in the model
-    # @param params [Hash] parameters with optional entity_type filter
-    # @return [Hash] list of entities
-    def list_entities(params)
-      model = Sketchup.active_model
-      entity_type = params['entity_type'] || 'all'
+    # Handle error from Ruby file evaluation
+    # @param file_path [String] path to Ruby file
+    # @param error [StandardError] the error that occurred
+    def handle_ruby_file_error(file_path, error)
+      @console_capture&.add_marker("EVAL_RUBY_FILE ERROR: #{error.message}")
+      log "Ruby file eval error: #{error.message}"
 
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        entities = case entity_type
-                   when 'faces'
-                     model.entities.grep(Sketchup::Face)
-                   when 'edges'
-                     model.entities.grep(Sketchup::Edge)
-                   when 'groups'
-                     model.entities.grep(Sketchup::Group)
-                   when 'components'
-                     model.entities.grep(Sketchup::ComponentInstance)
-                   else
-                     model.entities.to_a
-                   end
-
-        entities_data = entities.map do |entity|
-          data = {
-            type: entity.typename,
-            entity_id: entity.entityID
-          }
-
-          # Add type-specific properties
-          case entity
-          when Sketchup::Group
-            data[:name] = entity.name.empty? ? '(unnamed)' : entity.name
-            data[:layer] = entity.layer.name
-          when Sketchup::ComponentInstance
-            data[:name] = entity.definition.name
-            data[:layer] = entity.layer.name
-          when Sketchup::Face
-            data[:area] = entity.area
-            data[:layer] = entity.layer.name
-          when Sketchup::Edge
-            data[:length] = entity.length
-            data[:layer] = entity.layer.name
-          end
-
-          data
-        end
-
-        {
-          success: true,
-          entity_type: entity_type,
-          count: entities_data.length,
-          entities: entities_data
-        }
-      rescue StandardError => e
-        log "Error listing entities: #{e.message}"
-        raise "Failed to list entities: #{e.message}"
-      end
+      error_msg = "Error in #{File.basename(file_path)}: #{error.message}\nFile: #{file_path}"
+      error_msg += "\nLine: #{extract_line_number(error)}" if error.backtrace
+      raise error_msg
     end
 
-    # Get currently selected entities
-    # @return [Hash] selection information
-    def get_selection
-      model = Sketchup.active_model
+    # Extract line number from error backtrace
+    # @param error [StandardError] the error
+    # @return [String, nil] line number or nil
+    def extract_line_number(error)
+      return nil unless error.backtrace&.first
 
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        selection = model.selection
-
-        entities_data = selection.map do |entity|
-          data = {
-            type: entity.typename,
-            entity_id: entity.entityID
-          }
-
-          # Add type-specific details
-          case entity
-          when Sketchup::Face
-            data[:area] = entity.area
-            normal = entity.normal
-            data[:normal] = [normal.x, normal.y, normal.z]
-          when Sketchup::Edge
-            data[:length] = entity.length
-          when Sketchup::Group
-            data[:name] = entity.name.empty? ? '(unnamed)' : entity.name
-          when Sketchup::ComponentInstance
-            data[:name] = entity.definition.name
-          end
-
-          data
-        end
-
-        {
-          success: true,
-          count: selection.count,
-          entities: entities_data
-        }
-      rescue StandardError => e
-        log "Error getting selection: #{e.message}"
-        raise "Failed to get selection: #{e.message}"
-      end
-    end
-
-    # Get list of layers (tags) in the model
-    # @return [Hash] layers information
-    def get_layers
-      model = Sketchup.active_model
-
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        layers_data = model.layers.map do |layer|
-          {
-            name: layer.name,
-            visible: layer.visible?,
-            page_behavior: layer.page_behavior
-          }
-        end
-
-        {
-          success: true,
-          count: layers_data.length,
-          layers: layers_data
-        }
-      rescue StandardError => e
-        log "Error getting layers: #{e.message}"
-        raise "Failed to get layers: #{e.message}"
-      end
-    end
-
-    # Get list of materials in the model
-    # @return [Hash] materials information
-    def get_materials
-      model = Sketchup.active_model
-
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        materials_data = model.materials.map do |material|
-          data = {
-            name: material.name,
-            display_name: material.display_name
-          }
-
-          # Add color if available
-          if material.color
-            data[:color] = {
-              red: material.color.red,
-              green: material.color.green,
-              blue: material.color.blue,
-              alpha: material.alpha
-            }
-          end
-
-          # Check for texture
-          data[:textured] = material.texture ? true : false
-
-          data
-        end
-
-        {
-          success: true,
-          count: materials_data.length,
-          materials: materials_data
-        }
-      rescue StandardError => e
-        log "Error getting materials: #{e.message}"
-        raise "Failed to get materials: #{e.message}"
-      end
-    end
-
-    # Get current camera information
-    # @return [Hash] camera settings
-    def get_camera_info
-      model = Sketchup.active_model
-
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        camera = model.active_view.camera
-        eye = camera.eye
-        target = camera.target
-        up = camera.up
-
-        {
-          success: true,
-          eye: [eye.x, eye.y, eye.z],
-          target: [target.x, target.y, target.z],
-          up: [up.x, up.y, up.z],
-          fov: camera.fov,
-          aspect_ratio: camera.aspect_ratio,
-          perspective: camera.perspective?
-        }
-      rescue StandardError => e
-        log "Error getting camera info: #{e.message}"
-        raise "Failed to get camera info: #{e.message}"
-      end
-    end
-
-    # Take a screenshot of the current view and save to disk
-    # @param params [Hash] parameters with width, height, transparent, output_path
-    # @return [Hash] screenshot result with file path (not image data)
-    def take_screenshot(params)
-      model = Sketchup.active_model
-
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      width = params['width'] || 1920
-      height = params['height'] || 1080
-      transparent = params['transparent'] || false
-      output_path = params['output_path']
-
-      begin
-        view = model.active_view
-
-        # Determine target location
-        if output_path
-          screenshot_path = File.expand_path(output_path)
-          # Ensure parent directory exists
-          FileUtils.mkdir_p(File.dirname(screenshot_path))
-        else
-          # Default: save to .tmp/screenshots/ in supex repo with timestamp
-          screenshots_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '.tmp',
-                                      'screenshots')
-          FileUtils.mkdir_p(screenshots_dir)
-          timestamp = Time.now.strftime('%Y%m%d-%H%M%S')
-          screenshot_path = File.join(screenshots_dir, "screenshot-#{timestamp}.png")
-        end
-
-        # Write screenshot to disk
-        options = {
-          filename: screenshot_path,
-          width: width,
-          height: height,
-          antialias: true,
-          compression: 0.9,
-          transparent: transparent
-        }
-
-        view.write_image(options)
-
-        # Return only the file path (not image data!)
-        {
-          success: true,
-          file_path: screenshot_path,
-          file_name: File.basename(screenshot_path),
-          width: width,
-          height: height,
-          format: 'png',
-          message: "Screenshot saved to #{screenshot_path}. Use Read tool to view if needed."
-        }
-      rescue StandardError => e
-        log "Error taking screenshot: #{e.message}"
-        log e.backtrace.join("\n")
-        raise "Failed to take screenshot: #{e.message}"
-      end
-    end
-
-    # Open a SketchUp model file
-    # @param params [Hash] parameters with file path
-    # @return [Hash] open operation result
-    def open_model(params)
-      file_path = params['path']
-
-      unless file_path
-        return {
-          success: false,
-          error: 'No file path provided'
-        }
-      end
-
-      unless File.exist?(file_path)
-        return {
-          success: false,
-          error: "File not found: #{file_path}"
-        }
-      end
-
-      begin
-        Sketchup.open_file(file_path)
-
-        # Get info about newly opened model
-        model = Sketchup.active_model
-
-        {
-          success: true,
-          file_path: file_path,
-          file_name: File.basename(file_path),
-          title: model.title
-        }
-      rescue StandardError => e
-        log "Error opening model: #{e.message}"
-        raise "Failed to open model: #{e.message}"
-      end
-    end
-
-    # Save the current model
-    # @param params [Hash] parameters with optional save path
-    # @return [Hash] save operation result
-    def save_model(params)
-      model = Sketchup.active_model
-
-      unless model
-        return {
-          success: false,
-          error: 'No active model'
-        }
-      end
-
-      begin
-        if params['path']
-          # Save to specific path
-          model.save(params['path'])
-          saved_path = params['path']
-        else
-          # Save to current path (or prompt if untitled)
-          model.save
-          saved_path = model.path
-        end
-
-        {
-          success: true,
-          file_path: saved_path,
-          file_name: File.basename(saved_path),
-          title: model.title
-        }
-      rescue StandardError => e
-        log "Error saving model: #{e.message}"
-        raise "Failed to save model: #{e.message}"
-      end
+      parts = error.backtrace.first.split(':')
+      parts[1]
     end
 
     # Send error response to client
@@ -909,16 +520,11 @@ module SupexRuntime
     # @param code [Integer] error code
     # @param request_id [Object] request ID
     def send_error_response(client, message, code, request_id)
-      error_response = {
-        jsonrpc: '2.0',
-        error: { code: code, message: message },
-        id: request_id
-      }.to_json + "\n"
-
-      client.write(error_response)
+      error_response = { jsonrpc: '2.0', error: { code: code, message: message }, id: request_id }
+      client.write("#{error_response.to_json}\n")
       client.flush
-      # Give the client time to read the error response
       sleep(0.25)
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

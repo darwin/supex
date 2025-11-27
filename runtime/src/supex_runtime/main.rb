@@ -10,20 +10,23 @@ module SupexRuntime
   # Main entry point for the Supex SketchUp extension
   # Provides a clean interface to start/stop the MCP server
   class Main
-    @@server = nil
+    class << self
+      attr_accessor :server
+    end
+    @server = nil
 
     # Initialize and start the Supex server
     # @param port [Integer] server port (default: 9876)
     # @param host [String] server host (default: 127.0.0.1)
     def self.start_server(port: Server::DEFAULT_PORT, host: Server::DEFAULT_HOST)
-      if @@server&.running?
+      if @server&.running?
         Utils.console_write("Supex: Server is already running on #{host}:#{port}")
         return
       end
 
       begin
-        @@server = Server.new(port: port, host: host)
-        @@server.start
+        @server = Server.new(port: port, host: host)
+        @server.start
 
         Utils.console_write("Supex: Server started on #{host}:#{port}")
         Utils.console_write("Supex: Version #{VERSION}")
@@ -39,10 +42,10 @@ module SupexRuntime
     end
 
     # Stop the Supex server
-    def self.stop_server
-      if @@server&.running?
-        @@server.stop
-        @@server = nil
+    def self.shutdown_server
+      if @server&.running?
+        @server.stop
+        @server = nil
         Utils.console_write('Supex: Server stopped')
         remove_menu_items
         true
@@ -52,16 +55,20 @@ module SupexRuntime
       end
     end
 
+    class << self
+      alias stop_server shutdown_server
+    end
+
     # Check if server is running
     # @return [Boolean] true if server is running
     def self.server_running?
-      @@server&.running? || false
+      @server&.running? || false
     end
 
     # Get server status information
     # @return [Hash] server status details
     def self.server_status
-      if @@server&.running?
+      if @server&.running?
         {
           running: true,
           version: VERSION,
@@ -92,98 +99,74 @@ module SupexRuntime
       Utils.console_write('Supex: Reloading extension...')
 
       begin
-        # Stop the server first
-        was_running = @@server&.running?
+        was_running = @server&.running?
         stop_server if was_running
 
-        # Clear loaded files to force reload
-        files_to_reload = %w[
-          version.rb
-          utils.rb
-          geometry.rb
-          materials.rb
-          export.rb
-          joinery.rb
-          server.rb
-          main.rb
-        ]
+        remove_extension_constants
+        unload_extension_files
 
-        # Find our specific extension directory path
-        extension_dir = __dir__
-
-        # Remove constants to avoid redefinition warnings
-        if defined?(SupexRuntime::VERSION)
-          begin
-            SupexRuntime.send(:remove_const, :VERSION)
-          rescue
-            nil
-          end
-          begin
-            SupexRuntime.send(:remove_const, :REQUIRED_SKETCHUP_VERSION)
-          rescue
-            nil
-          end
-          begin
-            SupexRuntime.send(:remove_const, :MCP_VERSION)
-          rescue
-            nil
-          end
-          begin
-            SupexRuntime.send(:remove_const, :EXTENSION_NAME)
-          rescue
-            nil
-          end
-          begin
-            SupexRuntime.send(:remove_const, :EXTENSION_DESCRIPTION)
-          rescue
-            nil
-          end
-          begin
-            SupexRuntime.send(:remove_const, :EXTENSION_CREATOR)
-          rescue
-            nil
-          end
-          begin
-            SupexRuntime.send(:remove_const, :EXTENSION_COPYRIGHT)
-          rescue
-            nil
-          end
-        end
-
-        files_to_reload.each do |file|
-          full_path = File.join(extension_dir, file)
-          # Only remove files that are specifically from our extension directory
-          loaded_files = $LOADED_FEATURES.select do |f|
-            f == full_path || f.end_with?("/supex_runtime/#{file}")
-          end
-          loaded_files.each do |loaded_file|
-            $LOADED_FEATURES.delete(loaded_file)
-            Utils.console_write("Supex: Unloaded #{loaded_file}")
-          end
-        end
-
-        # Force garbage collection
         GC.start
-
-        # Reload the main extension file from our specific path
-        main_extension_dir = File.expand_path(File.join(extension_dir, '..'))
-        main_file = File.join(main_extension_dir, 'supex_runtime.rb')
-        load(main_file) if File.exist?(main_file)
+        reload_main_extension_file
 
         Utils.console_write('Supex: Extension reloaded successfully')
-
-        # Restart server if it was running
-        if was_running
-          sleep(1) # Give it a moment
-          start_server
-        end
-
+        restart_if_was_running(was_running)
         true
       rescue StandardError => e
         Utils.console_write("Supex: Failed to reload extension: #{e.message}")
         Utils.console_write("Supex: #{e.backtrace.join("\n")}")
         false
       end
+    end
+
+    # Remove SupexRuntime constants to avoid redefinition warnings
+    def self.remove_extension_constants
+      return unless defined?(SupexRuntime::VERSION)
+
+      constants_to_remove = %i[
+        VERSION REQUIRED_SKETCHUP_VERSION MCP_VERSION
+        EXTENSION_NAME EXTENSION_DESCRIPTION EXTENSION_CREATOR EXTENSION_COPYRIGHT
+      ]
+      constants_to_remove.each do |const|
+        SupexRuntime.send(:remove_const, const)
+      rescue StandardError
+        nil
+      end
+    end
+
+    # Unload extension files from $LOADED_FEATURES
+    def self.unload_extension_files
+      files_to_reload = %w[
+        version.rb utils.rb geometry.rb materials.rb
+        export.rb joinery.rb server.rb main.rb
+      ]
+      extension_dir = __dir__
+
+      files_to_reload.each do |file|
+        full_path = File.join(extension_dir, file)
+        loaded_files = $LOADED_FEATURES.select do |f|
+          f == full_path || f.end_with?("/supex_runtime/#{file}")
+        end
+        loaded_files.each do |loaded_file|
+          $LOADED_FEATURES.delete(loaded_file)
+          Utils.console_write("Supex: Unloaded #{loaded_file}")
+        end
+      end
+    end
+
+    # Reload the main extension file
+    def self.reload_main_extension_file
+      extension_dir = __dir__
+      main_extension_dir = File.expand_path(File.join(extension_dir, '..'))
+      main_file = File.join(main_extension_dir, 'supex_runtime.rb')
+      load(main_file) if File.exist?(main_file)
+    end
+
+    # Restart server if it was running before reload
+    def self.restart_if_was_running(was_running)
+      return unless was_running
+
+      sleep(1)
+      start_server
     end
 
     # Add menu items to SketchUp's Extensions menu

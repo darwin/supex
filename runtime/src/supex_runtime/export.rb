@@ -17,9 +17,7 @@ module SupexRuntime
     def self.export_scene(params)
       format = params['format'] || 'skp'
 
-      unless SUPPORTED_FORMATS.include?(format.downcase)
-        raise "Unsupported export format: #{format}"
-      end
+      raise "Unsupported export format: #{format}" unless SUPPORTED_FORMATS.include?(format.downcase)
 
       model = Sketchup.active_model
       export_path = generate_export_path(format)

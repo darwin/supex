@@ -12,7 +12,8 @@ module SupexRuntime
 
   # Extension metadata
   EXTENSION_NAME = 'Supex Runtime'
-  EXTENSION_DESCRIPTION = 'Supex server for SketchUp that enables AI agents to control and manipulate 3D scenes'
+  EXTENSION_DESCRIPTION = 'Supex server for SketchUp that enables AI agents to ' \
+                          'control and manipulate 3D scenes'
   EXTENSION_CREATOR = 'Antonin'
   EXTENSION_COPYRIGHT = '2024'
 end
