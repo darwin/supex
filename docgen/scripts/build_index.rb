@@ -159,7 +159,11 @@ File.open(output_path, 'w') do |f|
         f.puts ""
         methods.each do |method|
           method_name = method[:path].split(/[#.]/).last
-          f.puts "- `#{method_name}` - #{method[:summary]}"
+          if method[:summary] && !method[:summary].strip.empty?
+            f.puts "- `#{method_name}` - #{method[:summary]}"
+          else
+            f.puts "- `#{method_name}`"
+          end
         end
         f.puts ""
       end
@@ -205,7 +209,11 @@ File.open(output_path, 'w') do |f|
         f.puts ""
         parent_methods.each do |method|
           method_name = method[:path].split(/[#.]/).last
-          f.puts "- `#{method_name}` - #{method[:summary]}"
+          if method[:summary] && !method[:summary].strip.empty?
+            f.puts "- `#{method_name}` - #{method[:summary]}"
+          else
+            f.puts "- `#{method_name}`"
+          end
         end
         f.puts ""
       end
@@ -244,7 +252,11 @@ File.open(output_path, 'w') do |f|
         parent_methods.each do |method|
           # Extract method name (e.g., "Sketchup::Face#area" -> "area")
           method_name = method[:path].split(/[#.]/).last
-          f.puts "- `#{method_name}` - #{method[:summary]}"
+          if method[:summary] && !method[:summary].strip.empty?
+            f.puts "- `#{method_name}` - #{method[:summary]}"
+          else
+            f.puts "- `#{method_name}`"
+          end
         end
         f.puts ""
       end
@@ -268,7 +280,11 @@ File.open(output_path, 'w') do |f|
       orphaned_methods.each do |method|
         # Extract method name (e.g., "#file_loaded" -> "file_loaded")
         method_name = method[:path].split(/[#.]/).last
-        f.puts "- `#{method_name}` - #{method[:summary]}"
+        if method[:summary] && !method[:summary].strip.empty?
+          f.puts "- `#{method_name}` - #{method[:summary]}"
+        else
+          f.puts "- `#{method_name}`"
+        end
       end
       f.puts ""
     end
