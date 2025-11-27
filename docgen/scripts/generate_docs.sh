@@ -23,10 +23,10 @@ echo "==> Parsing SketchUp API with YARD..."
 bundle exec yardoc
 
 echo "==> Generating Markdown documentation from YARD registry..."
-bundle exec ruby scripts/generate_markdown_docs.rb
+bundle exec ruby scripts/generate_sketchup_api_docs.rb
 
 echo "==> Building INDEX.md for Claude Code..."
-bundle exec ruby scripts/build_index.rb
+bundle exec ruby scripts/build_sketchup_api_index.rb
 
 echo "==> Cleaning up temporary files..."
 rm -rf tmp/

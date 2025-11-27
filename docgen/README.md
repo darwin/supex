@@ -210,8 +210,8 @@ Dependencies:
           ┌──────┴──────┐
           ▼             ▼
 ┌──────────────────────┐  ┌──────────────────────┐
-│ generate_markdown_   │  │ build_index.rb       │
-│ docs.rb              │  │                      │
+│ generate_sketchup_   │  │ build_sketchup_      │
+│ api_docs.rb          │  │ api_index.rb         │
 │ - Class/module docs  │  │ - INDEX.md (main)    │
 │ - TOP-LEVEL.md       │  │ - Geom/INDEX.md      │
 │ - pages/*.md         │  │ - Sketchup/INDEX.md  │
@@ -232,15 +232,15 @@ Dependencies:
 ### Scripts
 
 - **generate_docs.sh** - Main generation pipeline orchestration
-- **generate_markdown_docs.rb** - Generates class/module docs, TOP-LEVEL.md, and tutorial pages
-- **build_index.rb** - Creates INDEX.md files (main and per-namespace)
+- **generate_sketchup_api_docs.rb** - Generates class/module docs, TOP-LEVEL.md, and tutorial pages
+- **build_sketchup_api_index.rb** - Creates INDEX.md files (main and per-namespace)
 - **doc_helpers.rb** - Shared utilities for YARD text processing
 
 ### Customization
 
-To modify the Markdown output format, edit `scripts/generate_markdown_docs.rb`. The script uses `YARD::Registry` to access all parsed documentation data and generates clean Markdown without HTML artifacts.
+To modify the Markdown output format, edit `scripts/generate_sketchup_api_docs.rb`. The script uses `YARD::Registry` to access all parsed documentation data and generates clean Markdown without HTML artifacts.
 
-To modify the index format, edit `scripts/build_index.rb`.
+To modify the index format, edit `scripts/build_sketchup_api_index.rb`.
 
 To change YARD parsing settings, edit `.yardopts`.
 
