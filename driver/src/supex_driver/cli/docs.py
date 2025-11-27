@@ -93,6 +93,7 @@ def tree_docs(
     # API documentation (depth 1)
     api_branch = tree.add("[bold]api/[/bold]")
     api_branch.add(_format_entry("INDEX", "API overview", depth=1))
+    api_branch.add(_format_entry("TOP_LEVEL", "Global constants and methods", depth=1))
 
     # Top-level classes (exclude namespace modules and special files)
     all_classes = list_available_classes()
