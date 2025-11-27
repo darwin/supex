@@ -81,7 +81,7 @@ module SupexRuntime
       return unless @capture_enabled && @log_file && !@log_file.closed?
 
       begin
-        marker = "\n--- #{message} [#{Time.now.strftime('%H:%M:%S')}] ---\n"
+        marker = "[#{Time.now.strftime('%H:%M:%S')}] --- #{message} ---\n"
         @log_file.write(marker)
         @log_file.flush
       rescue StandardError => e
