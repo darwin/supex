@@ -46,11 +46,43 @@ def load_api_doc(class_path: str) -> str | None:
 
 
 def load_api_index() -> str | None:
-    """Load the full API documentation index."""
+    """Load the master API documentation index (lightweight overview)."""
     index_path = get_resources_path() / "docs" / "api" / "INDEX.md"
     if index_path.exists():
         return index_path.read_text(encoding="utf-8")
     return None
+
+
+def load_namespace_index(namespace: str) -> str | None:
+    """Load namespace-specific index (e.g., Geom/INDEX.md or Sketchup/INDEX.md).
+
+    Args:
+        namespace: Namespace name (e.g., "Geom", "Sketchup")
+
+    Returns:
+        Namespace index content as string, or None if not found.
+    """
+    api_path = get_resources_path() / "docs" / "api" / namespace / "INDEX.md"
+    if api_path.exists():
+        return api_path.read_text(encoding="utf-8")
+    return None
+
+
+def list_available_namespaces() -> list[str]:
+    """List namespaces that have their own INDEX.md file.
+
+    Returns:
+        List of namespace names like ["Geom", "Sketchup"]
+    """
+    api_path = get_resources_path() / "docs" / "api"
+    if not api_path.exists():
+        return []
+
+    namespaces = []
+    for subdir in api_path.iterdir():
+        if subdir.is_dir() and (subdir / "INDEX.md").exists():
+            namespaces.append(subdir.name)
+    return sorted(namespaces)
 
 
 def load_resource_file(filename: str) -> str | None:

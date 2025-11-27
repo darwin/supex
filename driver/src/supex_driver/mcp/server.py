@@ -11,8 +11,10 @@ from supex_driver.mcp.resources import (
     find_similar_classes,
     get_docs_not_generated_message,
     get_resources_path,
+    list_available_namespaces,
     load_api_doc,
     load_api_index,
+    load_namespace_index,
     load_resource_file,
 )
 
@@ -439,11 +441,45 @@ def workflow_resource() -> str:
 
 @mcp.resource("supex://docs/api/index")
 def api_index_resource() -> str:
-    """Complete SketchUp Ruby API index - lists all classes and methods (~30k tokens)"""
+    """Lightweight API overview with Quick Reference and namespace summaries (~3k tokens).
+
+    For detailed namespace documentation, use:
+    - supex://docs/api/Geom/index - Geometry classes (~3k tokens)
+    - supex://docs/api/Sketchup/index - SketchUp modeling classes (~8k tokens)
+    """
     content = load_api_index()
     if content:
         return content
     return get_docs_not_generated_message()
+
+
+@mcp.resource("supex://docs/api/{namespace}/index")
+def namespace_index_resource(namespace: str) -> str:
+    """Namespace-specific API index with categorized class listings.
+
+    Available namespaces:
+    - supex://docs/api/Geom/index - Points, vectors, transformations (~3k tokens)
+    - supex://docs/api/Sketchup/index - Model, entities, materials (~8k tokens)
+    """
+    content = load_namespace_index(namespace)
+    if content:
+        return content
+
+    # Check if API docs exist at all
+    api_path = get_resources_path() / "docs" / "api"
+    if not api_path.exists():
+        return get_docs_not_generated_message()
+
+    # Docs exist but namespace not found - provide helpful suggestions
+    available = list_available_namespaces()
+    error_msg = f"# Namespace Index Not Found\n\nNo index found for namespace: `{namespace}`\n\n"
+    if available:
+        error_msg += "**Available namespace indexes:**\n"
+        for ns in available:
+            error_msg += f"- `supex://docs/api/{ns}/index`\n"
+    else:
+        error_msg += "Use `supex://docs/api/index` for the main API overview."
+    return error_msg
 
 
 @mcp.resource("supex://docs/api/{class_name}")

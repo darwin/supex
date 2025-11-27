@@ -6,7 +6,40 @@ require 'fileutils'
 require 'yaml'
 require_relative 'doc_helpers'
 
-# Build a concise INDEX.md for AI agents to navigate the API documentation
+# Simple string truncation helper
+class String
+  def truncate(limit, omission = '...')
+    return self if length <= limit
+    self[0, limit - omission.length] + omission
+  end
+end
+
+# Build hierarchical INDEX.md for AI agents to navigate the API documentation
+# Generates: Master INDEX.md -> Namespace indexes (Geom/INDEX.md, Sketchup/INDEX.md) -> Class docs
+
+# Namespaces that get their own index file (too large for master index)
+NAMESPACES_WITH_INDEX = %w[Geom Sketchup].freeze
+
+# Category groupings for Sketchup namespace classes
+SKETCHUP_CATEGORIES = {
+  'Model Structure' => %w[Model Entities Selection DefinitionList RenderingOptions ShadowInfo OptionsManager OptionsProvider],
+  'Geometry Primitives' => %w[Face Edge Vertex Curve ArcCurve ConstructionLine ConstructionPoint SectionPlane],
+  'Containers' => %w[Group ComponentInstance ComponentDefinition Image],
+  'Appearance' => %w[Material Materials Texture],
+  'Organization' => %w[Layer Layers Page Pages Scenes Styles Style],
+  'Annotations' => %w[Text Dimension DimensionLinear DimensionRadial],
+  'Metadata' => %w[Entity Drawingelement AttributeDictionary AttributeDictionaries Classification Classifications],
+  'Camera & View' => %w[Camera Axes RenderingOptions],
+  'Other' => [] # Catch-all for uncategorized classes
+}.freeze
+
+# Category groupings for Geom namespace classes
+GEOM_CATEGORIES = {
+  'Points & Vectors' => %w[Point3d Point2d Vector3d Vector2d],
+  'Transformations' => %w[Transformation Transformation2d],
+  'Bounds & Meshes' => %w[BoundingBox Bounds2d OrientedBounds2d PolygonMesh],
+  'Coordinates' => %w[LatLong UTM]
+}.freeze
 
 puts "Loading YARD registry..."
 YARD::Registry.load!('.yardoc')
@@ -41,6 +74,120 @@ def should_exclude?(obj, excluded_namespaces, excluded_patterns)
   return true if excluded_patterns.any? { |regex| regex.match?(obj.path) }
 
   false
+end
+
+# Categorize classes for a namespace
+def categorize_classes(classes, categories)
+  categorized = Hash.new { |h, k| h[k] = [] }
+  uncategorized = []
+
+  classes.each do |cls|
+    class_name = cls[:path].split('::').last
+    found = false
+
+    categories.each do |category, class_names|
+      next if category == 'Other'
+      if class_names.include?(class_name)
+        categorized[category] << cls
+        found = true
+        break
+      end
+    end
+
+    uncategorized << cls unless found
+  end
+
+  categorized['Other'] = uncategorized if uncategorized.any?
+  categorized
+end
+
+# Get key methods for a class (up to limit)
+def get_key_methods(methods_by_parent, class_path, limit = 5)
+  methods = methods_by_parent[class_path] || []
+  method_names = methods.map { |m| m[:path].split(/[#.]/).last }
+  method_names.first(limit)
+end
+
+# Generate namespace index file (e.g., Geom/INDEX.md or Sketchup/INDEX.md)
+def generate_namespace_index(namespace, objects, methods_by_parent, categories)
+  output_dir = "generated-sketchup-docs-md/#{namespace}"
+  FileUtils.mkdir_p(output_dir)
+  output_path = "#{output_dir}/INDEX.md"
+
+  # Separate classes/modules from the main namespace object
+  classes_and_modules = objects.select { |o| o[:type] == 'class' || o[:type] == 'module' }
+  main_obj = classes_and_modules.find { |obj| obj[:path] == namespace }
+  other_classes = classes_and_modules.reject { |obj| obj[:path] == namespace }
+
+  File.open(output_path, 'w') do |f|
+    f.puts "# #{namespace} Namespace"
+    f.puts ""
+
+    # Module description if exists
+    if main_obj && !main_obj[:summary].empty?
+      f.puts main_obj[:summary]
+      f.puts ""
+    end
+
+    f.puts "---"
+    f.puts ""
+
+    # Module methods section
+    module_methods = methods_by_parent[namespace] || []
+    unless module_methods.empty?
+      f.puts "## Module Methods"
+      f.puts ""
+      f.puts "The `#{namespace}` module provides utility methods:"
+      f.puts ""
+      module_methods.each do |method|
+        method_name = method[:path].split(/[#.]/).last
+        if method[:summary] && !method[:summary].strip.empty?
+          f.puts "- `#{namespace}.#{method_name}` - #{method[:summary]}"
+        else
+          f.puts "- `#{namespace}.#{method_name}`"
+        end
+      end
+      f.puts ""
+      f.puts "Full module documentation: [#{namespace}.md](../#{namespace}.md)"
+      f.puts ""
+      f.puts "---"
+      f.puts ""
+    end
+
+    # Categorize classes
+    categorized = categorize_classes(other_classes, categories)
+
+    # Output by category
+    f.puts "## Classes"
+    f.puts ""
+
+    categories.keys.each do |category|
+      category_classes = categorized[category]
+      next unless category_classes && category_classes.any?
+
+      f.puts "### #{category}"
+      f.puts ""
+      f.puts "| Class | Description | Key Methods |"
+      f.puts "|-------|-------------|-------------|"
+
+      category_classes.sort_by { |c| c[:path] }.each do |cls|
+        class_name = cls[:path].split('::').last
+        file_path = "#{class_name}.md"
+        description = cls[:summary].empty? ? '-' : cls[:summary].gsub('|', '\\|').truncate(80)
+        key_methods = get_key_methods(methods_by_parent, cls[:path], 4)
+        methods_str = key_methods.empty? ? '-' : key_methods.map { |m| "`#{m}`" }.join(', ')
+        f.puts "| [#{class_name}](#{file_path}) | #{description} | #{methods_str} |"
+      end
+
+      f.puts ""
+    end
+
+    f.puts "---"
+    f.puts ""
+    f.puts "_Part of [INDEX.md](../INDEX.md) | Generated from YARD documentation_"
+  end
+
+  puts "Generated #{output_path}"
 end
 
 # Group objects by top-level namespace
@@ -102,7 +249,28 @@ puts "Grouped into #{grouped_objects.keys.size} namespaces"
 sorted_namespaces = grouped_objects.keys.sort
 sorted_namespaces = ['Global'] + (sorted_namespaces - ['Global']) if sorted_namespaces.include?('Global')
 
-# Build INDEX.md
+# Pre-compute methods_by_parent for all namespaces (needed for namespace indexes)
+all_methods_by_parent = {}
+grouped_objects.each do |namespace, objects|
+  methods = objects.select { |o| o[:type] == 'method' }
+  methods.each do |m|
+    parent = m[:path].split(/[#.]/).first
+    all_methods_by_parent[parent] ||= []
+    all_methods_by_parent[parent] << m
+  end
+end
+
+# Generate namespace-specific index files first
+puts "\nGenerating namespace indexes..."
+NAMESPACES_WITH_INDEX.each do |namespace|
+  next unless grouped_objects.key?(namespace)
+
+  objects = grouped_objects[namespace].sort_by { |o| o[:path] }
+  categories = namespace == 'Sketchup' ? SKETCHUP_CATEGORIES : GEOM_CATEGORIES
+  generate_namespace_index(namespace, objects, all_methods_by_parent, categories)
+end
+
+# Build master INDEX.md
 output_path = 'generated-sketchup-docs-md/INDEX.md'
 FileUtils.mkdir_p('generated-sketchup-docs-md')
 
@@ -142,6 +310,26 @@ File.open(output_path, 'w') do |f|
     f.puts ""
   end
 
+  # Quick Reference section
+  f.puts "## Quick Reference"
+  f.puts ""
+  f.puts "**Most Used Classes:**"
+  f.puts "- `Sketchup::Model` - The active model (entry point for all operations)"
+  f.puts "- `Sketchup::Entities` - Entity collection (add geometry here)"
+  f.puts "- `Sketchup::Face` / `Sketchup::Edge` - Basic geometry primitives"
+  f.puts "- `Geom::Point3d` / `Geom::Vector3d` - 3D coordinates and directions"
+  f.puts "- `Geom::Transformation` - Positioning and scaling"
+  f.puts ""
+  f.puts "**Common Entry Points:**"
+  f.puts "```ruby"
+  f.puts "model = Sketchup.active_model        # Get active model"
+  f.puts "entities = model.active_entities     # Get entities collection"
+  f.puts "selection = model.selection          # Get selected entities"
+  f.puts "```"
+  f.puts ""
+  f.puts "---"
+  f.puts ""
+
   # Namespace listings
   sorted_namespaces.each do |namespace|
     # Special handling for Global namespace - link to top_level_namespace.md
@@ -169,6 +357,42 @@ File.open(output_path, 'w') do |f|
       end
 
       f.puts "Full documentation → [top_level_namespace.md](top_level_namespace.md)"
+      f.puts ""
+      f.puts ""
+      next
+    end
+
+    # Special handling for namespaces with their own index file
+    if NAMESPACES_WITH_INDEX.include?(namespace)
+      objects = grouped_objects[namespace].sort_by { |o| o[:path] }
+      classes_and_modules = objects.select { |o| o[:type] == 'class' || o[:type] == 'module' }
+      main_obj = classes_and_modules.find { |obj| obj[:path] == namespace }
+      other_classes = classes_and_modules.reject { |obj| obj[:path] == namespace }
+
+      # Output heading with link to namespace index
+      f.puts "## [#{namespace}](#{namespace}/INDEX.md) (#{main_obj ? main_obj[:type] : 'module'})"
+      f.puts ""
+
+      # Output summary if exists
+      if main_obj && !main_obj[:summary].empty?
+        f.puts main_obj[:summary]
+        f.puts ""
+      end
+
+      # Output class count and list
+      class_names = other_classes.map { |c| c[:path].split('::').last }.sort
+      f.puts "**Classes (#{class_names.size}):** #{class_names.first(8).join(', ')}#{class_names.size > 8 ? ', ...' : ''}"
+      f.puts ""
+
+      # Output key module methods
+      module_methods = all_methods_by_parent[namespace] || []
+      unless module_methods.empty?
+        method_names = module_methods.map { |m| "`#{m[:path].split(/[#.]/).last}`" }.first(6)
+        f.puts "**Module methods:** #{method_names.join(', ')}"
+        f.puts ""
+      end
+
+      f.puts "Full index → [#{namespace}/INDEX.md](#{namespace}/INDEX.md)"
       f.puts ""
       f.puts ""
       next
