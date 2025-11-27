@@ -372,3 +372,137 @@ if included_pages.any?
   puts "\n==> Extra pages complete!"
   puts "    Generated: #{pages_generated}"
 end
+
+# Generate top_level_namespace.md
+puts "\nGenerating top-level namespace documentation..."
+
+# Load constant exclusion patterns
+excluded_constant_patterns = (filter_config['excluded_constant_patterns'] || []).map do |pattern|
+  Regexp.new("^#{pattern.gsub('*', '.*')}$")
+end
+
+# Check if a constant should be excluded
+def should_exclude_constant?(const_name, excluded_constant_patterns)
+  excluded_constant_patterns.any? { |regex| regex.match?(const_name.to_s) }
+end
+
+# Get root namespace
+root = YARD::Registry.root
+
+# Collect root-level constants (not inside any class/module)
+root_constants = YARD::Registry.all(:constant).select do |const|
+  # Only include constants at root level (no :: in path, or path equals name)
+  const.path == const.name.to_s
+end
+
+# Filter constants
+filtered_constants = root_constants.reject do |const|
+  should_exclude_constant?(const.name, excluded_constant_patterns)
+end
+
+# Group constants by category
+constant_categories = {
+  'Geometry' => %w[ORIGIN ORIGIN_2D X_AXIS Y_AXIS Z_AXIS X_AXIS_2D Y_AXIS_2D IDENTITY IDENTITY_2D],
+  'Layer Visibility' => /^LAYER_/,
+  'Page/Scene Flags' => /^PAGE_/,
+  'File Operations' => /^FILE_WRITE_/
+}
+
+categorized_constants = {}
+uncategorized_constants = []
+
+filtered_constants.each do |const|
+  categorized = false
+  constant_categories.each do |category, matcher|
+    if matcher.is_a?(Array)
+      if matcher.include?(const.name.to_s)
+        categorized_constants[category] ||= []
+        categorized_constants[category] << const
+        categorized = true
+        break
+      end
+    elsif matcher.is_a?(Regexp)
+      if matcher.match?(const.name.to_s)
+        categorized_constants[category] ||= []
+        categorized_constants[category] << const
+        categorized = true
+        break
+      end
+    end
+  end
+  uncategorized_constants << const unless categorized
+end
+
+# Get root-level methods
+root_methods = YARD::Registry.all(:method).select do |method|
+  # Root methods have paths like "#method_name"
+  method.path.start_with?('#')
+end
+
+# Build the markdown
+md = []
+md << "# Top-Level Namespace"
+md << ""
+md << "Global constants and methods available in SketchUp Ruby scripts."
+md << ""
+
+# Constants section
+if filtered_constants.any?
+  md << "## Constants"
+  md << ""
+
+  # Output categorized constants first
+  constant_categories.keys.each do |category|
+    constants = categorized_constants[category]
+    next unless constants && constants.any?
+
+    md << "### #{category}"
+    md << ""
+    constants.sort_by(&:name).each do |const|
+      desc = const.docstring.to_s.strip
+      desc = desc.split("\n").first if desc # Take first line only
+      desc = DocHelpers.process_yard_text(desc) if desc && !desc.empty?
+      if desc && !desc.empty?
+        md << "- `#{const.name}` — #{desc}"
+      else
+        md << "- `#{const.name}`"
+      end
+    end
+    md << ""
+  end
+
+  # Output uncategorized constants
+  if uncategorized_constants.any?
+    md << "### Other Constants"
+    md << ""
+    uncategorized_constants.sort_by(&:name).each do |const|
+      desc = const.docstring.to_s.strip
+      desc = desc.split("\n").first if desc
+      desc = DocHelpers.process_yard_text(desc) if desc && !desc.empty?
+      if desc && !desc.empty?
+        md << "- `#{const.name}` — #{desc}"
+      else
+        md << "- `#{const.name}`"
+      end
+    end
+    md << ""
+  end
+end
+
+# Methods section
+if root_methods.any?
+  md << "## Methods"
+  md << ""
+
+  root_methods.sort_by(&:name).each do |method|
+    md.concat(generate_method_markdown(method))
+  end
+end
+
+# Write the file
+output_path = File.join(OUTPUT_DIR, 'top_level_namespace.md')
+File.write(output_path, md.join("\n"))
+
+puts "  ✓ top_level_namespace.md"
+puts "    Constants: #{filtered_constants.size} (#{root_constants.size - filtered_constants.size} excluded)"
+puts "    Methods: #{root_methods.size}"

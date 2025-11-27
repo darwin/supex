@@ -144,6 +144,32 @@ File.open(output_path, 'w') do |f|
 
   # Namespace listings
   sorted_namespaces.each do |namespace|
+    # Special handling for Global namespace - link to top_level_namespace.md
+    if namespace == 'Global'
+      f.puts "## [Top-Level Namespace](top_level_namespace.md)"
+      f.puts ""
+      f.puts "Global constants and methods available in all SketchUp Ruby scripts."
+      f.puts ""
+
+      # List global methods with descriptions
+      objects = grouped_objects[namespace].sort_by { |o| o[:path] }
+      methods = objects.select { |o| o[:type] == 'method' }
+      unless methods.empty?
+        f.puts "**Methods:**"
+        f.puts ""
+        methods.each do |method|
+          method_name = method[:path].split(/[#.]/).last
+          f.puts "- `#{method_name}` - #{method[:summary]}"
+        end
+        f.puts ""
+      end
+
+      f.puts "Full documentation → [top_level_namespace.md](top_level_namespace.md)"
+      f.puts ""
+      f.puts ""
+      next
+    end
+
     # Sort objects within namespace by path
     objects = grouped_objects[namespace].sort_by { |o| o[:path] }
 
