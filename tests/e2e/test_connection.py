@@ -1,4 +1,7 @@
-"""Connection and basic communication tests."""
+"""Connection and basic communication tests.
+
+Tests for basic SketchUp connection and CLI command execution.
+"""
 
 import pytest
 
@@ -18,43 +21,42 @@ class TestConnection:
         """Verify basic Ruby eval works."""
         result = cli.eval("1 + 1")
         assert result.success, f"Eval failed: {result.stderr}"
-        assert "2" in result.stdout
+        assert result.stdout.strip() == "2", f"Expected '2', got '{result.stdout.strip()}'"
 
     def test_sketchup_version(self, cli: CLIRunner) -> None:
         """Get SketchUp version info."""
         result = cli.eval("Sketchup.version")
         assert result.success, f"Failed to get version: {result.stderr}"
         # Version should be something like "24.0.123"
-        assert result.stdout.strip()
+        version = result.stdout.strip()
+        assert version, "Version should not be empty"
+        assert "." in version, f"Version should contain '.', got '{version}'"
 
     def test_active_model_exists(self, cli: CLIRunner) -> None:
         """Verify active model is available."""
         result = cli.eval("!Sketchup.active_model.nil?")
         assert result.success
-        assert "true" in result.stdout.lower()
+        assert result.stdout.strip().lower() == "true", f"Expected 'true', got '{result.stdout.strip()}'"
 
 
 class TestBasicCommands:
-    """Tests for basic CLI commands."""
+    """Tests for basic CLI commands using parametrization."""
 
-    def test_info_command(self, cli: CLIRunner) -> None:
-        """Test model info command returns valid data."""
+    @pytest.mark.parametrize("command", ["info", "camera", "layers", "materials"])
+    def test_basic_command_succeeds(self, cli: CLIRunner, command: str) -> None:
+        """Basic CLI commands should execute successfully."""
+        method = getattr(cli, command)
+        result = method()
+        assert result.success, f"{command} command failed: {result.stderr}"
+
+    def test_info_returns_content(self, cli: CLIRunner) -> None:
+        """Info command should return model information."""
         result = cli.info()
         assert result.success, f"Info command failed: {result.stderr}"
-        # Should contain model information
-        assert result.stdout.strip()
+        assert result.stdout.strip(), "Info should return content"
 
-    def test_camera_command(self, cli: CLIRunner) -> None:
-        """Test camera info command."""
+    def test_camera_returns_content(self, cli: CLIRunner) -> None:
+        """Camera command should return camera information."""
         result = cli.camera()
         assert result.success, f"Camera command failed: {result.stderr}"
-
-    def test_layers_command(self, cli: CLIRunner) -> None:
-        """Test layers command."""
-        result = cli.layers()
-        assert result.success, f"Layers command failed: {result.stderr}"
-
-    def test_materials_command(self, cli: CLIRunner) -> None:
-        """Test materials command."""
-        result = cli.materials()
-        assert result.success, f"Materials command failed: {result.stderr}"
+        assert result.stdout.strip(), "Camera should return content"
