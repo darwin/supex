@@ -45,6 +45,8 @@ class TestMCPServer:
 
 def test_version_exists() -> None:
     """Test that version is properly defined."""
-    from supex_driver.mcp.server import __version__
+    import re
 
-    assert __version__ == "0.3.0"
+    from supex_driver import __version__
+
+    assert re.match(r"\d+\.\d+\.\d+", __version__)

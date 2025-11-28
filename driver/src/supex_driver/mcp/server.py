@@ -6,6 +6,7 @@ import sys
 from mcp.server import fastmcp
 from mcp.server.fastmcp import Context, FastMCP
 
+from supex_driver import __version__
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
 from supex_driver.mcp.resources import (
     find_similar_classes,
@@ -19,9 +20,6 @@ from supex_driver.mcp.resources import (
     load_page_doc,
     load_resource_file,
 )
-
-# Version
-__version__ = "0.3.0"
 
 # Logger instance (configured when server starts)
 logger = logging.getLogger("supex.mcp")

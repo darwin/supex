@@ -2,7 +2,9 @@
 SUPEX Driver: SketchUp integration through Model Context Protocol
 """
 
-__version__ = "0.3.0"
+from importlib.metadata import version
+
+__version__ = version("supex-driver")
 
 # Re-export connection classes for convenience
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
