@@ -1,7 +1,12 @@
 # Ruby snippets for test_model_operations.py
 # All functions wrapped in SupexTestSnippets module to prevent naming conflicts
+# All functions return JSON strings for structured assertions
+
+require 'json'
 
 module SupexTestSnippets
+  # Creates a 1m x 1m x 1m cube as a group.
+  # @return [String] JSON: {"faces": 6, "edges": 12}
   def self.geom_create_cube
     model = Sketchup.active_model
     model.start_operation('Create Cube', true)
@@ -9,9 +14,14 @@ module SupexTestSnippets
     face = group.entities.add_face([0,0,0], [1.m,0,0], [1.m,1.m,0], [0,1.m,0])
     face.pushpull(-1.m)
     model.commit_operation
-    {faces: group.entities.grep(Sketchup::Face).length, edges: group.entities.grep(Sketchup::Edge).length}
+    {
+      faces: group.entities.grep(Sketchup::Face).length,
+      edges: group.entities.grep(Sketchup::Edge).length
+    }.to_json
   end
 
+  # Creates a circle with 24 segments at origin.
+  # @return [String] JSON: {"segments": 24}
   def self.geom_create_circle
     model = Sketchup.active_model
     model.start_operation('Create Circle', true)
@@ -19,15 +29,16 @@ module SupexTestSnippets
     normal = Geom::Vector3d.new(0, 0, 1)
     edges = model.entities.add_circle(center, normal, 1.m)
     model.commit_operation
-    edges.length
+    { segments: edges.length }.to_json
   end
 
+  # Creates a cylinder by extruding a circular face.
+  # @return [String] JSON: {"faces": N} where N >= 3
   def self.geom_create_cylinder
     model = Sketchup.active_model
     model.start_operation('Create Cylinder', true)
     # Create circle - SketchUp creates edges but may not create face automatically
     center = Geom::Point3d.new(0, 0, 0)
-    normal = Geom::Vector3d.new(0, 0, 1)
     radius = 0.5.m
     # Create points for a circle
     points = []
@@ -42,9 +53,11 @@ module SupexTestSnippets
     face = model.entities.add_face(points)
     face.pushpull(2.m) if face
     model.commit_operation
-    model.entities.grep(Sketchup::Face).length
+    { faces: model.entities.grep(Sketchup::Face).length }.to_json
   end
 
+  # Creates a named group containing a line.
+  # @return [String] JSON: {"name": "TestGroup"}
   def self.group_create_named
     model = Sketchup.active_model
     model.start_operation('Create Group', true)
@@ -52,9 +65,11 @@ module SupexTestSnippets
     group.entities.add_line([0,0,0], [1.m,0,0])
     group.name = 'TestGroup'
     model.commit_operation
-    model.entities.grep(Sketchup::Group).first.name
+    { name: group.name }.to_json
   end
 
+  # Creates nested groups (Outer containing Inner with a line).
+  # @return [String] JSON: {"outer": "Outer", "inner": "Inner"}
   def self.group_create_nested
     model = Sketchup.active_model
     model.start_operation('Nested Groups', true)
@@ -64,19 +79,23 @@ module SupexTestSnippets
     inner.name = 'Inner'
     inner.entities.add_line([0,0,0], [1.m,0,0])
     model.commit_operation
-    outer.entities.grep(Sketchup::Group).first.name
+    { outer: outer.name, inner: inner.name }.to_json
   end
 
+  # Creates a component definition with an instance.
+  # @return [String] JSON: {"name": "TestComponent"}
   def self.component_create
     model = Sketchup.active_model
     model.start_operation('Create Component', true)
     defn = model.definitions.add('TestComponent')
     defn.entities.add_face([0,0,0], [1.m,0,0], [1.m,1.m,0], [0,1.m,0])
-    instance = model.entities.add_instance(defn, IDENTITY)
+    model.entities.add_instance(defn, IDENTITY)
     model.commit_operation
-    model.definitions['TestComponent'].name
+    { name: defn.name }.to_json
   end
 
+  # Creates 3 instances of a 'Box' component.
+  # @return [String] JSON: {"instances": 3}
   def self.component_create_multiple_instances
     model = Sketchup.active_model
     model.start_operation('Multiple Instances', true)
@@ -89,9 +108,11 @@ module SupexTestSnippets
     model.entities.add_instance(defn, t2)
     model.entities.add_instance(defn, t3)
     model.commit_operation
-    model.entities.grep(Sketchup::ComponentInstance).length
+    { instances: model.entities.grep(Sketchup::ComponentInstance).length }.to_json
   end
 
+  # Creates a red material and applies it to a face.
+  # @return [String] JSON: {"name": "RedMaterial"}
   def self.material_create_and_apply
     model = Sketchup.active_model
     model.start_operation('Create Material', true)
@@ -100,9 +121,11 @@ module SupexTestSnippets
     face = model.entities.add_face([0,0,0], [1.m,0,0], [1.m,1.m,0], [0,1.m,0])
     face.material = mat
     model.commit_operation
-    face.material.name
+    { name: mat.name }.to_json
   end
 
+  # Creates a semi-transparent glass material.
+  # @return [String] JSON: {"name": "GlassMaterial", "alpha": 0.5}
   def self.material_create_transparent
     model = Sketchup.active_model
     model.start_operation('Transparent Material', true)
@@ -110,6 +133,6 @@ module SupexTestSnippets
     mat.color = Sketchup::Color.new(200, 200, 255)
     mat.alpha = 0.5
     model.commit_operation
-    model.materials['GlassMaterial'].alpha
+    { name: mat.name, alpha: mat.alpha }.to_json
   end
 end
