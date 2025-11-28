@@ -10,7 +10,8 @@ SNIPPET_FILES = [
   'helpers.rb',              # Load helpers first in case others depend on it
   'conftest.rb',
   'test_introspection.rb',
-  'test_model_operations.rb'
+  'test_model_operations.rb',
+  'test_error_handling.rb'
 ].freeze
 
 # Load all snippet files
