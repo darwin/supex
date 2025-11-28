@@ -8,12 +8,12 @@
 set -euo pipefail
 
 # Determine script directory and project root
-SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPTS/.." && pwd)"
-EXTENSION_DIR="$ROOT/runtime"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+EXTENSION_DIR="$PROJECT_ROOT/runtime"
 
 # Source common utilities
-source "$SCRIPTS/helpers/common.sh"
+source "$SCRIPT_DIR/helpers/common.sh"
 
 # Ensure jq is available (required by manage-window-position.sh)
 require_jq
@@ -32,7 +32,7 @@ fi
 
 # Configuration
 APP_NAME="SketchUp"
-LOG_DIR="$ROOT/.tmp"
+LOG_DIR="$PROJECT_ROOT/.tmp"
 SKETCHUP_OUT_FILE="$LOG_DIR/sketchup_out.txt"
 SKETCHUP_ERR_FILE="$LOG_DIR/sketchup_err.txt"
 CONSOLE_LOG_FILE="$LOG_DIR/sketchup_console.log"
@@ -57,7 +57,7 @@ create_log_dirs() {
 sigterm_handler() {
     log_warn "Shutdown signal received"
     log_info "Shutting down SketchUp gracefully..."
-    osascript "$SCRIPTS/helpers/shutdown-sketchup.applescript"
+    osascript "$SCRIPT_DIR/helpers/shutdown-sketchup.applescript"
     exit 1
 }
 
@@ -146,7 +146,7 @@ launch_sketchup() {
 
     # Restore window position after launch
     log_info "Restoring window position..."
-    "$SCRIPTS/helpers/manage-window-position.sh" restore || log_warn "Could not restore window position"
+    "$SCRIPT_DIR/helpers/manage-window-position.sh" restore || log_warn "Could not restore window position"
 
     log_info "Use Ctrl+C to stop monitoring and shutdown SketchUp"
 

@@ -6,14 +6,14 @@ set -euo pipefail
 
 # Determine script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUBMODULE_PATH="docgen/sketchup-api-stubs"
 GENERATOR_SCRIPT="docgen/scripts/generate_docs.sh"
 
 # Source common utilities (colors, logging, confirm)
 source "$SCRIPT_DIR/helpers/common.sh"
 
-cd "$ROOT"
+cd "$PROJECT_ROOT"
 
 # Check submodule status
 # Output format: " <sha> path" or "-<sha> path" (- means not initialized) or "+<sha> path" (+ means modified)
@@ -63,4 +63,4 @@ log_info "Running documentation generator..."
 echo ""
 
 # Run the actual generator
-exec "$ROOT/$GENERATOR_SCRIPT"
+exec "$PROJECT_ROOT/$GENERATOR_SCRIPT"
