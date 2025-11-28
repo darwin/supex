@@ -2,6 +2,9 @@
 
 # SketchUp Launcher Script for Supex Runtime Development
 # Deploys extension sources directly to SketchUp, then launches SketchUp
+#
+# Usage: launch-sketchup.sh [model.skp]
+#   model.skp - Optional: Path to a SketchUp model file to open on startup
 
 set -e -o pipefail
 
@@ -21,6 +24,18 @@ SCRIPTS=$(pwd)
 ROOT="$(cd .. && pwd)"
 EXTENSION_DIR="$ROOT/runtime"
 popd
+
+# Parse optional model file argument
+MODEL_FILE=""
+if [[ -n "$1" ]]; then
+    if [[ -f "$1" ]]; then
+        # Convert to absolute path
+        MODEL_FILE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+    else
+        echo "Error: Model file not found: $1" >&2
+        exit 1
+    fi
+fi
 
 # Configuration
 APP_NAME="SketchUp"
@@ -120,6 +135,13 @@ launch_sketchup() {
     local args=()
     args+=(--stdout "$SKETCHUP_OUT_FILE")
     args+=(--stderr "$SKETCHUP_ERR_FILE")
+
+    # Add model file if specified (must come before -a)
+    if [[ -n "$MODEL_FILE" ]]; then
+        args+=("$MODEL_FILE")
+        log_info "Opening model: $MODEL_FILE"
+    fi
+
     args+=(-a "$APP_NAME")
     args+=(--args)
     args+=(-RubyStartup "$injector_script")
@@ -167,6 +189,9 @@ launch_sketchup() {
 # Main execution
 main() {
     log_info "Starting SketchUp launcher for Supex development"
+    if [[ -n "$MODEL_FILE" ]]; then
+        log_info "Model: $(basename "$MODEL_FILE")"
+    fi
     log_info "======================================================="
 
     create_log_dirs
