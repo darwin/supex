@@ -4,7 +4,7 @@ require 'sketchup'
 require 'extensions'
 
 # Load version information from sources
-require 'version'
+require_relative 'supex_runtime/version'
 
 module SupexRuntime
   unless file_loaded?(__FILE__)
