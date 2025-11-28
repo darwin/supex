@@ -2,7 +2,7 @@
 
 module SupexRuntime
   # Version information for the Supex SketchUp extension
-  VERSION = '0.3.0'
+  VERSION = '0.1.0'
 
   # SketchUp API compatibility
   REQUIRED_SKETCHUP_VERSION = '2026'
@@ -12,8 +12,7 @@ module SupexRuntime
 
   # Extension metadata
   EXTENSION_NAME = 'Supex Runtime'
-  EXTENSION_DESCRIPTION = 'Supex server for SketchUp that enables AI agents to ' \
-                          'control and manipulate 3D scenes'
-  EXTENSION_CREATOR = 'Antonin'
-  EXTENSION_COPYRIGHT = '2024'
+  EXTENSION_DESCRIPTION = 'Supex server for SketchUp that enables AI agents to control and manipulate 3D scenes'
+  EXTENSION_CREATOR = 'Antonin Hildebrand'
+  EXTENSION_COPYRIGHT = '2025'
 end

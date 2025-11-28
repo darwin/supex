@@ -8,11 +8,11 @@ require 'version'
 
 module SupexRuntime
   unless file_loaded?(__FILE__)
-    ex = SketchupExtension.new('Supex Runtime', 'main')
-    ex.description = 'Modern SketchUp Model Context Protocol server for AI-driven 3D automation'
+    ex = SketchupExtension.new(SupexRuntime::EXTENSION_NAME, 'main')
+    ex.description = SupexRuntime::EXTENSION_DESCRIPTION
     ex.version     = SupexRuntime::VERSION
-    ex.copyright   = '2024 Antonin'
-    ex.creator     = 'Antonin'
+    ex.copyright   = SupexRuntime::EXTENSION_COPYRIGHT
+    ex.creator     = SupexRuntime::EXTENSION_CREATOR
 
     # Set required SketchUp version (if method exists)
     if ex.respond_to?(:required_sketchup_version=)

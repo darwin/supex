@@ -215,7 +215,7 @@ module SupexRuntime
     # Show about dialog
     def self.show_about_dialog
       message = "Supex v#{VERSION}\n\n" \
-                "A modern SketchUp Model Context Protocol server.\n" \
+                "A SketchUp Model Context Protocol server.\n" \
                 "Provides AI-accessible tools for SketchUp automation.\n\n" \
                 "Supported SketchUp: #{REQUIRED_SKETCHUP_VERSION}+\n" \
                 "Current SketchUp: #{Sketchup.version}\n" \
