@@ -74,6 +74,7 @@ runtime/
 |--------|---------|
 | Main | Extension lifecycle, SketchUp menu, server orchestration |
 | Server | TCP socket server, JSON-RPC protocol, tool execution |
+| Tools | Model introspection tools (entities, selection, camera, screenshot) |
 | Export | SKP, OBJ, STL, PNG, JPG export |
 | ConsoleCapture | stdout/stderr redirection to log files |
 | Utils | Logging, JSON-RPC response helpers, entity utilities |
@@ -98,6 +99,31 @@ runtime/
 - **Host**: 127.0.0.1
 - **Port**: 9876
 - **Protocol**: JSON-RPC 2.0
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_VERBOSE` | `0` | Set to `1` to enable verbose logging |
+| `SUPEX_NO_AUTOSTART` | not set | Define to disable automatic server start on extension load |
+| `SUPEX_CHECK_INTERVAL` | `0.25` | Request check interval in seconds |
+| `SUPEX_RESPONSE_DELAY` | `0` | Response delay in seconds (for debugging) |
+
+## Protocol
+
+All communication uses JSON-RPC 2.0 over TCP with newline-terminated messages.
+
+### Connection Handshake
+
+Clients must send a `hello` request before any other method:
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"hello","params":{"name":"client","version":"1.0","agent":"mcp","pid":12345}}
+```
+
+After successful handshake, tool calls use the `tools/call` method.
 
 ## Development
 
@@ -153,13 +179,3 @@ SupexRuntime::Main.server_status
 
 - **SketchUp 2026**: Latest official version only
 - **Bundler**: For dependency management (development only)
-
-## Export Formats
-
-| Format | Extension | Notes |
-|--------|-----------|-------|
-| SketchUp | .skp | Native format |
-| Wavefront | .obj | Triangulated, with textures |
-| STL | .stl | For 3D printing |
-| PNG | .png | Transparent background support |
-| JPEG | .jpg | Compressed image |

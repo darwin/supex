@@ -17,6 +17,16 @@ module SupexRuntime
 
     DEFAULT_PORT = 9876
     DEFAULT_HOST = '127.0.0.1'
+    MAX_MESSAGE_SIZE = 1_048_576 # 1 MB limit to prevent DoS
+    REQUEST_CHECK_INTERVAL = ENV['SUPEX_CHECK_INTERVAL']&.to_f || 0.25
+    RESPONSE_DELAY = ENV['SUPEX_RESPONSE_DELAY']&.to_f || 0
+
+    # Connection context for scoped client state (thread-safe pattern)
+    ConnectionContext = Struct.new(:client_info, keyword_init: true) do
+      def identified?
+        !client_info.nil?
+      end
+    end
 
     def initialize(port: DEFAULT_PORT, host: DEFAULT_HOST)
       @port = port
@@ -26,7 +36,6 @@ module SupexRuntime
       @timer_id = nil
       @console_capture = nil
       @verbose = ENV['SUPEX_VERBOSE'] == '1'
-      @client_info = nil # Stores current connection's client identification
 
       setup_console
       setup_console_capture
@@ -135,9 +144,8 @@ module SupexRuntime
 
     # Start the request handler timer
     def start_request_handler
-      # Use a more reasonable interval (0.25s) to reduce SketchUp UI load
-      # This still provides responsive connection handling
-      @timer_id = UI.start_timer(0.25, true) do
+      # Configurable interval via SUPEX_CHECK_INTERVAL (default 0.25s)
+      @timer_id = UI.start_timer(REQUEST_CHECK_INTERVAL, true) do
         handle_requests if @running
       rescue StandardError => e
         log "Timer handler error: #{e.message}"
@@ -207,18 +215,17 @@ module SupexRuntime
       # Set a reasonable timeout to prevent hanging
       client.setsockopt(Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, [5, 0].pack('L!L!'))
 
-      # Reset client info for this connection
-      @client_info = nil
+      # Create connection-scoped context for client state
+      context = ConnectionContext.new(client_info: nil)
 
       # Process requests in a loop until client disconnects or error
       loop do
-        break unless process_single_request(client)
+        break unless process_single_request(client, context)
       end
     rescue Errno::EWOULDBLOCK, Errno::EAGAIN, IO::TimeoutError
       log 'Client connection timed out'
     ensure
-      log_client_closed
-      @client_info = nil
+      log_client_closed(context)
       begin
         client.close
       rescue StandardError
@@ -228,8 +235,9 @@ module SupexRuntime
 
     # Process a single request from client
     # @param client [TCPSocket] client connection
+    # @param context [ConnectionContext] connection-scoped state
     # @return [Boolean] true to continue processing, false to close connection
-    def process_single_request(client)
+    def process_single_request(client, context)
       data = read_with_timeout(client, 5.0)
       log_verbose "Raw data: #{data.inspect}"
 
@@ -240,7 +248,7 @@ module SupexRuntime
         request = JSON.parse(json_data)
         log_verbose "Parsed request: #{request.inspect}"
 
-        response = handle_jsonrpc_request(request)
+        response = handle_jsonrpc_request(request, context)
         send_response(client, response)
 
         # Continue loop only for hello requests, close after other requests
@@ -267,14 +275,15 @@ module SupexRuntime
       client.write(response_json)
       client.flush
       log 'Response sent'
-      # Small delay to ensure client can read response
-      sleep(0.1)
+      sleep(RESPONSE_DELAY) if RESPONSE_DELAY.positive?
     end
 
     # Log client closed message with identification if available
-    def log_client_closed
-      if @client_info
-        log "Client closed: #{@client_info[:name]}/#{@client_info[:version]} [PID:#{@client_info[:pid]}]"
+    # @param context [ConnectionContext] connection-scoped state
+    def log_client_closed(context)
+      if context.identified?
+        info = context.client_info
+        log "Client closed: #{info[:name]}/#{info[:version]} [PID:#{info[:pid]}]"
       else
         log_verbose 'Client closed (unidentified)'
       end
@@ -297,10 +306,11 @@ module SupexRuntime
     # @param client [TCPSocket] client connection
     # @return [String, nil] received data or nil if empty
     def read_available_data(client)
-      data = ''
+      data = String.new
       loop do
         chunk = client.read_nonblock(1024)
-        data += chunk
+        data << chunk
+        raise "Message exceeds maximum size (#{MAX_MESSAGE_SIZE} bytes)" if data.bytesize > MAX_MESSAGE_SIZE
         break if complete_json?(data)
       end
       data.empty? ? nil : data
@@ -319,15 +329,16 @@ module SupexRuntime
 
     # Handle JSON-RPC request
     # @param request [Hash] parsed JSON-RPC request
+    # @param context [ConnectionContext] connection-scoped state
     # @return [Hash] JSON-RPC response
-    def handle_jsonrpc_request(request)
+    def handle_jsonrpc_request(request, context)
       log_verbose "Handling JSON-RPC request: #{request.inspect}"
 
       # Handle hello method first (no identification required)
-      return handle_hello(request) if request['method'] == 'hello'
+      return handle_hello(request, context) if request['method'] == 'hello'
 
       # Require client identification for all other methods
-      return require_identification_error(request) unless @client_info
+      return require_identification_error(request) unless context.identified?
 
       # Handle legacy command format for backwards compatibility
       return handle_legacy_command(request) if request['command']
@@ -347,8 +358,9 @@ module SupexRuntime
 
     # Handle hello handshake request
     # @param request [Hash] JSON-RPC request with client identification
+    # @param context [ConnectionContext] connection-scoped state
     # @return [Hash] JSON-RPC response
-    def handle_hello(request)
+    def handle_hello(request, context)
       params = request['params'] || {}
 
       # Validate required fields
@@ -365,8 +377,8 @@ module SupexRuntime
         )
       end
 
-      # Store client info
-      @client_info = {
+      # Store client info in connection context
+      context.client_info = {
         name: name,
         version: version,
         agent: agent,
@@ -632,7 +644,7 @@ module SupexRuntime
       error_response = { jsonrpc: '2.0', error: { code: code, message: message }, id: request_id }
       client.write("#{error_response.to_json}\n")
       client.flush
-      sleep(0.25)
+      sleep(RESPONSE_DELAY) if RESPONSE_DELAY.positive?
     end
   end
   # rubocop:enable Metrics/ClassLength

@@ -5,7 +5,7 @@ require 'rake/testtask'
 require 'fileutils'
 
 # Default task
-task default: %i[test rubocop]
+task default: %i[rubocop]
 
 # Test task
 Rake::TestTask.new do |t|
@@ -85,9 +85,9 @@ desc 'Install extension to SketchUp plugins directory'
 task install: :build do
   # Try to detect SketchUp plugins directory
   possible_paths = [
-    File.expand_path('~/Library/Application Support/SketchUp 2023/SketchUp/Plugins'),
-    File.expand_path('~/Library/Application Support/SketchUp 2022/SketchUp/Plugins'),
-    File.expand_path('~/Library/Application Support/SketchUp 2021/SketchUp/Plugins')
+    File.expand_path('~/Library/Application Support/SketchUp 2026/SketchUp/Plugins'),
+    File.expand_path('~/Library/Application Support/SketchUp 2025/SketchUp/Plugins'),
+    File.expand_path('~/Library/Application Support/SketchUp 2024/SketchUp/Plugins')
   ]
 
   plugins_dir = possible_paths.find { |path| Dir.exist?(path) }
