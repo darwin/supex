@@ -195,22 +195,7 @@ module SupexProjectName
 end
 ```
 
-### 6. Units
-
-**Metric only** - Never use imperial:
-
-```ruby
-# Correct
-50.mm
-2.5.cm
-1.2.m
-
-# Wrong - never use
-1.inch
-2.feet
-```
-
-### 7. Coordinate System
+### 6. Coordinate System
 
 - **X (red)** = right
 - **Y (green)** = forward/depth

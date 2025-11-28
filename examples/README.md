@@ -165,7 +165,6 @@ To contribute a new example:
 - **Documentation**: Use YARD comments on all public functions
 - **Error handling**: Always use start_operation/commit_operation with rescue
 - **Naming**: Use descriptive names for groups and components
-- **Metrics**: Use metric units (meters, centimeters)
 
 ## Troubleshooting
 

@@ -50,7 +50,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `scripts/components/` - Component definitions
 
 **Best practices from sketchup_workflow.md**:
-- Always use metric units
 - Start operations with `model.start_operation`
 - Organize in groups/components
 - Use descriptive names

@@ -21,7 +21,6 @@ Read MCP resources for SketchUp API documentation:
 
 ### Conventions
 
-- Use metric units (meters, centimeters) - e.g., `1.m`, `50.cm`
 - Wrap operations in `model.start_operation('Name', true)` / `commit_operation`
 - Organize geometry in groups/components with descriptive names
 - Use `frozen_string_literal: true` in all Ruby files

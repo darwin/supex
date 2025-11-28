@@ -181,7 +181,6 @@ model.entities.grep(Sketchup::Face).length
 2. **Wrap operations** - Always use `start_operation`/`commit_operation`
 3. **Test via introspection** - Verify results with entity counts, properties
 4. **Keep tests isolated** - Don't depend on state from other tests
-5. **Use metric units** - `1.m` for meters, `1.cm` for centimeters
 
 ## CI/CD Considerations
 
