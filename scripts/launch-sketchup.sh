@@ -1,38 +1,31 @@
 #!/usr/bin/env bash
-
 # SketchUp Launcher Script for Supex Runtime Development
 # Deploys extension sources directly to SketchUp, then launches SketchUp
 #
 # Usage: launch-sketchup.sh [model.skp]
 #   model.skp - Optional: Path to a SketchUp model file to open on startup
 
-set -e -o pipefail
-
-# Helper functions for silent pushd/popd
-pushd() {
-  command pushd "$@" >/dev/null
-}
-
-popd() {
-  command popd >/dev/null
-}
+set -euo pipefail
 
 # Determine script directory and project root
-pushd .
-cd "$(dirname "${BASH_SOURCE[0]}")"
-SCRIPTS=$(pwd)
-ROOT="$(cd .. && pwd)"
+SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPTS/.." && pwd)"
 EXTENSION_DIR="$ROOT/runtime"
-popd
+
+# Source common utilities
+source "$SCRIPTS/helpers/common.sh"
+
+# Ensure jq is available (required by manage-window-position.sh)
+require_jq
 
 # Parse optional model file argument
 MODEL_FILE=""
-if [[ -n "$1" ]]; then
+if [[ -n "${1:-}" ]]; then
     if [[ -f "$1" ]]; then
         # Convert to absolute path
         MODEL_FILE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
     else
-        echo "Error: Model file not found: $1" >&2
+        log_error "Model file not found: $1"
         exit 1
     fi
 fi
@@ -44,29 +37,7 @@ SKETCHUP_OUT_FILE="$LOG_DIR/sketchup_out.txt"
 SKETCHUP_ERR_FILE="$LOG_DIR/sketchup_err.txt"
 CONSOLE_LOG_FILE="$LOG_DIR/sketchup_console.log"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+# Colors and logging functions are provided by common.sh
 
 # Create log directories
 create_log_dirs() {
@@ -167,8 +138,11 @@ launch_sketchup() {
     # Launch SketchUp without -W flag first to allow window positioning
     open "${args[@]}"
 
-    # Give SketchUp time to start up
-    sleep 2
+    # Wait for SketchUp to start with exponential backoff
+    if ! wait_for_process "SketchUp" 30; then
+        log_error "SketchUp failed to start within 30 seconds"
+        exit 1
+    fi
 
     # Restore window position after launch
     log_info "Restoring window position..."
@@ -182,8 +156,8 @@ launch_sketchup() {
     done
 
     # Clean up tail processes
-    kill $TAIL_STDERR_PID 2>/dev/null || true
-    [[ -n "$TAIL_CONSOLE_PID" ]] && kill $TAIL_CONSOLE_PID 2>/dev/null || true
+    kill "${TAIL_STDERR_PID:-}" 2>/dev/null || true
+    kill "${TAIL_CONSOLE_PID:-}" 2>/dev/null || true
 }
 
 # Main execution

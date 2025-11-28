@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-
 # Wrapper script for SketchUp API documentation generation
 # Handles submodule initialization/update before running the generator
 
-set -e
+set -euo pipefail
 
 # Determine script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,28 +10,8 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUBMODULE_PATH="docgen/sketchup-api-stubs"
 GENERATOR_SCRIPT="docgen/scripts/generate_docs.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+# Source common utilities (colors, logging, confirm)
+source "$SCRIPT_DIR/helpers/common.sh"
 
 cd "$ROOT"
 
@@ -52,17 +31,15 @@ if [[ "$STATUS_CHAR" == "-" ]]; then
     # Submodule not initialized
     log_warn "Submodule '$SUBMODULE_PATH' is not initialized."
     echo ""
-    read -p "Initialize submodule now? [Y/n] " -n 1 -r
-    echo ""
 
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
+    if confirm "Initialize submodule now?" "y"; then
+        log_info "Initializing submodule..."
+        git submodule update --init "$SUBMODULE_PATH"
+        log_success "Submodule initialized."
+    else
         log_info "Skipping submodule initialization. Exiting."
         exit 0
     fi
-
-    log_info "Initializing submodule..."
-    git submodule update --init "$SUBMODULE_PATH"
-    log_success "Submodule initialized."
 else
     # Submodule is initialized - offer to update
     log_info "Submodule '$SUBMODULE_PATH' is initialized."
@@ -72,10 +49,7 @@ else
     fi
 
     echo ""
-    read -p "Update submodule to latest remote version? [y/N] " -n 1 -r
-    echo ""
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if confirm "Update submodule to latest remote version?" "n"; then
         log_info "Updating submodule to latest..."
         git submodule update --remote "$SUBMODULE_PATH"
         log_success "Submodule updated."

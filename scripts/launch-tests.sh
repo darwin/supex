@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
 
-set -e  # Exit on error
-set -u  # Exit on undefined variable
+set -euo pipefail
 
 # Re-exec under mise if available and not already running under mise
 if [[ -z "${MISE_SHELL:-}" ]] && command -v mise &> /dev/null; then
     exec mise exec -- "$0" "$@"
 fi
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
 # Configuration
 RUN_E2E=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Source common utilities (colors and logging)
+source "$SCRIPT_DIR/helpers/common.sh"
 
 # Parse command line arguments
 show_help() {
@@ -135,15 +130,8 @@ main() {
     echo ""
 
     # Check required tools
-    if ! command -v uv &> /dev/null; then
-        echo -e "${RED}Error: 'uv' command not found. Please install UV.${NC}" >&2
-        exit 1
-    fi
-
-    if ! command -v bundle &> /dev/null; then
-        echo -e "${RED}Error: 'bundle' command not found. Please install Bundler.${NC}" >&2
-        exit 1
-    fi
+    require_command "uv" "pip install uv"
+    require_command "bundle" "gem install bundler"
 
     # Run Python Driver tests
     run_test_suite \
