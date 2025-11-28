@@ -97,14 +97,12 @@ module SupexRuntime
       return unless @console_capture
 
       @console_capture.start_capture
-      @console_capture.add_marker('Supex Server Started')
     end
 
     # Stop console output capture
     def stop_console_capture
       return unless @console_capture
 
-      @console_capture.add_marker('Supex Server Stopped')
       @console_capture.stop_capture
     end
 

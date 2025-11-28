@@ -24,16 +24,15 @@ module SupexRuntime
         @log_file = File.open(@log_file_path, 'a')
         @log_file.sync = true
 
-        # Add session marker
-        session_marker = "\n#{'=' * 50}\n"
-        session_marker += "SketchUp Console Session Started: #{Time.now}\n"
-        session_marker += "Supex Extension Version: #{VERSION}\n"
-        session_marker += "#{'=' * 50}\n"
-        @log_file.write(session_marker)
+        # Add session marker in pipe-separated format for Ideolog
+        @log_file.write("\n")
+        @log_file.write(idea_log_line('I', '=' * 50))
+        @log_file.write(idea_log_line('I', 'Session Started'))
+        @log_file.write(idea_log_line('I', '=' * 50))
 
         # Replace stdout and stderr with capture instances
-        $stdout = OutputCapture.new(@original_stdout, @log_file, 'STDOUT')
-        $stderr = OutputCapture.new(@original_stderr, @log_file, 'STDERR')
+        $stdout = OutputCapture.new(@original_stdout, @log_file, 'STDOUT', 'I')
+        $stderr = OutputCapture.new(@original_stderr, @log_file, 'STDERR', 'E')
 
         @capture_enabled = true
         puts "Supex: Console capture started - output will be logged to: #{@log_file_path}"
@@ -49,11 +48,11 @@ module SupexRuntime
       return unless @capture_enabled
 
       begin
-        # Add session end marker
+        # Add session end marker in pipe-separated format
         if @log_file && !@log_file.closed?
-          session_end = "\nConsole Session Ended: #{Time.now}\n"
-          session_end += "#{'-' * 50}\n"
-          @log_file.write(session_end)
+          @log_file.write(idea_log_line('I', '=' * 50))
+          @log_file.write(idea_log_line('I', 'Session Ended'))
+          @log_file.write(idea_log_line('I', '=' * 50))
         end
 
         # Restore original streams
@@ -81,8 +80,7 @@ module SupexRuntime
       return unless @capture_enabled && @log_file && !@log_file.closed?
 
       begin
-        marker = "[#{Time.now.strftime('%H:%M:%S')}] --- #{message} ---\n"
-        @log_file.write(marker)
+        @log_file.write(idea_log_line('D', "Supex: --- #{message} ---"))
         @log_file.flush
       rescue StandardError => e
         puts "Supex: Warning: Could not write marker to log: #{e.message}"
@@ -90,6 +88,12 @@ module SupexRuntime
     end
 
     private
+
+    # Format a log line in pipe-separated format for Ideolog
+    def idea_log_line(severity, message)
+      timestamp = Time.now.strftime('%H:%M:%S.%L')
+      "#{timestamp}|#{severity}|SketchUp|#{message}\n"
+    end
 
     # Ensure the log directory exists
     def ensure_log_directory
@@ -116,25 +120,25 @@ module SupexRuntime
 
     # Output capture wrapper class
     class OutputCapture
-      def initialize(original_stream, log_file, stream_name)
+      def initialize(original_stream, log_file, stream_name, severity)
         @original_stream = original_stream
         @log_file = log_file
         @stream_name = stream_name
+        @severity = severity
       end
 
       def write(text)
         # Write to original stream (preserves console output)
         @original_stream.write(text)
 
-        # Write to log file with timestamp and stream identifier
+        # Write to log file in pipe-separated format for Ideolog
         begin
           if @log_file && !@log_file.closed?
-            timestamp = Time.now.strftime('[%H:%M:%S]')
             log_text = text.each_line.map do |line|
               if line.strip.empty?
                 line
               else
-                "#{timestamp} #{@stream_name}: #{line}"
+                idea_format(@severity, line.chomp) + "\n"
               end
             end.join
 
@@ -175,6 +179,13 @@ module SupexRuntime
 
       def respond_to_missing?(method_name, include_private = false)
         @original_stream.respond_to?(method_name, include_private)
+      end
+
+      private
+
+      def idea_format(severity, message)
+        timestamp = Time.now.strftime('%H:%M:%S.%L')
+        "#{timestamp}|#{severity}|SketchUp|#{message}"
       end
     end
   end
