@@ -16,6 +16,7 @@ module SupexRuntime
 
     # Set required SketchUp version (if method exists)
     if ex.respond_to?(:required_sketchup_version=)
+      # noinspection RubyResolve
       ex.required_sketchup_version = SupexRuntime::REQUIRED_SKETCHUP_VERSION.to_i
     end
 
