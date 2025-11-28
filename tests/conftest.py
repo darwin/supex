@@ -111,3 +111,16 @@ def fresh_model(cli: CLIRunner, test_model_file: Path) -> CLIRunner:
     cli.call_snippet('fixture_clear_all')
 
     return cli
+
+
+@pytest.fixture
+def populated_model(fresh_model: CLIRunner) -> CLIRunner:
+    """
+    Function-scoped fixture that provides a model with basic geometry.
+
+    Creates a cube in the model for tests that need pre-existing geometry.
+    """
+    result = fresh_model.call_snippet('geom_create_cube')
+    if not result.success:
+        raise RuntimeError(f"Failed to create geometry: {result.stderr}")
+    return fresh_model
