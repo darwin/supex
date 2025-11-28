@@ -9,6 +9,11 @@ import pytest
 from helpers.cli_runner import CLIRunner
 
 
+def _get_error_output(result) -> str:
+    """Get combined error output from CLI result (errors may be in stdout or stderr)."""
+    return result.stdout + result.stderr
+
+
 class TestRubyEvalErrors:
     """Test error handling for Ruby code evaluation."""
 
@@ -16,13 +21,15 @@ class TestRubyEvalErrors:
         """Invalid Ruby syntax should return error."""
         result = cli.eval("def broken(")
         assert not result.success
-        assert "syntax" in result.stderr.lower() or "error" in result.stderr.lower()
+        output = _get_error_output(result).lower()
+        assert "syntax" in output or "error" in output
 
     def test_runtime_error_returns_failure(self, cli: CLIRunner) -> None:
         """Ruby runtime error should be reported."""
         result = cli.eval("raise 'Intentional test error'")
         assert not result.success
-        assert "Intentional test error" in result.stderr
+        output = _get_error_output(result)
+        assert "Intentional test error" in output
 
     def test_undefined_method_error(self, cli: CLIRunner) -> None:
         """Calling undefined method should error."""
@@ -33,7 +40,8 @@ class TestRubyEvalErrors:
         """Error snippet should propagate error."""
         result = cli.call_snippet("error_raise_runtime")
         assert not result.success
-        assert "Intentional test error" in result.stderr
+        output = _get_error_output(result)
+        assert "Intentional test error" in output
 
     def test_error_does_not_crash_subsequent_commands(self, cli: CLIRunner) -> None:
         """After error, subsequent commands should still work."""
