@@ -2,6 +2,11 @@
 
 Python MCP server and CLI for SketchUp automation. Enables AI agents and command-line tools to execute Ruby code in SketchUp through the Model Context Protocol.
 
+## Requirements
+
+- Python 3.14 or later
+- SketchUp with Supex Runtime extension installed
+
 ## Overview
 
 Supex Driver is part of the Supex platform - a bridge between AI agents and SketchUp. It provides:
@@ -9,6 +14,19 @@ Supex Driver is part of the Supex platform - a bridge between AI agents and Sket
 - **MCP Server**: 14 tools for AI agents via Model Context Protocol
 - **CLI**: 14 commands for direct terminal interaction
 - **Connection Layer**: TCP/JSON-RPC client for SketchUp runtime
+
+## Configuration
+
+Environment variables (all optional):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_HOST` | `localhost` | SketchUp runtime host |
+| `SUPEX_PORT` | `9876` | SketchUp runtime port |
+| `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
+| `SUPEX_RETRIES` | `2` | Max retry attempts |
+| `SUPEX_LOG_DIR` | `~/.supex/logs` | Log file directory |
+| `SUPEX_AGENT` | `user`/`mcp` | Agent identifier |
 
 ## MCP Tools
 
@@ -74,6 +92,14 @@ Supex Driver is part of the Supex platform - a bridge between AI agents and Sket
 - `--port/-p` - SketchUp port (default: 9876)
 - `--raw/-r` - Output raw JSON
 
+### Documentation Browser
+
+```bash
+./supex docs tree              # Show documentation hierarchy
+./supex docs show <uri>        # View specific documentation
+./supex docs search <term>     # Search documentation
+```
+
 ## Example Usage
 
 ```ruby
@@ -127,13 +153,17 @@ driver/
 |   |   +-- resources.py     # Documentation helpers
 |   +-- cli/
 |   |   +-- main.py          # Typer CLI, 14 commands
+|   |   +-- docs.py          # Documentation browser
 |   +-- connection/
 |       +-- connection.py    # TCP socket client
 |       +-- exceptions.py    # Error hierarchy
 +-- resources/
-|   +-- index.md             # Documentation index
-|   +-- workflow.md          # AI workflow guidance
-|   +-- best_practices.md    # Modeling wisdom
+|   +-- docs/
+|       +-- INDEX.md         # Documentation index
+|       +-- workflow.md      # AI workflow guidance
+|       +-- best_practices.md # Modeling wisdom
+|       +-- quick_reference.md # Quick reference
+|       +-- api/             # Generated API docs (symlink)
 +-- tests/                   # pytest suite
 +-- pyproject.toml           # Package config
 +-- README.md
@@ -145,21 +175,24 @@ Documentation is exposed via MCP resources (readable by Claude Code):
 
 | Resource URI | Description |
 |--------------|-------------|
-| `supex://docs/index` | Documentation overview - start here |
+| `supex://docs/INDEX` | Documentation overview - start here |
 | `supex://docs/workflow` | Complete workflow guide for Ruby scripting |
 | `supex://docs/best-practices` | Geometry lessons and common pitfalls |
-| `supex://docs/api/index` | Full SketchUp API index (~30k tokens) |
-| `supex://docs/api/{class}` | Class documentation using Ruby syntax (e.g., `Sketchup::Face`, `Geom::Point3d`) |
+| `supex://docs/quick-reference` | Quick reference for most used classes |
+| `supex://docs/api/INDEX` | Lightweight API overview (~3k tokens) |
+| `supex://docs/api/{namespace}/INDEX` | Namespace-specific index (Geom, Sketchup) |
+| `supex://docs/api/{class_name}` | Class documentation using Ruby syntax (e.g., `Sketchup::Face`, `Geom::Point3d`) |
+| `supex://docs/pages/{page_name}` | Tutorial pages (generating-geometry, importer-options, etc.) |
 
 ### Resource Files
 
 | File | Resource | Contents |
 |------|----------|----------|
-| `resources/index.md` | `supex://docs/index` | Quick start, resource overview |
-| `resources/workflow.md` | `supex://docs/workflow` | Execution patterns, code organization |
-| `resources/best_practices.md` | `supex://docs/best-practices` | Profile-first geometry, gotchas |
-| `sketchup-docs/INDEX.md` | `supex://docs/api/index` | Generated API index |
-| `sketchup-docs/{Class}.md` | `supex://docs/api/{class}` | Generated class docs |
+| `resources/docs/INDEX.md` | `supex://docs/INDEX` | Quick start, resource overview |
+| `resources/docs/workflow.md` | `supex://docs/workflow` | Execution patterns, code organization |
+| `resources/docs/best_practices.md` | `supex://docs/best-practices` | Profile-first geometry, gotchas |
+| `resources/docs/quick_reference.md` | `supex://docs/quick-reference` | Quick lookup reference |
+| `resources/docs/api/` | `supex://docs/api/*` | Generated API documentation |
 
 ### When to Update What
 
@@ -167,7 +200,7 @@ Documentation is exposed via MCP resources (readable by Claude Code):
 |----------|-----|
 | `workflow.md` | New tools, code patterns, API changes |
 | `best_practices.md` | Modeling lessons, gotchas, tips |
-| `index.md` | New resources, navigation changes |
+| `INDEX.md` | New resources, navigation changes |
 
 ## Development
 
@@ -227,6 +260,7 @@ Exception hierarchy:
 
 ### Logging
 
-MCP server logs to `~/.supex/logs/`:
+MCP server logs to `~/.supex/logs/` (configurable via `SUPEX_LOG_DIR`):
 - `stdout.log` - Standard output
 - `stderr.log` - Errors and warnings
+- `cli.log` - CLI-specific logs

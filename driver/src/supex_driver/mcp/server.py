@@ -1,13 +1,21 @@
+import atexit
+import contextlib
 import json
 import logging
 import os
 import sys
+from typing import IO
 
 from mcp.server import fastmcp
 from mcp.server.fastmcp import Context, FastMCP
 
 from supex_driver import __version__
-from supex_driver.connection import SketchupConnection, get_sketchup_connection
+from supex_driver.connection import get_sketchup_connection
+from supex_driver.connection.exceptions import (
+    SketchUpConnectionError,
+    SketchUpProtocolError,
+    SketchUpTimeoutError,
+)
 from supex_driver.mcp.resources import (
     find_similar_classes,
     get_docs_not_generated_message,
@@ -71,6 +79,18 @@ def get_agent_name(ctx: Context | None = None) -> str:
 
 # Flag to track if logging has been configured
 _logging_configured = False
+# Track open log files for cleanup
+_log_files: list[IO[str]] = []
+
+
+def _cleanup_log_files() -> None:
+    """Close all open log files on exit."""
+    for f in _log_files:
+        with contextlib.suppress(Exception):
+            f.close()
+
+
+atexit.register(_cleanup_log_files)
 
 
 class TeeStream:
@@ -104,7 +124,7 @@ def setup_logging():
     _logging_configured = True
 
     # Setup file logging for stdout and stderr
-    log_dir = os.path.expanduser("~/.supex/logs")
+    log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
     os.makedirs(log_dir, exist_ok=True)
 
     stdout_log_file = os.path.join(log_dir, "stdout.log")
@@ -113,6 +133,9 @@ def setup_logging():
     # Redirect stdout to log file while preserving original
     stdout_logger = open(stdout_log_file, 'a', encoding='utf-8')
     stderr_logger = open(stderr_log_file, 'a', encoding='utf-8')
+
+    # Track files for cleanup on exit
+    _log_files.extend([stdout_logger, stderr_logger])
 
     # Replace sys.stdout and sys.stderr with tee streams
     sys.stdout = TeeStream(sys.stdout, stdout_logger)
@@ -149,12 +172,32 @@ def check_sketchup_status(ctx: Context) -> str:
                 "message": "SketchUp is connected and responding",
             }
         )
-    except Exception as e:
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
         return json.dumps(
             {
                 "status": "disconnected",
                 "error": str(e),
+                "error_type": "connection",
                 "message": "Make sure the SketchUp extension is running",
+            }
+        )
+    except SketchUpProtocolError as e:
+        return json.dumps(
+            {
+                "status": "error",
+                "error": str(e),
+                "error_type": "protocol",
+                "message": "Communication error with SketchUp",
+            }
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error checking status: {e}")
+        return json.dumps(
+            {
+                "status": "error",
+                "error": str(e),
+                "error_type": "unexpected",
+                "message": "Unexpected error occurred",
             }
         )
 
@@ -173,8 +216,15 @@ def export_scene(ctx: Context, format: str = "skp") -> str:
             method="export", params={"format": format}, request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error exporting scene: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error exporting scene: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error exporting scene: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 # Ruby code evaluation
@@ -206,9 +256,15 @@ def eval_ruby(ctx: Context, code: str) -> str:
         }
 
         return json.dumps(response)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error evaluating Ruby code: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error evaluating Ruby code: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error evaluating Ruby code: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error evaluating Ruby code: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 # Console capture functionality
@@ -221,8 +277,15 @@ def console_capture_status(ctx: Context) -> str:
             method="console_capture_status", params={}, request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error getting console status: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error getting console status: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error getting console status: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 # File-based Ruby evaluation tools
@@ -243,9 +306,15 @@ def eval_ruby_file(ctx: Context, file_path: str) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error evaluating Ruby file: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error evaluating Ruby file: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error evaluating Ruby file: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error evaluating Ruby file: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 # Introspection tools
@@ -270,9 +339,15 @@ def get_model_info(ctx: Context) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error getting model info: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error getting model info: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error getting model info: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error getting model info: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -292,9 +367,15 @@ def list_entities(ctx: Context, entity_type: str = "all") -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error listing entities: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error listing entities: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error listing entities: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error listing entities: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -313,9 +394,15 @@ def get_selection(ctx: Context) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error getting selection: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error getting selection: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error getting selection: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error getting selection: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -332,9 +419,15 @@ def get_layers(ctx: Context) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error getting layers: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error getting layers: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error getting layers: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error getting layers: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -351,9 +444,15 @@ def get_materials(ctx: Context) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error getting materials: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error getting materials: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error getting materials: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error getting materials: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -370,9 +469,15 @@ def get_camera_info(ctx: Context) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error getting camera info: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error getting camera info: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error getting camera info: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error getting camera info: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -415,9 +520,15 @@ def take_screenshot(
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error taking screenshot: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error taking screenshot: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error taking screenshot: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error taking screenshot: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -437,9 +548,15 @@ def open_model(ctx: Context, path: str) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error opening model: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error opening model: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error opening model: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error opening model: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 @mcp.tool()
@@ -460,9 +577,15 @@ def save_model(ctx: Context, path: str | None = None) -> str:
             request_id=ctx.request_id
         )
         return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error saving model: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error saving model: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except Exception as e:
-        logger.error(f"Error saving model: {str(e)}")
-        return json.dumps({"success": False, "error": str(e)})
+        logger.exception(f"Unexpected error saving model: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
 
 
 # MCP Resources - documentation accessible to MCP clients

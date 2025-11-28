@@ -3,19 +3,17 @@
 import json
 import logging
 import os
-import sys
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
-from rich import print as rprint
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
 
 # Configure logging to file only (suppress console output)
-_log_dir = os.path.expanduser("~/.supex/logs")
+_log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
 os.makedirs(_log_dir, exist_ok=True)
 _cli_log_file = os.path.join(_log_dir, "cli.log")
 
@@ -26,9 +24,9 @@ logging.basicConfig(
     filemode="a",
 )
 
-from supex_driver.connection import SketchupConnection, get_sketchup_connection
-from supex_driver.connection.exceptions import SketchUpConnectionError, SketchUpError
 from supex_driver.cli.docs import app as docs_app
+from supex_driver.connection import SketchupConnection, get_sketchup_connection
+from supex_driver.connection.exceptions import SketchUpConnectionError
 
 app = typer.Typer(
     name="supex",
@@ -60,8 +58,8 @@ def handle_error(e: Exception, exit_code: int = 1):
     raise typer.Exit(exit_code)
 
 
-def print_result(result: dict, as_json: bool = False):
-    """Print command result."""
+def print_result(result: dict, as_json: bool = False) -> None:
+    """Print command result to console."""
     if as_json:
         console.print(JSON(json.dumps(result)))
     else:
@@ -343,7 +341,7 @@ def camera(
 
 @app.command()
 def screenshot(
-    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="Output file path")] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output file path")] = None,
     width: Annotated[int, typer.Option("--width", "-w", help="Image width")] = 1920,
     height: Annotated[int, typer.Option("--height", help="Image height")] = 1080,
     transparent: Annotated[bool, typer.Option("--transparent", "-t", help="Transparent background")] = False,
@@ -390,7 +388,7 @@ def open_model(
 
     try:
         conn = get_connection(host, port)
-        result = conn.send_command("open_model", {"path": str(abs_path)})
+        conn.send_command("open_model", {"path": str(abs_path)})
         console.print(f"[green]✓[/green] Opened: {abs_path.name}")
     except Exception as e:
         handle_error(e)
@@ -398,7 +396,7 @@ def open_model(
 
 @app.command()
 def save(
-    path: Annotated[Optional[Path], typer.Argument(help="Path to save to (optional)")] = None,
+    path: Annotated[Path | None, typer.Argument(help="Path to save to (optional)")] = None,
     host: HostOption = "localhost",
     port: PortOption = 9876,
 ):
@@ -409,7 +407,7 @@ def save(
         if path:
             params["path"] = str(path.resolve())
 
-        result = conn.send_command("save_model", params)
+        conn.send_command("save_model", params)
         console.print("[green]✓[/green] Model saved")
     except Exception as e:
         handle_error(e)
@@ -440,7 +438,10 @@ def export(
 
 def main():
     """Main entry point."""
-    app()
+    try:
+        app()
+    except KeyboardInterrupt:
+        raise SystemExit(130)
 
 
 if __name__ == "__main__":

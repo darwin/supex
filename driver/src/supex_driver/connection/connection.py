@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import socket
+import threading
 from dataclasses import dataclass, field
 from importlib.metadata import version as get_version
 from typing import Any
@@ -17,10 +18,11 @@ from supex_driver.connection.exceptions import (
 
 logger = logging.getLogger("supex.connection")
 
-DEFAULT_HOST = "localhost"
-DEFAULT_PORT = 9876
-DEFAULT_TIMEOUT = 15.0
-MAX_RETRIES = 2
+# Configuration with environment variable support
+DEFAULT_HOST = os.environ.get("SUPEX_HOST", "localhost")
+DEFAULT_PORT = int(os.environ.get("SUPEX_PORT", "9876"))
+DEFAULT_TIMEOUT = float(os.environ.get("SUPEX_TIMEOUT", "15.0"))
+MAX_RETRIES = int(os.environ.get("SUPEX_RETRIES", "2"))
 
 # Client identification
 CLIENT_NAME = "supex-driver"
@@ -61,6 +63,7 @@ class SketchupConnection:
 
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(self.timeout)
             self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.sock.connect((self.host, self.port))
             logger.debug(f"Created connection to SketchUp at {self.host}:{self.port}")
@@ -212,8 +215,9 @@ class SketchupConnection:
             The result from the JSON-RPC response.
 
         Raises:
-            SketchUpConnectionError: If connection fails.
-            SketchUpProtocolError: If response is invalid.
+            SketchUpConnectionError: If connection fails or is lost.
+            SketchUpProtocolError: If response is invalid JSON.
+            SketchUpTimeoutError: If socket operation times out.
         """
         if not self.connect():
             raise SketchUpConnectionError("Not connected to SketchUp")
@@ -312,11 +316,9 @@ class SketchupConnection:
                 self.sock = None
                 raise
 
-        # Should not reach here, but just in case
-        raise SketchUpConnectionError("Failed to send command")
 
-
-# Global connection management
+# Global connection management with thread safety
+_connection_lock = threading.Lock()
 _sketchup_connection: SketchupConnection | None = None
 _connection_agent: str | None = None
 
@@ -325,6 +327,8 @@ def get_sketchup_connection(
     host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, agent: str = "unknown"
 ) -> SketchupConnection:
     """Get or create a persistent SketchUp connection.
+
+    Thread-safe singleton pattern for connection management.
 
     Args:
         host: Host to connect to.
@@ -336,29 +340,30 @@ def get_sketchup_connection(
     """
     global _sketchup_connection, _connection_agent
 
-    # If agent changed, recreate connection
-    if _sketchup_connection is not None and _connection_agent != agent:
-        logger.debug(f"Agent changed from {_connection_agent} to {agent}, recreating connection")
-        with contextlib.suppress(Exception):
-            _sketchup_connection.disconnect()
-        _sketchup_connection = None
-
-    if _sketchup_connection is not None:
-        try:
-            # Test connection health
-            if _sketchup_connection.sock:
-                return _sketchup_connection
-        except Exception as e:
-            logger.warning(f"Existing connection is no longer valid: {e}")
+    with _connection_lock:
+        # If agent changed, recreate connection
+        if _sketchup_connection is not None and _connection_agent != agent:
+            logger.debug(f"Agent changed from {_connection_agent} to {agent}, recreating connection")
             with contextlib.suppress(Exception):
                 _sketchup_connection.disconnect()
             _sketchup_connection = None
 
-    if _sketchup_connection is None:
-        _sketchup_connection = SketchupConnection(host=host, port=port, agent=agent)
-        _connection_agent = agent
-        # Note: Don't try to connect here - let individual commands handle connection attempts
-        # This allows the server to remain available even when SketchUp isn't running
-        logger.debug(f"Created SketchUp connection (agent: {agent}, will be established on first use)")
+        if _sketchup_connection is not None:
+            try:
+                # Test connection health
+                if _sketchup_connection.sock:
+                    return _sketchup_connection
+            except Exception as e:
+                logger.warning(f"Existing connection is no longer valid: {e}")
+                with contextlib.suppress(Exception):
+                    _sketchup_connection.disconnect()
+                _sketchup_connection = None
 
-    return _sketchup_connection
+        if _sketchup_connection is None:
+            _sketchup_connection = SketchupConnection(host=host, port=port, agent=agent)
+            _connection_agent = agent
+            # Note: Don't try to connect here - let individual commands handle connection attempts
+            # This allows the server to remain available even when SketchUp isn't running
+            logger.debug(f"Created SketchUp connection (agent: {agent}, will be established on first use)")
+
+        return _sketchup_connection
