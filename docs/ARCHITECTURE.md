@@ -80,7 +80,7 @@ supex_runtime/
 **Implementation**:
 ```bash
 # Launch command
-"/Applications/SketchUp 2024/SketchUp.app/Contents/MacOS/SketchUp" \
+"/Applications/SketchUp 2026/SketchUp.app/Contents/MacOS/SketchUp" \
   -RubyStartup "/path/to/injector.rb"
 ```
 
