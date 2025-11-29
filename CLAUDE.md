@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Branch Strategy
+
+- **`main` branch**: Stable releases only. Do not commit directly to main.
+- **`dev` branch**: Active development. All work should be done here.
+- Merge from `dev` to `main` only for releases.
+
 ## Development Workflow
 
 **General Critical Guidelines:**
