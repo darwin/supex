@@ -1,6 +1,6 @@
 [project]
 name = "supex-driver"
-version = "0.3.0"
+version = "0.1.0"
 description = "Modern SketchUp integration through Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.14"
