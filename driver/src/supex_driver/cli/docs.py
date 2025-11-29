@@ -28,12 +28,16 @@ def check_docs_available() -> bool:
 
 @app.callback(invoke_without_command=True)
 def docs_main(ctx: typer.Context):
-    """Browse SketchUp API documentation.
-
-    Without subcommand, shows documentation hierarchy (same as 'docs tree').
-    """
+    """Browse SketchUp API documentation."""
     if ctx.invoked_subcommand is None:
-        tree_docs()
+        console.print("Supex includes embedded SketchUp API documentation.")
+        console.print()
+        console.print("[bold]Commands:[/bold]")
+        console.print("  tree              Show documentation hierarchy")
+        console.print("  show <uri>        Show documentation for a resource")
+        console.print("  search <query>    Search documentation by name")
+        console.print()
+        console.print("[dim]Use 'supex docs <command> --help' for more information.[/dim]")
 
 
 # Target column for descriptions (accounting for tree indentation)
@@ -133,6 +137,8 @@ def tree_docs(
     console.print(tree)
     console.print()
     console.print("[dim]Use 'supex docs show <uri>' to view documentation[/dim]")
+    if not full:
+        console.print("[dim]Use --full to show all classes[/dim]")
 
 
 @app.command("show")
