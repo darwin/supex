@@ -1,6 +1,6 @@
 # Simple Table Example - Complete Tutorial
 
-This example provides a complete step-by-step introduction to Supex, showing you how to create 3D models in SketchUp using Ruby scripts and Claude Code.
+This example provides a complete step-by-step introduction to [Supex](https://github.com/darwin/supex), showing you how to create 3D models in [SketchUp](https://www.sketchup.com) using Ruby scripts and [Claude Code](https://claude.ai/code).
 
 ## What You'll Learn
 
@@ -32,7 +32,7 @@ Download from [claude.ai/code](https://claude.ai/code) if you haven't already.
 - Can you launch Claude Code from your terminal?
 - Try running `claude --version`
 
-**Note:** This tutorial uses Claude Code, but other MCP-compatible AI agents might work (untested).
+**Note:** This tutorial uses Claude Code, but other [MCP](https://modelcontextprotocol.io)-compatible AI agents might work (untested).
 
 ### 3. Supex Installation
 
@@ -135,10 +135,11 @@ example-simple-table/
 ├── README.md               # This file
 ├── mise.toml               # Ruby version (3.2.2 for SketchUp 2026)
 ├── Gemfile                 # Ruby dependencies
-└── scripts/
+└── src/
     ├── helpers.rb          # Shared utilities
     ├── create_table.rb     # Table creation functions
-    └── add_decorations.rb  # Decoration functions
+    ├── add_decorations.rb  # Decoration functions
+    └── add_vase.rb         # Vase creation functions
 ```
 
 ### Execute the Table Script
@@ -438,7 +439,7 @@ end
 Create new functions following the same pattern:
 
 ```ruby
-# Add to scripts/create_table.rb
+# Add to src/create_table.rb
 def self.create_drawer(parent_entities, position_x, position_y, width, depth, height)
   drawer = parent_entities.add_group
   drawer.name = "Drawer"
@@ -509,9 +510,9 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 **Symptom**: "File not found" when using `eval_ruby_file`
 
 **Solutions:**
-1. Use paths relative to project root: `scripts/create_table.rb`
+1. Use paths relative to project root: `src/create_table.rb`
 2. Or use absolute paths: `/full/path/to/script.rb`
-3. Verify file exists: `ls scripts/create_table.rb`
+3. Verify file exists: `ls src/create_table.rb`
 
 ## Next Steps
 
@@ -524,7 +525,7 @@ mkdir my-sketchup-project
 cd my-sketchup-project
 
 # Create project structure
-mkdir scripts
+mkdir src
 mkdir _tmp
 
 # Copy the .mcp.json template (edit the path inside to point to your supex/mcp)
@@ -532,10 +533,10 @@ cp /path/to/example-simple-table/.mcp.json .
 
 # Copy Ruby version config and helpers
 cp /path/to/example-simple-table/mise.toml .
-cp /path/to/example-simple-table/scripts/helpers.rb scripts/
+cp /path/to/example-simple-table/src/helpers.rb src/
 
 # Create your first script
-cat > scripts/my_model.rb << 'EOF'
+cat > src/my_model.rb << 'EOF'
 require_relative 'helpers'
 
 module SupexMyProject
@@ -563,7 +564,6 @@ EOF
 
 - [SketchUp Ruby API Documentation](https://ruby.sketchup.com)
 - [SketchUp Developer Center](https://developer.sketchup.com)
-- Try the examples in `/path/to/supex/driver/resources/`
 
 ### 3. Explore Supex Tools
 
@@ -575,7 +575,7 @@ See the main Supex repository README for:
 
 ### 4. Read the Workflow Guide
 
-Check `/path/to/supex/driver/prompts/sketchup_workflow.md` for:
+Check `/path/to/supex/driver/resources/docs/workflow.md` for:
 - Best practices
 - Common patterns
 - Tips and tricks
