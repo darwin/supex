@@ -2,6 +2,8 @@
 
 This example provides a complete step-by-step introduction to [Supex](https://github.com/darwin/supex), showing you how to create 3D models in [SketchUp](https://www.sketchup.com) using Ruby scripts and [Claude Code](https://claude.ai/code).
 
+![Simple table with vase created in SketchUp](img/hero-table-with-vase.png)
+
 ## What You'll Learn
 
 By the end of this tutorial, you'll know how to:
