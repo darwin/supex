@@ -1,0 +1,8 @@
+/.idea/
+/tasks/
+/inspiration/
+*.iml
+/.claude/settings.local.json
+.direnv/
+/.tmp/
+/.scratchpad/

@@ -1,0 +1,121 @@
+# frozen_string_literal: true
+
+require 'rake'
+require 'rake/testtask'
+require 'fileutils'
+
+# Default task
+task default: %i[test rubocop]
+
+# Test task
+Rake::TestTask.new do |t|
+  t.libs << 'test'
+  t.libs << 'supex_runtime'
+  t.test_files = FileList['test/**/test_*.rb']
+  t.verbose = true
+end
+
+# RuboCop task
+begin
+  require 'rubocop/rake_task'
+  RuboCop::RakeTask.new
+rescue LoadError
+  puts 'RuboCop not available. Install it with: gem install rubocop'
+end
+
+# YARD documentation task
+begin
+  require 'yard'
+  YARD::Rake::YardocTask.new do |t|
+    t.files = ['supex_runtime/**/*.rb']
+    t.options = ['--output-dir', 'docs/api']
+  end
+rescue LoadError
+  puts 'YARD not available. Install it with: gem install yard'
+end
+
+# Build .rbz extension package
+desc 'Build SketchUp .rbz extension package'
+task :build do
+  puts 'Building Supex-Runtime.rbz extension package...'
+
+  # Create temporary build directory
+  build_dir = 'build'
+  FileUtils.rm_rf(build_dir)
+  FileUtils.mkdir_p(build_dir)
+
+  # Copy extension files (excluding development files)
+  FileUtils.cp('supex_runtime.rb', build_dir)
+  FileUtils.cp_r('supex_runtime', build_dir)
+
+  # Create .rbz file (which is just a renamed .zip)
+  require 'zip'
+
+  zip_file = 'Supex-Runtime.rbz'
+  FileUtils.rm_f(zip_file)
+
+  Zip::File.open(zip_file, Zip::File::CREATE) do |zipfile|
+    Dir.glob(File.join(build_dir, '**', '*')).each do |file|
+      next if File.directory?(file)
+
+      # Get relative path from build directory
+      relative_path = file.sub("#{build_dir}/", '')
+      zipfile.add(relative_path, file)
+    end
+  end
+
+  # Clean up
+  FileUtils.rm_rf(build_dir)
+
+  puts "✓ Created #{zip_file}"
+  puts "Install by copying to SketchUp's Plugins directory"
+end
+
+# Clean task
+desc 'Clean generated files'
+task :clean do
+  FileUtils.rm_rf('build')
+  FileUtils.rm_f('Supex-Runtime.rbz')
+  FileUtils.rm_rf('docs/api')
+  puts '✓ Cleaned generated files'
+end
+
+# Install task (copy to SketchUp plugins directory)
+desc 'Install extension to SketchUp plugins directory'
+task install: :build do
+  # Try to detect SketchUp plugins directory
+  possible_paths = [
+    File.expand_path('~/Library/Application Support/SketchUp 2023/SketchUp/Plugins'),
+    File.expand_path('~/Library/Application Support/SketchUp 2022/SketchUp/Plugins'),
+    File.expand_path('~/Library/Application Support/SketchUp 2021/SketchUp/Plugins')
+  ]
+
+  plugins_dir = possible_paths.find { |path| Dir.exist?(path) }
+
+  if plugins_dir
+    FileUtils.cp('Supex-Runtime.rbz', plugins_dir)
+    puts "✓ Installed Supex-Runtime.rbz to #{plugins_dir}"
+    puts 'Restart SketchUp and enable the extension in Extension Manager'
+  else
+    puts '⚠ Could not auto-detect SketchUp plugins directory'
+    puts 'Please manually copy Supex-Runtime.rbz to your SketchUp Plugins directory'
+  end
+end
+
+# Development setup task
+desc 'Setup development environment'
+task :setup do
+  puts 'Setting up development environment...'
+
+  # Install gems
+  system('bundle install') or exit(1)
+
+  puts '✓ Development environment ready'
+  puts
+  puts 'Available tasks:'
+  puts '  rake test      - Run test suite'
+  puts '  rake rubocop   - Run code linting'
+  puts '  rake build     - Build .rbz extension'
+  puts '  rake install   - Install to SketchUp'
+  puts '  rake yard      - Generate documentation'
+end
