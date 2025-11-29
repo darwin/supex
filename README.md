@@ -194,13 +194,16 @@ Create or update `.mcp.json` in your project root:
 {
   "mcpServers": {
     "supex": {
-      "command": "/absolute/path/to/supex/mcp"
+      "type": "stdio",
+      "command": "/absolute/path/to/supex/mcp",
+      "args": [],
+      "env": {}
     }
   }
 }
 ```
 
-Replace `/absolute/path/to/supex` with the actual path to your Supex installation.
+Replace `/absolute/path/to/supex/mcp` with the actual path to the `mcp` file in your Supex installation.
 
 ### 4. Verify Connection
 
