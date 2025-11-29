@@ -19,9 +19,7 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 - [Architecture Overview](#architecture-overview)
 - [Installation & Setup](#installation--setup)
 - [Quick Start](#quick-start)
-- [CLI Reference](#cli-reference)
-- [MCP Tools Reference](#mcp-tools-reference)
-- [Configuration](#configuration)
+- [Reference](#reference)
 
 ## Project-Based Workflow
 
@@ -150,6 +148,8 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 
 **Communication**: TCP sockets (localhost:9876) with JSON-RPC 2.0 protocol enable AI agents and CLI tools to execute Ruby code directly in SketchUp's context and inspect model state in real-time.
 
+For more details, see [Architecture](docs/architecture.md).
+
 ## Installation & Setup
 
 ### Requirements
@@ -226,112 +226,8 @@ The example covers:
 3. Using introspection tools to verify results
 4. Iterative development workflow
 
-## CLI Reference
+## Reference
 
-The `./supex` command provides direct SketchUp interaction:
-
-### Connection
-
-| Command | Description |
-|---------|-------------|
-| `status` | Check SketchUp connection status |
-| `reload` | Reload extension without restarting SketchUp |
-
-### Ruby Execution
-
-| Command | Description |
-|---------|-------------|
-| `eval <code>` | Execute Ruby code inline |
-| `eval-file <path>` | Execute Ruby script from file (recommended) |
-
-### Model Introspection
-
-| Command | Description |
-|---------|-------------|
-| `info` | Display model statistics and state |
-| `entities [type]` | List entities (all/faces/edges/groups/components) |
-| `selection` | Show currently selected entities |
-| `layers` | List all layers/tags |
-| `materials` | List all materials |
-| `camera` | Get camera position and settings |
-
-### Visualization
-
-| Command | Description |
-|---------|-------------|
-| `screenshot` | Capture view to PNG file |
-
-### Model Management
-
-| Command | Description |
-|---------|-------------|
-| `open <path>` | Open .skp file |
-| `save [path]` | Save model (optionally to new path) |
-| `export <format>` | Export to skp/obj/stl/png/jpg |
-
-### Documentation
-
-| Command | Description |
-|---------|-------------|
-| `docs tree` | Show documentation hierarchy |
-| `docs show <uri>` | View specific documentation |
-| `docs search <term>` | Search documentation |
-
-For full options: `./supex --help` or `./supex <command> --help`
-
-## MCP Tools Reference
-
-MCP tools available for AI agents (via Claude Code):
-
-### Ruby Execution
-
-| Tool | Description |
-|------|-------------|
-| `eval_ruby` | Execute Ruby code directly |
-| `eval_ruby_file` | Execute Ruby script from file (recommended) |
-
-### Model Introspection
-
-| Tool | Description |
-|------|-------------|
-| `get_model_info` | Get entity counts, units, modified state |
-| `list_entities` | List entities with filtering by type |
-| `get_selection` | Get currently selected entities |
-| `get_layers` | List all layers/tags with visibility |
-| `get_materials` | List all materials with colors |
-| `get_camera_info` | Get camera position and settings |
-
-### Visualization
-
-| Tool | Description |
-|------|-------------|
-| `take_screenshot` | Capture view to PNG (returns file path) |
-
-### Model Management
-
-| Tool | Description |
-|------|-------------|
-| `open_model` | Open .skp file by path |
-| `save_model` | Save current model |
-| `export_scene` | Export to various formats |
-
-### Status
-
-| Tool | Description |
-|------|-------------|
-| `check_sketchup_status` | Verify connection health |
-| `console_capture_status` | Get Ruby console logging info |
-
-## Configuration
-
-Supex can be configured via environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SUPEX_HOST` | `localhost` | Server bind address |
-| `SUPEX_PORT` | `9876` | Server port |
-| `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
-| `SUPEX_RETRIES` | `2` | Max retry attempts |
-| `SUPEX_LOG_DIR` | `~/.supex/logs` | Log directory |
-| `SUPEX_VERBOSE` | (unset) | Enable verbose logging (set to `1`) |
-| `SUPEX_AGENT` | (auto) | Agent identifier for logging |
+- **[CLI Reference](docs/cli.md)** - Command-line interface for direct SketchUp interaction
+- **[MCP Reference](docs/mcp.md)** - Tools available for AI agents (Claude Code)
+- **[Configuration](docs/configuration.md)** - Environment variables and settings
