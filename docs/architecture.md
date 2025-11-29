@@ -16,6 +16,27 @@ Supex implements a dual-process architecture for robust SketchUp automation:
                                └──────────────────────────┘
 ```
 
+## Project Structure
+
+```
+supex/
+├── driver/                    # Python MCP Server + CLI
+│   ├── src/supex_driver/
+│   │   ├── cli/               # CLI interface (status, eval, docs)
+│   │   ├── connection/        # Socket communication layer
+│   │   └── mcp/               # MCP server + resources
+│   ├── resources/docs/        # Embedded documentation
+│   └── tests/                 # Unit tests
+├── runtime/                   # Ruby SketchUp Extension
+│   └── src/supex_runtime/     # Extension modules
+├── scripts/                   # Development automation
+├── tests/                     # E2E and integration tests
+│   ├── e2e/                   # End-to-end tests
+│   ├── snippets/              # Ruby test snippets
+│   └── helpers/               # Test utilities
+└── docgen/                    # API documentation generation
+```
+
 ## Component Architecture
 
 ### Python MCP Server (`driver/`)
@@ -36,6 +57,35 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 - **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
 - **Connection Health**: `check_sketchup_status`, `console_capture_status`
 
+#### Connection Layer (`connection/`)
+
+The connection module provides reliable communication with the SketchUp runtime:
+
+**Architecture**:
+- Thread-safe singleton pattern via `get_sketchup_connection()`
+- TCP socket client with automatic lifecycle management
+- JSON-RPC 2.0 message formatting and parsing
+
+**Exception Types**:
+- `SketchUpConnectionError` - Connection failures (socket errors, refused connections)
+- `SketchUpTimeoutError` - Socket timeout exceeded
+- `SketchUpProtocolError` - Invalid JSON response or protocol violation
+
+**Reliability Features**:
+- Automatic reconnection with exponential backoff (2 retries default)
+- Configurable timeout (15s default)
+- Hello handshake for connection identification
+- Chunked response handling for large payloads
+
+**Configuration** (environment variables):
+
+| Variable        | Default     | Description                |
+|-----------------|-------------|----------------------------|
+| `SUPEX_HOST`    | `localhost` | SketchUp runtime host      |
+| `SUPEX_PORT`    | `9876`      | SketchUp runtime port      |
+| `SUPEX_TIMEOUT` | `15`        | Socket timeout in seconds  |
+| `SUPEX_RETRIES` | `2`         | Reconnection attempts      |
+
 ### Ruby SketchUp Extension (`runtime/`)
 
 **Architecture**: Modular Ruby extension with clean separation of concerns
@@ -46,6 +96,7 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 supex_runtime/
 ├── main.rb            # Extension lifecycle and menu integration
 ├── server.rb          # TCP server and JSON-RPC protocol handling
+├── tools.rb           # Tool implementations (mixin for Server)
 ├── export.rb          # Multi-format export functionality
 ├── utils.rb           # Logging, error handling, common utilities
 ├── console_capture.rb # Output capture and logging system
@@ -60,11 +111,32 @@ supex_runtime/
 **Protocol**: JSON-RPC 2.0
 **Serialization**: JSON with UTF-8 encoding
 
+**Message Format**:
+
+Request (Python to Ruby):
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {"name": "eval_ruby", "arguments": {"code": "..."}},
+  "id": "request-123"
+}
+```
+
+Response (Ruby to Python):
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {"success": true, "result": "..."},
+  "id": "request-123"
+}
+```
+
 **Connection Management**:
 - Automatic reconnection with exponential backoff
 - Health checking with ping/pong heartbeat
 - Graceful degradation and error recovery
-- Connection pooling for efficiency
+- Thread-safe singleton pattern for connection management
 
 ## Development Features
 
@@ -90,6 +162,36 @@ supex_runtime/
 **Ruby**: mise isolation, Ruby 3.4.7, Bundler dependency management
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
 **Testing**: pytest (Python), Test::Unit (Ruby)
+
+## Testing Architecture
+
+**Test Organization**:
+```
+tests/                     # Root test directory
+├── e2e/                   # End-to-end tests (require running SketchUp)
+├── snippets/              # Ruby code snippets for manual testing
+├── helpers/               # Shared test utilities
+└── conftest.py            # Pytest configuration and fixtures
+
+driver/tests/              # Python unit tests (no SketchUp required)
+```
+
+**Test Categories**:
+
+| Category | Location           | Requires SketchUp | Purpose                          |
+|----------|--------------------|-------------------|----------------------------------|
+| Unit     | `driver/tests/`    | No                | Python module isolation testing  |
+| E2E      | `tests/e2e/`       | Yes               | Full system integration tests    |
+| Snippets | `tests/snippets/`  | Yes               | Manual Ruby code verification    |
+
+**Running Tests**:
+```bash
+# Python unit tests (no SketchUp needed)
+cd driver && uv run pytest tests/
+
+# E2E tests (SketchUp must be running)
+./scripts/launch-tests.sh
+```
 
 ## Quality Assurance
 
