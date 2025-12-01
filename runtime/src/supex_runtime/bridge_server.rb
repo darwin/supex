@@ -12,7 +12,7 @@ require_relative 'tools'
 module SupexRuntime
   # TCP server for handling JSON-RPC requests from the Python MCP server
   # rubocop:disable Metrics/ClassLength
-  class Server
+  class BridgeServer
     include Tools
 
     DEFAULT_PORT = 9876
@@ -46,16 +46,16 @@ module SupexRuntime
       return if @running
 
       begin
-        log "Starting Supex server on #{@host}:#{@port}..."
+        log "Starting bridge server on #{@host}:#{@port}..."
 
         @server = TCPServer.new(@host, @port)
-        log "Server created on port #{@port}"
+        log "Bridge server created on port #{@port}"
 
         @running = true
         start_console_capture
         start_request_handler
 
-        log 'Supex server started and listening'
+        log 'Bridge server started and listening'
       rescue StandardError => e
         log "Error starting server: #{e.message}"
         log e.backtrace.join("\n")
@@ -65,14 +65,14 @@ module SupexRuntime
 
     # Stop the TCP server
     def stop
-      log 'Stopping Supex server...'
+      log 'Stopping bridge server...'
       @running = false
 
       stop_console_capture
       stop_timer
       close_server
 
-      log 'Server stopped'
+      log 'Bridge server stopped'
     end
 
     # Check if server is running
@@ -197,12 +197,12 @@ module SupexRuntime
           nil
         end
       rescue StandardError => e
-        log "Server error in handle_requests: #{e.message}"
+        log "Bridge server error in handle_requests: #{e.message}"
         log e.backtrace.join("\n")
 
         # If server socket is broken, try to recover
         if e.message.include?('closed') || e.message.include?('Bad file descriptor')
-          log 'Server socket appears broken, stopping server'
+          log 'Bridge server socket appears broken, stopping server'
           stop
         end
       end

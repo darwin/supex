@@ -5,7 +5,7 @@ require_relative 'utils'
 
 module SupexRuntime
   # Tool implementations for the Supex server
-  # Extracted from Server class to reduce class length
+  # Extracted from BridgeServer class to reduce class length
   module Tools
     # Get basic information about the current SketchUp model
     # @return [Hash] model statistics and metadata

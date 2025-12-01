@@ -3,7 +3,7 @@
 require 'sketchup'
 
 require_relative 'version'
-require_relative 'server'
+require_relative 'bridge_server'
 require_relative 'repl_server'
 require_relative 'utils'
 
@@ -12,37 +12,43 @@ module SupexRuntime
   # Provides a clean interface to start/stop the MCP and REPL servers
   class Main
     class << self
-      attr_accessor :server, :repl_server
+      attr_accessor :bridge_server, :repl_server
     end
-    @server = nil
+    @bridge_server = nil
     @repl_server = nil
 
-    # Initialize and start the Supex server (MCP and optionally REPL)
-    # @param port [Integer] MCP server port (default: 9876)
-    # @param host [String] server host (default: 127.0.0.1)
+    # Initialize and start all Supex servers (bridge and optionally REPL)
     # @param repl [Boolean] start REPL server (default: true unless SUPEX_REPL_DISABLED)
-    def self.start_server(port: Server::DEFAULT_PORT, host: Server::DEFAULT_HOST, repl: nil)
-      if @server&.running?
-        Utils.console_write("Supex: Server is already running on #{host}:#{port}")
-        return
+    def self.start(repl: nil)
+      Utils.console_write("Supex: Version #{VERSION}")
+      Utils.console_write("Supex: SketchUp #{Sketchup.version} compatibility")
+
+      start_bridge_server
+
+      # Start REPL server unless explicitly disabled
+      repl_enabled = repl.nil? ? ENV['SUPEX_REPL_DISABLED'] != '1' : repl
+      start_repl_server if repl_enabled
+
+      add_menu_items
+      true
+    end
+
+    # Start the bridge server
+    # @param port [Integer] bridge server port (default: 9876)
+    # @param host [String] server host (default: 127.0.0.1)
+    def self.start_bridge_server(port: BridgeServer::DEFAULT_PORT, host: BridgeServer::DEFAULT_HOST)
+      if @bridge_server&.running?
+        Utils.console_write("Supex: Bridge server is already running on #{host}:#{port}")
+        return false
       end
 
       begin
-        @server = Server.new(port: port, host: host)
-        @server.start
-
-        Utils.console_write("Supex: MCP server started on #{host}:#{port}")
-        Utils.console_write("Supex: Version #{VERSION}")
-        Utils.console_write("Supex: SketchUp #{Sketchup.version} compatibility")
-
-        # Start REPL server unless explicitly disabled
-        repl_enabled = repl.nil? ? ENV['SUPEX_REPL_DISABLED'] != '1' : repl
-        start_repl_server if repl_enabled
-
-        add_menu_items
+        @bridge_server = BridgeServer.new(port: port, host: host)
+        @bridge_server.start
+        Utils.console_write("Supex: Bridge server started on #{host}:#{port}")
         true
       rescue StandardError => e
-        Utils.console_write("Supex: Failed to start server: #{e.message}")
+        Utils.console_write("Supex: Failed to start bridge server: #{e.message}")
         Utils.console_write("Supex: #{e.backtrace.join("\n")}")
         false
       end
@@ -87,8 +93,8 @@ module SupexRuntime
       end
     end
 
-    # Stop all Supex servers (MCP and REPL)
-    def self.shutdown_server
+    # Stop all Supex servers (bridge and REPL)
+    def self.stop
       stopped = false
 
       # Stop REPL server first
@@ -99,11 +105,11 @@ module SupexRuntime
         stopped = true
       end
 
-      # Stop MCP server
-      if @server&.running?
-        @server.stop
-        @server = nil
-        Utils.console_write('Supex: MCP server stopped')
+      # Stop bridge server
+      if @bridge_server&.running?
+        @bridge_server.stop
+        @bridge_server = nil
+        Utils.console_write('Supex: Bridge server stopped')
         remove_menu_items
         stopped = true
       end
@@ -112,14 +118,10 @@ module SupexRuntime
       stopped
     end
 
-    class << self
-      alias stop_server shutdown_server
-    end
-
-    # Check if server is running
-    # @return [Boolean] true if server is running
-    def self.server_running?
-      @server&.running? || false
+    # Check if bridge server is running
+    # @return [Boolean] true if bridge server is running
+    def self.bridge_server_running?
+      @bridge_server&.running? || false
     end
 
     # Get server status information
@@ -127,9 +129,9 @@ module SupexRuntime
     def self.server_status
       status = {
         version: VERSION,
-        mcp: {
-          running: @server&.running? || false,
-          port: @server&.running? ? Server::DEFAULT_PORT : nil
+        bridge: {
+          running: @bridge_server&.running? || false,
+          port: @bridge_server&.running? ? BridgeServer::DEFAULT_PORT : nil
         },
         repl: {
           running: @repl_server&.running? || false,
@@ -137,7 +139,7 @@ module SupexRuntime
         }
       }
 
-      if @server&.running?
+      if @bridge_server&.running?
         status[:sketchup_version] = Sketchup.version
         status[:mcp_version] = MCP_VERSION
         status[:required_sketchup] = REQUIRED_SKETCHUP_VERSION
@@ -148,7 +150,7 @@ module SupexRuntime
 
     # Check if any server is running
     def self.any_server_running?
-      server_running? || repl_server_running?
+      bridge_server_running? || repl_server_running?
     end
 
     # Check if REPL server is running
@@ -156,13 +158,11 @@ module SupexRuntime
       @repl_server&.running? || false
     end
 
-    # Restart the server (stop then start)
-    # @param port [Integer] server port
-    # @param host [String] server host
-    def self.restart_server(port: Server::DEFAULT_PORT, host: Server::DEFAULT_HOST)
-      stop_server
+    # Restart all servers (stop then start)
+    def self.restart
+      stop
       sleep(0.5) # Brief pause to ensure clean shutdown
-      start_server(port: port, host: host)
+      start
     end
 
     # Reload the extension by unloading and reloading all source files
@@ -171,8 +171,8 @@ module SupexRuntime
       Utils.console_write('Supex: Reloading extension...')
 
       begin
-        was_running = @server&.running?
-        stop_server if was_running
+        was_running = @bridge_server&.running?
+        stop if was_running
 
         remove_extension_constants
         unload_extension_files
@@ -209,7 +209,7 @@ module SupexRuntime
     def self.unload_extension_files
       files_to_reload = %w[
         version.rb utils.rb geometry.rb materials.rb
-        export.rb joinery.rb server.rb repl_server.rb main.rb
+        export.rb joinery.rb bridge_server.rb repl_server.rb main.rb
       ]
       extension_dir = __dir__
 
@@ -238,7 +238,7 @@ module SupexRuntime
       return unless was_running
 
       sleep(1)
-      start_server
+      start
     end
 
     # Add menu items to SketchUp's Extensions menu
@@ -254,8 +254,8 @@ module SupexRuntime
 
       supex_runtime_menu.add_item('Server Status') { show_server_status }
       supex_runtime_menu.add_separator
-      supex_runtime_menu.add_item('Stop All Servers') { stop_server }
-      supex_runtime_menu.add_item('Restart All Servers') { restart_server }
+      supex_runtime_menu.add_item('Stop All Servers') { stop }
+      supex_runtime_menu.add_item('Restart All Servers') { restart }
       supex_runtime_menu.add_separator
       supex_runtime_menu.add_item('Start REPL') { start_repl_server }
       supex_runtime_menu.add_item('Stop REPL') { stop_repl_server }
@@ -275,15 +275,15 @@ module SupexRuntime
     def self.show_server_status
       status = server_status
 
-      mcp_status = status[:mcp][:running] ? "RUNNING (port #{status[:mcp][:port]})" : 'STOPPED'
+      bridge_status = status[:bridge][:running] ? "RUNNING (port #{status[:bridge][:port]})" : 'STOPPED'
       repl_status = status[:repl][:running] ? "RUNNING (port #{status[:repl][:port]})" : 'STOPPED'
 
       message = "Supex Server Status\n\n" \
                 "Version: #{status[:version]}\n\n" \
-                "MCP Server: #{mcp_status}\n" \
+                "Bridge Server: #{bridge_status}\n" \
                 "REPL Server: #{repl_status}"
 
-      if status[:mcp][:running]
+      if status[:bridge][:running]
         message += "\n\nSketchUp: #{status[:sketchup_version]}\n" \
                    "MCP Version: #{status[:mcp_version]}"
       end
@@ -309,6 +309,6 @@ end
 unless defined?(SUPEX_NO_AUTOSTART) && SUPEX_NO_AUTOSTART
   # Use a timer to start after SketchUp finishes loading
   UI.start_timer(1.0, false) do
-    SupexRuntime::Main.start_server
+    SupexRuntime::Main.start
   end
 end

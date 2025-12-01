@@ -165,7 +165,7 @@ module SupexRuntime
 
     # Log message to SketchUp console
     def log(message)
-      Utils.console_write("Supex REPL: #{message}")
+      Utils.console_write("Supex: REPL> #{message}")
       $stdout.flush
     end
 
