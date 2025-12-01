@@ -58,6 +58,51 @@ Features:
 
 Note: Requires the `pry` gem to be installed (`gem install pry`).
 
+### RubyMine Integration
+
+RubyMine has built-in support for Ruby REPL and is Pry-aware. You can configure a Run Configuration to use Supex REPL with full IDE integration.
+
+**Prerequisites:**
+
+Add `pry` to your project's Gemfile and install:
+
+```ruby
+# Gemfile
+gem 'pry'
+```
+
+```bash
+bundle install
+```
+
+**Setup:**
+
+1. Open **Run > Edit Configurations**
+2. Click **+** and select **Ruby Console**
+3. On the **Configuration** tab:
+   - **Name**: `Supex REPL`
+   - **Console script**: Path to pry (run `bundle show pry` then use `bin/pry` in that path, or simply `pry` if globally installed)
+   - **Console script arguments**: `-r /path/to/supex/runtime/src/repl.rb`
+   - **Working directory**: Your project root
+   - **Ruby SDK**: Use project SDK
+4. On the **Bundler** tab:
+   - Check **Run the script in context of the bundle (bundle exec)**
+5. Click **OK** to save
+
+The `-r` flag loads the REPL client code that monkey-patches Pry to send commands to SketchUp.
+
+**Usage:**
+
+1. Ensure SketchUp is running with Supex extension loaded
+2. Run the "Supex REPL" configuration from RubyMine
+3. Use **Tools > Load File/Selection into IRB Console** to send code to SketchUp
+
+**Tips:**
+
+- Configure a keyboard shortcut for **Tools > Load File/Selection into IRB Console** (e.g., `Ctrl+Shift+Enter`) in **Settings > Keymap**
+- Ruby files must be part of RubyMine's project content root for "Load File into Console" to work
+- Ensure your Ruby SDK version matches SketchUp's bundled Ruby (3.2.2 for SketchUp 2026)
+
 ## Command-Line Options
 
 | Option | Description |
