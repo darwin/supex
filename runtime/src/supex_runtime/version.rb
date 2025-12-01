@@ -10,6 +10,9 @@ module SupexRuntime
   # MCP protocol version
   MCP_VERSION = '1.0'
 
+  # REPL server defaults
+  DEFAULT_REPL_PORT = 4433
+
   # Extension metadata
   EXTENSION_NAME = 'Supex Runtime'
   EXTENSION_DESCRIPTION = 'Supex server for SketchUp that enables AI agents to control and manipulate 3D scenes'

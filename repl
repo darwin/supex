@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Supex REPL Client wrapper
+# Runs in the same Ruby environment as runtime via bundle exec
+
+set -e
+
+# Change to supex project root (directory containing this script)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_ROOT" || exit 1
+
+# Change to runtime directory
+cd runtime || exit 1
+
+# Run REPL client with bundle exec to match runtime environment
+exec bundle exec ruby src/repl.rb "$@"
