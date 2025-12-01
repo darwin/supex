@@ -7,6 +7,7 @@ ruby '3.2.2'
 # Development dependencies
 group :development do
   gem 'bundler'
+  gem 'pry'
   gem 'rake'
   gem 'rubocop'
   gem 'rubocop-performance'
