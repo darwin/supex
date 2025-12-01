@@ -3,7 +3,7 @@
 require_relative 'helpers/test_helper'
 
 # Client functions extracted for testing
-module ReplClientFunctions
+module REPLClientFunctions
   DEFAULT_PORT = 4433
   DEFAULT_HOST = '127.0.0.1'
   TIMEOUT = 5
@@ -41,9 +41,9 @@ module ReplClientFunctions
   end
 end
 
-class TestReplClient < Minitest::Test
+class TestREPLClient < Minitest::Test
   def setup
-    @mock_server = MockReplServer.new
+    @mock_server = MockREPLServer.new
     @mock_server.start
     @port = @mock_server.port
     @host = '127.0.0.1'
@@ -54,23 +54,23 @@ class TestReplClient < Minitest::Test
   end
 
   def test_send_to_repl_success
-    result = ReplClientFunctions.send_to_repl('2 + 2', @host, @port)
+    result = REPLClientFunctions.send_to_repl('2 + 2', @host, @port)
     assert_equal "=> 4\n", result
     assert_includes @mock_server.received_messages, '2 + 2'
   end
 
   def test_send_to_repl_connection_refused
     # Use a port where nothing is listening
-    result = ReplClientFunctions.send_to_repl('1 + 1', @host, 59999)
+    result = REPLClientFunctions.send_to_repl('1 + 1', @host, 59999)
     assert_nil result
   end
 
   def test_server_available_true
-    assert ReplClientFunctions.server_available?(@host, @port)
+    assert REPLClientFunctions.server_available?(@host, @port)
   end
 
   def test_server_available_false
     # Use a port where nothing is listening
-    refute ReplClientFunctions.server_available?(@host, 59999)
+    refute REPLClientFunctions.server_available?(@host, 59999)
   end
 end

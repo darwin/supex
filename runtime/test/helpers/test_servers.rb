@@ -5,7 +5,7 @@
 # =============================================================================
 
 # Mock TCP server for REPL client tests
-class MockReplServer
+class MockREPLServer
   attr_reader :port, :received_messages
 
   def initialize(port: 0) # port 0 = auto-assign

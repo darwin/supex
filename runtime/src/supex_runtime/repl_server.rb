@@ -10,7 +10,7 @@ module SupexRuntime
   # Simple REPL Server for interactive Ruby development in SketchUp
   # Evaluates code in TOPLEVEL_BINDING (same as SketchUp's internal console)
   # Accessible via TCP socket on a separate port from MCP
-  class ReplServer
+  class REPLServer
     DEFAULT_REPL_PORT = 4433
     DEFAULT_REPL_HOST = '127.0.0.1'
     REQUEST_CHECK_INTERVAL = 0.1

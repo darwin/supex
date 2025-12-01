@@ -57,14 +57,14 @@ module SupexRuntime
     # Start the REPL server separately
     # @param port [Integer] REPL server port (default: 4433)
     # @param host [String] server host (default: 127.0.0.1)
-    def self.start_repl_server(port: ReplServer::DEFAULT_REPL_PORT, host: ReplServer::DEFAULT_REPL_HOST)
+    def self.start_repl_server(port: REPLServer::DEFAULT_REPL_PORT, host: REPLServer::DEFAULT_REPL_HOST)
       if @repl_server&.running?
         Utils.console_write("Supex: REPL server is already running")
         return false
       end
 
       begin
-        @repl_server = ReplServer.new(port: port, host: host)
+        @repl_server = REPLServer.new(port: port, host: host)
         if @repl_server.start
           Utils.console_write("Supex: REPL server started on #{host}:#{port}")
           true

@@ -2,11 +2,11 @@
 
 require_relative 'helpers/test_helper'
 
-# Integration tests using MockReplServer (not the actual ReplServer)
-# because ReplServer depends on UI.start_timer which requires SketchUp
-class TestReplIntegration < Minitest::Test
+# Integration tests using MockREPLServer (not the actual REPLServer)
+# because REPLServer depends on UI.start_timer which requires SketchUp
+class TestREPLIntegration < Minitest::Test
   def setup
-    @mock_server = MockReplServer.new
+    @mock_server = MockREPLServer.new
     @mock_server.start
     @port = @mock_server.port
     @host = '127.0.0.1'
@@ -18,7 +18,7 @@ class TestReplIntegration < Minitest::Test
 
   def test_full_roundtrip
     # Client sends code, server evaluates and returns result
-    response = ReplClientFunctions.send_to_repl('3 * 7', @host, @port)
+    response = REPLClientFunctions.send_to_repl('3 * 7', @host, @port)
     assert_equal "=> 21\n", response
     assert_includes @mock_server.received_messages, '3 * 7'
   end
@@ -28,7 +28,7 @@ class TestReplIntegration < Minitest::Test
     codes = ['1 + 1', '2 + 2', '3 + 3']
 
     codes.each do |code|
-      responses << ReplClientFunctions.send_to_repl(code, @host, @port)
+      responses << REPLClientFunctions.send_to_repl(code, @host, @port)
     end
 
     assert_equal ["=> 2\n", "=> 4\n", "=> 6\n"], responses
@@ -37,7 +37,7 @@ class TestReplIntegration < Minitest::Test
 
   def test_error_response
     @mock_server.set_response('raise "test error"', "#<RuntimeError: test error>\n")
-    response = ReplClientFunctions.send_to_repl('raise "test error"', @host, @port)
+    response = REPLClientFunctions.send_to_repl('raise "test error"', @host, @port)
     assert_match(/RuntimeError/, response)
     assert_match(/test error/, response)
   end

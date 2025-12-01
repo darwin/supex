@@ -2,7 +2,7 @@
 
 require_relative 'helpers/test_helper'
 
-class TestReplEval < Minitest::Test
+class TestREPLEval < Minitest::Test
   def setup
     @tester = EvalCodeTester.new
   end
