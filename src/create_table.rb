@@ -99,8 +99,8 @@ module SupexSimpleTable
     # Calculate positions for four legs
     leg_positions = [
       [leg_inset, leg_inset], # Front left
-      [table_length - leg_inset - leg_size, leg_inset],         # Front right
-      [leg_inset, table_width - leg_inset - leg_size],          # Back left
+      [table_length - leg_inset - leg_size, leg_inset], # Front right
+      [leg_inset, table_width - leg_inset - leg_size], # Back left
       [table_length - leg_inset - leg_size, table_width - leg_inset - leg_size] # Back right
     ]
 
@@ -126,8 +126,9 @@ module SupexSimpleTable
   # @option params [Length] :top_thickness Thickness of table top (default: 0.04m)
   # @option params [Length] :leg_size Size of leg square cross-section (default: 0.06m)
   # @option params [Length] :leg_inset Inset from edge for leg placement (default: 0.05m)
+  # @param effective_params [Hash, nil] Optional output hash to receive effective parameter values
   # @return [Sketchup::Group] The created table group (without name or attributes)
-  def self.create_simple_table(entities, params = {})
+  def self.create_simple_table(entities, params = {}, effective_params = nil)
     # Get model from entities
     model = entities.model
 
@@ -138,6 +139,16 @@ module SupexSimpleTable
     top_thickness = params[:top_thickness] || 0.04.m
     leg_size = params[:leg_size] || 0.06.m
     leg_inset = params[:leg_inset] || 0.05.m
+
+    # Fill effective_params if provided
+    if effective_params
+      effective_params[:table_length] = table_length
+      effective_params[:table_width] = table_width
+      effective_params[:table_height] = table_height
+      effective_params[:top_thickness] = top_thickness
+      effective_params[:leg_size] = leg_size
+      effective_params[:leg_inset] = leg_inset
+    end
 
     # Create wood material
     wood_material = create_wood_material(model)
@@ -160,38 +171,46 @@ module SupexSimpleTable
   # Example usage with default dimensions
   # Orchestrates table creation with transaction management
   #
+  # @param params [Hash] Optional parameters passed to create_simple_table
+  # @option params [String] :ident Identifier for idempotence (default: basic_table_example)
   # @api orchestration
-  # @return [void]
-  def self.example_table
+  # @return [Sketchup::Group] The created table group
+  def self.example_table(params = {})
     model = Sketchup.active_model
     # Work in model root to avoid nesting when user is editing a group.
     entities = model.entities
 
-    # Configuration (single source of truth)
+    # Configuration
+    ident = params[:ident] || 'basic_table_example'
     table_name = 'Table'
-    attribute_type = 'basic_table_example'
 
     # Start operation for undo/redo support
     model.start_operation('Create Simple Table', true)
 
     begin
       # Cleanup previous example instances (idempotent)
-      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
+      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', ident)
 
-      # Create the table (clean geometry without metadata, using defaults)
-      table = create_simple_table(entities)
+      # Create the table (clean geometry without metadata)
+      effective = {}
+      table = create_simple_table(entities, params, effective)
 
       # Apply metadata (orchestration concern)
       table.name = table_name
-      table.set_attribute('supex', 'type', attribute_type)
+      table.set_attribute('supex', 'type', ident)
 
       # Commit the operation
       model.commit_operation
 
+      l = effective[:table_length].to_m
+      w = effective[:table_width].to_m
+      h = effective[:table_height].to_m
       puts 'Table created successfully!'
-      puts 'Dimensions: 1.2m x 0.8m x 0.75m (default)'
+      puts "Dimensions: #{l}m x #{w}m x #{h}m"
       puts 'Structure: Table > Table Top + Table Legs (4 legs)'
       puts 'Use get_model_info() or take_screenshot() to verify the result'
+
+      table
     rescue StandardError => e
       # Abort operation on error
       model.abort_operation
@@ -203,4 +222,13 @@ end
 
 if false # rubocop:disable Lint/LiteralAsCondition
   SupexSimpleTable.example_table
+  SupexSimpleTable.move_to(
+    SupexSimpleTable.example_table(table_height: 1.m, ident: 'basic_table_bar'),
+    3.m, 0)
+  SupexSimpleTable.move_to(
+    SupexSimpleTable.example_table(table_length: 2.m, ident: 'basic_table_long'),
+    0, 2.m)
+  SupexSimpleTable.move_to(
+    SupexSimpleTable.example_table(table_height: 0.5.m, ident: 'basic_table_low'),
+    3.m, 2.m)
 end
