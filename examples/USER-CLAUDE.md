@@ -46,3 +46,19 @@ rescue => e
   raise e
 end
 ```
+
+### Interactive Examples (REPL)
+
+Use `if false` block at the end of each script for interactive examples:
+```ruby
+if false # rubocop:disable Lint/LiteralAsCondition
+  MyModule.example_function
+  MyModule.another_example
+end
+```
+
+This pattern (similar to Clojure's `(comment ...)` block):
+- Never executes during `eval_ruby_file`
+- Preserves syntax highlighting in IDE
+- Allows sending individual lines to REPL for testing
+- Rubocop ignores the literal condition with inline disable
