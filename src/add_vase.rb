@@ -239,3 +239,7 @@ module SupexSimpleTable
     end
   end
 end
+
+if false # rubocop:disable Lint/LiteralAsCondition
+  SupexSimpleTable.example_vase
+end
