@@ -2,6 +2,20 @@
 
 The `./supex` command provides direct SketchUp interaction.
 
+## Interactive Development
+
+| Command | Description |
+|---------|-------------|
+| `./repl` | Start interactive Ruby REPL connected to SketchUp |
+
+The REPL provides a terminal-based interface for executing Ruby code directly in SketchUp's context. See [Interactive REPL](repl.md) for full documentation.
+
+```bash
+./repl              # Connect with defaults
+./repl --pry        # Use Pry mode for IDE integration
+./repl -p 5000      # Connect to custom port
+```
+
 ## Connection
 
 | Command | Description |

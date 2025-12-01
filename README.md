@@ -72,12 +72,13 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
                           │ TCP Socket (localhost:9876)
                           │ JSON-RPC 2.0
                           ▼
-                 ┌─────────────────┐
-                 │ SketchUp Runtime│
-                 │ (runtime/)      │
-                 │                 │
-                 │ • Ruby Extension│
-                 │ • Socket Server │
+                 ┌─────────────────┐       ┌─────────────────┐
+                 │ SketchUp Runtime│       │   REPL Client   │
+                 │ (runtime/)      │       │   ./repl        │
+                 │                 │       └────────┬────────┘
+                 │ • Ruby Extension│                │
+                 │ • Bridge Server │ :9876          │ TCP :4433
+                 │ • REPL Server   │ :4433 ◄────────┘
                  │ • SketchUp API  │
                  └─────────────────┘
                           │
@@ -95,7 +96,8 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 2. **SketchUp Runtime** (`runtime/`) - Ruby extension:
     - Runs inside SketchUp process
     - Executes Ruby code in SketchUp's API context
-    - Provides socket server for external communication
+    - Provides bridge server (port 9876) for MCP/CLI communication
+    - Provides REPL server (port 4433) for interactive development
 
 **Communication**: TCP sockets (localhost:9876) with JSON-RPC 2.0 protocol enable AI agents and CLI tools to execute Ruby code directly in SketchUp's context and inspect model state in real-time.
 
@@ -235,5 +237,6 @@ The example covers:
 ## Reference
 
 - **[CLI Reference](docs/cli.md)** - Command-line interface for direct SketchUp interaction
+- **[Interactive REPL](docs/repl.md)** - Interactive Ruby development in SketchUp
 - **[MCP Reference](docs/mcp.md)** - Tools available for AI agents (Claude Code)
 - **[Configuration](docs/configuration.md)** - Environment variables and settings
