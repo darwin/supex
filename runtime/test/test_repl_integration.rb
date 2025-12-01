@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'test_helper'
+require_relative 'helpers/test_helper'
 
 # Integration tests using MockReplServer (not the actual ReplServer)
 # because ReplServer depends on UI.start_timer which requires SketchUp

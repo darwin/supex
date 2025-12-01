@@ -1,23 +1,7 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
-require 'socket'
-require 'stringio'
-require 'json'
-require 'fileutils'
-
-# Prevent auto-start when loading main.rb
-SUPEX_NO_AUTOSTART = true
-
-# Silence ConsoleCapture status messages during tests
-ENV['SUPEX_SILENT'] = '1'
-
-# Mock 'sketchup' require (main.rb tries to require it)
-$LOADED_FEATURES << 'sketchup.rb'
-$LOADED_FEATURES << 'sketchup'
-
 # =============================================================================
-# SketchUp API Mocks
+# SketchUp API Mocks for Testing
 # =============================================================================
 
 # Mock geometry classes
@@ -361,7 +345,7 @@ class MockModel
   end
 end
 
-# Mock Sketchup module
+# Mock Sketchup module singleton methods
 module Sketchup
   @mock_model = nil
   @mock_version = '2026.0.0'
@@ -426,7 +410,7 @@ class MockMenu
   end
 end
 
-# Mock UI module (SketchUp API) - must be defined before requiring runtime files
+# Mock UI module (SketchUp API)
 # Constants for messagebox
 MB_OK = 0
 MB_OKCANCEL = 1
@@ -476,152 +460,5 @@ module UI
       @messageboxes = []
       @menus = {}
     end
-  end
-end
-
-# Require the files under test
-require_relative '../src/supex_runtime/version'
-require_relative '../src/supex_runtime/utils'
-require_relative '../src/supex_runtime/repl_server'
-
-# Override Utils.console_write for testing (after loading the real module)
-module SupexRuntime
-  module Utils
-    class << self
-      # Remove original method to avoid redefinition warning
-      remove_method :console_write if method_defined?(:console_write)
-
-      attr_accessor :console_output
-
-      def console_write(message)
-        @console_output ||= []
-        @console_output << message
-      end
-
-      def clear_console_output
-        @console_output = []
-      end
-    end
-  end
-end
-
-# Helper to create a mock TCP server for client tests
-class MockReplServer
-  attr_reader :port, :received_messages
-
-  def initialize(port: 0) # port 0 = auto-assign
-    @server = TCPServer.new('127.0.0.1', port)
-    @port = @server.addr[1]
-    @received_messages = []
-    @responses = {}
-    @running = false
-  end
-
-  def set_response(code, response)
-    @responses[code] = response
-  end
-
-  def start
-    @running = true
-    @thread = Thread.new do
-      while @running
-        begin
-          client = @server.accept_nonblock
-          message = client.read
-          @received_messages << message
-          response = @responses[message] || "=> #{eval(message).inspect}\n"
-          client.write(response)
-          client.close
-        rescue Errno::EWOULDBLOCK, Errno::EAGAIN
-          sleep 0.01
-        rescue StandardError
-          break unless @running
-        end
-      end
-    end
-  end
-
-  def stop
-    @running = false
-    @thread&.join(1)
-    @server&.close
-  end
-end
-
-# Helper to extract eval_code for isolated testing
-class EvalCodeTester
-  def eval_code(code)
-    output = StringIO.new
-
-    with_captured_output(output) do
-      begin
-        # rubocop:disable Security/Eval
-        result = eval(code, TOPLEVEL_BINDING)
-        # rubocop:enable Security/Eval
-        output.puts "=> #{result.inspect}"
-      rescue Exception => e # rubocop:disable Lint/RescueException
-        output.puts "#<#{e.class}: #{e.message}>"
-        output.puts e.backtrace.first(5).join("\n") if e.backtrace
-      end
-    end
-
-    output.rewind
-    output.read
-  end
-
-  def with_captured_output(output)
-    prev_stdout = $stdout
-    prev_stderr = $stderr
-    $stdout = output
-    $stderr = output
-    yield
-  ensure
-    $stdout = prev_stdout
-    $stderr = prev_stderr
-  end
-end
-
-# Helper for BridgeServer integration tests
-class MockBridgeClient
-  def initialize(host: '127.0.0.1', port:)
-    @host = host
-    @port = port
-  end
-
-  def send_request(request)
-    socket = TCPSocket.new(@host, @port)
-    socket.write("#{request.to_json}\n")
-    socket.flush
-    response = socket.gets
-    socket.close
-    JSON.parse(response) if response
-  rescue StandardError => e
-    { 'error' => e.message }
-  end
-
-  def send_hello(name: 'test-client', version: '1.0', agent: 'test', pid: Process.pid)
-    send_request({
-                   'jsonrpc' => '2.0',
-                   'method' => 'hello',
-                   'params' => { 'name' => name, 'version' => version, 'agent' => agent, 'pid' => pid },
-                   'id' => 1
-                 })
-  end
-
-  def send_ping
-    send_request({
-                   'jsonrpc' => '2.0',
-                   'method' => 'ping',
-                   'id' => 2
-                 })
-  end
-
-  def call_tool(name, arguments = {})
-    send_request({
-                   'jsonrpc' => '2.0',
-                   'method' => 'tools/call',
-                   'params' => { 'name' => name, 'arguments' => arguments },
-                   'id' => 3
-                 })
   end
 end
