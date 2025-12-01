@@ -4,6 +4,7 @@
 # This script demonstrates procedural programming approach with Supex
 
 require_relative 'helpers'
+require_relative 'sketchup_extensions'
 
 # Module containing all table creation functions
 # Prevents namespace pollution when used as a library
@@ -222,13 +223,7 @@ end
 
 if false # rubocop:disable Lint/LiteralAsCondition
   SupexSimpleTable.example_table
-  SupexSimpleTable.move_to(
-    SupexSimpleTable.example_table(table_height: 1.m, ident: 'basic_table_bar'),
-    3.m, 0)
-  SupexSimpleTable.move_to(
-    SupexSimpleTable.example_table(table_length: 2.m, ident: 'basic_table_long'),
-    0, 2.m)
-  SupexSimpleTable.move_to(
-    SupexSimpleTable.example_table(table_height: 0.5.m, ident: 'basic_table_low'),
-    3.m, 2.m)
+  SupexSimpleTable.example_table(table_height: 1.m, ident: 'basic_table_bar').move_to(3.m, 0)
+  SupexSimpleTable.example_table(table_length: 2.m, ident: 'basic_table_long').move_to(0, 2.m)
+  SupexSimpleTable.example_table(table_height: 0.5.m, ident: 'basic_table_low').move_to(3.m, 2.m)
 end
