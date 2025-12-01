@@ -35,10 +35,10 @@ module SupexRuntime
         $stderr = OutputCapture.new(@original_stderr, @log_file, 'STDERR', 'E')
 
         @capture_enabled = true
-        puts "Supex: Console capture started - output will be logged to: #{@log_file_path}"
+        log_status "Console capture started - output will be logged to: #{@log_file_path}"
       rescue StandardError => e
         # Fallback gracefully if capture fails
-        puts "Supex: Warning: Could not start console capture: #{e.message}"
+        log_status "Warning: Could not start console capture: #{e.message}"
         @capture_enabled = false
       end
     end
@@ -64,9 +64,9 @@ module SupexRuntime
         @log_file = nil
         @capture_enabled = false
 
-        puts 'Supex: Console capture stopped'
+        log_status 'Console capture stopped'
       rescue StandardError => e
-        puts "Supex: Warning: Error stopping console capture: #{e.message}"
+        log_status "Warning: Error stopping console capture: #{e.message}"
       end
     end
 
@@ -88,6 +88,13 @@ module SupexRuntime
     end
 
     private
+
+    # Log status message (silent in test mode)
+    def log_status(message)
+      return if ENV['SUPEX_SILENT'] == '1'
+
+      puts "Supex: #{message}"
+    end
 
     # Format a log line in pipe-separated format for Ideolog
     def idea_log_line(severity, message)
