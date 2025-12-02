@@ -20,6 +20,7 @@ module SupexRuntime
     # Initialize and start all Supex servers (bridge and optionally REPL)
     # @param repl [Boolean] start REPL server (default: true unless SUPEX_REPL_DISABLED)
     def self.start(repl: nil)
+      load_stdlib
       Utils.console_write("Supex: Version #{VERSION}")
       Utils.console_write("Supex: SketchUp #{Sketchup.version} compatibility")
 
@@ -239,6 +240,25 @@ module SupexRuntime
 
       sleep(1)
       start
+    end
+
+    # Load the Supex Standard Library
+    # @return [Boolean] true if stdlib was loaded successfully
+    def self.load_stdlib
+      stdlib_path = ENV['SUPEX_STDLIB_PATH'] ||
+                    File.expand_path('../../../../stdlib/src/supex_stdlib.rb', __FILE__)
+
+      if File.exist?(stdlib_path)
+        require stdlib_path
+        Utils.console_write("Supex: Stdlib v#{SupexStdlib::VERSION} loaded")
+        true
+      else
+        Utils.console_write('Supex: Stdlib not found (optional)')
+        false
+      end
+    rescue StandardError => e
+      Utils.console_write("Supex: Failed to load stdlib: #{e.message}")
+      false
     end
 
     # Add menu items to SketchUp's Extensions menu
