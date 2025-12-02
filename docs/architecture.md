@@ -95,8 +95,8 @@ The connection module provides reliable communication with the SketchUp runtime:
 ```
 supex_runtime/
 ├── main.rb            # Extension lifecycle and menu integration
-├── server.rb          # TCP server and JSON-RPC protocol handling (port 9876)
-├── repl_server.rb     # Interactive REPL server (port 4433)
+├── bridge_server.rb   # TCP server and JSON-RPC protocol handling (port 9876)
+├── repl_server.rb     # Interactive REPL server via JSON-RPC (port 4433)
 ├── tools.rb           # Tool implementations (mixin for Server)
 ├── export.rb          # Multi-format export functionality
 ├── utils.rb           # Logging, error handling, common utilities
@@ -104,7 +104,7 @@ supex_runtime/
 └── version.rb         # Version and metadata management
 ```
 
-**REPL Server**: A separate TCP server (default port 4433) provides interactive Ruby evaluation in `TOPLEVEL_BINDING` (same context as SketchUp's built-in console). Uses SketchUp's UI timer for non-blocking request handling. See [Interactive REPL](repl.md).
+**REPL Server**: A separate TCP server (default port 4433) provides interactive Ruby evaluation in `TOPLEVEL_BINDING` (same context as SketchUp's built-in console). Uses JSON-RPC 2.0 protocol with `hello` handshake and `eval` method. Non-blocking via SketchUp's UI timer. See [Interactive REPL](repl.md).
 
 **Note**: Geometry and material operations are handled through direct Ruby code evaluation via `eval_ruby` and `eval_ruby_file` tools, providing unlimited flexibility for modeling operations.
 

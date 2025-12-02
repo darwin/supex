@@ -39,8 +39,9 @@ Python Driver (MCP)
       | JSON-RPC 2.0
       v
 +----------------------------------+
-|  Ruby Runtime (runtime/)     |
-|  +-- Server         (TCP/JSON)   |
+|  Ruby Runtime (runtime/)         |
+|  +-- BridgeServer   (TCP/JSON)   |
+|  +-- REPLServer     (TCP/JSON)   |
 |  +-- Export         (formats)    |
 |  +-- ConsoleCapture (logging)    |
 |  +-- Utils          (helpers)    |
@@ -56,16 +57,22 @@ Python Driver (MCP)
 runtime/
 +-- Rakefile               # Build tasks
 +-- Gemfile                # Dependencies
++-- ide_stubs/             # IDE resolution shims
 +-- src/
-    +-- injector.rb        # Ruby injection for dev
-    +-- supex_runtime.rb   # Extension loader
-    +-- supex_runtime/
-        +-- main.rb        # Entry point, menu integration
-        +-- server.rb      # TCP server, tool dispatch
-        +-- export.rb      # Multi-format export
-        +-- console_capture.rb # Output logging
-        +-- utils.rb       # Helpers
-        +-- version.rb     # Metadata
+|   +-- injector.rb        # Ruby injection for dev
+|   +-- repl.rb            # REPL client script
+|   +-- supex_runtime.rb   # Extension loader
+|   +-- supex_runtime/
+|       +-- main.rb        # Entry point, menu integration
+|       +-- bridge_server.rb # TCP server, tool dispatch
+|       +-- repl_server.rb # REPL server for interactive dev
+|       +-- export.rb      # Multi-format export
+|       +-- console_capture.rb # Output logging
+|       +-- utils.rb       # Helpers
+|       +-- version.rb     # Metadata
++-- test/
+    +-- helpers/           # Test infrastructure
+    +-- test_*.rb          # Test files
 ```
 
 ## Module Responsibilities
@@ -73,7 +80,8 @@ runtime/
 | Module | Purpose |
 |--------|---------|
 | Main | Extension lifecycle, SketchUp menu, server orchestration |
-| Server | TCP socket server, JSON-RPC protocol, tool execution |
+| BridgeServer | TCP socket server, JSON-RPC protocol, tool execution |
+| REPLServer | Interactive Ruby development via TCP/JSON-RPC |
 | Tools | Model introspection tools (entities, selection, camera, screenshot) |
 | Export | SKP, OBJ, STL, PNG, JPG export |
 | ConsoleCapture | stdout/stderr redirection to log files |
@@ -97,8 +105,40 @@ runtime/
 ### Default Configuration
 
 - **Host**: 127.0.0.1
-- **Port**: 9876
+- **Port**: 9876 (Bridge), 4433 (REPL)
 - **Protocol**: JSON-RPC 2.0
+
+## REPL Server
+
+The REPL server provides interactive Ruby development in SketchUp context.
+
+### Connecting
+
+Use the REPL client script:
+
+```bash
+cd runtime/src
+./repl.rb              # Simple line-by-line mode
+./repl.rb --pry        # Pry mode (RubyMine compatible)
+./repl.rb -p 4433      # Connect to specific port
+```
+
+### RubyMine Integration
+
+Load via Pry for IDE integration:
+
+```bash
+pry -r ./repl.rb
+```
+
+The client automatically patches Pry to send code to SketchUp.
+
+### REPL Protocol
+
+- **Method**: `hello` - Client handshake with PID for session management
+- **Method**: `eval` - Execute Ruby code and return result
+
+Each session creates a snippet directory in `.tmp/repl/` for debugging.
 
 ## Configuration
 
@@ -110,6 +150,10 @@ runtime/
 | `SUPEX_NO_AUTOSTART` | not set | Define to disable automatic server start on extension load |
 | `SUPEX_CHECK_INTERVAL` | `0.25` | Request check interval in seconds |
 | `SUPEX_RESPONSE_DELAY` | `0` | Response delay in seconds (for debugging) |
+| `SUPEX_REPL_PORT` | `4433` | REPL server port |
+| `SUPEX_REPL_HOST` | `127.0.0.1` | REPL server host |
+| `SUPEX_REPL_DISABLED` | not set | Set to `1` to disable REPL server |
+| `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 
 ## Protocol
 
@@ -144,6 +188,7 @@ bundle install
 | `bundle exec rubocop` | Code linting |
 | `bundle exec rubocop -A` | Auto-fix lint issues |
 | `bundle exec yard` | Generate API docs |
+| `bundle exec rake test` | Run tests |
 
 ### Launch SketchUp (Development)
 

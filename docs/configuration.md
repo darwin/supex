@@ -21,5 +21,6 @@ Supex can be configured via environment variables:
 | `SUPEX_REPL_PORT` | `4433` | REPL server port |
 | `SUPEX_REPL_HOST` | `127.0.0.1` | REPL server bind address |
 | `SUPEX_REPL_DISABLED` | (unset) | Disable REPL server (set to `1`) |
+| `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 
 See [Interactive REPL](repl.md) for usage details.

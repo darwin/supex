@@ -1,6 +1,6 @@
 # Interactive REPL
 
-The REPL (Read-Eval-Print Loop) provides interactive Ruby development directly in SketchUp's context. It runs as a separate TCP server alongside the MCP bridge, allowing you to experiment with Ruby code in real-time.
+The REPL (Read-Eval-Print Loop) provides interactive Ruby development directly in SketchUp's context. It runs as a separate TCP server (JSON-RPC 2.0 protocol) alongside the MCP bridge, allowing you to experiment with Ruby code in real-time.
 
 ## Quick Start
 
@@ -131,6 +131,7 @@ The REPL can be configured via environment variables:
 | `SUPEX_REPL_PORT` | `4433` | Server port |
 | `SUPEX_REPL_HOST` | `127.0.0.1` | Server bind address |
 | `SUPEX_REPL_DISABLED` | (unset) | Disable REPL server (set to `1`) |
+| `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 
 See [Configuration](configuration.md) for all environment variables.
 
