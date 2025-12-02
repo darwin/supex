@@ -51,7 +51,7 @@ module SupexStdlib
 
       lines = ['.']
       build_tree_lines(entities, lines, '', opts, 0)
-      lines.join("\n") + "\n"
+      "#{lines.join("\n")}\n"
     end
 
     class << self
@@ -71,8 +71,6 @@ module SupexStdlib
           root.entities
         when Sketchup::ComponentInstance
           root.definition.entities
-        else
-          nil
         end
       end
 
@@ -112,9 +110,7 @@ module SupexStdlib
           next false unless hierarchical_entity?(e)
           next false if !opts[:show_hidden] && entity_hidden?(e)
 
-          if opts[:types]
-            next false unless opts[:types].include?(e.typename)
-          end
+          next false if opts[:types] && !opts[:types].include?(e.typename)
 
           true
         end
@@ -184,8 +180,6 @@ module SupexStdlib
           entity.entities
         when Sketchup::ComponentInstance
           entity.definition.entities
-        else
-          nil
         end
       end
     end
