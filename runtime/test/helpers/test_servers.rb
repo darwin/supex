@@ -4,20 +4,16 @@
 # Mock Servers for Testing
 # =============================================================================
 
-# Mock TCP server for REPL client tests
+# Mock TCP server for REPL client tests (JSON-RPC protocol)
 class MockREPLServer
-  attr_reader :port, :received_messages
+  attr_reader :port, :received_messages, :received_codes
 
   def initialize(port: 0) # port 0 = auto-assign
     @server = TCPServer.new('127.0.0.1', port)
     @port = @server.addr[1]
     @received_messages = []
-    @responses = {}
+    @received_codes = []
     @running = false
-  end
-
-  def set_response(code, response)
-    @responses[code] = response
   end
 
   def start
@@ -26,13 +22,7 @@ class MockREPLServer
       while @running
         begin
           client = @server.accept_nonblock
-          message = client.read
-          @received_messages << message
-          # rubocop:disable Security/Eval
-          response = @responses[message] || "=> #{eval(message).inspect}\n"
-          # rubocop:enable Security/Eval
-          client.write(response)
-          client.close
+          handle_client(client)
         rescue Errno::EWOULDBLOCK, Errno::EAGAIN
           sleep 0.01
         rescue StandardError
@@ -46,6 +36,48 @@ class MockREPLServer
     @running = false
     @thread&.join(1)
     @server&.close
+  end
+
+  private
+
+  def handle_client(client)
+    loop do
+      line = client.gets
+      break unless line
+
+      request = JSON.parse(line.strip)
+      @received_messages << request
+      response = handle_request(request)
+      client.write("#{response.to_json}\n")
+    end
+  rescue JSON::ParserError, IOError
+    # Client disconnected or invalid JSON
+  ensure
+    client&.close
+  end
+
+  def handle_request(request)
+    case request['method']
+    when 'hello'
+      { 'jsonrpc' => '2.0', 'id' => request['id'],
+        'result' => { 'success' => true, 'session' => 's000000-000000-0', 'server' => { 'name' => 'mock-repl' } } }
+    when 'eval'
+      code = request.dig('params', 'code')
+      @received_codes << code
+      output = eval_with_capture(code)
+      { 'jsonrpc' => '2.0', 'id' => request['id'], 'result' => { 'output' => output, 'success' => true } }
+    else
+      { 'jsonrpc' => '2.0', 'id' => request['id'], 'error' => { 'code' => -32_601, 'message' => 'Method not found' } }
+    end
+  end
+
+  # Evaluate code and capture result or error (like real REPL server)
+  def eval_with_capture(code)
+    # rubocop:disable Security/Eval
+    "=> #{eval(code).inspect}\n"
+    # rubocop:enable Security/Eval
+  rescue StandardError => e
+    "#<#{e.class}: #{e.message}>\n"
   end
 end
 

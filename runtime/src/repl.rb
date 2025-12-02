@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 # Supex REPL Client
-# Connects to the Supex REPL server running inside SketchUp
+# Connects to the Supex REPL server running inside SketchUp via JSON-RPC
 #
 # Usage:
 #   ./repl              # Connect with default settings
@@ -16,114 +16,175 @@
 #   code to the Supex REPL server without starting a new REPL loop.
 
 require 'socket'
+require 'json'
 
 DEFAULT_PORT = 4433
 DEFAULT_HOST = '127.0.0.1'
 TIMEOUT = 5
+CLIENT_NAME = 'repl-client'
+CLIENT_VERSION = '2.0'
 
-# Send code to REPL server and get response
-def send_to_repl(code, host, port, timeout = TIMEOUT)
-  socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
-  sockaddr = Socket.pack_sockaddr_in(port, host)
+# JSON-RPC REPL Client with persistent connection
+class REPLClient
+  attr_reader :host, :port, :session
 
-  begin
-    socket.connect_nonblock(sockaddr)
-  rescue Errno::EINPROGRESS
-    raise Timeout::Error, 'Connection timeout' unless IO.select(nil, [socket], nil, timeout)
-
-    begin
-      socket.connect_nonblock(sockaddr)
-    rescue Errno::EISCONN
-      # Connected
-    end
+  def initialize(host, port)
+    @host = host
+    @port = port
+    @socket = nil
+    @request_id = 0
+    @session = nil
   end
 
-  socket.write(code)
-  socket.close_write
-  socket.read
-rescue Errno::ECONNREFUSED
-  nil
-ensure
-  socket&.close
+  # Connect to server and perform hello handshake
+  # @return [Hash] hello response
+  def connect
+    @socket = TCPSocket.new(@host, @port)
+    response = send_hello
+    @session = response.dig('result', 'session')
+    response
+  end
+
+  # Check if connected
+  def connected?
+    !@socket.nil? && !@socket.closed?
+  end
+
+  # Send hello handshake
+  # @return [Hash] response
+  def send_hello
+    send_request('hello', {
+                   pid: Process.pid,
+                   name: CLIENT_NAME,
+                   version: CLIENT_VERSION
+                 })
+  end
+
+  # Evaluate code on server
+  # @param code [String] Ruby code to evaluate
+  # @return [Hash] response
+  def eval(code)
+    send_request('eval', { code: code })
+  end
+
+  # Send JSON-RPC request
+  # @param method [String] method name
+  # @param params [Hash] parameters
+  # @return [Hash] response
+  def send_request(method, params)
+    raise 'Not connected' unless connected?
+
+    @request_id += 1
+    request = { jsonrpc: '2.0', method: method, id: @request_id, params: params }
+    @socket.write("#{request.to_json}\n")
+    @socket.flush
+    read_response
+  end
+
+  # Read JSON-RPC response
+  # @return [Hash] parsed response
+  def read_response
+    line = @socket.gets
+    return { 'error' => { 'message' => 'Connection closed' } } unless line
+
+    JSON.parse(line)
+  rescue JSON::ParserError => e
+    { 'error' => { 'message' => "Parse error: #{e.message}" } }
+  end
+
+  # Close connection
+  def close
+    @socket&.close
+    @socket = nil
+  end
 end
 
-# Check if server is available
+# Check if server is available by attempting connection
 def server_available?(host, port)
-  result = send_to_repl('1 + 1', host, port, 2)
-  !result.nil?
+  client = REPLClient.new(host, port)
+  response = client.connect
+  client.close
+  !response['error']
 rescue StandardError
   false
 end
 
 # Simple REPL mode - line by line
 def run_simple_repl(host, port)
-  puts "Supex REPL Client - Simple Mode"
+  puts 'Supex REPL Client - Simple Mode (JSON-RPC)'
   puts "Connecting to #{host}:#{port}..."
 
-  unless server_available?(host, port)
+  client = REPLClient.new(host, port)
+  begin
+    response = client.connect
+    if response['error']
+      puts "Error: #{response['error']['message']}"
+      exit 1
+    end
+  rescue Errno::ECONNREFUSED
     puts "Error: Cannot connect to REPL server at #{host}:#{port}"
     puts 'Make sure SketchUp is running with Supex extension loaded.'
     exit 1
   end
 
-  puts "Connected! Type 'exit' or Ctrl+D to quit."
+  puts "Connected! Session: #{client.session}"
+  puts "Type 'exit' or Ctrl+D to quit."
   puts
 
   loop do
-    begin
-      line = Readline.readline('supex>> ', true)
-      break if line.nil? || line.strip == 'exit'
-      next if line.strip.empty?
+    line = Readline.readline('supex>> ', true)
+    break if line.nil? || line.strip == 'exit'
+    next if line.strip.empty?
 
-      # Remove duplicate entries from history
-      if Readline::HISTORY.length > 1 && Readline::HISTORY[-2] == line
-        Readline::HISTORY.pop
-      end
+    # Remove duplicate entries from history
+    Readline::HISTORY.pop if Readline::HISTORY.length > 1 && Readline::HISTORY[-2] == line
 
-      result = send_to_repl(line, host, port)
-      if result.nil?
-        puts 'Error: Connection lost. Server may have stopped.'
-        break
-      end
-      puts result unless result.empty?
-    rescue Interrupt
-      puts "\nUse 'exit' or Ctrl+D to quit."
+    response = client.eval(line)
+    if response['error']
+      puts "Error: #{response['error']['message']}"
+    else
+      output = response.dig('result', 'output')
+      print output if output && !output.empty?
     end
+  rescue Interrupt
+    puts "\nUse 'exit' or Ctrl+D to quit."
+  rescue IOError, Errno::ECONNRESET
+    puts 'Error: Connection lost. Server may have stopped.'
+    break
   end
 
+  client.close
   puts 'Goodbye!'
 end
 
-# Apply Pry monkey-patch to send code to Supex REPL server
-# This patches evaluate_ruby instead of eval because:
-# - eval() receives input line by line
-# - Pry accumulates lines until expression is complete
-# - evaluate_ruby() receives the complete multiline expression
+# Apply Pry monkey-patch to send code to Supex REPL server via JSON-RPC
+# Uses persistent connection for the entire Pry session
 def apply_pry_patch(host, port)
-  $supex_repl_host = host
-  $supex_repl_port = port
+  $supex_client = REPLClient.new(host, port)
+
+  begin
+    response = $supex_client.connect
+    if response['error']
+      puts "Supex REPL: Connection error: #{response['error']['message']}"
+      return false
+    end
+  rescue Errno::ECONNREFUSED
+    puts "Supex REPL: Cannot connect to #{host}:#{port}"
+    return false
+  end
 
   Pry.class_eval do
     def evaluate_ruby(code)
-      timeout = 5
-      socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
-      sockaddr = Socket.pack_sockaddr_in($supex_repl_port, $supex_repl_host)
-
-      begin
-        socket.connect_nonblock(sockaddr)
-      rescue Errno::EINPROGRESS
-        raise Timeout::Error unless IO.select(nil, [socket], nil, timeout)
-        retry
-      rescue Errno::EISCONN
-        socket.write(code)
-        socket.close_write
-        out = socket.read
-        output.print(out)
-      rescue Errno::ECONNREFUSED => e
-        output.puts "Connection refused: #{e.message}"
-      ensure
-        socket&.close
+      response = $supex_client.eval(code)
+      if response['error']
+        output.puts "Error: #{response['error']['message']}"
+      else
+        out = response.dig('result', 'output')
+        output.print(out) if out
       end
+      nil
+    rescue IOError, Errno::ECONNRESET => e
+      output.puts "Connection error: #{e.message}"
       nil
     end
 
@@ -131,6 +192,9 @@ def apply_pry_patch(host, port)
       # no-op, result is printed by evaluate_ruby from server response
     end
   end
+
+  at_exit { $supex_client&.close }
+  true
 end
 
 # Pry mode - monkey-patch Pry's evaluate_ruby for RubyMine compatibility
@@ -138,23 +202,21 @@ def run_pry_repl(host, port)
   begin
     require 'pry'
   rescue LoadError
-    puts "Error: Pry gem not found. Install it with: gem install pry"
+    puts 'Error: Pry gem not found. Install it with: gem install pry'
     exit 1
   end
 
-  puts "Supex REPL Client - Pry Mode"
+  puts 'Supex REPL Client - Pry Mode (JSON-RPC)'
   puts "Connecting to #{host}:#{port}..."
 
-  unless server_available?(host, port)
-    puts "Error: Cannot connect to REPL server at #{host}:#{port}"
+  unless apply_pry_patch(host, port)
     puts 'Make sure SketchUp is running with Supex extension loaded.'
     exit 1
   end
 
-  puts "Connected! Type 'exit' or Ctrl+D to quit."
+  puts "Connected! Session: #{$supex_client.session}"
+  puts "Type 'exit' or Ctrl+D to quit."
   puts
-
-  apply_pry_patch(host, port)
 
   # Start Pry
   Pry.start
@@ -165,9 +227,8 @@ end
 if defined?(Pry) && !$supex_repl_standalone
   host = ENV.fetch('SUPEX_REPL_HOST', DEFAULT_HOST)
   port = Integer(ENV.fetch('SUPEX_REPL_PORT', DEFAULT_PORT))
-  apply_pry_patch(host, port)
-  puts "Supex REPL: Pry patched to send code to #{host}:#{port}"
-else
+  puts "Supex REPL: Connected to #{host}:#{port} (session: #{$supex_client.session})" if apply_pry_patch(host, port)
+elsif __FILE__ == $PROGRAM_NAME
   # Running as standalone script - parse options and start REPL
   require 'optparse'
   require 'readline'
