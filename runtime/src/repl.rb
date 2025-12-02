@@ -157,6 +157,67 @@ def run_simple_repl(host, port)
   puts 'Goodbye!'
 end
 
+# Buffer for detecting rapid input (paste/send from IDE)
+# Accumulates lines arriving within BUFFER_TIMEOUT_MS and sends as single block
+class PryInputBuffer
+  BUFFER_TIMEOUT_MS = Integer(ENV.fetch('SUPEX_REPL_BUFFER_MS', 50))
+  PRY_COMMAND_PREFIXES = %w[ls cd help show show-source show-doc edit whereami ? ! . hist exit exit-all quit].freeze
+
+  def initialize(pry_instance)
+    @pry = pry_instance
+    @buffer = []
+    @mutex = Mutex.new
+    @timer_thread = nil
+  end
+
+  # Add a line to buffer.
+  # Returns :buffered if added to buffer, :bypass if should use original eval, :ignore if empty
+  def add(line, options = {})
+    result = classify_line(line)
+    return result unless result == :buffered
+
+    @mutex.synchronize do
+      # Strip trailing newline but preserve the content
+      @buffer << { line: line.to_s.chomp, options: options }
+      start_flush_timer
+    end
+    :buffered
+  end
+
+  private
+
+  # Classify line: :ignore (empty), :bypass (pry command), :buffered (normal code)
+  def classify_line(line)
+    return :ignore if line.nil?
+
+    stripped = line.to_s.strip
+    return :ignore if stripped.empty?
+
+    return :bypass if PRY_COMMAND_PREFIXES.any? { |cmd| stripped.start_with?(cmd) }
+
+    :buffered
+  end
+
+  def start_flush_timer
+    @timer_thread&.kill
+    @timer_thread = Thread.new do
+      sleep(BUFFER_TIMEOUT_MS / 1000.0)
+      @mutex.synchronize { do_flush }
+    end
+  end
+
+  def do_flush
+    return if @buffer.empty?
+
+    combined = @buffer.map { |item| item[:line] }.join("\n")
+    options = @buffer.first[:options]
+    @buffer.clear
+
+    # Execute in separate thread to avoid deadlock with mutex
+    Thread.new { @pry.supex_original_eval(combined, options) }.join
+  end
+end
+
 # Apply Pry monkey-patch to send code to Supex REPL server via JSON-RPC
 # Uses persistent connection for the entire Pry session
 def apply_pry_patch(host, port)
@@ -174,6 +235,26 @@ def apply_pry_patch(host, port)
   end
 
   Pry.class_eval do
+    # Store original eval for use by buffer flush
+    alias_method :supex_original_eval, :eval
+
+    # Lazy-initialize input buffer for this Pry instance
+    def supex_input_buffer
+      @supex_input_buffer ||= PryInputBuffer.new(self)
+    end
+
+    # Override eval to buffer rapid input (IDE paste detection)
+    def eval(line, options = {})
+      case supex_input_buffer.add(line, options)
+      when :buffered
+        true # Buffered - tell Pry to continue REPL loop
+      when :ignore
+        true # Empty line - ignore but continue REPL loop
+      else # :bypass
+        supex_original_eval(line, options) # Pry command - bypass buffering
+      end
+    end
+
     def evaluate_ruby(code)
       response = $supex_client.eval(code)
       if response['error']
