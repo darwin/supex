@@ -1,0 +1,57 @@
+# RuboCop configuration for Supex Standard Library
+
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+
+# SketchUp specific adjustments
+Style/Documentation:
+  Enabled: false  # SketchUp extensions often don't need full class documentation
+
+Metrics/MethodLength:
+  Max: 40  # Allow longer methods for SketchUp API calls
+
+Metrics/ClassLength:
+  Max: 200
+
+Metrics/ModuleLength:
+  Max: 250
+
+Metrics/CyclomaticComplexity:
+  Max: 15
+
+Metrics/AbcSize:
+  Max: 40
+
+Layout/LineLength:
+  Max: 120
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  SupportedStyles:
+    - single_quotes
+    - double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Naming/MethodParameterName:
+  MinNameLength: 2
+
+Naming/PredicateMethod:
+  Enabled: false
+
+Style/GlobalVars:
+  AllowedVariables:
+    - '$SKETCHUP_CONSOLE'
+
+Style/RescueStandardError:
+  Enabled: false
+
+Lint/DuplicateBranch:
+  Enabled: false
