@@ -23,6 +23,9 @@ DEFAULT_HOST = '127.0.0.1'
 TIMEOUT = 5
 CLIENT_NAME = 'repl-client'
 CLIENT_VERSION = '2.0'
+DEFAULT_RETRIES = 10
+INITIAL_DELAY = 1.0
+BACKOFF_MULTIPLIER = 2
 
 # JSON-RPC REPL Client with persistent connection
 class REPLClient
@@ -83,9 +86,10 @@ class REPLClient
 
   # Read JSON-RPC response
   # @return [Hash] parsed response
+  # @raise [IOError] when connection is closed
   def read_response
     line = @socket.gets
-    return { 'error' => { 'message' => 'Connection closed' } } unless line
+    raise IOError, 'Connection closed' unless line
 
     JSON.parse(line)
   rescue JSON::ParserError => e
@@ -96,6 +100,47 @@ class REPLClient
   def close
     @socket&.close
     @socket = nil
+  end
+
+  # Connect with retry and exponential backoff
+  # @param max_retries [Integer, nil] max retry attempts (default: DEFAULT_RETRIES)
+  # @return [Hash] hello response
+  def connect_with_retry(max_retries: nil)
+    retries = max_retries || Integer(ENV.fetch('SUPEX_REPL_RETRIES', DEFAULT_RETRIES))
+    delay = INITIAL_DELAY
+
+    (retries + 1).times do |attempt|
+      return connect
+    rescue Errno::ECONNREFUSED
+      raise if attempt >= retries
+
+      puts "Connection failed, retrying in #{delay.to_i}s... (#{attempt + 1}/#{retries})"
+      sleep(delay)
+      delay *= BACKOFF_MULTIPLIER
+    end
+  end
+
+  # Reconnect after connection lost
+  # @return [Boolean] true if reconnected
+  def reconnect
+    close
+    puts 'Connection lost. Reconnecting...'
+    connect_with_retry
+    puts "Reconnected! Session: #{@session}"
+    true
+  rescue Errno::ECONNREFUSED
+    false
+  end
+
+  # Evaluate code with automatic reconnection on connection errors
+  # @param code [String] Ruby code to evaluate
+  # @return [Hash] response
+  def eval_with_reconnect(code)
+    self.eval(code)
+  rescue IOError, Errno::ECONNRESET, Errno::EPIPE
+    return { 'error' => { 'message' => 'Reconnection failed' } } unless reconnect
+
+    self.eval(code)
   end
 end
 
@@ -116,7 +161,7 @@ def run_simple_repl(host, port)
 
   client = REPLClient.new(host, port)
   begin
-    response = client.connect
+    response = client.connect_with_retry
     if response['error']
       puts "Error: #{response['error']['message']}"
       exit 1
@@ -139,7 +184,7 @@ def run_simple_repl(host, port)
     # Remove duplicate entries from history
     Readline::HISTORY.pop if Readline::HISTORY.length > 1 && Readline::HISTORY[-2] == line
 
-    response = client.eval(line)
+    response = client.eval_with_reconnect(line)
     if response['error']
       puts "Error: #{response['error']['message']}"
     else
@@ -148,9 +193,6 @@ def run_simple_repl(host, port)
     end
   rescue Interrupt
     puts "\nUse 'exit' or Ctrl+D to quit."
-  rescue IOError, Errno::ECONNRESET
-    puts 'Error: Connection lost. Server may have stopped.'
-    break
   end
 
   client.close
@@ -224,7 +266,7 @@ def apply_pry_patch(host, port)
   $supex_client = REPLClient.new(host, port)
 
   begin
-    response = $supex_client.connect
+    response = $supex_client.connect_with_retry
     if response['error']
       puts "Supex REPL: Connection error: #{response['error']['message']}"
       return false
@@ -256,16 +298,13 @@ def apply_pry_patch(host, port)
     end
 
     def evaluate_ruby(code)
-      response = $supex_client.eval(code)
+      response = $supex_client.eval_with_reconnect(code)
       if response['error']
         output.puts "Error: #{response['error']['message']}"
       else
         out = response.dig('result', 'output')
         output.print(out) if out
       end
-      nil
-    rescue IOError, Errno::ECONNRESET => e
-      output.puts "Connection error: #{e.message}"
       nil
     end
 
