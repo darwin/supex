@@ -53,9 +53,6 @@ This project uses Ruby 3.2.2 to match SketchUp 2026 runtime. If you use [mise](h
 ```bash
 # mise will automatically use Ruby 3.2.2 from mise.toml
 mise install
-
-# If you use direnv, allow the .envrc
-direnv allow
 ```
 
 ## Step 1: Install Supex Extension in SketchUp
