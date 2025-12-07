@@ -1,13 +1,13 @@
 # Simple Table Example - Complete Tutorial
 
-This example provides a complete step-by-step introduction to [Supex](https://github.com/darwin/supex), showing you how to create 3D models in [SketchUp](https://www.sketchup.com) using Ruby scripts and [Claude Code](https://claude.ai/code).
+This example provides a complete step-by-step introduction to [Supex](https://github.com/darwin/supex), showing you how to create 3D models in [SketchUp](https://www.sketchup.com) using Ruby scripts and AI coding agents ([Claude Code](https://claude.ai/code) or [Gemini CLI](https://github.com/google-gemini/gemini-cli)).
 
 ![Simple table with vase created in SketchUp](img/hero-table-with-vase.png)
 
 ## What You'll Learn
 
 By the end of this tutorial, you'll know how to:
-- Set up Supex with SketchUp and Claude Code
+- Set up Supex with SketchUp and your AI agent
 - Write and execute Ruby scripts to create 3D geometry
 - Use introspection tools to verify your models
 - Save and iterate on your designs
@@ -26,15 +26,15 @@ Download from [sketchup.com](https://www.sketchup.com) if you haven't already.
 - Is it version 2026? (Check SketchUp → About SketchUp)
 - Note: Only latest SketchUp is tested (project is experimental)
 
-### 2. Claude Code
+### 2. AI Coding Agent
 
-Download from [claude.ai/code](https://claude.ai/code) if you haven't already.
+You need one of these [MCP](https://modelcontextprotocol.io)-compatible AI agents:
 
-**Verify installation:**
-- Can you launch Claude Code from your terminal?
-- Try running `claude --version`
+**Claude Code** - Download from [claude.ai/code](https://claude.ai/code)
+- Verify: `claude --version`
 
-**Note:** This tutorial uses Claude Code, but other [MCP](https://modelcontextprotocol.io)-compatible AI agents might work (untested).
+**Gemini CLI** - Install from [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli)
+- Verify: `gemini --version`
 
 ### 3. Supex Installation
 
@@ -79,23 +79,21 @@ This will:
 
 If you see any errors, check the [Troubleshooting](#troubleshooting) section below.
 
-## Step 2: Configure Claude Code
+## Step 2: Configure Your AI Agent
 
-You need to tell Claude Code where to find the Supex MCP server.
+This project supports both **Claude Code** and **Gemini CLI**. Configure whichever you prefer.
 
-### Option A: Command Line (Recommended)
+### Claude Code
 
-Run this command in your project directory:
+**Option A: Command Line (Recommended)**
 
 ```bash
 claude mcp add supex /absolute/path/to/supex/mcp --scope project
 ```
 
-Replace `/absolute/path/to/supex/mcp` with the actual path to the `mcp` file in your Supex installation.
+**Option B: Manual Configuration**
 
-### Option B: Manual Configuration
-
-Alternatively, create a file named `.mcp.json` in this project directory:
+Create `.mcp.json` in the project directory:
 
 ```json
 {
@@ -110,14 +108,30 @@ Alternatively, create a file named `.mcp.json` in this project directory:
 }
 ```
 
+### Gemini CLI
+
+Create `.gemini/settings.json` in the project directory:
+
+```json
+{
+  "mcpServers": {
+    "supex": {
+      "command": "/absolute/path/to/supex/mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
 **Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation.
 
 ### Verify Configuration
 
-**Claude Code automatically starts the MCP server** - you don't need to run anything manually.
+Both agents automatically start the MCP server - you don't need to run anything manually.
 
 To verify it's working:
-1. Open Claude Code in this project directory
+1. Open your AI agent in this project directory
 2. The MCP server should automatically connect
 3. You should have access to Supex tools like `check_sketchup_status`
 
@@ -129,8 +143,11 @@ Now you're ready to create your first 3D model! Let's build a simple table.
 
 ```
 example-simple-table/
-├── .mcp.json               # Supex MCP configuration (create this)
-├── CLAUDE.md               # AI guidance for this project
+├── .mcp.json               # MCP config for Claude Code (create this)
+├── .gemini/settings.json   # MCP config for Gemini CLI (create this)
+├── AGENTS.md               # Shared AI agent instructions
+├── CLAUDE.md               # Claude Code entry point
+├── GEMINI.md               # Gemini CLI entry point
 ├── README.md               # This file
 ├── mise.toml               # Ruby version (3.2.2 for SketchUp 2026)
 ├── Gemfile                 # Ruby dependencies
@@ -145,7 +162,7 @@ example-simple-table/
 
 The scripts use a **modular architecture** with the `SupexSimpleTable` module. To create a table, call the example method:
 
-In Claude Code, ask:
+In your AI agent, ask:
 
 ```
 Call SupexSimpleTable.example_table to create a table in SketchUp
@@ -157,7 +174,7 @@ SupexSimpleTable.example_table
 ```
 
 **What happens:**
-1. Claude Code sends the command to the MCP server
+1. Your AI agent sends the command to the MCP server
 2. MCP server forwards it to SketchUp
 3. SketchUp executes the `example_table` orchestration method
 4. A table with 4 legs appears in your model!
@@ -473,11 +490,11 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 
 ### MCP Connection Failed
 
-**Symptom**: Claude Code can't find Supex tools
+**Symptom**: Your AI agent can't find Supex tools
 
 **Solutions:**
-1. Verify `.mcp.json` exists in the project root
-2. Check the path in `.mcp.json` is absolute (not relative)
+1. Verify your MCP config exists (`.mcp.json` for Claude Code, `.gemini/settings.json` for Gemini CLI)
+2. Check the path in config is absolute (not relative)
 3. Make sure SketchUp is running with the extension
 4. Check `.tmp/supex-mcp.log` for error messages
 

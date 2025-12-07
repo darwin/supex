@@ -1,8 +1,7 @@
 _tmp/
 /.idea/
 .mcp.json
-.direnv/
-.envrc
+.gemini/
 *.iml
 .DS_Store
 /.claude/
