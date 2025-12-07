@@ -2,6 +2,7 @@ _tmp/
 /.idea/
 .mcp.json
 .gemini/
+SUPEX-AGENTS.md
 *.iml
 .DS_Store
 /.claude/

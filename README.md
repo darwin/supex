@@ -126,6 +126,17 @@ Create `.gemini/settings.json` in the project directory:
 
 **Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation.
 
+### Create Symlink for Shared Instructions
+
+The project uses shared Supex instructions from the main repository. Due to security restrictions in some AI agents (Gemini CLI doesn't allow `..` in file references), you need to create a symlink:
+
+```bash
+# From the project directory
+ln -s ../supex/examples/SUPEX-AGENTS.md SUPEX-AGENTS.md
+```
+
+**Note**: Adjust the path if your Supex installation is in a different location. The symlink must point to `SUPEX-AGENTS.md` in the Supex `examples/` directory.
+
 ### Verify Configuration
 
 Both agents automatically start the MCP server - you don't need to run anything manually.
@@ -148,6 +159,7 @@ example-simple-table/
 ├── AGENTS.md               # Shared AI agent instructions
 ├── CLAUDE.md               # Claude Code entry point
 ├── GEMINI.md               # Gemini CLI entry point
+├── SUPEX-AGENTS.md         # Symlink to supex/examples/ (create this)
 ├── README.md               # This file
 ├── mise.toml               # Ruby version (3.2.2 for SketchUp 2026)
 ├── Gemfile                 # Ruby dependencies
