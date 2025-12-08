@@ -34,8 +34,8 @@ module SupexStdlib
     # Generate a tree representation of SketchUp entity hierarchy
     # Similar to Unix `tree` command output
     #
-    # @param root [Sketchup::Entities, Sketchup::Group, Sketchup::ComponentInstance, nil]
-    #   Starting point for tree. Defaults to model.entities if nil.
+    # @param root [Sketchup::Entities, Sketchup::Group, Sketchup::ComponentInstance, Integer, nil]
+    #   Starting point for tree. Can be an entity, entityID, or nil for model root.
     # @param options [Hash] Configuration options
     # @option options [Integer] :max_depth Maximum depth to traverse (nil = unlimited)
     # @option options [Boolean] :show_types Include entity type names (default: true)
@@ -52,8 +52,17 @@ module SupexStdlib
     #   # │   └── [G] Legs
     #   # └── [C] Chair
     #
-    # @example With options
-    #   puts SupexStdlib::Utils.tree(nil, max_depth: 2, show_ids: true)
+    # @example With max_depth and IDs for drill-down
+    #   puts SupexStdlib::Utils.tree(nil, max_depth: 1, show_ids: true)
+    #   # .
+    #   # ├── [G] Table (#123)
+    #   # └── [C] Chair (#456)
+    #
+    # @example Drill down using entityID
+    #   puts SupexStdlib::Utils.tree(123, show_ids: true)
+    #   # [G] Table (#123)
+    #   # ├── [G] Top (#124)
+    #   # └── [G] Legs (#125)
     #
     def self.tree(root = nil, options = {})
       opts = {
@@ -64,10 +73,12 @@ module SupexStdlib
         types: nil
       }.merge(options)
 
-      entities = resolve_root_entities(root)
+      root_entity, entities = resolve_root(root)
       return "(empty)\n" if entities.nil? || entities.to_a.empty?
 
-      lines = ['.']
+      # Use "." for model root, entity label for specific entity
+      root_label = root_entity ? format_entity_label(root_entity, opts) : '.'
+      lines = [root_label]
       build_tree_lines(entities, lines, '', opts, 0)
       "#{lines.join("\n")}\n"
     end
@@ -75,20 +86,26 @@ module SupexStdlib
     class << self
       private
 
-      # Resolve the root to an Entities collection
-      # @param root [Object, nil] The root entity or entities
-      # @return [Sketchup::Entities, nil]
-      def resolve_root_entities(root)
+      # Resolve the root to an entity and its Entities collection
+      # @param root [Object, nil] The root entity, entityID, or nil
+      # @return [Array(Sketchup::Entity, Sketchup::Entities), Array(nil, Sketchup::Entities)]
+      def resolve_root(root)
         case root
         when nil
           model = Sketchup.active_model
-          model&.entities
+          [nil, model&.entities]
+        when Integer
+          model = Sketchup.active_model
+          entity = model&.find_entity_by_id(root)
+          [entity, get_child_entities(entity)]
         when Sketchup::Entities
-          root
+          [nil, root]
         when Sketchup::Group
-          root.entities
+          [root, root.entities]
         when Sketchup::ComponentInstance
-          root.definition.entities
+          [root, root.definition.entities]
+        else
+          [nil, nil]
         end
       end
 
