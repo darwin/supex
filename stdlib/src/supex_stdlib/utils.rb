@@ -13,6 +13,24 @@ module SupexStdlib
       empty: '    '
     }.freeze
 
+    # Type abbreviations for compact tree output
+    TYPE_ABBREV = {
+      'Group' => 'G',
+      'ComponentInstance' => 'C',
+      'ComponentDefinition' => 'D',
+      'Face' => 'F',
+      'Edge' => 'E',
+      'Vertex' => 'V',
+      'Layer' => 'L',
+      'Material' => 'M',
+      'Image' => 'I',
+      'Text' => 'T',
+      'Dimension' => 'Dim',
+      'SectionPlane' => 'SP',
+      'ConstructionLine' => 'CL',
+      'ConstructionPoint' => 'CP'
+    }.freeze
+
     # Generate a tree representation of SketchUp entity hierarchy
     # Similar to Unix `tree` command output
     #
@@ -29,10 +47,10 @@ module SupexStdlib
     # @example Basic usage
     #   puts SupexStdlib::Utils.tree
     #   # .
-    #   # ├── [Group] Table
-    #   # │   ├── [Group] Top
-    #   # │   └── [Group] Legs
-    #   # └── [ComponentInstance] Chair
+    #   # ├── [G] Table
+    #   # │   ├── [G] Top
+    #   # │   └── [G] Legs
+    #   # └── [C] Chair
     #
     # @example With options
     #   puts SupexStdlib::Utils.tree(nil, max_depth: 2, show_ids: true)
@@ -164,7 +182,10 @@ module SupexStdlib
       def format_entity_label(entity, opts)
         parts = []
 
-        parts << "[#{entity.typename}]" if opts[:show_types]
+        if opts[:show_types]
+          abbrev = TYPE_ABBREV[entity.typename] || entity.typename
+          parts << "[#{abbrev}]"
+        end
         parts << entity_name(entity)
         parts << "(##{entity.entityID})" if opts[:show_ids]
 
