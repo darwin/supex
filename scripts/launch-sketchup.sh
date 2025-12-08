@@ -56,13 +56,23 @@ create_log_dirs() {
 # Signal handler for graceful shutdown
 sigterm_handler() {
     log_warn "Shutdown signal received"
+
+    # Kill tail processes first
+    kill "${TAIL_STDERR_PID:-}" 2>/dev/null || true
+    kill "${TAIL_CONSOLE_PID:-}" 2>/dev/null || true
+
+    # Save window position (output goes to terminal)
+    "$SCRIPT_DIR/helpers/manage-window-position.sh" save || log_warn "Could not save window position"
+
+    # Shutdown SketchUp gracefully
     log_info "Shutting down SketchUp gracefully..."
     osascript "$SCRIPT_DIR/helpers/shutdown-sketchup.applescript"
-    exit 1
+
+    exit 0
 }
 
-# Set up signal traps
-trap 'trap " " SIGINT SIGTERM SIGHUP; kill 0; wait; sigterm_handler' SIGINT SIGTERM SIGHUP
+# Set up signal traps - call handler directly without kill 0
+trap 'trap "" SIGINT SIGTERM SIGHUP; sigterm_handler' SIGINT SIGTERM SIGHUP
 
 
 

@@ -43,6 +43,16 @@ save_position() {
         return 1
     fi
 
+    # Extract values for logging
+    local x y width height is_maximized
+    x=$(echo "$position_json" | jq -r '.x')
+    y=$(echo "$position_json" | jq -r '.y')
+    width=$(echo "$position_json" | jq -r '.width')
+    height=$(echo "$position_json" | jq -r '.height')
+    is_maximized=$(echo "$position_json" | jq -r '.isMaximized')
+
+    log_info "Position: x=$x, y=$y, width=$width, height=$height, maximized=$is_maximized"
+
     # Add timestamp and save
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -88,6 +98,8 @@ restore_position() {
         maximized_flag="1"
     fi
 
+    log_info "Position: x=$x, y=$y, width=$width, height=$height, maximized=$is_maximized"
+
     # Wait for SketchUp to be ready
     log_info "Waiting for SketchUp window..."
     if ! wait_for_process "SketchUp" 15; then
@@ -95,22 +107,23 @@ restore_position() {
         return 1
     fi
 
-    # Additional delay to ensure window is fully initialized
-    sleep 1
-
-    # Apply the saved position
-    local result
-    if result=$(osascript "$SCRIPT_DIR/set-window-position.applescript" "$x" "$y" "$width" "$height" "$maximized_flag" 2>&1); then
-        if [[ "$result" == *"Error"* ]]; then
-            log_warn "Could not restore window position: $result"
-            return 1
+    # Wait for window to be available (retry up to 10 times)
+    local max_retries=10
+    local retry=0
+    local result=""
+    while [[ $retry -lt $max_retries ]]; do
+        sleep 1
+        result=$(osascript "$SCRIPT_DIR/set-window-position.applescript" "$x" "$y" "$width" "$height" "$maximized_flag" 2>&1)
+        if [[ "$result" != *"Error"* ]]; then
+            log_success "Window position restored successfully"
+            return 0
         fi
-        log_success "Window position restored successfully"
-        return 0
-    else
-        log_warn "Failed to run set-window-position.applescript: $result"
-        return 1
-    fi
+        retry=$((retry + 1))
+        log_info "Waiting for window... (attempt $retry/$max_retries)"
+    done
+
+    log_warn "Could not restore window position: $result"
+    return 1
 }
 
 # Get current position (for debugging)

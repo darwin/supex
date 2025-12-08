@@ -1,32 +1,21 @@
 #!/usr/bin/osascript
 
--- Gracefully shutdown SketchUp after saving window position
+-- Gracefully shutdown SketchUp
 
 on run
     set appName to "SketchUp"
     set maxWaitSeconds to 30
 
-    -- Get the directory of this script using simpler path manipulation
-    set scriptPath to POSIX path of (path to me)
-    set scriptDir to do shell script "dirname " & quoted form of scriptPath
-
-    -- Save window position before quitting
-    try
-        do shell script scriptDir & "/manage-window-position.sh save"
-    on error errMsg
-        -- Log error but continue with shutdown
-        log "Warning: Could not save window position: " & errMsg
-    end try
-
-    -- Quit SketchUp if running
+    -- Check if SketchUp is running
     tell application "System Events"
-        if exists process appName then
-            tell application appName to quit
-        else
+        if not (exists process appName) then
             -- SketchUp not running, nothing to do
             return
         end if
     end tell
+
+    -- Quit SketchUp (outside System Events block, with saving no to skip dialogs)
+    tell application appName to quit saving no
 
     -- Wait for SketchUp to quit with timeout
     set waitedSeconds to 0
