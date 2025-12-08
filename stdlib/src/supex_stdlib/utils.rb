@@ -5,11 +5,11 @@ require 'sketchup'
 module SupexStdlib
   # Utility functions for SketchUp model introspection
   module Utils
-    # Tree symbols for ASCII output
+    # Tree symbols using Unicode box-drawing characters
     TREE_SYMBOLS = {
-      branch: '|-- ',
-      last_branch: '`-- ',
-      vertical: '|   ',
+      branch: '├── ',
+      last_branch: '└── ',
+      vertical: '│   ',
       empty: '    '
     }.freeze
 
@@ -29,10 +29,10 @@ module SupexStdlib
     # @example Basic usage
     #   puts SupexStdlib::Utils.tree
     #   # .
-    #   # |-- [Group] Table
-    #   # |   |-- [Group] Top
-    #   # |   `-- [Group] Legs
-    #   # `-- [ComponentInstance] Chair
+    #   # ├── [Group] Table
+    #   # │   ├── [Group] Top
+    #   # │   └── [Group] Legs
+    #   # └── [ComponentInstance] Chair
     #
     # @example With options
     #   puts SupexStdlib::Utils.tree(nil, max_depth: 2, show_ids: true)
