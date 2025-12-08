@@ -3,6 +3,7 @@ _tmp/
 .mcp.json
 .gemini/
 SUPEX-AGENTS.md
+AGENTS.override.md
 *.iml
 .DS_Store
 /.claude/

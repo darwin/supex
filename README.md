@@ -1,6 +1,6 @@
 # Simple Table Example - Complete Tutorial
 
-This example provides a complete step-by-step introduction to [Supex](https://github.com/darwin/supex), showing you how to create 3D models in [SketchUp](https://www.sketchup.com) using Ruby scripts and AI coding agents ([Claude Code](https://claude.ai/code) or [Gemini CLI](https://github.com/google-gemini/gemini-cli)).
+This example provides a complete step-by-step introduction to [Supex](https://github.com/darwin/supex), showing you how to create 3D models in [SketchUp](https://www.sketchup.com) using Ruby scripts and AI coding agents ([Claude Code](https://claude.ai/code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), or [Codex CLI](https://github.com/openai/codex)).
 
 ![Simple table with vase created in SketchUp](img/hero-table-with-vase.png)
 
@@ -35,6 +35,9 @@ You need one of these [MCP](https://modelcontextprotocol.io)-compatible AI agent
 
 **Gemini CLI** - Install from [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli)
 - Verify: `gemini --version`
+
+**Codex CLI** - Install from [github.com/openai/codex](https://github.com/openai/codex)
+- Verify: `codex --version`
 
 ### 3. Supex Installation
 
@@ -81,7 +84,7 @@ If you see any errors, check the [Troubleshooting](#troubleshooting) section bel
 
 ## Step 2: Configure Your AI Agent
 
-This project supports both **Claude Code** and **Gemini CLI**. Configure whichever you prefer.
+This project supports **Claude Code**, **Gemini CLI**, and **Codex CLI**. Configure whichever you prefer.
 
 ### Claude Code
 
@@ -124,6 +127,22 @@ Create `.gemini/settings.json` in the project directory:
 }
 ```
 
+### Codex CLI
+
+Add MCP server via command line:
+
+```bash
+codex mcp add supex -- /absolute/path/to/supex/mcp
+```
+
+Generate the instructions file (Codex doesn't support `@` syntax):
+
+```bash
+./scripts/generate-agents-override.sh
+```
+
+This creates `AGENTS.override.md` with resolved references.
+
 **Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation.
 
 ### Create Symlink for Shared Instructions
@@ -157,12 +176,15 @@ example-simple-table/
 ├── .mcp.json               # MCP config for Claude Code (create this)
 ├── .gemini/settings.json   # MCP config for Gemini CLI (create this)
 ├── AGENTS.md               # Shared AI agent instructions
+├── AGENTS.override.md      # Generated for Codex CLI (run script)
 ├── CLAUDE.md               # Claude Code entry point
 ├── GEMINI.md               # Gemini CLI entry point
 ├── SUPEX-AGENTS.md         # Symlink to supex/examples/ (create this)
 ├── README.md               # This file
 ├── mise.toml               # Ruby version (3.2.2 for SketchUp 2026)
 ├── Gemfile                 # Ruby dependencies
+├── scripts/
+│   └── generate-agents-override.sh  # Generate AGENTS.override.md
 └── src/
     ├── helpers.rb          # Shared utilities
     ├── create_table.rb     # Table creation functions
