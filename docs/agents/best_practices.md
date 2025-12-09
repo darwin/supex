@@ -50,6 +50,34 @@ Apply materials after geometry is verified:
 
 Materials on broken geometry are wasted effort.
 
+## Visual Debugging with Batch Screenshots
+
+When developing and testing geometry-creating code, use `take_batch_screenshots` for comprehensive visual verification:
+
+**Best practices:**
+
+1. **Isolate the target** - Use the `isolate` parameter to show only the component/group being worked on
+2. **Multiple angles** - Capture several views to verify geometry from all sides
+3. **Use isometric view** - The `iso` view uses parallel projection (no perspective), ideal for verifying proportions
+
+**Recommended shot set:**
+
+```ruby
+take_batch_screenshots(
+  shots=[
+    {"camera": {"type": "standard_view", "view": "front"}, "name": "front"},
+    {"camera": {"type": "standard_view", "view": "right"}, "name": "right"},
+    {"camera": {"type": "standard_view", "view": "top"}, "name": "top"},
+    {"camera": {"type": "standard_view", "view": "iso"}, "name": "iso"}
+  ],
+  isolate=entity_id  # ID of the group/component being developed
+)
+```
+
+**Available standard views:** `top`, `bottom`, `front`, `back`, `left`, `right`, `iso`
+
+All standard views use parallel projection - no perspective distortion.
+
 ## Common Pitfalls
 
 - **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1.mm
