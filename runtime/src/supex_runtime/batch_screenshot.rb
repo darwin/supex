@@ -179,8 +179,20 @@ module SupexRuntime
       def apply_custom_camera(view, camera_spec)
         eye = Geom::Point3d.new(*camera_spec['eye'])
         target = Geom::Point3d.new(*camera_spec['target'])
-        up_array = camera_spec['up'] || [0, 0, 1]
-        up = Geom::Vector3d.new(*up_array)
+
+        # Calculate view direction to check for parallel vectors
+        view_direction = eye.vector_to(target)
+
+        # Determine up vector - handle parallel case for top/bottom views
+        default_up = Geom::Vector3d.new(0, 0, 1)
+        up = if camera_spec['up']
+               Geom::Vector3d.new(*camera_spec['up'])
+             elsif view_direction.parallel?(default_up)
+               # Looking straight up or down - use Y axis as up
+               Geom::Vector3d.new(0, 1, 0)
+             else
+               default_up
+             end
 
         perspective = camera_spec['perspective'] != false
         fov = camera_spec['fov'] || 35.0
