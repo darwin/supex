@@ -24,8 +24,7 @@ supex/
 │   ├── src/supex_driver/
 │   │   ├── cli/               # CLI interface (status, eval, docs)
 │   │   ├── connection/        # Socket communication layer
-│   │   └── mcp/               # MCP server + resources
-│   ├── resources/docs/        # Embedded documentation
+│   │   └── mcp/               # MCP server
 │   └── tests/                 # Unit tests
 ├── runtime/                   # Ruby SketchUp Extension
 │   └── src/supex_runtime/     # Extension modules
@@ -53,7 +52,7 @@ supex/
 **Tools Provided**:
 - **Ruby Execution**: `eval_ruby`, `eval_ruby_file` (recommended)
 - **Model Introspection**: `get_model_info`, `list_entities`, `get_selection`, `get_layers`, `get_materials`, `get_camera_info`
-- **Visualization**: `take_screenshot` (saves to `.tmp/screenshots/`)
+- **Visualization**: `take_screenshot`, `take_batch_screenshots` (multiple shots with camera control)
 - **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
 - **Connection Health**: `check_sketchup_status`, `console_capture_status`
 

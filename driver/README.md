@@ -11,8 +11,8 @@ Python MCP server and CLI for SketchUp automation. Enables AI agents and command
 
 Supex Driver is part of the Supex platform - a bridge between AI agents and SketchUp. It provides:
 
-- **MCP Server**: 14 tools for AI agents via Model Context Protocol
-- **CLI**: 14 commands for direct terminal interaction
+- **MCP Server**: 15 tools for AI agents via Model Context Protocol
+- **CLI**: 15 commands for direct terminal interaction
 - **Connection Layer**: TCP/JSON-RPC client for SketchUp runtime
 
 ## Configuration
@@ -48,6 +48,7 @@ Environment variables (all optional):
 | `get_materials()` | All materials with colors |
 | `get_camera_info()` | Camera position and settings |
 | `take_screenshot(output_path?)` | Save view to file |
+| `take_batch_screenshots(shots)` | Multiple screenshots with camera control |
 
 ### Model Management
 
@@ -149,7 +150,7 @@ driver/
 +-- src/supex_driver/
 |   +-- __init__.py          # Package exports
 |   +-- mcp/
-|   |   +-- server.py        # FastMCP server, 14 tools
+|   |   +-- server.py        # FastMCP server, 15 tools
 |   +-- cli/
 |   |   +-- main.py          # Typer CLI commands
 |   +-- connection/

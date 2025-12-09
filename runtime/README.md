@@ -25,6 +25,7 @@ Supex Runtime is part of the Supex platform:
 | `get_materials()` | All materials with colors |
 | `get_camera_info()` | Camera position and settings |
 | `take_screenshot(path?)` | Save view to file |
+| `take_batch_screenshots(params)` | Multiple screenshots with camera control |
 | `open_model(path)` | Open .skp file |
 | `save_model(path?)` | Save model |
 | `export_scene(format)` | Export: skp, obj, stl, png, jpg |

@@ -18,14 +18,16 @@ Visualize SketchUp entity hierarchy in a tree format (similar to unix `tree` com
 puts SupexStdlib::Shell.tree
 ```
 
-Output:
+Output (uses Unicode box-drawing characters and type abbreviations):
 ```
 .
-|-- [Group] Table
-|   |-- [Group] Legs
-|   `-- [Group] Top
-`-- [ComponentInstance] Chair
+├── [G] Table
+│   ├── [G] Legs
+│   └── [G] Top
+└── [C] Chair
 ```
+
+Type abbreviations: `[G]` = Group, `[C]` = ComponentInstance, `[F]` = Face, `[E]` = Edge
 
 #### Options
 
@@ -33,8 +35,9 @@ Output:
 # Limit depth
 puts SupexStdlib::Shell.tree(nil, max_depth: 2)
 
-# Show entity IDs
+# Show entity IDs (useful for drill-down)
 puts SupexStdlib::Shell.tree(nil, show_ids: true)
+# Output: ├── [G] Table (#123)
 
 # Include hidden entities
 puts SupexStdlib::Shell.tree(nil, show_hidden: true)
@@ -48,6 +51,13 @@ puts SupexStdlib::Shell.tree(nil, types: ['Group'])
 # Start from specific entity
 group = Sketchup.active_model.entities.grep(Sketchup::Group).first
 puts SupexStdlib::Shell.tree(group)
+
+# Drill down using entityID (from show_ids output)
+puts SupexStdlib::Shell.tree(123, show_ids: true)
+# Output:
+# [G] Table (#123)
+# ├── [G] Legs (#124)
+# └── [G] Top (#125)
 ```
 
 ## Development

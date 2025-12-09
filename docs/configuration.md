@@ -13,6 +13,15 @@ Supex can be configured via environment variables:
 | `SUPEX_LOG_DIR` | `~/.supex/logs` | Log directory |
 | `SUPEX_VERBOSE` | (unset) | Enable verbose logging (set to `1`) |
 | `SUPEX_AGENT` | (auto) | Agent identifier for logging |
+| `SUPEX_NO_AUTOSTART` | (unset) | Disable automatic server start on extension load (set to `1`) |
+| `SUPEX_CHECK_INTERVAL` | `0.25` | Request check interval in seconds |
+| `SUPEX_RESPONSE_DELAY` | `0` | Response delay in seconds (for debugging) |
+
+## Standard Library
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_STDLIB_PATH` | (auto) | Custom path to stdlib directory |
 
 ## REPL Server
 
