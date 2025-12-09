@@ -59,7 +59,7 @@ class TestUtils < Minitest::Test
     points = SupexRuntime::Utils.create_circle_points(center, radius, 8)
 
     points.each do |point|
-      distance = Math.sqrt((point[0] - center[0])**2 + (point[1] - center[1])**2)
+      distance = Math.sqrt(((point[0] - center[0])**2) + ((point[1] - center[1])**2))
       assert_in_delta radius, distance, 0.0001, 'Points should be at radius distance'
     end
   end

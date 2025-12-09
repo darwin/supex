@@ -60,7 +60,7 @@ module SupexRuntime
     # @param host [String] server host (default: 127.0.0.1)
     def self.start_repl_server(port: REPLServer::DEFAULT_REPL_PORT, host: REPLServer::DEFAULT_REPL_HOST)
       if @repl_server&.running?
-        Utils.console_write("Supex: REPL server is already running")
+        Utils.console_write('Supex: REPL server is already running')
         return false
       end
 
@@ -248,7 +248,7 @@ module SupexRuntime
     # @return [Boolean] true if stdlib was loaded successfully
     def self.load_stdlib
       stdlib_path = ENV['SUPEX_STDLIB_PATH'] ||
-                    File.expand_path('../../../../stdlib/src/supex_stdlib.rb', __FILE__)
+                    File.expand_path('../../../stdlib/src/supex_stdlib.rb', __dir__)
 
       if File.exist?(stdlib_path)
         require stdlib_path

@@ -10,15 +10,13 @@ class EvalCodeTester
     output = StringIO.new
 
     with_captured_output(output) do
-      begin
-        # rubocop:disable Security/Eval
-        result = eval(code, TOPLEVEL_BINDING)
-        # rubocop:enable Security/Eval
-        output.puts "=> #{result.inspect}"
-      rescue Exception => e # rubocop:disable Lint/RescueException
-        output.puts "#<#{e.class}: #{e.message}>"
-        output.puts e.backtrace.first(5).join("\n") if e.backtrace
-      end
+      # rubocop:disable Security/Eval
+      result = eval(code, TOPLEVEL_BINDING)
+      # rubocop:enable Security/Eval
+      output.puts "=> #{result.inspect}"
+    rescue Exception => e # rubocop:disable Lint/RescueException
+      output.puts "#<#{e.class}: #{e.message}>"
+      output.puts e.backtrace.first(5).join("\n") if e.backtrace
     end
 
     output.rewind

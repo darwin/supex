@@ -11,7 +11,6 @@ require_relative 'tools'
 
 module SupexRuntime
   # TCP server for handling JSON-RPC requests from the Python MCP server
-  # rubocop:disable Metrics/ClassLength
   class BridgeServer
     include Tools
 

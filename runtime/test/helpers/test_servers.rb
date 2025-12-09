@@ -8,7 +8,8 @@
 class MockREPLServer
   attr_reader :port, :received_messages, :received_codes
 
-  def initialize(port: 0) # port 0 = auto-assign
+  # port 0 = auto-assign
+  def initialize(port: 0)
     @server = TCPServer.new('127.0.0.1', port)
     @port = @server.addr[1]
     @received_messages = []
@@ -83,7 +84,7 @@ end
 
 # Mock TCP client for BridgeServer integration tests
 class MockBridgeClient
-  def initialize(host: '127.0.0.1', port:)
+  def initialize(port:, host: '127.0.0.1')
     @host = host
     @port = port
   end

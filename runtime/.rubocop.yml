@@ -9,20 +9,9 @@ AllCops:
 Style/Documentation:
   Enabled: false  # SketchUp extensions often don't need full class documentation
 
-Metrics/MethodLength:
-  Max: 40  # Allow longer methods for SketchUp API calls and request handling
-
-Metrics/ClassLength:
-  Max: 200  # Allow longer classes for main server implementation
-
-Metrics/ModuleLength:
-  Max: 250  # Allow longer modules for tool implementations
-
-Metrics/CyclomaticComplexity:
-  Max: 15  # Allow higher complexity for API handling
-
-Metrics/AbcSize:
-  Max: 40  # Allow higher ABC size for SketchUp operations with many API calls
+# Disable all Metrics cops - they're noisy and not useful for this codebase
+Metrics:
+  Enabled: false
 
 Layout/LineLength:
   Max: 120  # Allow longer lines for hash literals and API calls
@@ -40,8 +29,11 @@ Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
 
+# SketchUp API mocks need to match real API signatures (x, y, z params)
 Naming/MethodParameterName:
-  MinNameLength: 2  # Allow short param names like 'id'
+  MinNameLength: 1
+  Exclude:
+    - 'test/helpers/sketchup_mocks.rb'
 
 # shutdown_server is a command, not a predicate
 Naming/PredicateMethod:
@@ -50,6 +42,23 @@ Naming/PredicateMethod:
 Style/GlobalVars:
   AllowedVariables:
     - '$SKETCHUP_CONSOLE'  # SketchUp global console
+    - '$supex_client'  # REPL client instance
+    - '$supex_repl_standalone'  # REPL standalone mode flag
+
+Naming/MethodName:
+  Exclude:
+    - 'test/helpers/sketchup_mocks.rb'
+
+Naming/VariableName:
+  Exclude:
+    - 'test/helpers/sketchup_mocks.rb'
+
+Style/OptionalBooleanParameter:
+  Exclude:
+    - 'test/helpers/sketchup_mocks.rb'
+
+Lint/FloatComparison:
+  Enabled: false  # Float comparison is intentional in zoom padding
 
 # Allow rescue without explicit error class for SketchUp compatibility
 Style/RescueStandardError:

@@ -25,9 +25,9 @@ class MockPoint
   def offset(vector, distance = nil)
     if distance
       MockPoint.new(
-        @x + vector.x * distance,
-        @y + vector.y * distance,
-        @z + vector.z * distance
+        @x + (vector.x * distance),
+        @y + (vector.y * distance),
+        @z + (vector.z * distance)
       )
     else
       MockPoint.new(@x + vector.x, @y + vector.y, @z + vector.z)
@@ -35,7 +35,7 @@ class MockPoint
   end
 
   def distance(other)
-    Math.sqrt((@x - other.x)**2 + (@y - other.y)**2 + (@z - other.z)**2)
+    Math.sqrt(((@x - other.x)**2) + ((@y - other.y)**2) + ((@z - other.z)**2))
   end
 end
 
@@ -54,14 +54,14 @@ class MockVector
 
   def parallel?(other)
     # Cross product - if zero, vectors are parallel
-    cross_x = @y * other.z - @z * other.y
-    cross_y = @z * other.x - @x * other.z
-    cross_z = @x * other.y - @y * other.x
+    cross_x = (@y * other.z) - (@z * other.y)
+    cross_y = (@z * other.x) - (@x * other.z)
+    cross_z = (@x * other.y) - (@y * other.x)
     cross_x.abs < 0.0001 && cross_y.abs < 0.0001 && cross_z.abs < 0.0001
   end
 
   def normalize!
-    len = Math.sqrt(@x**2 + @y**2 + @z**2)
+    len = Math.sqrt((@x**2) + (@y**2) + (@z**2))
     return self if len < 0.0001
 
     @x /= len
@@ -79,7 +79,7 @@ class MockVector
   end
 
   def length
-    Math.sqrt(@x**2 + @y**2 + @z**2)
+    Math.sqrt((@x**2) + (@y**2) + (@z**2))
   end
 end
 
@@ -103,9 +103,9 @@ class MockBounds
 
   def diagonal
     Math.sqrt(
-      (@max.x - @min.x)**2 +
-      (@max.y - @min.y)**2 +
-      (@max.z - @min.z)**2
+      ((@max.x - @min.x)**2) +
+      ((@max.y - @min.y)**2) +
+      ((@max.z - @min.z)**2)
     )
   end
 end
@@ -238,8 +238,8 @@ class MockEntities
     @entities = []
   end
 
-  def each(&block)
-    @entities.each(&block)
+  def each(&)
+    @entities.each(&)
   end
 
   def add_entity(entity)
@@ -251,8 +251,8 @@ class MockEntities
     @entities.select { |e| e.is_a?(type) }
   end
 
-  def map(&block)
-    @entities.map(&block)
+  def map(&)
+    @entities.map(&)
   end
 
   def to_a
@@ -275,12 +275,12 @@ class MockLayers
     @layers = [MockLayer.new]
   end
 
-  def each(&block)
-    @layers.each(&block)
+  def each(&)
+    @layers.each(&)
   end
 
-  def map(&block)
-    @layers.map(&block)
+  def map(&)
+    @layers.map(&)
   end
 
   def add_layer(layer)
@@ -307,12 +307,12 @@ class MockMaterials
     @materials = []
   end
 
-  def each(&block)
-    @materials.each(&block)
+  def each(&)
+    @materials.each(&)
   end
 
-  def map(&block)
-    @materials.map(&block)
+  def map(&)
+    @materials.map(&)
   end
 
   def add_material(material)
@@ -327,16 +327,16 @@ class MockSelection
     @selection = []
   end
 
-  def each(&block)
-    @selection.each(&block)
+  def each(&)
+    @selection.each(&)
   end
 
   def count
     @selection.length
   end
 
-  def map(&block)
-    @selection.map(&block)
+  def map(&)
+    @selection.map(&)
   end
 
   def add(entity)
@@ -365,9 +365,7 @@ class MockCamera
     @perspective
   end
 
-  def perspective=(value)
-    @perspective = value
-  end
+  attr_writer :perspective
 
   def set(eye, target, up)
     @eye = eye
@@ -396,7 +394,7 @@ class MockView
     true
   end
 
-  def zoom(entities_or_factor)
+  def zoom(_entities_or_factor)
     true
   end
 end
@@ -419,8 +417,7 @@ class MockRenderingOptions
 end
 
 class MockModel
-  attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options, :bounds
-  attr_accessor :active_path
+  attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options, :bounds, :active_path
 
   def initialize(path: nil, title: 'Untitled')
     @path = path
@@ -444,9 +441,7 @@ class MockModel
     @entities.find_by_id(id)
   end
 
-  def rendering_options
-    @rendering_options
-  end
+  attr_reader :rendering_options
 
   def save(path = nil)
     @path = path if path
@@ -614,9 +609,7 @@ module UI
       @timer_id = 0
     end
 
-    def timers
-      @timers
-    end
+    attr_reader :timers
 
     def messagebox(message, type = MB_OK)
       @messageboxes ||= []

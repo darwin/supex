@@ -291,12 +291,12 @@ class TestBatchScreenshot < Minitest::Test
 
   def test_apply_zoom_entity_with_valid_id
     # Add entity to model
-    entity = Sketchup::Face.new(id: 12345)
+    entity = Sketchup::Face.new(id: 12_345)
     @mock_model.entities.add_entity(entity)
 
     camera_spec = {
       'type' => 'zoom_entity',
-      'entity_ids' => [12345]
+      'entity_ids' => [12_345]
     }
 
     # Should not raise - just call it
@@ -307,7 +307,7 @@ class TestBatchScreenshot < Minitest::Test
   def test_apply_zoom_entity_invalid_id_raises_error
     camera_spec = {
       'type' => 'zoom_entity',
-      'entity_ids' => [99999]
+      'entity_ids' => [99_999]
     }
 
     assert_raises(RuntimeError) do
@@ -353,7 +353,7 @@ class TestBatchScreenshot < Minitest::Test
     params = {
       'shots' => [
         { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good1' },
-        { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [99999] }, 'name' => 'bad' },
+        { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [99_999] }, 'name' => 'bad' },
         { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good2' }
       ],
       'output_dir' => @test_output_dir,
@@ -405,7 +405,7 @@ class TestBatchScreenshot < Minitest::Test
   # Error Handling Tests
   # ==========================================================================
 
-  # Note: test_unknown_camera_type_raises_error is defined above in Zoom Extents Flag section
+  # NOTE: test_unknown_camera_type_raises_error is defined above in Zoom Extents Flag section
 
   # ==========================================================================
   # Camera State Preservation Tests
@@ -467,11 +467,11 @@ class TestBatchScreenshot < Minitest::Test
 
   def test_apply_isolation_with_group
     # Add a group to the model
-    group = Sketchup::Group.new(id: 99999)
+    group = Sketchup::Group.new(id: 99_999)
     @mock_model.entities.add_entity(group)
 
     # Apply isolation
-    SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 99999)
+    SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 99_999)
 
     # Verify active_path was set
     refute_nil @mock_model.active_path
@@ -481,11 +481,11 @@ class TestBatchScreenshot < Minitest::Test
 
   def test_apply_isolation_with_component_instance
     # Add a component instance to the model
-    component = Sketchup::ComponentInstance.new(id: 88888)
+    component = Sketchup::ComponentInstance.new(id: 88_888)
     @mock_model.entities.add_entity(component)
 
     # Apply isolation
-    SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 88888)
+    SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 88_888)
 
     # Verify active_path was set
     refute_nil @mock_model.active_path
@@ -496,25 +496,25 @@ class TestBatchScreenshot < Minitest::Test
   def test_apply_isolation_with_invalid_entity_raises_error
     # Try to isolate non-existent entity
     assert_raises(RuntimeError) do
-      SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 99999)
+      SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 99_999)
     end
   end
 
   def test_apply_isolation_with_face_raises_error
     # Add a face (not isolatable)
-    face = Sketchup::Face.new(id: 77777)
+    face = Sketchup::Face.new(id: 77_777)
     @mock_model.entities.add_entity(face)
 
     # Should raise error - can only isolate Group/ComponentInstance
     error = assert_raises(RuntimeError) do
-      SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 77777)
+      SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 77_777)
     end
     assert_match(/Can only isolate Group or ComponentInstance/, error.message)
   end
 
   def test_batch_with_isolation_restores_state
     # Add a group
-    group = Sketchup::Group.new(id: 55555)
+    group = Sketchup::Group.new(id: 55_555)
     @mock_model.entities.add_entity(group)
 
     # Verify initial state
@@ -524,7 +524,7 @@ class TestBatchScreenshot < Minitest::Test
     # Execute batch with isolation
     params = {
       'shots' => [
-        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'isolate' => 55555, 'name' => 'isolated' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'isolate' => 55_555, 'name' => 'isolated' }
       ],
       'output_dir' => @test_output_dir,
       'base_name' => 'isolation_test'

@@ -152,7 +152,7 @@ class TestMain < Minitest::Test
   end
 
   def test_start_repl_disabled_via_env
-    original = ENV['SUPEX_REPL_DISABLED']
+    original = ENV.fetch('SUPEX_REPL_DISABLED', nil)
     ENV['SUPEX_REPL_DISABLED'] = '1'
 
     SupexRuntime::Main.start

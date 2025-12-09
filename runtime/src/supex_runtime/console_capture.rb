@@ -145,7 +145,7 @@ module SupexRuntime
               if line.strip.empty?
                 line
               else
-                idea_format(@severity, line.chomp) + "\n"
+                "#{idea_format(@severity, line.chomp)}\n"
               end
             end.join
 

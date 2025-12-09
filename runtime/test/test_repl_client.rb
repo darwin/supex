@@ -38,7 +38,7 @@ class TestREPLClient < Minitest::Test
 
   def test_client_connection_refused
     # Use a port where nothing is listening
-    client = REPLClient.new(@host, 59999)
+    client = REPLClient.new(@host, 59_999)
     assert_raises(Errno::ECONNREFUSED) { client.connect }
   end
 
@@ -48,6 +48,6 @@ class TestREPLClient < Minitest::Test
 
   def test_server_available_false
     # Use a port where nothing is listening
-    refute server_available?(@host, 59999)
+    refute server_available?(@host, 59_999)
   end
 end

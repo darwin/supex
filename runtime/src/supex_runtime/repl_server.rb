@@ -108,7 +108,11 @@ module SupexRuntime
     def close_all_clients
       @clients.each do |client|
         log_client_closed(client)
-        client.socket.close rescue nil
+        begin
+          client.socket.close
+        rescue
+          nil
+        end
       end
       @clients.clear
     end
@@ -170,7 +174,11 @@ module SupexRuntime
       line = client.socket.gets
       unless line
         log_client_closed(client)
-        client.socket.close rescue nil
+        begin
+          client.socket.close
+        rescue
+          nil
+        end
         return :disconnect
       end
 
@@ -180,11 +188,19 @@ module SupexRuntime
     rescue IOError, Errno::ECONNRESET, Errno::EPIPE => e
       log_verbose "Client disconnected: #{e.message}"
       log_client_closed(client)
-      client.socket.close rescue nil
+      begin
+        client.socket.close
+      rescue
+        nil
+      end
       :disconnect
     rescue StandardError => e
       log "Error processing client: #{e.message}"
-      client.socket.close rescue nil
+      begin
+        client.socket.close
+      rescue
+        nil
+      end
       :disconnect
     end
 
