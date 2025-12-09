@@ -2,7 +2,7 @@ _tmp/
 /.idea/
 .mcp.json
 .gemini/
-SUPEX-AGENTS.md
+supex-docs
 AGENTS.override.md
 *.iml
 .DS_Store
