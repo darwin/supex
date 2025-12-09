@@ -210,7 +210,8 @@ module SupexRuntime
     def self.unload_extension_files
       files_to_reload = %w[
         version.rb utils.rb geometry.rb materials.rb
-        export.rb joinery.rb bridge_server.rb repl_server.rb main.rb
+        export.rb joinery.rb batch_screenshot.rb tools.rb
+        bridge_server.rb repl_server.rb main.rb
       ]
       extension_dir = __dir__
 

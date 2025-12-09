@@ -501,6 +501,7 @@ module SupexRuntime
       when 'get_materials' then materials_info
       when 'get_camera_info' then camera_info
       when 'take_screenshot' then take_screenshot(args)
+      when 'take_batch_screenshots' then batch_screenshot(args)
       when 'open_model' then open_model(args)
       when 'save_model' then save_model(args)
       end

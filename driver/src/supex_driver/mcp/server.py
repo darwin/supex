@@ -532,6 +532,84 @@ def take_screenshot(
 
 
 @mcp.tool()
+def take_batch_screenshots(
+    ctx: Context,
+    shots: list,
+    output_dir: str | None = None,
+    base_name: str = "screenshot",
+    width: int = 1920,
+    height: int = 1080,
+    transparent: bool = False,
+    restore_camera: bool = True
+) -> str:
+    """Take multiple screenshots with different camera positions in a single batch.
+
+    Designed for zero visual flicker - renders happen offscreen while preserving
+    the user's current view. Camera is restored after batch completes.
+
+    Args:
+        shots: List of shot specifications. Each shot is a dict with:
+            - camera: Camera specification dict with 'type' and type-specific params:
+                - type: "standard_view" with view: "top"|"front"|"right"|"left"|"back"|"bottom"|"iso"
+                - type: "custom" with eye: [x,y,z], target: [x,y,z], optional up/fov/perspective
+                - type: "zoom_entity" with entity_ids: [id1, id2, ...], optional padding
+                - type: "zoom_extents" (no additional params needed)
+            - name: Optional custom name for the shot (used in filename)
+            - width: Optional width override for this shot
+            - height: Optional height override for this shot
+        output_dir: Directory for screenshots. Defaults to .tmp/batch_screenshots/timestamp/
+        base_name: Base filename for screenshots (default "screenshot")
+        width: Default width for all shots (default 1920)
+        height: Default height for all shots (default 1080)
+        transparent: Use transparent background (default False)
+        restore_camera: Restore original camera after batch (default True)
+
+    Returns:
+        JSON with success status, output directory, and array of results for each shot.
+        Each result contains file_path (on success) or error message (on failure).
+
+    Example:
+        take_batch_screenshots(
+            shots=[
+                {"camera": {"type": "standard_view", "view": "front"}, "name": "front"},
+                {"camera": {"type": "standard_view", "view": "iso"}, "name": "iso"},
+                {"camera": {"type": "zoom_extents"}, "name": "full"},
+                {"camera": {"type": "custom", "eye": [100, 100, 50], "target": [0, 0, 0]}, "name": "custom"}
+            ],
+            base_name="model_view"
+        )
+    """
+    try:
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
+        params = {
+            "shots": shots,
+            "base_name": base_name,
+            "width": width,
+            "height": height,
+            "transparent": transparent,
+            "restore_camera": restore_camera
+        }
+        if output_dir:
+            params["output_dir"] = output_dir
+
+        result = sketchup.send_command(
+            method="take_batch_screenshots",
+            params=params,
+            request_id=ctx.request_id
+        )
+        return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error taking batch screenshots: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error taking batch screenshots: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except Exception as e:
+        logger.exception(f"Unexpected error taking batch screenshots: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+
+
+@mcp.tool()
 def open_model(ctx: Context, path: str) -> str:
     """Open a SketchUp model file
 

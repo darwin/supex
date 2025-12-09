@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require_relative 'utils'
+require_relative 'batch_screenshot'
 
 module SupexRuntime
   # Tool implementations for the Supex server
@@ -103,6 +104,18 @@ module SupexRuntime
       log "Error taking screenshot: #{e.message}"
       log e.backtrace.join("\n")
       raise "Failed to take screenshot: #{e.message}"
+    end
+
+    # Take batch screenshots with different camera positions
+    # Designed for zero visual flicker - renders happen offscreen
+    # @param params [Hash] batch screenshot parameters
+    # @return [Hash] batch results with file paths
+    def batch_screenshot(params)
+      BatchScreenshot.execute(params)
+    rescue StandardError => e
+      log "Error taking batch screenshots: #{e.message}"
+      log e.backtrace.join("\n")
+      raise "Failed to take batch screenshots: #{e.message}"
     end
 
     # Open a SketchUp model file
