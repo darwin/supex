@@ -20,17 +20,6 @@ Style/FrozenStringLiteralComment:
 Layout/LineLength:
   Max: 120
 
-Metrics/MethodLength:
-  Max: 90
-
-Metrics/AbcSize:
-  Max: 110
-
-Metrics/CyclomaticComplexity:
-  Max: 30
-
-Metrics/PerceivedComplexity:
-  Max: 35
-
-Metrics/BlockLength:
-  Max: 150
+# Disable all Metrics cops - noisy and not useful for this codebase
+Metrics:
+  Enabled: false
