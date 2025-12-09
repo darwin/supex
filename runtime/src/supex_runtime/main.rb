@@ -228,10 +228,11 @@ module SupexRuntime
     end
 
     # Reload the main extension file
+    # Note: We load main.rb directly, not supex_runtime.rb, because supex_runtime.rb
+    # has a file_loaded? guard that prevents re-execution after initial load
     def self.reload_main_extension_file
       extension_dir = __dir__
-      main_extension_dir = File.expand_path(File.join(extension_dir, '..'))
-      main_file = File.join(main_extension_dir, 'supex_runtime.rb')
+      main_file = File.join(extension_dir, 'main.rb')
       load(main_file) if File.exist?(main_file)
     end
 
