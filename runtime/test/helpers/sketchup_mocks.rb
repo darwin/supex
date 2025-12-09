@@ -9,13 +9,33 @@ class MockPoint
   attr_accessor :x, :y, :z
 
   def initialize(x = 0, y = 0, z = 0)
-    @x = x
-    @y = y
-    @z = z
+    @x = x.to_f
+    @y = y.to_f
+    @z = z.to_f
   end
 
   def to_a
     [x, y, z]
+  end
+
+  def vector_to(other)
+    MockVector.new(other.x - @x, other.y - @y, other.z - @z)
+  end
+
+  def offset(vector, distance = nil)
+    if distance
+      MockPoint.new(
+        @x + vector.x * distance,
+        @y + vector.y * distance,
+        @z + vector.z * distance
+      )
+    else
+      MockPoint.new(@x + vector.x, @y + vector.y, @z + vector.z)
+    end
+  end
+
+  def distance(other)
+    Math.sqrt((@x - other.x)**2 + (@y - other.y)**2 + (@z - other.z)**2)
   end
 end
 
@@ -23,26 +43,69 @@ class MockVector
   attr_accessor :x, :y, :z
 
   def initialize(x = 0, y = 0, z = 0)
-    @x = x
-    @y = y
-    @z = z
+    @x = x.to_f
+    @y = y.to_f
+    @z = z.to_f
   end
 
   def to_a
     [x, y, z]
+  end
+
+  def parallel?(other)
+    # Cross product - if zero, vectors are parallel
+    cross_x = @y * other.z - @z * other.y
+    cross_y = @z * other.x - @x * other.z
+    cross_z = @x * other.y - @y * other.x
+    cross_x.abs < 0.0001 && cross_y.abs < 0.0001 && cross_z.abs < 0.0001
+  end
+
+  def normalize!
+    len = Math.sqrt(@x**2 + @y**2 + @z**2)
+    return self if len < 0.0001
+
+    @x /= len
+    @y /= len
+    @z /= len
+    self
+  end
+
+  def normalize
+    dup.normalize!
+  end
+
+  def reverse
+    MockVector.new(-@x, -@y, -@z)
+  end
+
+  def length
+    Math.sqrt(@x**2 + @y**2 + @z**2)
   end
 end
 
 class MockBounds
   attr_accessor :min, :max, :center
 
-  def initialize(min: MockPoint.new(0, 0, 0), max: MockPoint.new(10, 10, 10))
+  def initialize(min: MockPoint.new(0, 0, 0), max: MockPoint.new(10, 10, 10), empty: false)
     @min = min
     @max = max
+    @empty = empty
     @center = MockPoint.new(
       (min.x + max.x) / 2.0,
       (min.y + max.y) / 2.0,
       (min.z + max.z) / 2.0
+    )
+  end
+
+  def empty?
+    @empty
+  end
+
+  def diagonal
+    Math.sqrt(
+      (@max.x - @min.x)**2 +
+      (@max.y - @min.y)**2 +
+      (@max.z - @min.z)**2
     )
   end
 end
@@ -277,18 +340,34 @@ class MockSelection
 end
 
 class MockCamera
-  attr_accessor :eye, :target, :up, :fov, :aspect_ratio
+  attr_accessor :eye, :target, :up, :fov, :aspect_ratio, :height
 
-  def initialize
-    @eye = MockPoint.new(0, 0, 100)
-    @target = MockPoint.new(0, 0, 0)
-    @up = MockVector.new(0, 1, 0)
-    @fov = 45.0
+  def initialize(eye = nil, target = nil, up = nil, perspective = true, fov = 45.0)
+    @eye = eye || MockPoint.new(0, 0, 100)
+    @target = target || MockPoint.new(0, 0, 0)
+    @up = up || MockVector.new(0, 1, 0)
+    @fov = fov
     @aspect_ratio = 1.777
+    @perspective = perspective
+    @height = 100.0
   end
 
   def perspective?
-    true
+    @perspective
+  end
+
+  def perspective=(value)
+    @perspective = value
+  end
+
+  def set(eye, target, up)
+    @eye = eye
+    @target = target
+    @up = up
+  end
+
+  def direction
+    @eye.vector_to(@target).normalize
   end
 end
 
@@ -303,10 +382,18 @@ class MockView
     FileUtils.touch(options[:filename]) if options[:filename]
     true
   end
+
+  def zoom_extents
+    true
+  end
+
+  def zoom(entities_or_factor)
+    true
+  end
 end
 
 class MockModel
-  attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options
+  attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options, :bounds
 
   def initialize(path: nil, title: 'Untitled')
     @path = path
@@ -317,6 +404,7 @@ class MockModel
     @materials = MockMaterials.new
     @active_view = MockView.new
     @options = { 'UnitsOptions' => { 'LengthUnit' => 2 } }
+    @bounds = MockBounds.new
   end
 
   def modified?
@@ -372,6 +460,37 @@ module Sketchup
 
     def reset_mocks
       @mock_model = nil
+    end
+  end
+
+  # Sketchup::Camera class for batch_screenshot tests
+  class Camera < MockCamera
+  end
+end
+
+# Geom module with Point3d and Vector3d
+module Geom
+  class Point3d < MockPoint
+    def initialize(*args)
+      if args.length == 3
+        super(args[0], args[1], args[2])
+      elsif args.length == 1 && args[0].is_a?(Array)
+        super(args[0][0], args[0][1], args[0][2])
+      else
+        super
+      end
+    end
+  end
+
+  class Vector3d < MockVector
+    def initialize(*args)
+      if args.length == 3
+        super(args[0], args[1], args[2])
+      elsif args.length == 1 && args[0].is_a?(Array)
+        super(args[0][0], args[0][1], args[0][2])
+      else
+        super
+      end
     end
   end
 end
