@@ -29,15 +29,14 @@ class TestBatchScreenshot < Minitest::Test
 
   def test_execute_returns_error_without_model
     # Temporarily make active_model return nil
-    Sketchup.define_singleton_method(:active_model) { nil }
+    Sketchup.force_no_model = true
 
     result = SupexRuntime::BatchScreenshot.execute({ 'shots' => [{}] })
 
     assert_equal false, result[:success]
     assert_match(/no active model/i, result[:error])
   ensure
-    # Restore original behavior
-    Sketchup.define_singleton_method(:active_model) { @mock_model ||= MockModel.new }
+    Sketchup.force_no_model = false
   end
 
   def test_execute_returns_error_without_shots

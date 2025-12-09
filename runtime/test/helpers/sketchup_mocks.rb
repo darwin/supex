@@ -437,11 +437,14 @@ end
 module Sketchup
   @mock_model = nil
   @mock_version = '2026.0.0'
+  @force_no_model = false
 
   class << self
-    attr_accessor :mock_model, :mock_version
+    attr_accessor :mock_model, :mock_version, :force_no_model
 
     def active_model
+      return nil if @force_no_model
+
       @mock_model ||= MockModel.new
     end
 
@@ -460,6 +463,7 @@ module Sketchup
 
     def reset_mocks
       @mock_model = nil
+      @force_no_model = false
     end
   end
 
