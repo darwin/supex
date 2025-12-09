@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'supex_stdlib/version'
-require_relative 'supex_stdlib/utils'
+require_relative 'supex_stdlib/shell'
 
 # Supex Standard Library
 # Provides utility functions for SketchUp model introspection and manipulation.

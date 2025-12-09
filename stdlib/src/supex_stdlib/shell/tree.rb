@@ -3,8 +3,7 @@
 require 'sketchup'
 
 module SupexStdlib
-  # Utility functions for SketchUp model introspection
-  module Utils
+  module Shell
     # Tree symbols using Unicode box-drawing characters
     TREE_SYMBOLS = {
       branch: '├── ',
@@ -45,7 +44,7 @@ module SupexStdlib
     # @return [String] Formatted tree output
     #
     # @example Basic usage
-    #   puts SupexStdlib::Utils.tree
+    #   puts SupexStdlib::Shell.tree
     #   # .
     #   # ├── [G] Table
     #   # │   ├── [G] Top
@@ -53,13 +52,13 @@ module SupexStdlib
     #   # └── [C] Chair
     #
     # @example With max_depth and IDs for drill-down
-    #   puts SupexStdlib::Utils.tree(nil, max_depth: 1, show_ids: true)
+    #   puts SupexStdlib::Shell.tree(nil, max_depth: 1, show_ids: true)
     #   # .
     #   # ├── [G] Table (#123)
     #   # └── [C] Chair (#456)
     #
     # @example Drill down using entityID
-    #   puts SupexStdlib::Utils.tree(123, show_ids: true)
+    #   puts SupexStdlib::Shell.tree(123, show_ids: true)
     #   # [G] Table (#123)
     #   # ├── [G] Top (#124)
     #   # └── [G] Legs (#125)

@@ -10,12 +10,12 @@ To use a custom stdlib location, set the `SUPEX_STDLIB_PATH` environment variabl
 
 ## Usage
 
-### Utils.tree
+### Shell.tree
 
 Visualize SketchUp entity hierarchy in a tree format (similar to unix `tree` command):
 
 ```ruby
-puts SupexStdlib::Utils.tree
+puts SupexStdlib::Shell.tree
 ```
 
 Output:
@@ -31,23 +31,23 @@ Output:
 
 ```ruby
 # Limit depth
-puts SupexStdlib::Utils.tree(nil, max_depth: 2)
+puts SupexStdlib::Shell.tree(nil, max_depth: 2)
 
 # Show entity IDs
-puts SupexStdlib::Utils.tree(nil, show_ids: true)
+puts SupexStdlib::Shell.tree(nil, show_ids: true)
 
 # Include hidden entities
-puts SupexStdlib::Utils.tree(nil, show_hidden: true)
+puts SupexStdlib::Shell.tree(nil, show_hidden: true)
 
 # Hide type labels
-puts SupexStdlib::Utils.tree(nil, show_types: false)
+puts SupexStdlib::Shell.tree(nil, show_types: false)
 
 # Filter to specific types
-puts SupexStdlib::Utils.tree(nil, types: ['Group'])
+puts SupexStdlib::Shell.tree(nil, types: ['Group'])
 
 # Start from specific entity
 group = Sketchup.active_model.entities.grep(Sketchup::Group).first
-puts SupexStdlib::Utils.tree(group)
+puts SupexStdlib::Shell.tree(group)
 ```
 
 ## Development
