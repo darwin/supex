@@ -537,6 +537,10 @@ module SupexRuntime
         @console_capture&.add_marker('EVAL_RUBY END')
 
         { success: true, result: result.to_s }
+      rescue SyntaxError => e
+        @console_capture&.add_marker("EVAL_RUBY SYNTAX ERROR: #{e.message}")
+        log "Ruby syntax error: #{e.message}"
+        raise "Ruby syntax error: #{e.message}"
       rescue StandardError => e
         @console_capture&.add_marker("EVAL_RUBY ERROR: #{e.message}")
         log "Ruby eval error: #{e.message}"
