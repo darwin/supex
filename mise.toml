@@ -22,3 +22,7 @@ run = "./scripts/launch-tests.sh --e2e"
 [tasks.docs]
 description = "Regenerate SketchUp API documentation"
 run = "./scripts/regenerate-sketchup-api-docs.sh"
+
+[tasks.lint]
+description = "Run all linters (RuboCop, ruff, mypy)"
+run = "./scripts/lint.sh"
