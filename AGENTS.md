@@ -6,7 +6,7 @@ Example project demonstrating the Supex workflow for SketchUp automation. Create
 
 ## SketchUp Modeling with Supex
 
-@supex-docs/README.md
+@supex-docs/prompt.md
 
 ### Project Scripts
 
