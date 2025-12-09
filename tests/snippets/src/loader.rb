@@ -11,7 +11,8 @@ SNIPPET_FILES = [
   'conftest.rb',
   'test_introspection.rb',
   'test_model_operations.rb',
-  'test_error_handling.rb'
+  'test_error_handling.rb',
+  'test_batch_screenshots.rb'
 ].freeze
 
 # Load all snippet files

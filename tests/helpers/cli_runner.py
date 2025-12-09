@@ -128,8 +128,28 @@ class CLIRunner:
         return self._run("info")
 
     def eval(self, code: str) -> CLIResult:
-        """Evaluate Ruby code."""
-        return self._run("eval", code)
+        """Evaluate Ruby code.
+
+        Uses --raw to avoid Rich console formatting that breaks JSON parsing.
+        Extracts the result from the response structure.
+        """
+        result = self._run("eval", "--raw", code)
+        if result.success and result.stdout:
+            try:
+                # Parse the raw response and extract result
+                response = json.loads(result.stdout)
+                # Try MCP structure first: {"content": [{"text": "..."}]}
+                content = response.get("content", [])
+                if isinstance(content, list) and content:
+                    text = content[0].get("text", result.stdout)
+                    return CLIResult(result.exit_code, text, result.stderr)
+                # Try simple structure: {"success": true, "result": "..."}
+                if "result" in response:
+                    text = str(response["result"])
+                    return CLIResult(result.exit_code, text, result.stderr)
+            except json.JSONDecodeError:
+                pass  # Return original result if parsing fails
+        return result
 
     def entities(self, entity_type: str = "all") -> CLIResult:
         """List entities in the model."""
