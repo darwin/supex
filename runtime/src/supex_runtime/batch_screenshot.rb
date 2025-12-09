@@ -14,6 +14,13 @@ module SupexRuntime
   # 2. write_image renders offscreen when dimensions differ from viewport
   # 3. Process all shots rapidly in sequence
   # 4. Restore original camera immediately after batch completes
+  #
+  # Isolation feature:
+  # Each shot can specify 'isolate' => entity_id to show only that subtree.
+  # This uses SketchUp's "Hide rest of Model" feature by:
+  # 1. Opening the entity for editing (model.active_path)
+  # 2. Enabling InactiveHidden rendering option
+  # 3. zoom_extents then works only on the isolated content
   module BatchScreenshot
     # Standard view camera configurations
     # Direction points FROM camera TO model center, Up defines camera orientation
@@ -102,11 +109,20 @@ module SupexRuntime
       def process_single_shot(view, model, shot, output_dir, base_name, index, defaults)
         camera_spec = shot['camera'] || {}
         shot_name = shot['name'] || format('%03d', index)
+        isolate_id = shot['isolate']
 
         width = shot['width'] || defaults[:width]
         height = shot['height'] || defaults[:height]
 
+        isolation_state = nil
+
         begin
+          # Apply isolation if requested (opens entity and hides rest of model)
+          if isolate_id
+            isolation_state = save_isolation_state(model)
+            apply_isolation(model, isolate_id)
+          end
+
           # Apply camera for this shot
           apply_camera(view, model, camera_spec)
 
@@ -120,6 +136,9 @@ module SupexRuntime
           { success: true, file_path: filepath, name: shot_name }
         rescue StandardError => e
           { success: false, name: shot_name, error: e.message }
+        ensure
+          # Always restore isolation state if it was modified
+          restore_isolation_state(model, isolation_state) if isolation_state
         end
       end
 
@@ -240,6 +259,75 @@ module SupexRuntime
         end
         view.camera = camera
       end
+
+      # ==========================================================================
+      # Isolation State Management (Hide Rest of Model)
+      # ==========================================================================
+
+      # Save current edit context and rendering state for isolation
+      # @param model [Sketchup::Model] the model
+      # @return [Hash] saved isolation state
+      def save_isolation_state(model)
+        {
+          active_path: model.active_path,
+          inactive_hidden: model.rendering_options['InactiveHidden']
+        }
+      end
+
+      # Restore edit context and rendering state after isolation
+      # @param model [Sketchup::Model] the model
+      # @param state [Hash] saved isolation state
+      def restore_isolation_state(model, state)
+        model.active_path = state[:active_path]
+        model.rendering_options['InactiveHidden'] = state[:inactive_hidden]
+      end
+
+      # Apply isolation - open entity for editing and hide rest of model
+      # @param model [Sketchup::Model] the model
+      # @param entity_id [Integer] entity ID to isolate
+      def apply_isolation(model, entity_id)
+        entity = model.find_entity_by_id(entity_id)
+        raise "Entity not found for isolation: #{entity_id}" unless entity
+
+        # Entity must be a Group or ComponentInstance
+        unless entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance)
+          raise "Can only isolate Group or ComponentInstance, got: #{entity.class}"
+        end
+
+        # Build full instance path from root to entity (required for nested groups)
+        path = build_instance_path(entity)
+        instance_path = Sketchup::InstancePath.new(path)
+        model.active_path = instance_path
+
+        # Enable "Hide rest of Model"
+        model.rendering_options['InactiveHidden'] = true
+      end
+
+      # Build instance path from root to entity by walking up parent hierarchy
+      # @param entity [Sketchup::Entity] target entity (Group or ComponentInstance)
+      # @return [Array<Sketchup::Entity>] path from root to entity
+      def build_instance_path(entity)
+        path = [entity]
+        current = entity
+
+        # Walk up the parent hierarchy until we reach model.entities
+        while current.parent.is_a?(Sketchup::ComponentDefinition)
+          # Get the definition that contains current entity
+          definition = current.parent
+          # Get the instance of this definition (for groups, there's exactly one)
+          parent_instance = definition.instances.first
+          break unless parent_instance
+
+          path.unshift(parent_instance)
+          current = parent_instance
+        end
+
+        path
+      end
+
+      # ==========================================================================
+      # Camera State Management
+      # ==========================================================================
 
       # Save camera state for later restoration
       # @param camera [Sketchup::Camera] the camera

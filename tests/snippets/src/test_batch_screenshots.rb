@@ -189,4 +189,80 @@ module SupexTestSnippets
     result[:temp_dir] = temp_dir
     result.to_json
   end
+
+  # ==========================================================================
+  # Isolation Tests (Hide Rest of Model)
+  # ==========================================================================
+
+  # Create a test group and return its entity ID
+  # @return [String] JSON with group_id
+  def self.batch_create_test_group
+    model = Sketchup.active_model
+    model.start_operation('Create Test Group', true)
+
+    # Create a group with some geometry
+    group = model.entities.add_group
+    group.name = 'IsolationTestGroup'
+    # Add a simple face inside the group
+    pts = [
+      Geom::Point3d.new(0, 0, 0),
+      Geom::Point3d.new(1.m, 0, 0),
+      Geom::Point3d.new(1.m, 1.m, 0),
+      Geom::Point3d.new(0, 1.m, 0)
+    ]
+    group.entities.add_face(pts)
+
+    model.commit_operation
+
+    { group_id: group.entityID, name: group.name }.to_json
+  end
+
+  # Test batch screenshot with isolation
+  # @param group_id [Integer] entity ID of group to isolate
+  # @return [String] JSON with success status
+  def self.batch_with_isolation(group_id)
+    temp_dir = batch_screenshot_temp_dir
+    result = SupexRuntime::BatchScreenshot.execute(
+      'shots' => [{
+        'camera' => { 'type' => 'zoom_extents' },
+        'isolate' => group_id,
+        'name' => 'isolated'
+      }],
+      'output_dir' => temp_dir,
+      'base_name' => 'test_isolation',
+      'width' => 800,
+      'height' => 600
+    )
+    result[:temp_dir] = temp_dir
+    result.to_json
+  end
+
+  # Get current isolation state (for verifying restore)
+  # @return [String] JSON with active_path and inactive_hidden
+  def self.batch_get_isolation_state
+    model = Sketchup.active_model
+    {
+      active_path_nil: model.active_path.nil?,
+      inactive_hidden: model.rendering_options['InactiveHidden']
+    }.to_json
+  end
+
+  # Test isolation with invalid entity (should fail gracefully)
+  # @return [String] JSON with success=false
+  def self.batch_isolation_invalid_entity
+    temp_dir = batch_screenshot_temp_dir
+    result = SupexRuntime::BatchScreenshot.execute(
+      'shots' => [{
+        'camera' => { 'type' => 'zoom_extents' },
+        'isolate' => 999999999,  # Non-existent entity
+        'name' => 'should_fail'
+      }],
+      'output_dir' => temp_dir,
+      'base_name' => 'test_invalid_isolation',
+      'width' => 640,
+      'height' => 480
+    )
+    result[:temp_dir] = temp_dir
+    result.to_json
+  end
 end

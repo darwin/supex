@@ -140,3 +140,66 @@ class TestBatchScreenshotsCameraRestore:
         for i in range(3):
             assert abs(initial_camera["eye"][i] - final_camera["eye"][i]) < 0.1, \
                 f"Camera eye not restored: {initial_camera['eye']} vs {final_camera['eye']}"
+
+
+class TestBatchScreenshotsIsolation:
+    """Tests for subtree isolation (Hide Rest of Model)."""
+
+    def test_isolation_with_group(self, fresh_model: CLIRunner) -> None:
+        """Isolation should work with a group entity."""
+        # Create a test group
+        create_result = fresh_model.call_snippet("batch_create_test_group")
+        assert create_result.success, f"Failed to create test group: {create_result.stderr}"
+        group_data = create_result.json()
+        group_id = group_data["group_id"]
+
+        # Take screenshot with isolation
+        result = fresh_model.call_snippet("batch_with_isolation", group_id)
+        assert result.success, f"Isolation batch failed: {result.stderr}"
+
+        data = result.json()
+        assert data["success"] is True, f"Expected success, got: {data}"
+        assert data["successful"] == 1
+
+        # Verify file was created
+        temp_dir = Path(data["temp_dir"])
+        expected_file = temp_dir / "test_isolation_isolated.png"
+        assert expected_file.exists(), f"Expected file {expected_file} to exist"
+
+    def test_isolation_state_restored(self, fresh_model: CLIRunner) -> None:
+        """Isolation state should be restored after batch completes."""
+        # Get initial isolation state
+        initial_result = fresh_model.call_snippet("batch_get_isolation_state")
+        assert initial_result.success
+        initial_state = initial_result.json()
+
+        # Create a test group
+        create_result = fresh_model.call_snippet("batch_create_test_group")
+        assert create_result.success
+        group_data = create_result.json()
+        group_id = group_data["group_id"]
+
+        # Take screenshot with isolation
+        batch_result = fresh_model.call_snippet("batch_with_isolation", group_id)
+        assert batch_result.success
+
+        # Get isolation state after batch
+        final_result = fresh_model.call_snippet("batch_get_isolation_state")
+        assert final_result.success
+        final_state = final_result.json()
+
+        # State should be restored
+        assert final_state["active_path_nil"] == initial_state["active_path_nil"], \
+            "active_path was not restored"
+        assert final_state["inactive_hidden"] == initial_state["inactive_hidden"], \
+            "InactiveHidden was not restored"
+
+    def test_isolation_invalid_entity_fails_gracefully(self, fresh_model: CLIRunner) -> None:
+        """Isolation with invalid entity should fail that shot only."""
+        result = fresh_model.call_snippet("batch_isolation_invalid_entity")
+        assert result.success, f"Eval failed: {result.stderr}"
+
+        data = result.json()
+        # Shot should fail but batch should complete
+        assert data["failed"] == 1, f"Expected 1 failed shot, got: {data}"
+        assert data["successful"] == 0, f"Expected 0 successful shots, got: {data}"

@@ -421,4 +421,109 @@ class TestBatchScreenshot < Minitest::Test
     assert_in_delta 50.0, @mock_view.camera.eye.y, 0.001
     assert_in_delta 50.0, @mock_view.camera.eye.z, 0.001
   end
+
+  # ==========================================================================
+  # Isolation Tests (Hide Rest of Model)
+  # ==========================================================================
+
+  def test_save_isolation_state
+    # Set some isolation state
+    @mock_model.active_path = [Sketchup::Group.new]
+    @mock_model.rendering_options['InactiveHidden'] = true
+
+    state = SupexRuntime::BatchScreenshot.send(:save_isolation_state, @mock_model)
+
+    assert_equal @mock_model.active_path, state[:active_path]
+    assert_equal true, state[:inactive_hidden]
+  end
+
+  def test_restore_isolation_state
+    # Save original state
+    original_active_path = nil
+    original_inactive_hidden = false
+
+    # Modify state
+    @mock_model.active_path = [Sketchup::Group.new]
+    @mock_model.rendering_options['InactiveHidden'] = true
+
+    # Restore
+    state = { active_path: original_active_path, inactive_hidden: original_inactive_hidden }
+    SupexRuntime::BatchScreenshot.send(:restore_isolation_state, @mock_model, state)
+
+    assert_nil @mock_model.active_path
+    assert_equal false, @mock_model.rendering_options['InactiveHidden']
+  end
+
+  def test_apply_isolation_with_group
+    # Add a group to the model
+    group = Sketchup::Group.new(id: 99999)
+    @mock_model.entities.add_entity(group)
+
+    # Apply isolation
+    SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 99999)
+
+    # Verify active_path was set
+    refute_nil @mock_model.active_path
+    # Verify InactiveHidden was enabled
+    assert_equal true, @mock_model.rendering_options['InactiveHidden']
+  end
+
+  def test_apply_isolation_with_component_instance
+    # Add a component instance to the model
+    component = Sketchup::ComponentInstance.new(id: 88888)
+    @mock_model.entities.add_entity(component)
+
+    # Apply isolation
+    SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 88888)
+
+    # Verify active_path was set
+    refute_nil @mock_model.active_path
+    # Verify InactiveHidden was enabled
+    assert_equal true, @mock_model.rendering_options['InactiveHidden']
+  end
+
+  def test_apply_isolation_with_invalid_entity_raises_error
+    # Try to isolate non-existent entity
+    assert_raises(RuntimeError) do
+      SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 99999)
+    end
+  end
+
+  def test_apply_isolation_with_face_raises_error
+    # Add a face (not isolatable)
+    face = Sketchup::Face.new(id: 77777)
+    @mock_model.entities.add_entity(face)
+
+    # Should raise error - can only isolate Group/ComponentInstance
+    error = assert_raises(RuntimeError) do
+      SupexRuntime::BatchScreenshot.send(:apply_isolation, @mock_model, 77777)
+    end
+    assert_match(/Can only isolate Group or ComponentInstance/, error.message)
+  end
+
+  def test_batch_with_isolation_restores_state
+    # Add a group
+    group = Sketchup::Group.new(id: 55555)
+    @mock_model.entities.add_entity(group)
+
+    # Verify initial state
+    assert_nil @mock_model.active_path
+    assert_equal false, @mock_model.rendering_options['InactiveHidden']
+
+    # Execute batch with isolation
+    params = {
+      'shots' => [
+        { 'camera' => { 'type' => 'zoom_extents' }, 'isolate' => 55555, 'name' => 'isolated' }
+      ],
+      'output_dir' => @test_output_dir,
+      'base_name' => 'isolation_test'
+    }
+
+    result = SupexRuntime::BatchScreenshot.execute(params)
+
+    assert_equal true, result[:success]
+    # Verify state was restored after batch
+    assert_nil @mock_model.active_path
+    assert_equal false, @mock_model.rendering_options['InactiveHidden']
+  end
 end

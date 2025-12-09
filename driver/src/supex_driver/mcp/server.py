@@ -557,6 +557,10 @@ def take_batch_screenshots(
             - name: Optional custom name for the shot (used in filename)
             - width: Optional width override for this shot
             - height: Optional height override for this shot
+            - isolate: Optional entity_id of Group/ComponentInstance to isolate.
+                       When specified, opens the entity for editing and enables
+                       "Hide rest of Model" so only that subtree is visible.
+                       zoom_extents then works only on the isolated content.
         output_dir: Directory for screenshots. Defaults to .tmp/batch_screenshots/timestamp/
         base_name: Base filename for screenshots (default "screenshot")
         width: Default width for all shots (default 1920)
@@ -572,9 +576,8 @@ def take_batch_screenshots(
         take_batch_screenshots(
             shots=[
                 {"camera": {"type": "standard_view", "view": "front"}, "name": "front"},
-                {"camera": {"type": "standard_view", "view": "iso"}, "name": "iso"},
                 {"camera": {"type": "zoom_extents"}, "name": "full"},
-                {"camera": {"type": "custom", "eye": [100, 100, 50], "target": [0, 0, 0]}, "name": "custom"}
+                {"camera": {"type": "zoom_extents"}, "isolate": 12345, "name": "chair_detail"}
             ],
             base_name="model_view"
         )

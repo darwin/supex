@@ -170,12 +170,13 @@ module Sketchup
   end
 
   class Group < Entity
-    attr_accessor :name, :bounds
+    attr_accessor :name, :bounds, :parent
 
-    def initialize(id: rand(10_000), name: '')
+    def initialize(id: rand(10_000), name: '', parent: nil)
       super(id: id)
       @name = name
       @bounds = MockBounds.new
+      @parent = parent  # Can be Model.entities or ComponentDefinition
     end
 
     def respond_to?(method, include_private = false)
@@ -184,12 +185,13 @@ module Sketchup
   end
 
   class ComponentInstance < Entity
-    attr_accessor :definition, :bounds
+    attr_accessor :definition, :bounds, :parent
 
-    def initialize(id: rand(10_000), definition_name: 'Component')
+    def initialize(id: rand(10_000), definition_name: 'Component', parent: nil)
       super(id: id)
-      @definition = MockComponentDefinition.new(definition_name)
+      @definition = MockComponentDefinition.new(definition_name, self)
       @bounds = MockBounds.new
+      @parent = parent  # Can be Model.entities or ComponentDefinition
     end
 
     def respond_to?(method, include_private = false)
@@ -200,10 +202,17 @@ end
 
 class MockComponentDefinition
   attr_reader :name
+  attr_accessor :instances
 
-  def initialize(name)
+  def initialize(name, instance = nil)
     @name = name
+    @instances = instance ? [instance] : []
   end
+end
+
+# Add ComponentDefinition to Sketchup module for build_instance_path checks
+module Sketchup
+  ComponentDefinition = MockComponentDefinition
 end
 
 # Mock layer
@@ -392,8 +401,26 @@ class MockView
   end
 end
 
+class MockRenderingOptions
+  def initialize
+    @options = {
+      'InactiveHidden' => false,
+      'DrawHidden' => false
+    }
+  end
+
+  def [](key)
+    @options[key]
+  end
+
+  def []=(key, value)
+    @options[key] = value
+  end
+end
+
 class MockModel
   attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options, :bounds
+  attr_accessor :active_path
 
   def initialize(path: nil, title: 'Untitled')
     @path = path
@@ -405,6 +432,8 @@ class MockModel
     @active_view = MockView.new
     @options = { 'UnitsOptions' => { 'LengthUnit' => 2 } }
     @bounds = MockBounds.new
+    @active_path = nil
+    @rendering_options = MockRenderingOptions.new
   end
 
   def modified?
@@ -413,6 +442,10 @@ class MockModel
 
   def find_entity_by_id(id)
     @entities.find_by_id(id)
+  end
+
+  def rendering_options
+    @rendering_options
   end
 
   def save(path = nil)
@@ -469,6 +502,23 @@ module Sketchup
 
   # Sketchup::Camera class for batch_screenshot tests
   class Camera < MockCamera
+  end
+
+  # Sketchup::InstancePath class for isolation tests
+  class InstancePath
+    attr_reader :path
+
+    def initialize(path)
+      @path = path
+    end
+
+    def root
+      @path.first
+    end
+
+    def leaf
+      @path.last
+    end
   end
 end
 
