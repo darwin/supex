@@ -55,7 +55,7 @@ class TestBatchScreenshot < Minitest::Test
 
   def test_execute_with_single_shot
     params = {
-      'shots' => [{ 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'test' }],
+      'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'test' }],
       'output_dir' => @test_output_dir,
       'base_name' => 'single'
     }
@@ -70,7 +70,7 @@ class TestBatchScreenshot < Minitest::Test
 
   def test_execute_creates_output_files
     params = {
-      'shots' => [{ 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'output_test' }],
+      'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'output_test' }],
       'output_dir' => @test_output_dir,
       'base_name' => 'file'
     }
@@ -260,16 +260,33 @@ class TestBatchScreenshot < Minitest::Test
   end
 
   # ==========================================================================
-  # Camera Type Tests - Zoom
+  # Camera Type Tests - Zoom Extents Flag
   # ==========================================================================
 
-  def test_apply_zoom_extents
-    camera_spec = { 'type' => 'zoom_extents' }
+  def test_zoom_extents_flag_default_is_true
+    # Default camera type is now 'standard_view' with zoom_extents: true
+    camera_spec = { 'type' => 'standard_view', 'view' => 'iso' }
 
     # Should not raise - just call it
     SupexRuntime::BatchScreenshot.send(:apply_camera, @mock_view, @mock_model, camera_spec)
-    # If we get here without exception, test passes
     assert true
+  end
+
+  def test_zoom_extents_flag_can_be_disabled
+    camera_spec = { 'type' => 'standard_view', 'view' => 'iso', 'zoom_extents' => false }
+
+    # Should not raise - just call it
+    SupexRuntime::BatchScreenshot.send(:apply_camera, @mock_view, @mock_model, camera_spec)
+    assert true
+  end
+
+  def test_unknown_camera_type_raises_error
+    camera_spec = { 'type' => 'invalid_type' }
+
+    error = assert_raises(RuntimeError) do
+      SupexRuntime::BatchScreenshot.send(:apply_camera, @mock_view, @mock_model, camera_spec)
+    end
+    assert_match(/Unknown camera type/, error.message)
   end
 
   def test_apply_zoom_entity_with_valid_id
@@ -316,9 +333,9 @@ class TestBatchScreenshot < Minitest::Test
   def test_batch_multiple_shots_success
     params = {
       'shots' => [
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'shot1' },
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'shot2' },
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'shot3' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'shot1' },
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'shot2' },
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'shot3' }
       ],
       'output_dir' => @test_output_dir,
       'base_name' => 'batch'
@@ -335,9 +352,9 @@ class TestBatchScreenshot < Minitest::Test
   def test_batch_partial_failure_continues
     params = {
       'shots' => [
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'good1' },
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good1' },
         { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [99999] }, 'name' => 'bad' },
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'good2' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good2' }
       ],
       'output_dir' => @test_output_dir,
       'base_name' => 'partial'
@@ -354,7 +371,7 @@ class TestBatchScreenshot < Minitest::Test
   def test_batch_file_naming_convention
     params = {
       'shots' => [
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'front_view' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'front_view' }
       ],
       'output_dir' => @test_output_dir,
       'base_name' => 'model'
@@ -369,8 +386,8 @@ class TestBatchScreenshot < Minitest::Test
   def test_batch_auto_naming_without_shot_name
     params = {
       'shots' => [
-        { 'camera' => { 'type' => 'zoom_extents' } },
-        { 'camera' => { 'type' => 'zoom_extents' } }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' } },
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' } }
       ],
       'output_dir' => @test_output_dir,
       'base_name' => 'auto'
@@ -388,13 +405,7 @@ class TestBatchScreenshot < Minitest::Test
   # Error Handling Tests
   # ==========================================================================
 
-  def test_unknown_camera_type_raises_error
-    camera_spec = { 'type' => 'nonexistent_type' }
-
-    assert_raises(RuntimeError) do
-      SupexRuntime::BatchScreenshot.send(:apply_camera, @mock_view, @mock_model, camera_spec)
-    end
-  end
+  # Note: test_unknown_camera_type_raises_error is defined above in Zoom Extents Flag section
 
   # ==========================================================================
   # Camera State Preservation Tests
@@ -513,7 +524,7 @@ class TestBatchScreenshot < Minitest::Test
     # Execute batch with isolation
     params = {
       'shots' => [
-        { 'camera' => { 'type' => 'zoom_extents' }, 'isolate' => 55555, 'name' => 'isolated' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'isolate' => 55555, 'name' => 'isolated' }
       ],
       'output_dir' => @test_output_dir,
       'base_name' => 'isolation_test'

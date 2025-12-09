@@ -12,12 +12,12 @@ module SupexTestSnippets
     dir
   end
 
-  # Single screenshot with zoom_extents
+  # Single screenshot with default camera (standard_view iso + zoom_extents)
   # @return [String] JSON with success status and file info
   def self.batch_single_zoom_extents
     temp_dir = batch_screenshot_temp_dir
     result = SupexRuntime::BatchScreenshot.execute(
-      'shots' => [{ 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'full' }],
+      'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'full' }],
       'output_dir' => temp_dir,
       'base_name' => 'test_single',
       'width' => 800,
@@ -130,9 +130,9 @@ module SupexTestSnippets
     temp_dir = batch_screenshot_temp_dir
     result = SupexRuntime::BatchScreenshot.execute(
       'shots' => [
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'good1' },
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good1' },
         { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [999999] }, 'name' => 'bad' },
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'good2' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good2' }
       ],
       'output_dir' => temp_dir,
       'base_name' => 'test_partial',
@@ -150,7 +150,7 @@ module SupexTestSnippets
     result = SupexRuntime::BatchScreenshot.execute(
       'shots' => [
         { 'camera' => { 'type' => 'nonexistent_type' }, 'name' => 'invalid' },
-        { 'camera' => { 'type' => 'zoom_extents' }, 'name' => 'valid' }
+        { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'valid' }
       ],
       'output_dir' => temp_dir,
       'base_name' => 'test_invalid',
@@ -224,7 +224,7 @@ module SupexTestSnippets
     temp_dir = batch_screenshot_temp_dir
     result = SupexRuntime::BatchScreenshot.execute(
       'shots' => [{
-        'camera' => { 'type' => 'zoom_extents' },
+        'camera' => { 'type' => 'standard_view', 'view' => 'iso' },
         'isolate' => group_id,
         'name' => 'isolated'
       }],
@@ -253,7 +253,7 @@ module SupexTestSnippets
     temp_dir = batch_screenshot_temp_dir
     result = SupexRuntime::BatchScreenshot.execute(
       'shots' => [{
-        'camera' => { 'type' => 'zoom_extents' },
+        'camera' => { 'type' => 'standard_view', 'view' => 'iso' },
         'isolate' => 999999999,  # Non-existent entity
         'name' => 'should_fail'
       }],

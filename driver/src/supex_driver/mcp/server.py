@@ -549,11 +549,15 @@ def take_batch_screenshots(
 
     Args:
         shots: List of shot specifications. Each shot is a dict with:
-            - camera: Camera specification dict with 'type' and type-specific params:
-                - type: "standard_view" with view: "top"|"front"|"right"|"left"|"back"|"bottom"|"iso"
-                - type: "custom" with eye: [x,y,z], target: [x,y,z], optional up/fov/perspective
-                - type: "zoom_entity" with entity_ids: [id1, id2, ...], optional padding
-                - type: "zoom_extents" (no additional params needed)
+            - camera: Camera specification dict with:
+                - type: Camera type (default "standard_view"):
+                    - "standard_view" with view: "top"|"front"|"right"|"left"|"back"|"bottom"|"iso"
+                    - "custom" with eye: [x,y,z], target: [x,y,z], optional up/fov/perspective
+                    - "zoom_entity" with entity_ids: [id1, id2, ...], optional padding
+                - zoom_extents: Boolean flag (default true). When true, automatically adjusts
+                    camera distance to fit all visible content after setting direction.
+                    For "custom" type: Set to false if you need exact eye/target positions!
+                    When true, your specified positions will be overridden to fit content.
             - name: Optional custom name for the shot (used in filename)
             - width: Optional width override for this shot
             - height: Optional height override for this shot
@@ -576,8 +580,11 @@ def take_batch_screenshots(
         take_batch_screenshots(
             shots=[
                 {"camera": {"type": "standard_view", "view": "front"}, "name": "front"},
-                {"camera": {"type": "zoom_extents"}, "name": "full"},
-                {"camera": {"type": "zoom_extents"}, "isolate": 12345, "name": "chair_detail"}
+                {"camera": {"type": "standard_view", "view": "top"}, "name": "full"},
+                {"camera": {"type": "custom", "eye": [100,100,100], "target": [0,0,0],
+                            "zoom_extents": false}, "name": "exact_position"},
+                {"camera": {"type": "standard_view", "view": "iso"}, "isolate": 12345,
+                            "name": "chair_detail"}
             ],
             base_name="model_view"
         )

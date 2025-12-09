@@ -146,8 +146,10 @@ module SupexRuntime
       # @param view [Sketchup::View] the view
       # @param model [Sketchup::Model] the model
       # @param camera_spec [Hash] camera specification
+      # @note zoom_extents flag (default: true) adjusts camera to fit all visible content
       def apply_camera(view, model, camera_spec)
-        type = camera_spec['type'] || 'zoom_extents'
+        type = camera_spec['type'] || 'standard_view'
+        zoom = camera_spec['zoom_extents'] != false # Default true
 
         case type
         when 'standard_view'
@@ -156,14 +158,17 @@ module SupexRuntime
           apply_custom_camera(view, camera_spec)
         when 'zoom_entity'
           apply_zoom_entity(view, model, camera_spec)
-        when 'zoom_extents'
-          view.zoom_extents
+          return # zoom_entity has its own zoom logic
         else
           raise "Unknown camera type: #{type}"
         end
+
+        # Apply zoom_extents after setting camera direction
+        view.zoom_extents if zoom
       end
 
       # Apply a standard view (top, front, iso, etc.)
+      # Sets camera direction only - zoom_extents flag handles optimal distance
       # @param view [Sketchup::View] the view
       # @param model [Sketchup::Model] the model
       # @param view_name [String] name of the standard view
@@ -172,20 +177,13 @@ module SupexRuntime
         raise "Unknown standard view: #{view_name}" unless config
 
         bounds = model.bounds
-        if bounds.empty?
-          # Empty model - use default camera at origin
-          view.zoom_extents
-          return
-        end
-
-        center = bounds.center
-        diagonal = bounds.diagonal
-        distance = diagonal * 1.5 # Ensure model fits in view with some margin
+        center = bounds.empty? ? ORIGIN : bounds.center
 
         direction = Geom::Vector3d.new(*config[:direction]).normalize
         up = Geom::Vector3d.new(*config[:up])
 
-        eye = center.offset(direction.reverse, distance)
+        # Set arbitrary distance - zoom_extents will adjust if enabled
+        eye = center.offset(direction.reverse, 100)
 
         camera = Sketchup::Camera.new(eye, center, up)
         camera.perspective = false # Standard views use parallel projection
