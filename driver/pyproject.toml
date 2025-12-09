@@ -82,11 +82,15 @@ select = [
     "SIM", # flake8-simplify
 ]
 ignore = [
-    "E501",   # line too long (handled by formatter)
+    "E501",    # line too long (handled by formatter)
+    "E402",    # module level import not at top (intentional for lazy loading)
     "PLR0913", # too many arguments
     "PLR0912", # too many branches
+    "PLR2004", # magic value in comparison (acceptable in tests)
+    "PLC0415", # import not at top-level (intentional lazy imports)
     "PLW0603", # global statement discouraged
-    "B904",   # raise from errors - disabled for simplicity
+    "B904",    # raise from errors - disabled for simplicity
+    "SIM115",  # use context manager for files (intentional for global handles)
 ]
 
 [tool.ruff.format]

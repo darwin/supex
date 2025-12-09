@@ -3,6 +3,7 @@
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
+  SuggestExtensions: false
 
 # SketchUp specific adjustments
 Style/Documentation:
@@ -37,4 +38,7 @@ Style/GlobalVars:
 
 # Allow rescue without explicit error class for SketchUp compatibility
 Style/RescueStandardError:
+  Enabled: false
+
+Naming/PredicateMethod:
   Enabled: false

@@ -60,12 +60,11 @@ def print_result(result: dict, as_json: bool = False) -> None:
     """Print command result to console."""
     if as_json:
         console.print(JSON(json.dumps(result)))
+    # Pretty print based on content
+    elif "success" in result and not result.get("success"):
+        console.print(f"[red]Failed:[/red] {result.get('error', 'Unknown error')}")
     else:
-        # Pretty print based on content
-        if "success" in result and not result.get("success"):
-            console.print(f"[red]Failed:[/red] {result.get('error', 'Unknown error')}")
-        else:
-            console.print(JSON(json.dumps(result)))
+        console.print(JSON(json.dumps(result)))
 
 
 def get_project_root() -> Path:
@@ -115,7 +114,7 @@ def status(
     if docs_available:
         console.print(f"\n[dim]API Docs:[/dim] [green]Available[/green] at {docs_path}")
     else:
-        console.print(f"\n[dim]API Docs:[/dim] [yellow]Not installed[/yellow] (optional)")
+        console.print("\n[dim]API Docs:[/dim] [yellow]Not installed[/yellow] (optional)")
         console.print("[dim]  Generate with: ./scripts/regenerate-sketchup-api-docs.sh[/dim]")
 
     # Exit with error only if SketchUp disconnected
@@ -195,16 +194,15 @@ def eval_ruby_file(
 
         if raw:
             print(json.dumps(result))
+        elif result.get("success"):
+            console.print(f"[green]✓[/green] Executed {abs_path.name}")
+            content = result.get("content", [])
+            if isinstance(content, list) and content:
+                text = content[0].get("text", "")
+                if text:
+                    console.print(text)
         else:
-            if result.get("success"):
-                console.print(f"[green]✓[/green] Executed {abs_path.name}")
-                content = result.get("content", [])
-                if isinstance(content, list) and content:
-                    text = content[0].get("text", "")
-                    if text:
-                        console.print(text)
-            else:
-                console.print(f"[red]✗[/red] {result.get('error', 'Unknown error')}")
+            console.print(f"[red]✗[/red] {result.get('error', 'Unknown error')}")
     except Exception as e:
         handle_error(e)
 
@@ -349,7 +347,7 @@ def screenshot(
     """Take a screenshot of the current SketchUp view."""
     try:
         conn = get_connection(host, port)
-        params = {
+        params: dict[str, int | bool | str] = {
             "width": width,
             "height": height,
             "transparent": transparent,

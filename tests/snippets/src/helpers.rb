@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Ruby snippets for helper functions
 # All functions wrapped in SupexTestSnippets module to prevent naming conflicts
 

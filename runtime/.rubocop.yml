@@ -53,6 +53,11 @@ Naming/VariableName:
   Exclude:
     - 'test/helpers/sketchup_mocks.rb'
 
+# @mock_model is intentionally named to avoid confusion with the method name
+Naming/MemoizedInstanceVariableName:
+  Exclude:
+    - 'test/helpers/sketchup_mocks.rb'
+
 Style/OptionalBooleanParameter:
   Exclude:
     - 'test/helpers/sketchup_mocks.rb'

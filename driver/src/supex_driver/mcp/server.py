@@ -16,6 +16,7 @@ from supex_driver.connection.exceptions import (
     SketchUpProtocolError,
     SketchUpTimeoutError,
 )
+
 # Logger instance (configured when server starts)
 logger = logging.getLogger("supex.mcp")
 
@@ -493,7 +494,7 @@ def take_screenshot(
     """
     try:
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        params = {
+        params: dict[str, int | bool | str] = {
             "width": width,
             "height": height,
             "transparent": transparent

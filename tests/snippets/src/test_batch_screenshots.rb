@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Ruby snippets for test_batch_screenshots.py
 # All functions wrapped in SupexTestSnippets module to prevent naming conflicts
 # All functions return JSON strings for structured assertions
@@ -131,7 +133,7 @@ module SupexTestSnippets
     result = SupexRuntime::BatchScreenshot.execute(
       'shots' => [
         { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good1' },
-        { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [999999] }, 'name' => 'bad' },
+        { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [999_999] }, 'name' => 'bad' },
         { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good2' }
       ],
       'output_dir' => temp_dir,
@@ -254,7 +256,7 @@ module SupexTestSnippets
     result = SupexRuntime::BatchScreenshot.execute(
       'shots' => [{
         'camera' => { 'type' => 'standard_view', 'view' => 'iso' },
-        'isolate' => 999999999,  # Non-existent entity
+        'isolate' => 999_999_999, # Non-existent entity
         'name' => 'should_fail'
       }],
       'output_dir' => temp_dir,

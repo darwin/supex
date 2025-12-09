@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Ruby snippets for test_introspection.py
 # All functions wrapped in SupexTestSnippets module to prevent naming conflicts
 # All functions return JSON strings for structured assertions
@@ -10,7 +12,7 @@ module SupexTestSnippets
   def self.geom_add_face
     model = Sketchup.active_model
     model.start_operation('Add Geometry', true)
-    model.entities.add_face([0,0,0], [1.m,0,0], [1.m,1.m,0], [0,1.m,0])
+    model.entities.add_face([0, 0, 0], [1.m, 0, 0], [1.m, 1.m, 0], [0, 1.m, 0])
     model.commit_operation
     {
       faces: model.entities.grep(Sketchup::Face).length,
@@ -23,8 +25,8 @@ module SupexTestSnippets
   def self.geom_add_edges
     model = Sketchup.active_model
     model.start_operation('Add Edges', true)
-    model.entities.add_line([0,0,0], [1.m,0,0])
-    model.entities.add_line([1.m,0,0], [1.m,1.m,0])
+    model.entities.add_line([0, 0, 0], [1.m, 0, 0])
+    model.entities.add_line([1.m, 0, 0], [1.m, 1.m, 0])
     model.commit_operation
     { edges: model.entities.grep(Sketchup::Edge).length }.to_json
   end
@@ -35,7 +37,7 @@ module SupexTestSnippets
     model = Sketchup.active_model
     model.start_operation('Add Group', true)
     group = model.entities.add_group
-    group.entities.add_line([0,0,0], [1.m,0,0])
+    group.entities.add_line([0, 0, 0], [1.m, 0, 0])
     model.commit_operation
     { groups: model.entities.grep(Sketchup::Group).length }.to_json
   end
@@ -45,7 +47,7 @@ module SupexTestSnippets
   def self.selection_add_face
     model = Sketchup.active_model
     model.start_operation('Add and Select', true)
-    face = model.entities.add_face([0,0,0], [1.m,0,0], [1.m,1.m,0], [0,1.m,0])
+    face = model.entities.add_face([0, 0, 0], [1.m, 0, 0], [1.m, 1.m, 0], [0, 1.m, 0])
     model.selection.add(face)
     model.commit_operation
     { selected: model.selection.length }.to_json

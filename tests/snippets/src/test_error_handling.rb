@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Ruby snippets for test_error_handling.py
 # Functions that intentionally raise errors for testing error handling
 # All functions wrapped in SupexTestSnippets module to prevent naming conflicts
@@ -8,7 +10,7 @@ module SupexTestSnippets
   # Intentionally raises a runtime error.
   # @return [never] Raises RuntimeError with message "Intentional test error"
   def self.error_raise_runtime
-    raise "Intentional test error"
+    raise 'Intentional test error'
   end
 
   # Attempts an invalid SketchUp API call (nil argument).

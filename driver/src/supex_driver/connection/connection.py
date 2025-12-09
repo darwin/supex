@@ -149,7 +149,7 @@ class SketchupConnection:
             SketchUpConnectionError: If connection is lost.
             SketchUpProtocolError: If response is incomplete JSON.
         """
-        chunks = []
+        chunks: list[bytes] = []
         sock.settimeout(self.timeout)
 
         try:
@@ -221,6 +221,7 @@ class SketchupConnection:
         """
         if not self.connect():
             raise SketchUpConnectionError("Not connected to SketchUp")
+        assert self.sock is not None  # connect() sets self.sock on success
 
         # Convert to proper JSON-RPC format
         if (
@@ -307,7 +308,7 @@ class SketchupConnection:
                 logger.error(f"Invalid JSON response from SketchUp: {e}")
                 if "response_data" in locals() and response_data:
                     logger.error(
-                        f"Raw response (first 200 bytes): {response_data[:200]}"
+                        f"Raw response (first 200 bytes): {response_data[:200]!r}"
                     )
                 raise SketchUpProtocolError(f"Invalid response from SketchUp: {e}")
 
@@ -315,6 +316,9 @@ class SketchupConnection:
                 logger.error(f"Error communicating with SketchUp: {e}")
                 self.sock = None
                 raise
+
+        # If we get here, all retries were exhausted
+        raise SketchUpConnectionError("Connection to SketchUp lost after all retries")
 
 
 # Global connection management with thread safety
