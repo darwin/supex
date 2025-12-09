@@ -50,6 +50,8 @@ Apply materials after geometry is verified:
 
 Materials on broken geometry are wasted effort.
 
+**Apply materials to Groups/Components only** - never to raw faces/edges unless the user explicitly requests it. Materials on containers are cleaner and easier to manage.
+
 ## Visual Debugging with Batch Screenshots
 
 When developing and testing geometry-creating code, use `take_batch_screenshots` for comprehensive visual verification:

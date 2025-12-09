@@ -1,207 +1,6 @@
-# SketchUp Workflow
+# Extended Workflow Examples
 
-You are a SketchUp Ruby developer with access to a live SketchUp instance via MCP tools. You write Ruby scripts that create and manipulate 3D geometry.
-
-## Core Workflow
-
-1. **Write scripts in project** - Create Ruby files in `scripts/` directory
-2. **Execute with eval_ruby_file** - Run scripts in SketchUp context
-3. **Verify with introspection** - Use get_model_info, take_screenshot, list_entities
-4. **Iterate** - Edit script, re-run, verify until correct
-
-All scripts are git-trackable and editable in user's IDE with full syntax highlighting.
-
-## Execution Rules
-
-- `eval_ruby_file(path)` - ALL code: proper line numbers, stack traces, debugging
-- `eval_ruby(code)` - Simple queries only: `model.entities.count`, `Sketchup.version`
-
-Always prefer file-based execution for better error reporting.
-
-## Critical Patterns
-
-### 1. Transaction Management (Required)
-
-Always wrap geometry operations in transactions for undo/redo support:
-
-```ruby
-model = Sketchup.active_model
-model.start_operation('Create Object', true)
-begin
-  # ... create geometry ...
-  model.commit_operation
-rescue StandardError => e
-  model.abort_operation
-  puts "Error: #{e.message}"
-  raise
-end
-```
-
-### 2. Organization (Required)
-
-- **Always group geometry** - Never leave loose faces/edges in model root
-- **Name everything** - `group.name = 'Table Top'` for Outliner visibility
-- **Use components** for repeated geometry
-- **Apply materials to faces** not loose edges
-
-```ruby
-group = entities.add_group
-group.name = 'Descriptive Name'
-# Create geometry inside group.entities, not model.entities
-```
-
-### 3. Module Structure
-
-Wrap all functions in a module to prevent namespace conflicts:
-
-```ruby
-module SupexProjectName
-  def self.create_object(entities, params = {})
-    # ...
-  end
-
-  def self.example_usage
-    # Orchestration with transaction management
-  end
-end
-```
-
-**Key rules:**
-- **No automatic execution** - Never run code when file is loaded; allows use as library
-- **Use `example_` prefix** for orchestration methods that demonstrate usage
-
-**Helpers pattern** - For larger projects, split code across files:
-
-```ruby
-# helpers.rb - shared utilities
-module SupexProjectName
-  def self.cleanup_by_name_and_attribute(entities, name, dict, key, value)
-    entities.grep(Sketchup::Group).each do |group|
-      next unless group.name == name
-      group.erase! if group.get_attribute(dict, key) == value
-    end
-  end
-end
-
-# main.rb - reopen module to add more functions
-require_relative 'helpers'
-
-module SupexProjectName
-  def self.create_object(entities, params = {})
-    # ... uses helpers from helpers.rb
-  end
-end
-```
-
-Ruby allows reopening modules - functions from all files are accessible as `SupexProjectName.method_name`.
-
-### 4. Idempotence Pattern
-
-Example methods should be idempotent - running multiple times produces same result:
-
-```ruby
-def self.example_create
-  model = Sketchup.active_model
-  entities = model.entities
-
-  # Configuration (single source of truth)
-  object_name = 'My Object'
-  attribute_tag = 'my_example'
-
-  model.start_operation('Create Object', true)
-  begin
-    # Cleanup previous instances first (two-tier: name + attribute)
-    cleanup_by_name_and_attribute(entities, object_name, 'supex', 'type', attribute_tag)
-
-    # Create new geometry
-    obj = create_object(entities)
-
-    # Apply metadata in orchestration layer
-    obj.name = object_name
-    obj.set_attribute('supex', 'type', attribute_tag)
-
-    model.commit_operation
-  rescue
-    model.abort_operation
-    raise
-  end
-end
-
-# Two-tier cleanup: name filter (fast) + attribute verification (precise)
-def self.cleanup_by_name_and_attribute(entities, name, dict, key, value)
-  entities.grep(Sketchup::Group).each do |group|
-    next unless group.name == name  # Fast filter
-    group.erase! if group.get_attribute(dict, key) == value  # Precise check
-  end
-end
-```
-
-**Why two-tier cleanup:**
-- Name-based search is fast but may have false positives
-- Attribute verification prevents deleting unrelated objects with same name
-- Both checks together ensure precise cleanup
-
-### 5. Function Hierarchy
-
-Organize functions by abstraction level:
-
-```ruby
-module SupexProjectName
-  # Low-level: Single component
-  def self.create_leg(entities, position, size, height, material)
-    leg = entities.add_group
-    leg.name = "Leg"
-    # ... geometry ...
-    leg
-  end
-
-  # Mid-level: Component collection
-  def self.create_all_legs(entities, positions, size, height, material)
-    legs_group = entities.add_group
-    legs_group.name = "Legs"
-    positions.each { |pos| create_leg(legs_group.entities, pos, size, height, material) }
-    legs_group
-  end
-
-  # High-level: Complete assembly (pure geometry, no metadata)
-  def self.create_table(entities, params = {})
-    length = params[:length] || 1.2.m
-    width = params[:width] || 0.8.m
-    # ... assemble components ...
-    table_group  # Return clean object
-  end
-
-  # Orchestration: Transaction + metadata + idempotence
-  def self.example_table
-    model = Sketchup.active_model
-    entities = model.entities
-
-    # Configuration (single source of truth)
-    table_name = 'Table'
-    attribute_tag = 'table_example'
-
-    model.start_operation('Create Table', true)
-    begin
-      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_tag)
-      table = create_table(entities)
-      table.name = table_name
-      table.set_attribute('supex', 'type', attribute_tag)
-      model.commit_operation
-    rescue
-      model.abort_operation
-      raise
-    end
-  end
-end
-```
-
-### 6. Coordinate System
-
-- **X (red)** = right
-- **Y (green)** = forward/depth
-- **Z (blue)** = up/height
-
-Verify orientation early - common mistake is swapping Y and Z.
+Extended examples and reference material. For essential patterns, see `prompt.md`.
 
 ## Common Geometry Operations
 
@@ -218,60 +17,163 @@ group.entities.add_face(...)
 tr = Geom::Transformation.translation([1.m, 0, 0])
 group.transform!(tr)
 
-# Materials
-material = model.materials.add('Wood')
-material.color = Sketchup::Color.new(139, 69, 19)
-face.material = material
+# Rotation around axis
+tr = Geom::Transformation.rotation(ORIGIN, Z_AXIS, 45.degrees)
+group.transform!(tr)
+
+# Scale
+tr = Geom::Transformation.scaling(2.0)
+group.transform!(tr)
+
+# Combined transformation
+tr = Geom::Transformation.new(point, xaxis, yaxis, zaxis)
 ```
 
-## Tools Reference
+## Materials
 
-### Execution
-- `eval_ruby_file(path)` - Execute Ruby script **(PREFERRED)**
-- `eval_ruby(code)` - One-line queries only
+```ruby
+# Create material
+material = model.materials.add('Wood')
+material.color = Sketchup::Color.new(139, 69, 19)
 
-### Introspection
-- `get_model_info()` - Entity counts, units, modified state
-- `list_entities(type)` - Inspect geometry (all/faces/edges/groups/components)
-- `get_selection()` - Currently selected entities with details
-- `take_screenshot(output_path?)` - Visual verification
-  - Returns file path only (saves ~20k tokens)
-  - Use Read tool on path only if user asks to see image
-- `get_layers()` - List all layers/tags
-- `get_materials()` - List materials with colors
-- `get_camera_info()` - Camera position and settings
+# Apply to group (preferred)
+group.material = material
 
-### Model Management
-- `open_model(path)` - Open .skp file
-- `save_model(path?)` - Save model (optional path for Save As)
-- `export_scene(format)` - Export: skp, obj, dae, stl, png, jpg
+# Apply to face (only if explicitly needed)
+face.material = material
 
-### Status
-- `check_sketchup_status()` - Verify connection health
-- `reload_extension()` - Reload after runtime code changes
+# Texture
+material.texture = '/path/to/texture.jpg'
+material.texture.size = [1.m, 1.m]
+```
 
-## API Documentation
+## Components
 
-Detailed SketchUp Ruby API documentation: `api/`
+```ruby
+# Create component definition
+definition = model.definitions.add('MyComponent')
+definition.entities.add_face(...)
 
-- **Index**: `api/INDEX.md` - Start here
-- **Classes**: `api/Sketchup/<Class>.md` (Face, Edge, Group, Model...)
-- **Geometry**: `api/Geom/<Class>.md` (Point3d, Vector3d, Transformation...)
+# Place instance
+instance = entities.add_instance(definition, transformation)
+instance.name = 'Instance 1'
 
-Consult when:
-- Unsure about method signatures or parameters
-- Implementing unfamiliar API features
-- Debugging API-related errors
+# Access definition from instance
+instance.definition.entities.each { |e| ... }
+```
 
-If documentation path doesn't exist, use your knowledge of the SketchUp Ruby API.
+## Curves and Arcs
 
-## Best Practices Resource
+```ruby
+# Arc (center, xaxis, normal, radius, start_angle, end_angle)
+edges = entities.add_arc(center, X_AXIS, Z_AXIS, radius, 0, 90.degrees)
 
-See `best_practices.md` for modeling lessons learned.
+# Circle
+edges = entities.add_circle(center, Z_AXIS, radius, 24)
 
-Covers:
-- Profile-first geometry strategy
-- Pushpull direction and face normals
-- Edge treatment for realism (chamfers)
-- Material timing
-- Common pitfalls (coplanar faces, tiny edges, reversed faces)
+# Polygon
+edges = entities.add_ngon(center, Z_AXIS, radius, 6)
+
+# Curve from points
+edges = entities.add_curve(points_array)
+```
+
+## Layers/Tags
+
+```ruby
+# Create layer
+layer = model.layers.add('My Layer')
+
+# Assign to entity
+group.layer = layer
+
+# Hide layer
+layer.visible = false
+```
+
+## Selection and Iteration
+
+```ruby
+# Get selection
+selection = model.selection
+selection.each { |entity| ... }
+
+# Filter by type
+groups = entities.grep(Sketchup::Group)
+faces = entities.grep(Sketchup::Face)
+
+# Find by name
+table = entities.find { |e| e.respond_to?(:name) && e.name == 'Table' }
+
+# Find by attribute
+tagged = entities.select { |e| e.get_attribute('supex', 'type') == 'my_tag' }
+```
+
+## Bounding Box
+
+```ruby
+# Get bounds
+bounds = group.bounds
+
+# Properties
+bounds.center      # Geom::Point3d
+bounds.width       # X dimension
+bounds.height      # Z dimension
+bounds.depth       # Y dimension
+bounds.min         # Corner point
+bounds.max         # Corner point
+```
+
+## Units and Conversions
+
+```ruby
+# Length literals (SketchUp extension)
+1.m                # 1 meter
+50.cm              # 50 centimeters
+25.4.mm            # 25.4 millimeters
+1.inch             # 1 inch
+1.feet             # 1 foot
+
+# Angle literals
+45.degrees         # 45 degrees in radians
+Math::PI / 4       # Same as above
+
+# Manual conversion
+length_in_inches = length.to_l.to_s  # Returns string with units
+```
+
+## Error Handling Patterns
+
+```ruby
+# Safe entity access
+entity = model.find_entity_by_id(id)
+return unless entity
+return unless entity.valid?
+
+# Safe face creation (may return nil if edges don't form closed loop)
+face = entities.add_face(points)
+if face.nil?
+  puts "Failed to create face - check points form closed loop"
+  return
+end
+
+# Check for reversed face
+if face.normal.z < 0
+  face.reverse!
+end
+```
+
+## Debugging Tips
+
+```ruby
+# Print entity info
+puts "Entity: #{entity.class}, ID: #{entity.entityID}"
+puts "Bounds: #{entity.bounds.min} to #{entity.bounds.max}" if entity.respond_to?(:bounds)
+
+# Count entities by type
+counts = entities.group_by(&:class).transform_values(&:count)
+puts counts.inspect
+
+# Verify face validity
+face.vertices.each { |v| puts v.position.to_a.inspect }
+```
