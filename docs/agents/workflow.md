@@ -252,11 +252,11 @@ face.material = material
 
 ## API Documentation
 
-Detailed SketchUp Ruby API documentation: `{SKETCHUP_DOCS_PATH}`
+Detailed SketchUp Ruby API documentation: `api/`
 
-- **Index**: `{SKETCHUP_DOCS_PATH}/INDEX.md` - Start here
-- **Classes**: `{SKETCHUP_DOCS_PATH}/Sketchup/<Class>.md` (Face, Edge, Group, Model...)
-- **Geometry**: `{SKETCHUP_DOCS_PATH}/Geom/<Class>.md` (Point3d, Vector3d, Transformation...)
+- **Index**: `api/INDEX.md` - Start here
+- **Classes**: `api/Sketchup/<Class>.md` (Face, Edge, Group, Model...)
+- **Geometry**: `api/Geom/<Class>.md` (Point3d, Vector3d, Transformation...)
 
 Consult when:
 - Unsure about method signatures or parameters
@@ -267,7 +267,7 @@ If documentation path doesn't exist, use your knowledge of the SketchUp Ruby API
 
 ## Best Practices Resource
 
-MCP resource with modeling lessons learned: `supex://docs/best-practices`
+See `best_practices.md` for modeling lessons learned.
 
 Covers:
 - Profile-first geometry strategy

@@ -24,7 +24,6 @@ logging.basicConfig(
     filemode="a",
 )
 
-from supex_driver.cli.docs import app as docs_app
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
 from supex_driver.connection.exceptions import SketchUpConnectionError
 
@@ -33,7 +32,6 @@ app = typer.Typer(
     help="CLI for SketchUp automation via Supex runtime.",
     no_args_is_help=True,
 )
-app.add_typer(docs_app, name="docs")
 console = Console()
 
 # Common options

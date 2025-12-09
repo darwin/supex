@@ -149,58 +149,16 @@ driver/
 +-- src/supex_driver/
 |   +-- __init__.py          # Package exports
 |   +-- mcp/
-|   |   +-- server.py        # FastMCP server, 14 tools + resources
-|   |   +-- resources.py     # Documentation helpers
+|   |   +-- server.py        # FastMCP server, 14 tools
 |   +-- cli/
-|   |   +-- main.py          # Typer CLI, 14 commands
-|   |   +-- docs.py          # Documentation browser
+|   |   +-- main.py          # Typer CLI commands
 |   +-- connection/
 |       +-- connection.py    # TCP socket client
 |       +-- exceptions.py    # Error hierarchy
-+-- resources/
-|   +-- docs/
-|       +-- INDEX.md         # Documentation index
-|       +-- workflow.md      # AI workflow guidance
-|       +-- best_practices.md # Modeling wisdom
-|       +-- quick_reference.md # Quick reference
-|       +-- api/             # Generated API docs (symlink)
 +-- tests/                   # pytest suite
 +-- pyproject.toml           # Package config
 +-- README.md
 ```
-
-## MCP Resources
-
-Documentation is exposed via MCP resources (readable by Claude Code):
-
-| Resource URI | Description |
-|--------------|-------------|
-| `supex://docs/INDEX` | Documentation overview - start here |
-| `supex://docs/workflow` | Complete workflow guide for Ruby scripting |
-| `supex://docs/best-practices` | Geometry lessons and common pitfalls |
-| `supex://docs/quick-reference` | Quick reference for most used classes |
-| `supex://docs/api/INDEX` | Lightweight API overview (~3k tokens) |
-| `supex://docs/api/{namespace}/INDEX` | Namespace-specific index (Geom, Sketchup) |
-| `supex://docs/api/{class_name}` | Class documentation using Ruby syntax (e.g., `Sketchup::Face`, `Geom::Point3d`) |
-| `supex://docs/pages/{page_name}` | Tutorial pages (generating-geometry, importer-options, etc.) |
-
-### Resource Files
-
-| File | Resource | Contents |
-|------|----------|----------|
-| `resources/docs/INDEX.md` | `supex://docs/INDEX` | Quick start, resource overview |
-| `resources/docs/workflow.md` | `supex://docs/workflow` | Execution patterns, code organization |
-| `resources/docs/best_practices.md` | `supex://docs/best-practices` | Profile-first geometry, gotchas |
-| `resources/docs/quick_reference.md` | `supex://docs/quick-reference` | Quick lookup reference |
-| `resources/docs/api/` | `supex://docs/api/*` | Generated API documentation |
-
-### When to Update What
-
-| Document | Add |
-|----------|-----|
-| `workflow.md` | New tools, code patterns, API changes |
-| `best_practices.md` | Modeling lessons, gotchas, tips |
-| `INDEX.md` | New resources, navigation changes |
 
 ## Development
 

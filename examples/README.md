@@ -97,24 +97,36 @@ my-project/
     └── main.rb         # Entry point
 ```
 
-### Creating CLAUDE.md
+### Linking Supex Documentation
 
-Option 1: **Copy the template**
+Create a symlink to Supex agent documentation:
+
 ```bash
-cp /path/to/supex/examples/USER-CLAUDE.md ./CLAUDE.md
-# Customize for your project
+# In your project root:
+ln -s /path/to/supex/docs/agents supex-docs
 ```
 
-Option 2: **Include via Claude Code context**
+This gives your AI agents access to:
+- `supex-docs/README.md` - Overview and conventions
+- `supex-docs/workflow.md` - Complete workflow guide
+- `supex-docs/best_practices.md` - Geometry lessons and pitfalls
+- `supex-docs/api/` - SketchUp API documentation
+
+### Creating CLAUDE.md
+
+Include the symlinked documentation in your CLAUDE.md:
+
 ```markdown
 # In your CLAUDE.md:
-@/path/to/supex/examples/USER-CLAUDE.md
+@supex-docs/README.md
 
 ## Project-Specific Instructions
 <!-- Add your custom instructions here -->
 ```
 
 This keeps your project in sync with Supex documentation updates.
+
+Add `supex-docs` to your `.gitignore` since the symlink path varies per developer.
 
 ### MCP Configuration
 

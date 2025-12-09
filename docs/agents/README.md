@@ -1,16 +1,24 @@
 ## SketchUp Modeling with Supex
 
-This project uses Supex MCP for SketchUp automation.
+This project uses Supex for SketchUp automation.
 
 ### Documentation
 
-Read MCP resources for SketchUp API documentation:
+Documentation is available in this directory:
 
-1. `supex://docs/INDEX` - Start here, lists all available resources
-2. `supex://docs/workflow` - Complete workflow guide
-3. `supex://docs/best-practices` - Geometry lessons and pitfalls
-4. `supex://docs/quick-reference` - Quick lookup for common classes
-5. `supex://docs/api/{class}` - API docs using Ruby syntax (e.g., `supex://docs/api/Sketchup::Face`)
+1. `workflow.md` - Complete workflow guide
+2. `best_practices.md` - Geometry lessons and pitfalls
+3. `quick_reference.md` - Quick lookup for common classes
+4. `api/` - SketchUp API documentation (e.g., `api/Sketchup/Face.md`)
+
+### When to Read What
+
+| Situation | Read |
+|-----------|------|
+| Starting a modeling task | `workflow.md` |
+| Geometry not working as expected | `best_practices.md` |
+| Need method signatures | `api/Sketchup/Face.md` |
+| Searching for a class | `api/INDEX.md` |
 
 ### Workflow
 
@@ -62,3 +70,24 @@ This pattern (similar to Clojure's `(comment ...)` block):
 - Preserves syntax highlighting in IDE
 - Allows sending individual lines to REPL for testing
 - Rubocop ignores the literal condition with inline disable
+
+### Essential Classes
+
+**Modeling**
+- `api/Sketchup/Model.md` - Main model object, entry point
+- `api/Sketchup/Entities.md` - Collection of entities, add geometry here
+- `api/Sketchup/Face.md` - Faces with pushpull, materials
+- `api/Sketchup/Edge.md` - Edges connecting vertices
+- `api/Sketchup/Group.md` - Grouped entities for organization
+
+**Geometry Math**
+- `api/Geom/Point3d.md` - 3D points
+- `api/Geom/Vector3d.md` - 3D vectors
+- `api/Geom/Transformation.md` - Transformations (move, rotate, scale)
+- `api/Geom/BoundingBox.md` - Bounding boxes
+
+**Organization**
+- `api/Sketchup/ComponentDefinition.md` - Component definitions
+- `api/Sketchup/ComponentInstance.md` - Component instances
+- `api/Sketchup/Layer.md` - Layers/tags
+- `api/Sketchup/Material.md` - Materials and colors
