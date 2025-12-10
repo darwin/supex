@@ -14,7 +14,7 @@ These files provide that context. They are designed to be included in agent syst
 ### Structure
 
 ```
-supex-docs/
+docs/agents/
 ├── prompt.md          # Main agent prompt (comprehensive)
 ├── workflow.md        # Extended workflow examples
 ├── best_practices.md  # Geometry pitfalls and troubleshooting

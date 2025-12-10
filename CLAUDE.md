@@ -30,7 +30,7 @@ supex/
 │       ├── supex_runtime.rb   # Extension entry point
 │       └── supex_runtime/     # Extension modules
 ├── docs/                      # Documentation
-│   └── agents/                # Agent prompts for user projects
+│   └── agents/                # Agent prompts (symlinked as supex-docs/)
 ├── docgen/                    # SketchUp API doc generator
 ├── stdlib/                    # Standard library (Ruby helpers)
 ├── scripts/                   # Development scripts
@@ -78,3 +78,10 @@ cd runtime && bundle exec rake build
 - `scripts/launch-sketchup.sh` - Development launcher
 - `mcp` - MCP server entry point
 - `supex` - CLI entry point
+
+## Agent Prompts Convention
+
+User projects symlink `docs/agents/` as `supex-docs/` in their project root. Therefore:
+
+- Files in `docs/agents/` (prompt.md, workflow.md, etc.) should reference paths as `supex-docs/...`
+- The exception is `README.md` which uses `docs/agents/` because it describes this repository's structure for human readers, not agent consumption
