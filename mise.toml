@@ -1,3 +1,7 @@
 [tools]
 # Ruby: Matches SketchUp 2026 runtime to prevent compatibility issues between our code and SketchUp
 ruby = "3.2.2"
+
+[tasks.lint]
+description = "Run rubocop linter"
+run = "bundle exec rubocop"
