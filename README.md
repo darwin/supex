@@ -121,11 +121,12 @@ your-project/
 ### Development Cycle
 
 ```bash
-# 1. Launch SketchUp with extension
+# 1. Launch SketchUp with Supex extension
+cd /path/to/supex
 ./scripts/launch-sketchup.sh
 
-# 2. Execute your script
-./supex eval-file scripts/create_table.rb
+# 2. Execute scripts (use absolute paths)
+./supex eval-file /path/to/your-project/src/create_table.rb
 
 # 3. Verify results
 ./supex info
@@ -133,6 +134,8 @@ your-project/
 
 # 4. Iterate - edit script and re-run
 ```
+
+For AI-driven development, Claude Code handles paths automatically via MCP tools.
 
 ### Benefits
 
@@ -190,24 +193,15 @@ This script:
 - Enables live reloading during development
 - Optionally opens a model given as parameter  
 
-### 3. Configure Claude Code in your Project
+### 3. Configure Claude Code
 
-Create or update `.mcp.json` in your project root:
+Add Supex MCP server to your project:
 
-```json
-{
-  "mcpServers": {
-    "supex": {
-      "type": "stdio",
-      "command": "/absolute/path/to/supex/mcp",
-      "args": [],
-      "env": {}
-    }
-  }
-}
+```bash
+claude mcp add supex -- /path/to/supex/mcp
 ```
 
-Replace `/absolute/path/to/supex/mcp` with the actual path to the `mcp` file in your Supex installation.
+Replace `/path/to/supex/mcp` with the actual path to your Supex installation.
 
 ### 4. Verify Connection
 
