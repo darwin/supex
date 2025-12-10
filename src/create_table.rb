@@ -50,39 +50,38 @@ module SupexSimpleTable
     table_top
   end
 
-  # Creates a single table leg as a group
+  # Creates a table leg component definition
+  # Geometry is created once and reused for all 4 legs
   #
-  # @param parent_entities [Sketchup::Entities] Parent entities collection
-  # @param x_pos [Length] X position of leg
-  # @param y_pos [Length] Y position of leg
+  # @param model [Sketchup::Model] The active SketchUp model
   # @param leg_size [Length] Size of leg (square cross-section)
   # @param leg_height [Length] Height of leg
   # @param material [Sketchup::Material] Material to apply
-  # @param index [Integer] Leg index for naming (1-based)
-  # @return [Sketchup::Group] The created leg group
-  def self.create_table_leg(parent_entities, x_pos, y_pos, leg_size, leg_height, material, index)
-    leg = parent_entities.add_group
-    leg.name = "Table Leg #{index}"
+  # @return [Sketchup::ComponentDefinition] The leg component definition
+  def self.create_leg_definition(model, leg_size, leg_height, material)
+    # Create component definition
+    leg_def = model.definitions.add('Table Leg')
 
-    # Create square leg profile at ground level
+    # Create square leg profile at origin
     # Vertices in clockwise order (viewed from above) so normal points down
-    leg_face = leg.entities.add_face(
-      [x_pos, y_pos, 0],
-      [x_pos, y_pos + leg_size, 0],
-      [x_pos + leg_size, y_pos + leg_size, 0],
-      [x_pos + leg_size, y_pos, 0]
+    leg_face = leg_def.entities.add_face(
+      [0, 0, 0],
+      [0, leg_size, 0],
+      [leg_size, leg_size, 0],
+      [leg_size, 0, 0]
     )
 
-    # Extrude up to meet the table top (negative value since normal points down)
+    # Extrude up to create leg height (negative value since normal points down)
     leg_face.pushpull(-leg_height)
 
-    # Apply material to group
-    leg.material = material
+    # Apply material to all faces in definition
+    leg_def.entities.grep(Sketchup::Face).each { |f| f.material = material }
 
-    leg
+    leg_def
   end
 
-  # Creates all four table legs in a group
+  # Creates all four table legs using component instances
+  # Uses a single component definition for efficiency
   #
   # @param parent_entities [Sketchup::Entities] Parent entities collection
   # @param table_length [Length] Table length
@@ -91,11 +90,15 @@ module SupexSimpleTable
   # @param leg_inset [Length] Inset from edge
   # @param leg_height [Length] Height of legs
   # @param material [Sketchup::Material] Material to apply
-  # @return [Sketchup::Group] The created legs group
+  # @return [Sketchup::Group] The created legs group containing 4 component instances
   def self.create_table_legs(parent_entities, table_length, table_width, leg_size, leg_inset,
                              leg_height, material)
+    model = parent_entities.model
     table_legs_group = parent_entities.add_group
     table_legs_group.name = 'Table Legs'
+
+    # Create leg component definition (geometry created once)
+    leg_def = create_leg_definition(model, leg_size, leg_height, material)
 
     # Calculate positions for four legs
     leg_positions = [
@@ -105,11 +108,12 @@ module SupexSimpleTable
       [table_length - leg_inset - leg_size, table_width - leg_inset - leg_size] # Back right
     ]
 
-    # Create each leg
+    # Place 4 instances of the leg component
     leg_positions.each_with_index do |pos, i|
       x_pos, y_pos = pos
-      create_table_leg(table_legs_group.entities, x_pos, y_pos, leg_size, leg_height, material,
-                       i + 1)
+      transform = Geom::Transformation.new([x_pos, y_pos, 0])
+      instance = table_legs_group.entities.add_instance(leg_def, transform)
+      instance.name = "Table Leg #{i + 1}"
     end
 
     table_legs_group
@@ -208,7 +212,7 @@ module SupexSimpleTable
       h = effective[:table_height].to_m
       puts 'Table created successfully!'
       puts "Dimensions: #{l}m x #{w}m x #{h}m"
-      puts 'Structure: Table > Table Top + Table Legs (4 legs)'
+      puts 'Structure: Table > Table Top + Table Legs (4 component instances)'
       puts 'Use get_model_info() or take_screenshot() to verify the result'
 
       table
