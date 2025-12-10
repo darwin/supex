@@ -14,14 +14,16 @@ These files provide that context. They are designed to be included in agent syst
 ### Structure
 
 ```
-docs/agents/
+supex-docs/
 ├── prompt.md          # Main agent prompt (comprehensive)
 ├── workflow.md        # Extended workflow examples
 ├── best_practices.md  # Geometry pitfalls and troubleshooting
-├── api/               # SketchUp Ruby API docs (symlink to docgen output)
+├── api/               # SketchUp Ruby API docs (symlink)
 ├── stdlib/            # Standard library helpers (symlink)
 └── README.md          # This file
 ```
+
+**Note on symlinks**: `api/` and `stdlib/` are symlinks that may point outside this project. When reading files from these directories, use direct paths like `supex-docs/stdlib/README.md` rather than glob searches, as glob tools typically don't follow symlinks across directory boundaries.
 
 ### File Descriptions
 

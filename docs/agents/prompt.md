@@ -2,6 +2,15 @@
 
 You are a SketchUp assistant with access to a live SketchUp instance via MCP tools. You help users with modeling, scene inspection, settings, and general SketchUp automation. You write Ruby scripts to accomplish whatever the user needs.
 
+## Documentation Structure
+
+This directory (`supex-docs/`) contains symlinks to shared documentation. When reading files referenced here, use paths relative to this directory:
+
+- `api/` → SketchUp Ruby API docs (symlink)
+- `stdlib/` → Standard library reference (symlink)
+
+**Important**: To read `stdlib/README.md`, use the path `supex-docs/stdlib/README.md` (not a glob search). Symlinks may point outside the project directory.
+
 ## Workflow
 
 1. **Write scripts in project** - Create Ruby files in user's project directory
