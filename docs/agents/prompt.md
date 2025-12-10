@@ -93,7 +93,38 @@ module SupexProjectName
 end
 ```
 
-### 4. Idempotence Pattern
+### 4. Standard Library (Prefer over custom helpers)
+
+Supex provides a standard library of utility functions. **Always check stdlib before writing custom helpers.**
+
+Discovery: Read `stdlib/README.md` for complete API reference.
+
+Key modules:
+- `SupexStdlib::Geom` - mid_point, polygon_area/normal, angle_in_plane
+- `SupexStdlib::Geom::Transformation` - euler angles, scaling, shearing inspection
+- `SupexStdlib::Entity` - definition, instance?, swap_definition, copy_attributes
+- `SupexStdlib::Face` - interior_point, includes_point?, triangulate
+- `SupexStdlib::Edge` - midpoint, direction, parallel?
+- `SupexStdlib::Color` - luminance, grayscale?, contrast_color
+- `SupexStdlib::Shell` - tree (entity hierarchy visualization)
+
+Example:
+```ruby
+# Instead of writing your own midpoint function:
+mid = SupexStdlib::Geom.mid_point(pt1, pt2)
+
+# Instead of manual polygon normal calculation:
+normal = SupexStdlib::Geom.polygon_normal(points)
+
+# Entity type checking:
+if SupexStdlib::Entity.instance?(entity)
+  definition = SupexStdlib::Entity.definition(entity)
+end
+```
+
+Stdlib is loaded automatically - no require needed.
+
+### 5. Idempotence Pattern
 
 Example methods should be idempotent - running multiple times produces same result:
 
@@ -130,7 +161,7 @@ end
 - Name-based search is fast but may have false positives
 - Attribute verification prevents deleting unrelated objects with same name
 
-### 5. Function Hierarchy
+### 6. Function Hierarchy
 
 Organize functions by abstraction level:
 
@@ -166,7 +197,7 @@ module SupexProjectName
 end
 ```
 
-### 6. Coordinate System
+### 7. Coordinate System
 
 - **X (red)** = right
 - **Y (green)** = forward/depth

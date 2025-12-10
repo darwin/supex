@@ -19,6 +19,7 @@ docs/agents/
 ├── workflow.md        # Extended workflow examples
 ├── best_practices.md  # Geometry pitfalls and troubleshooting
 ├── api/               # SketchUp Ruby API docs (symlink to docgen output)
+├── stdlib/            # Standard library helpers (symlink)
 └── README.md          # This file
 ```
 
@@ -28,6 +29,7 @@ docs/agents/
 - **workflow.md** - Extended examples of common geometry operations. Supplements prompt.md.
 - **best_practices.md** - Detailed troubleshooting guide for geometry issues (coplanar faces, reversed normals, etc.).
 - **api/** - Symlink to `docgen/generated-sketchup-api-docs/`. Contains markdown docs for SketchUp Ruby API classes.
+- **stdlib/** - Symlink to `stdlib/`. Reusable utility functions for geometry, entities, colors, etc. Agents should prefer these over writing custom helpers. See `stdlib/README.md` for API reference.
 
 ### Usage
 
