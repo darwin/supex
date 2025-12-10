@@ -19,47 +19,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Use `git ls-tree -r HEAD` to find project files** - do not look at other files unless explicitly asked by the user
 - **Use portable shebangs in all executable scripts** - use `#!/usr/bin/env bash` for bash scripts, `#!/usr/bin/env python3` for Python, etc. This ensures scripts work across different systems where interpreters may be installed in different locations
 
-## SketchUp Modeling Workflow
-
-**Project-Based Development**: Supex follows a project-based workflow similar to web development:
-
-### When users ask for SketchUp modeling help:
-
-1. **Create Ruby scripts in the project** - e.g., `scripts/create_table.rb`
-   - Write clean, well-commented Ruby code
-   - Follow guidelines in `driver/prompts/sketchup_workflow.md`
-   - Use proper SketchUp API patterns
-
-2. **Execute scripts with `eval_ruby_file`** - Run the Ruby file in SketchUp context
-   - Provides proper error reporting with file context
-   - Line numbers and stack traces work correctly
-
-3. **Use introspection tools to verify results:**
-   - `get_model_info()` - Check entity counts and model state
-   - `take_screenshot()` - Save screenshot to disk (returns path only!)
-     - **IMPORTANT**: Tool returns file path, not image data (~200 tokens vs 21k)
-     - Only use Read tool on screenshot path if user explicitly asks to see it
-     - Don't automatically read screenshots - saves massive context
-   - `get_selection()` - Verify what's selected
-   - `list_entities()` - Inspect created geometry
-
-4. **Iterate based on user feedback** - Edit the Ruby file and re-run
-   - All scripts are in the project (git trackable!)
-   - User can edit scripts in their IDE
-   - Full RuboCop and syntax highlighting support
-
-**Model files**: SketchUp models (.skp) should be in the project root or a `models/` directory.
-
-**Script organization**:
-- `scripts/` - Main modeling scripts
-- `scripts/utilities/` - Reusable helper functions
-- `scripts/components/` - Component definitions
-
-**Best practices from sketchup_workflow.md**:
-- Start operations with `model.start_operation`
-- Organize in groups/components
-- Use descriptive names
-
 ## Project Overview
 
 This is a production-ready SketchUp automation platform using Model Context Protocol (MCP). The project structure:
