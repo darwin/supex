@@ -17,10 +17,11 @@ module SupexRuntime
   #
   # Isolation feature:
   # Each shot can specify 'isolate' => entity_id to show only that subtree.
-  # This uses SketchUp's "Hide rest of Model" feature by:
+  # This uses SketchUp's "Hide rest of Model" and "Hide similar components":
   # 1. Opening the entity for editing (model.active_path)
-  # 2. Enabling InactiveHidden rendering option
-  # 3. zoom_extents then works only on the isolated content
+  # 2. Enabling InactiveHidden (hides rest of model)
+  # 3. Enabling InstanceHidden (hides other instances of same component)
+  # 4. zoom_extents then works only on the isolated instance
   module BatchScreenshot
     # Standard view camera configurations
     # Direction points FROM camera TO model center, Up defines camera orientation
@@ -268,7 +269,8 @@ module SupexRuntime
       def save_isolation_state(model)
         {
           active_path: model.active_path,
-          inactive_hidden: model.rendering_options['InactiveHidden']
+          inactive_hidden: model.rendering_options['InactiveHidden'],
+          instance_hidden: model.rendering_options['InstanceHidden']
         }
       end
 
@@ -278,6 +280,7 @@ module SupexRuntime
       def restore_isolation_state(model, state)
         model.active_path = state[:active_path]
         model.rendering_options['InactiveHidden'] = state[:inactive_hidden]
+        model.rendering_options['InstanceHidden'] = state[:instance_hidden]
       end
 
       # Apply isolation - open entity for editing and hide rest of model
@@ -297,8 +300,9 @@ module SupexRuntime
         instance_path = Sketchup::InstancePath.new(path)
         model.active_path = instance_path
 
-        # Enable "Hide rest of Model"
+        # Enable "Hide rest of Model" and "Hide similar components"
         model.rendering_options['InactiveHidden'] = true
+        model.rendering_options['InstanceHidden'] = true
       end
 
       # Build instance path from root to entity by walking up parent hierarchy
