@@ -80,6 +80,46 @@ take_batch_screenshots(
 
 All standard views use parallel projection - no perspective distortion.
 
+## Components for Repeated Geometry
+
+When creating objects with identical repeated parts, use components and instances rather than duplicating geometry:
+
+```ruby
+# Good: Create component definition, then place instances
+leg_def = model.definitions.add("Table Leg")
+leg_entities = leg_def.entities
+# Build leg geometry once in leg_entities...
+
+# Place 4 instances at different positions
+positions = [
+  Geom::Transformation.new([0, 0, 0]),
+  Geom::Transformation.new([width, 0, 0]),
+  Geom::Transformation.new([width, depth, 0]),
+  Geom::Transformation.new([0, depth, 0])
+]
+positions.each { |t| entities.add_instance(leg_def, t) }
+
+# Bad: Creating 4 separate groups with identical geometry
+# - Wastes file size
+# - Cannot edit all legs at once
+# - No semantic relationship between parts
+```
+
+**When to use components:**
+
+- **Table/chair legs** - 4 identical legs should be 4 instances
+- **Window frames** - Same window used multiple times
+- **Railings/balusters** - Repeated vertical elements
+- **Hardware** - Screws, handles, hinges
+- **Any identical repeated element**
+
+**Benefits:**
+
+- **Smaller file size** - Geometry stored once, referenced multiple times
+- **Edit all at once** - Change the definition, all instances update
+- **Organization** - Clear semantic structure in the model
+- **Replace easily** - Swap component definition to change all instances
+
 ## Common Pitfalls
 
 - **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1.mm
