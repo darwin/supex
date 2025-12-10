@@ -12,20 +12,8 @@ AllCops:
 Style/Documentation:
   Enabled: false  # SketchUp extensions often don't need full class documentation
 
-Metrics/MethodLength:
-  Max: 25  # Allow slightly longer methods for SketchUp API calls
-
-Metrics/ClassLength:
-  Max: 150  # Allow longer classes for main server implementation
-
-Metrics/PerceivedComplexity:
-  Enabled: false
-
-Metrics/CyclomaticComplexity:
-  Max: 15  # Allow higher complexity for API handling
-
-Metrics/AbcSize:
-  Enabled: false
+Metrics:
+  Enabled: false  # Metrics limits are too restrictive for SketchUp scripts
 
 Layout/LineLength:
   Max: 100  # Reasonable line length for Ruby
@@ -52,7 +40,4 @@ Style/GlobalVars:
 
 # Allow rescue without explicit error class for SketchUp compatibility
 Style/RescueStandardError:
-  Enabled: false
-
-Metrics/ParameterLists:
   Enabled: false

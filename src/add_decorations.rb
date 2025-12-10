@@ -191,6 +191,4 @@ module SupexSimpleTable
   end
 end
 
-if false # rubocop:disable Lint/LiteralAsCondition
-  SupexSimpleTable.example_decorations
-end
+SupexSimpleTable.example_decorations if false # rubocop:disable Lint/LiteralAsCondition

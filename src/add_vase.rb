@@ -48,7 +48,7 @@ module SupexSimpleTable
       t = i / 5.0
       z = height * 0.5 * t
       # Smooth interpolation from base to mid radius
-      r = base_radius + (mid_radius - base_radius) * Math.sin(t * Math::PI / 2)
+      r = base_radius + ((mid_radius - base_radius) * Math.sin(t * Math::PI / 2))
       points << Geom::Point3d.new(r, 0, z)
     end
 
@@ -58,9 +58,9 @@ module SupexSimpleTable
     # Upper curve (belly to neck) - 4 interpolation points
     (1..4).each do |i|
       t = i / 5.0
-      z = height * 0.5 + height * 0.4 * t
+      z = (height * 0.5) + (height * 0.4 * t)
       # Smooth interpolation from mid to neck radius
-      r = mid_radius - (mid_radius - neck_radius) * Math.sin(t * Math::PI / 2)
+      r = mid_radius - ((mid_radius - neck_radius) * Math.sin(t * Math::PI / 2))
       points << Geom::Point3d.new(r, 0, z)
     end
 
@@ -179,8 +179,8 @@ module SupexSimpleTable
     table_height = zs.max
 
     # Calculate center of table
-    center_x = xs.min + table_length / 2.0 + offset_x
-    center_y = ys.min + table_width / 2.0 + offset_y
+    center_x = xs.min + (table_length / 2.0) + offset_x
+    center_y = ys.min + (table_width / 2.0) + offset_y
 
     # Create vase at origin first
     vase_group = create_vase(table_group.entities, params)
@@ -240,6 +240,4 @@ module SupexSimpleTable
   end
 end
 
-if false # rubocop:disable Lint/LiteralAsCondition
-  SupexSimpleTable.example_vase
-end
+SupexSimpleTable.example_vase if false # rubocop:disable Lint/LiteralAsCondition
