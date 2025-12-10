@@ -7,6 +7,11 @@ plugins:
 AllCops:
   TargetRubyVersion: 3.4
   NewCops: enable
+  Include:
+    - 'src/**/*.rb'
+  Exclude:
+    - 'vendor/**/*'
+    - 'bin/**/*'
 
 # SketchUp specific adjustments
 Style/Documentation:
