@@ -367,6 +367,10 @@ module SupexRuntime
       def write_screenshot(view, filepath, width, height, transparent)
         FileUtils.mkdir_p(File.dirname(filepath))
 
+        # Force view update to apply rendering options (InactiveHidden, InstanceHidden)
+        # This is required because write_image may render before options are applied
+        view.invalidate
+
         options = {
           filename: filepath,
           width: width,
