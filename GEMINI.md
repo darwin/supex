@@ -1,3 +1,1 @@
-# GEMINI.md
-
-@AGENTS.md
+AGENTS.md
