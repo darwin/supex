@@ -1,7 +1,8 @@
 #!/usr/bin/osascript
 
--- Get SketchUp window position and size
--- Returns JSON format: {"x":100,"y":50,"width":1200,"height":800,"isMaximized":false}
+-- Get ALL SketchUp window positions and sizes
+-- Returns JSON v2 format with all windows keyed by title (or "main" for document window)
+-- Main window is identified by title ending with " - SketchUp XXXX"
 
 on run
     try
@@ -19,55 +20,87 @@ on run
             end if
 
             tell process "SketchUp"
-                -- Find the main document window (largest window)
-                set mainWindow to missing value
-                set maxArea to 0
+                set windowCount to count of windows
+                if windowCount is 0 then
+                    return "{\"error\":\"No SketchUp windows found\"}"
+                end if
+
+                -- Build windows JSON object
+                set windowsJson to ""
+                set isFirst to true
 
                 repeat with w in windows
                     try
-                        -- Get window size to find the largest one
-                        set wSize to size of w
-                        set wArea to (item 1 of wSize) * (item 2 of wSize)
+                        set winTitle to name of w
+                        set winPos to position of w
+                        set winSize to size of w
 
-                        -- Main window is typically the largest
-                        if wArea > maxArea then
-                            set maxArea to wArea
-                            set mainWindow to w
+                        set x to item 1 of winPos
+                        set y to item 2 of winPos
+                        set winWidth to item 1 of winSize
+                        set winHeight to item 2 of winSize
+
+                        -- Detect if window is maximized
+                        set isMaximized to false
+                        if winWidth >= (screenWidth - 100) and winHeight >= (screenHeight - 150) then
+                            set isMaximized to true
                         end if
+
+                        -- Determine window key
+                        -- Main window title ends with " - SketchUp XXXX" (year)
+                        set windowKey to winTitle
+                        set titlePattern to ""
+                        set matchedTitle to winTitle
+
+                        if winTitle ends with " - SketchUp 2024" or winTitle ends with " - SketchUp 2025" or winTitle ends with " - SketchUp 2026" or winTitle ends with " - SketchUp 2027" then
+                            set windowKey to "main"
+                            set titlePattern to " - SketchUp [0-9]{4}$"
+                        end if
+
+                        -- Add comma separator if not first
+                        if not isFirst then
+                            set windowsJson to windowsJson & ","
+                        end if
+                        set isFirst to false
+
+                        -- Escape quotes in title for JSON
+                        set escapedTitle to my replaceText(matchedTitle, "\"", "\\\"")
+
+                        -- Build JSON for this window
+                        set windowJson to "\"" & windowKey & "\":{"
+                        if titlePattern is not "" then
+                            set windowJson to windowJson & "\"titlePattern\":\"" & titlePattern & "\","
+                        end if
+                        set windowJson to windowJson & "\"matchedTitle\":\"" & escapedTitle & "\","
+                        set windowJson to windowJson & "\"x\":" & x & ","
+                        set windowJson to windowJson & "\"y\":" & y & ","
+                        set windowJson to windowJson & "\"width\":" & winWidth & ","
+                        set windowJson to windowJson & "\"height\":" & winHeight & ","
+                        set windowJson to windowJson & "\"isMaximized\":" & isMaximized
+                        set windowJson to windowJson & "}"
+
+                        set windowsJson to windowsJson & windowJson
                     end try
                 end repeat
 
-                if mainWindow is missing value then
-                    return "{\"error\":\"No suitable SketchUp window found\"}"
-                end if
+                -- Build final JSON with version 2 format
+                set timestamp to do shell script "date -u +\"%Y-%m-%dT%H:%M:%SZ\""
+                set jsonResult to "{\"version\":2,\"timestamp\":\"" & timestamp & "\",\"windows\":{" & windowsJson & "}}"
 
-                tell mainWindow
-                    -- Get position and size
-                    set windowPosition to position
-                    set windowSize to size
-
-                    -- Extract values
-                    set x to item 1 of windowPosition
-                    set y to item 2 of windowPosition
-                    set winWidth to item 1 of windowSize
-                    set winHeight to item 2 of windowSize
-
-                    -- Detect if window is maximized
-                    -- Window is considered maximized if it covers most of the screen
-                    -- Allow 100px tolerance for menu bar, dock, etc.
-                    set isMaximized to false
-                    if winWidth >= (screenWidth - 100) and winHeight >= (screenHeight - 150) then
-                        set isMaximized to true
-                    end if
-
-                    -- Build JSON response
-                    set jsonResult to "{\"x\":" & x & ",\"y\":" & y & ",\"width\":" & winWidth & ",\"height\":" & winHeight & ",\"isMaximized\":" & isMaximized & "}"
-
-                    return jsonResult
-                end tell
+                return jsonResult
             end tell
         end tell
     on error errMsg
         return "{\"error\":\"" & errMsg & "\"}"
     end try
 end run
+
+-- Helper function to replace text
+on replaceText(theText, searchString, replacementString)
+    set AppleScript's text item delimiters to searchString
+    set theTextItems to every text item of theText
+    set AppleScript's text item delimiters to replacementString
+    set theText to theTextItems as string
+    set AppleScript's text item delimiters to ""
+    return theText
+end replaceText
