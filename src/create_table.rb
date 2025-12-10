@@ -44,8 +44,8 @@ module SupexSimpleTable
     # Extrude upward to create thickness
     top_face.pushpull(thickness)
 
-    # Apply material to all faces
-    table_top.entities.each { |e| e.material = material if e.is_a?(Sketchup::Face) }
+    # Apply material to group
+    table_top.material = material
 
     table_top
   end
@@ -76,8 +76,8 @@ module SupexSimpleTable
     # Extrude up to meet the table top (negative value since normal points down)
     leg_face.pushpull(-leg_height)
 
-    # Apply material to all faces of the leg
-    leg.entities.each { |e| e.material = material if e.is_a?(Sketchup::Face) }
+    # Apply material to group
+    leg.material = material
 
     leg
   end
