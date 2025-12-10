@@ -397,6 +397,10 @@ class MockView
   def zoom(_entities_or_factor)
     true
   end
+
+  def invalidate
+    true
+  end
 end
 
 class MockRenderingOptions

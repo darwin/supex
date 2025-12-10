@@ -4,6 +4,9 @@ source 'https://rubygems.org'
 
 # Development dependencies
 group :development do
+  gem 'minitest'
+  gem 'rake'
   gem 'rubocop'
   gem 'rubocop-performance'
+  gem 'yard'
 end

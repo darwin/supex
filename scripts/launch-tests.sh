@@ -140,6 +140,13 @@ main() {
         "uv run pytest tests/" \
         || true  # Continue even if failed
 
+    # Run Ruby Stdlib tests
+    run_test_suite \
+        "Ruby Stdlib Tests" \
+        "${PROJECT_ROOT}/stdlib" \
+        "bundle exec rake test" \
+        || true  # Continue even if failed
+
     # Run Ruby Runtime tests
     run_test_suite \
         "Ruby Runtime Tests" \

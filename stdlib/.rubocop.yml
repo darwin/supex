@@ -15,6 +15,8 @@ Metrics:
 
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - 'test/test_helper.rb'  # Matrix math is hard to break up
 
 Style/StringLiterals:
   EnforcedStyle: single_quotes
@@ -29,8 +31,7 @@ Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always
 
-Naming/MethodParameterName:
-  MinNameLength: 2
+# Moved to bottom of file with MinNameLength: 1
 
 Naming/PredicateMethod:
   Enabled: false
@@ -44,3 +45,69 @@ Style/RescueStandardError:
 
 Lint/DuplicateBranch:
   Enabled: false
+
+# Prefer extend self for clarity over module_function
+Style/ModuleFunction:
+  Enabled: false
+
+# Allow positional boolean parameters - cleaner for optional flags
+Style/OptionalBooleanParameter:
+  Enabled: false
+
+# Keep has_/have_ predicate names - more readable
+Naming/PredicatePrefix:
+  Enabled: false
+
+# Allow > 0 instead of .positive? - clearer in comparisons
+Style/NumericPredicate:
+  Enabled: false
+
+# Allow unannotated format tokens - fine for hex formatting
+Style/FormatStringToken:
+  Enabled: false
+
+# Don't require guard clauses - sometimes if blocks are clearer
+Style/GuardClause:
+  Enabled: false
+
+# Allow ambiguous precedence - math expressions are fine
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: false
+
+# Empty blocks are intentional in tests (testing command creation)
+Lint/EmptyBlock:
+  Enabled: false
+
+# Mocks don't need to call super
+Lint/MissingSuper:
+  Enabled: false
+
+# Allow single-char params for geometry (x, y, z)
+Naming/MethodParameterName:
+  MinNameLength: 1
+
+# SketchUp uses CamelCase for some constants (PointInside, etc.)
+Naming/ConstantName:
+  Enabled: false
+
+# Allow variable names like x2, pt1
+Naming/VariableNumber:
+  Enabled: false
+
+# Allow nil return in predicates
+Style/ReturnNilInPredicateMethodDefinition:
+  Enabled: false
+
+# Clamp suggestion not always clearer
+Style/ComparableClamp:
+  Enabled: false
+
+# False positive on mock dictionary setter
+Lint/UselessSetterCall:
+  Exclude:
+    - 'test/test_helper.rb'
+
+# Allow multiline if modifier for method_defined? guards
+Style/MultilineIfModifier:
+  Exclude:
+    - 'src/supex_stdlib/platform.rb'

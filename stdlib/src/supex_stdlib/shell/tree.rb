@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Tree output format inspired by the Unix `tree` command.
+# Uses Unicode box-drawing characters for visual hierarchy.
+
 require 'sketchup'
 
 module SupexStdlib
