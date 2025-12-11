@@ -50,17 +50,31 @@ module SupexSimpleTable
     table_top
   end
 
-  # Creates a table leg component definition
-  # Geometry is created once and reused for all 4 legs
+  # Finds or creates a table leg component definition
+  # Uses tag-based lookup to reuse existing definition and avoid leaking Table Leg#n
   #
   # @param model [Sketchup::Model] The active SketchUp model
   # @param leg_size [Length] Size of leg (square cross-section)
   # @param leg_height [Length] Height of leg
   # @param material [Sketchup::Material] Material to apply
   # @return [Sketchup::ComponentDefinition] The leg component definition
-  def self.create_leg_definition(model, leg_size, leg_height, material)
-    # Create component definition
-    leg_def = model.definitions.add('Table Leg')
+  def self.find_or_create_leg_definition(model, leg_size, leg_height, material)
+    leg_def_name = 'Table Leg'
+
+    # First, try to find existing definition by tag
+    existing_def = model.definitions.find do |d|
+      d.get_attribute(ATTR_DICT, ATTR_KEY) == IDENT_TABLE
+    end
+
+    if existing_def
+      # Clear and reuse existing definition
+      existing_def.entities.clear!
+      leg_def = existing_def
+    else
+      # Create new definition and tag it
+      leg_def = model.definitions.add(leg_def_name)
+      leg_def.set_attribute(ATTR_DICT, ATTR_KEY, IDENT_TABLE)
+    end
 
     # Create square leg profile at origin
     # Vertices in clockwise order (viewed from above) so normal points down
@@ -97,8 +111,8 @@ module SupexSimpleTable
     table_legs_group = parent_entities.add_group
     table_legs_group.name = 'Table Legs'
 
-    # Create leg component definition (geometry created once)
-    leg_def = create_leg_definition(model, leg_size, leg_height, material)
+    # Find or create leg component definition (reuses existing to avoid leaking definitions)
+    leg_def = find_or_create_leg_definition(model, leg_size, leg_height, material)
 
     # Calculate positions for four legs
     leg_positions = [
