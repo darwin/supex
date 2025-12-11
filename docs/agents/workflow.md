@@ -11,7 +11,7 @@ face.pushpull(50.cm)
 
 # Create group with geometry
 group = entities.add_group
-group.entities.add_face(...)
+group.entities.add_face(points)
 
 # Transform/move
 tr = Geom::Transformation.translation([1.m, 0, 0])
@@ -52,14 +52,14 @@ material.texture.size = [1.m, 1.m]
 ```ruby
 # Create component definition
 definition = model.definitions.add('MyComponent')
-definition.entities.add_face(...)
+definition.entities.add_face(points)
 
 # Place instance
 instance = entities.add_instance(definition, transformation)
 instance.name = 'Instance 1'
 
 # Access definition from instance
-instance.definition.entities.each { |e| ... }
+instance.definition.entities.each { |e| puts e }
 ```
 
 ## Curves and Arcs
@@ -96,7 +96,7 @@ layer.visible = false
 ```ruby
 # Get selection
 selection = model.selection
-selection.each { |entity| ... }
+selection.each { |entity| puts entity }
 
 # Filter by type
 groups = entities.grep(Sketchup::Group)
