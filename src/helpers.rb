@@ -14,6 +14,22 @@ module SupexSimpleTable
   IDENT_DECORATIONS = 'simple_table_decorations'
   IDENT_VASE = 'simple_table_vase'
 
+  # Validates that a hash of parameters contains positive Length values
+  # Raises ArgumentError with descriptive message for invalid values
+  #
+  # @param params [Hash] Hash of parameter name => value pairs to validate
+  # @raise [ArgumentError] If any parameter is not positive
+  #
+  # @example Validate table dimensions
+  #   validate_positive_lengths(table_length: 1.2.m, table_width: 0.8.m)
+  def self.validate_positive_lengths(params)
+    invalid = params.select { |_name, value| !value.is_a?(Numeric) || value <= 0 }
+    return if invalid.empty?
+
+    names = invalid.keys.map(&:to_s).join(', ')
+    raise ArgumentError, "Parameters must be positive: #{names}"
+  end
+
   # Cleanup helper for idempotent example methods
   # Removes groups by name and verifies with attributes to prevent false positives
   #

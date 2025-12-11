@@ -157,6 +157,12 @@ module SupexSimpleTable
     leg_size = params[:leg_size] || 0.06.m
     leg_inset = params[:leg_inset] || 0.05.m
 
+    # Validate all dimensions are positive
+    validate_positive_lengths(
+      table_length: table_length, table_width: table_width, table_height: table_height,
+      top_thickness: top_thickness, leg_size: leg_size, leg_inset: leg_inset
+    )
+
     # Fill effective_params if provided
     if effective_params
       effective_params[:table_length] = table_length
