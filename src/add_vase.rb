@@ -238,6 +238,7 @@ module SupexSimpleTable
     rescue StandardError => e
       model.abort_operation
       puts "Error adding vase: #{e.message}"
+      puts e.backtrace.first(5).join("\n") if e.backtrace
       raise
     end
   end

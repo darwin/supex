@@ -232,6 +232,7 @@ module SupexSimpleTable
       # Abort operation on error
       model.abort_operation
       puts "Error creating table: #{e.message}"
+      puts e.backtrace.first(5).join("\n") if e.backtrace
       raise
     end
   end
