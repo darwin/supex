@@ -132,17 +132,4 @@ module SupexSimpleTable
 
     box_group
   end
-
-  # Moves a group to a new XY position
-  # Useful for placing multiple objects side by side
-  #
-  # @param group [Sketchup::Group] The group to move
-  # @param x [Length] X position
-  # @param y [Length] Y position
-  # @return [Sketchup::Group] The moved group (for chaining)
-  def self.move_to(group, x, y)
-    vector = Geom::Vector3d.new(x, y, 0)
-    group.transform!(Geom::Transformation.new(vector))
-    group
-  end
 end
