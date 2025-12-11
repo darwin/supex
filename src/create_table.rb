@@ -311,6 +311,33 @@ module SupexSimpleTable
       raise
     end
   end
+
+  # Full example: creates table with decorations and vase
+  # Convenience orchestration that runs all example methods in sequence
+  #
+  # @param params [Hash] Optional parameters passed to example_table
+  # @return [Sketchup::Group] The created table group (with decorations and vase)
+  # @api orchestration
+  def self.example_full(params = {})
+    # Require decorations and vase scripts
+    require_relative 'add_decorations'
+    require_relative 'add_vase'
+
+    # Create table first
+    table = example_table(params)
+
+    # Add decorations
+    example_decorations
+
+    # Add vase
+    example_vase
+
+    puts ''
+    puts 'Full table setup complete!'
+    puts 'Table includes: top, legs, decorative trim, and vase'
+
+    table
+  end
 end
 
 if false # rubocop:disable Lint/LiteralAsCondition
