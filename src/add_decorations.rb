@@ -141,6 +141,9 @@ module SupexSimpleTable
     trim_material = create_trim_material(model)
     trim_group.material = trim_material
 
+    # Tag for idempotence cleanup
+    trim_group.set_attribute(ATTR_DICT, ATTR_KEY, IDENT_DECORATIONS)
+
     trim_group
   end
 
@@ -156,6 +159,7 @@ module SupexSimpleTable
 
     # Configuration (single source of truth)
     table_name = 'Table'
+    trim_name = 'Decorative Trim'
 
     # Start operation for undo/redo support
     model.start_operation('Add Table Decorations', true)
@@ -165,10 +169,9 @@ module SupexSimpleTable
       table_group = entities.find { |e| e.is_a?(Sketchup::Group) && e.name == table_name }
       raise 'Table not found! Create a table first.' unless table_group
 
-      # Remove old trim if exists (idempotence - orchestration concern)
-      table_group.entities.grep(Sketchup::Group).select do |g|
-        g.name == 'Decorative Trim'
-      end.each(&:erase!)
+      # Remove old trim if exists (two-tier idempotence - name + attribute verification)
+      cleanup_by_name_and_attribute(table_group.entities, trim_name, ATTR_DICT, ATTR_KEY,
+                                    IDENT_DECORATIONS)
 
       # Create decorations (pure geometry)
       create_table_decorations(table_group)

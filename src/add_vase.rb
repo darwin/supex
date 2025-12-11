@@ -194,6 +194,9 @@ module SupexSimpleTable
     ceramic_material = create_ceramic_material(model)
     vase_group.material = ceramic_material
 
+    # Tag for idempotence cleanup
+    vase_group.set_attribute(ATTR_DICT, ATTR_KEY, IDENT_VASE)
+
     vase_group
   end
 
@@ -209,6 +212,7 @@ module SupexSimpleTable
 
     # Configuration
     table_name = 'Table'
+    vase_name = 'Vase'
 
     # Start operation for undo/redo support
     model.start_operation('Add Vase to Table', true)
@@ -218,10 +222,9 @@ module SupexSimpleTable
       table_group = entities.find { |e| e.is_a?(Sketchup::Group) && e.name == table_name }
       raise 'Table not found! Create a table first.' unless table_group
 
-      # Remove old vase if exists (idempotence)
-      table_group.entities.grep(Sketchup::Group).select do |g|
-        g.name == 'Vase'
-      end.each(&:erase!)
+      # Remove old vase if exists (two-tier idempotence - name + attribute verification)
+      cleanup_by_name_and_attribute(table_group.entities, vase_name, ATTR_DICT, ATTR_KEY,
+                                    IDENT_VASE)
 
       # Create vase on table
       create_table_vase(table_group, params)
