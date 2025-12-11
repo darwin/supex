@@ -1,4 +1,4 @@
-_tmp/
+.tmp/
 /.idea/
 .mcp.json
 .gemini/
@@ -7,3 +7,4 @@ AGENTS.override.md
 *.iml
 .DS_Store
 /.claude/
+/.code/
