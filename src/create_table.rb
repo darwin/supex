@@ -52,13 +52,13 @@ module SupexSimpleTable
 
   # Finds or creates a table leg component definition
   # Uses tag-based lookup to reuse existing definition and avoid leaking Table Leg#n
+  # Note: Material should be applied at instance level, not in definition
   #
   # @param model [Sketchup::Model] The active SketchUp model
   # @param leg_size [Length] Size of leg (square cross-section)
   # @param leg_height [Length] Height of leg
-  # @param material [Sketchup::Material] Material to apply
   # @return [Sketchup::ComponentDefinition] The leg component definition
-  def self.find_or_create_leg_definition(model, leg_size, leg_height, material)
+  def self.find_or_create_leg_definition(model, leg_size, leg_height)
     leg_def_name = 'Table Leg'
 
     # First, try to find existing definition by tag
@@ -88,9 +88,6 @@ module SupexSimpleTable
     # Extrude up to create leg height (negative value since normal points down)
     leg_face.pushpull(-leg_height)
 
-    # Apply material to all faces in definition
-    leg_def.entities.grep(Sketchup::Face).each { |f| f.material = material }
-
     leg_def
   end
 
@@ -112,7 +109,7 @@ module SupexSimpleTable
     table_legs_group.name = 'Table Legs'
 
     # Find or create leg component definition (reuses existing to avoid leaking definitions)
-    leg_def = find_or_create_leg_definition(model, leg_size, leg_height, material)
+    leg_def = find_or_create_leg_definition(model, leg_size, leg_height)
 
     # Calculate positions for four legs
     leg_positions = [
@@ -122,12 +119,13 @@ module SupexSimpleTable
       [table_length - leg_inset - leg_size, table_width - leg_inset - leg_size] # Back right
     ]
 
-    # Place 4 instances of the leg component
+    # Place 4 instances of the leg component with material applied at instance level
     leg_positions.each_with_index do |pos, i|
       x_pos, y_pos = pos
       transform = Geom::Transformation.new([x_pos, y_pos, 0])
       instance = table_legs_group.entities.add_instance(leg_def, transform)
       instance.name = "Table Leg #{i + 1}"
+      instance.material = material
     end
 
     table_legs_group
