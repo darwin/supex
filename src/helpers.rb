@@ -148,4 +148,28 @@ module SupexSimpleTable
 
     box_group
   end
+
+  # Takes verification screenshots of a table from multiple angles
+  # Uses batch screenshots with isolate to show only the target entity
+  #
+  # @param entity_id [Integer] Entity ID of the group to isolate and capture
+  # @param base_name [String] Base name for screenshot files (default: 'verify')
+  # @return [String] Ruby code to execute via eval_ruby for taking screenshots
+  #
+  # @example Take screenshots of a table
+  #   code = SupexSimpleTable.take_verification_screenshots_code(table.entityID, 'table')
+  #   # Then execute via eval_ruby(code)
+  def self.take_verification_screenshots_code(entity_id, base_name = 'verify')
+    <<~RUBY
+      take_batch_screenshots(
+        shots: [
+          { camera: { type: 'standard_view', view: 'front' }, name: '#{base_name}_front', isolate: #{entity_id} },
+          { camera: { type: 'standard_view', view: 'right' }, name: '#{base_name}_right', isolate: #{entity_id} },
+          { camera: { type: 'standard_view', view: 'top' }, name: '#{base_name}_top', isolate: #{entity_id} },
+          { camera: { type: 'standard_view', view: 'iso' }, name: '#{base_name}_iso', isolate: #{entity_id} }
+        ],
+        base_name: '#{base_name}'
+      )
+    RUBY
+  end
 end

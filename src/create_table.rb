@@ -191,6 +191,75 @@ module SupexSimpleTable
     main_table
   end
 
+  # Verifies that a table group has expected structure
+  # Checks for required children and nonzero bounding box
+  #
+  # @param table_group [Sketchup::Group] The table group to verify
+  # @return [Hash] Verification results with :valid, :errors, :children keys
+  def self.verify_table(table_group)
+    errors = []
+    children = {}
+
+    # Check for Table Top
+    table_top = table_group.entities.find { |e| e.is_a?(Sketchup::Group) && e.name == 'Table Top' }
+    if table_top
+      children[:table_top] = true
+    else
+      errors << 'Missing Table Top group'
+      children[:table_top] = false
+    end
+
+    # Check for Table Legs
+    table_legs = table_group.entities.find { |e| e.is_a?(Sketchup::Group) && e.name == 'Table Legs' }
+    if table_legs
+      children[:table_legs] = true
+      # Count leg instances
+      leg_count = table_legs.entities.grep(Sketchup::ComponentInstance).count
+      children[:leg_count] = leg_count
+      errors << "Expected 4 leg instances, found #{leg_count}" if leg_count != 4
+    else
+      errors << 'Missing Table Legs group'
+      children[:table_legs] = false
+    end
+
+    # Check bounding box is nonzero
+    bounds = table_group.bounds
+    if bounds.empty?
+      errors << 'Bounding box is empty'
+    elsif bounds.width.zero? || bounds.height.zero? || bounds.depth.zero?
+      errors << 'Bounding box has zero dimension'
+    end
+
+    {
+      valid: errors.empty?,
+      errors: errors,
+      children: children
+    }
+  end
+
+  # Describes a table's dimensions for assertions
+  # Returns effective dimensions from the table geometry
+  #
+  # @param table_group [Sketchup::Group] The table group to describe
+  # @return [Hash] Table dimensions: length, width, height (all in model units)
+  def self.describe_table(table_group)
+    bounds = table_group.bounds
+
+    # Find table top for more accurate height measurement
+    table_top = table_group.entities.find { |e| e.is_a?(Sketchup::Group) && e.name == 'Table Top' }
+    table_height = table_top ? table_top.bounds.max.z : bounds.max.z
+
+    {
+      length: bounds.width,  # X dimension
+      width: bounds.depth,   # Y dimension
+      height: table_height,  # Z dimension (top of table)
+      bounds: {
+        min: bounds.min.to_a,
+        max: bounds.max.to_a
+      }
+    }
+  end
+
   # Example usage with default dimensions
   # Orchestrates table creation with transaction management
   #
