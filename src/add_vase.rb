@@ -12,9 +12,9 @@ module SupexSimpleTable
   # Uses recreate_material for idempotence
   #
   # @param model [Sketchup::Model] The active SketchUp model
-  # @param tag [String] Tag value for idempotence (default: 'vase_example')
+  # @param tag [String] Tag value for idempotence (default: IDENT_VASE)
   # @return [Sketchup::Material] The created ceramic material
-  def self.create_ceramic_material(model, tag = 'vase_example')
+  def self.create_ceramic_material(model, tag = IDENT_VASE)
     recreate_material(model, 'Blue Ceramic', Sketchup::Color.new(70, 130, 180), tag)
   end
 

@@ -12,9 +12,9 @@ module SupexSimpleTable
   # Uses recreate_material for idempotence
   #
   # @param model [Sketchup::Model] The active SketchUp model
-  # @param tag [String] Tag value for idempotence (default: 'decorations_example')
+  # @param tag [String] Tag value for idempotence (default: IDENT_DECORATIONS)
   # @return [Sketchup::Material] The created trim material
-  def self.create_trim_material(model, tag = 'decorations_example')
+  def self.create_trim_material(model, tag = IDENT_DECORATIONS)
     recreate_material(model, 'Trim', Sketchup::Color.new(101, 67, 33), tag)
   end
 

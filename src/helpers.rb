@@ -5,6 +5,15 @@
 # Project-specific naming prevents conflicts when using multiple Supex projects
 
 module SupexSimpleTable
+  # Shared constants for attribute-based idempotence
+  ATTR_DICT = 'supex'
+  ATTR_KEY = 'type'
+
+  # Per-feature identifiers (used for cleanup and material tagging)
+  IDENT_TABLE = 'simple_table'
+  IDENT_DECORATIONS = 'simple_table_decorations'
+  IDENT_VASE = 'simple_table_vase'
+
   # Cleanup helper for idempotent example methods
   # Removes groups by name and verifies with attributes to prevent false positives
   #
@@ -68,7 +77,7 @@ module SupexSimpleTable
   #   )
   def self.recreate_material(model, name, color, tag)
     # First, try to find ANY existing material with our tag (regardless of name)
-    tagged_material = model.materials.find { |mat| mat.get_attribute('supex', 'type') == tag }
+    tagged_material = model.materials.find { |mat| mat.get_attribute(ATTR_DICT, ATTR_KEY) == tag }
 
     if tagged_material
       # We already have a tagged material, reuse it (true idempotence)
@@ -81,7 +90,7 @@ module SupexSimpleTable
     material = create_simple_material(model, name, color)
 
     # Tag it so we can find it next time (by tag, not name!)
-    material.set_attribute('supex', 'type', tag)
+    material.set_attribute(ATTR_DICT, ATTR_KEY, tag)
 
     material
   end

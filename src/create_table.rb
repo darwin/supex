@@ -14,9 +14,9 @@ module SupexSimpleTable
   # Uses recreate_material for idempotence
   #
   # @param model [Sketchup::Model] The active SketchUp model
-  # @param tag [String] Tag value for idempotence (default: 'basic_table_example')
+  # @param tag [String] Tag value for idempotence (default: IDENT_TABLE)
   # @return [Sketchup::Material] The created wood material
-  def self.create_wood_material(model, tag = 'basic_table_example')
+  def self.create_wood_material(model, tag = IDENT_TABLE)
     recreate_material(model, 'Wood', Sketchup::Color.new(139, 69, 19), tag)
   end
 
@@ -177,7 +177,7 @@ module SupexSimpleTable
   # Orchestrates table creation with transaction management
   #
   # @param params [Hash] Optional parameters passed to create_simple_table
-  # @option params [String] :ident Identifier for idempotence (default: basic_table_example)
+  # @option params [String] :ident Identifier for idempotence (default: IDENT_TABLE)
   # @api orchestration
   # @return [Sketchup::Group] The created table group
   def self.example_table(params = {})
@@ -186,7 +186,7 @@ module SupexSimpleTable
     entities = model.entities
 
     # Configuration
-    ident = params[:ident] || 'basic_table_example'
+    ident = params[:ident] || IDENT_TABLE
     table_name = 'Table'
 
     # Start operation for undo/redo support
@@ -194,7 +194,7 @@ module SupexSimpleTable
 
     begin
       # Cleanup previous example instances (idempotent)
-      cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', ident)
+      cleanup_by_name_and_attribute(entities, table_name, ATTR_DICT, ATTR_KEY, ident)
 
       # Create the table (clean geometry without metadata)
       effective = {}
@@ -202,7 +202,7 @@ module SupexSimpleTable
 
       # Apply metadata (orchestration concern)
       table.name = table_name
-      table.set_attribute('supex', 'type', ident)
+      table.set_attribute(ATTR_DICT, ATTR_KEY, ident)
 
       # Commit the operation
       model.commit_operation
