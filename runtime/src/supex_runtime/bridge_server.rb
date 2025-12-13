@@ -556,6 +556,8 @@ module SupexRuntime
     end
 
     # Evaluate Ruby code in SketchUp context
+    # Each eval runs in an isolated binding - local variables don't persist between calls.
+    # Global variables ($foo), constants (Foo), and class/module definitions do persist.
     # @param params [Hash] parameters containing Ruby code
     # @return [Hash] evaluation result
     def eval_ruby(params)
@@ -563,9 +565,10 @@ module SupexRuntime
 
       begin
         @console_capture&.add_marker('EVAL_RUBY START')
-        binding = TOPLEVEL_BINDING.dup
+        # Create fresh binding to isolate local variables between calls
+        isolated_binding = create_isolated_binding
         # rubocop:disable Security/Eval
-        result = eval(params['code'], binding)
+        result = eval(params['code'], isolated_binding)
         # rubocop:enable Security/Eval
         @console_capture&.add_marker('EVAL_RUBY END')
 
@@ -579,6 +582,15 @@ module SupexRuntime
         log "Ruby eval error: #{e.message}"
         raise "Ruby evaluation error: #{e.message}"
       end
+    end
+
+    # Create an isolated binding for eval
+    # Uses a fresh proc binding so local variables from previous evals
+    # don't leak to subsequent calls. Unlike TOPLEVEL_BINDING.dup which
+    # shares local variables, this creates a truly fresh scope.
+    # @return [Binding] fresh binding for eval
+    def create_isolated_binding
+      proc {}.binding
     end
 
     # Ping tool for connection health checking

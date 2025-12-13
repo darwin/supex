@@ -356,6 +356,48 @@ class TestBridgeServer < Minitest::Test
   end
 
   # ==========================================================================
+  # eval_ruby binding isolation tests
+  # ==========================================================================
+
+  def test_eval_ruby_binding_isolation
+    server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # First eval sets a local variable
+    server.send(:eval_ruby, { 'code' => 'isolated_test_var = 42' })
+
+    # Second eval should NOT see the local variable (isolated binding)
+    error = assert_raises(RuntimeError) do
+      server.send(:eval_ruby, { 'code' => 'isolated_test_var' })
+    end
+
+    assert_includes error.message, 'undefined local variable'
+  end
+
+  def test_eval_ruby_globals_persist
+    server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Global variables persist (by design - this is expected Ruby behavior)
+    server.send(:eval_ruby, { 'code' => '$supex_test_global = 123' })
+    result = server.send(:eval_ruby, { 'code' => '$supex_test_global' })
+
+    assert_equal '123', result[:result]
+  ensure
+    # Clean up global
+    $supex_test_global = nil
+  end
+
+  def test_eval_ruby_constants_persist
+    server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Constants persist (by design - this is expected Ruby behavior)
+    server.send(:eval_ruby, { 'code' => 'SUPEX_TEST_CONST = "test" unless defined?(SUPEX_TEST_CONST)' })
+    result = server.send(:eval_ruby, { 'code' => 'SUPEX_TEST_CONST' })
+
+    # result.to_s returns "test" without quotes
+    assert_equal 'test', result[:result]
+  end
+
+  # ==========================================================================
   # Server lifecycle tests (integration)
   # ==========================================================================
 
