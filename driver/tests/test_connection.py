@@ -2,9 +2,11 @@
 
 import json
 import socket
+import time
 from unittest.mock import Mock, patch
 
 from supex_driver.connection import SketchupConnection
+from supex_driver.connection import connection as connection_module
 
 
 class TestSketchupConnection:
@@ -182,3 +184,186 @@ class TestTokenAuthentication:
         from supex_driver.connection.connection import AUTH_TOKEN
         conn = SketchupConnection(host="localhost", port=9876)
         assert conn.token == AUTH_TOKEN
+
+
+class TestConnectionReuse:
+    """Test connection reuse and health checking."""
+
+    def test_is_connection_healthy_returns_false_when_no_socket(self) -> None:
+        """Test health check returns False when socket is None."""
+        conn = SketchupConnection(host="localhost", port=9876)
+        assert conn._is_connection_healthy() is False
+
+    def test_is_connection_healthy_returns_false_when_not_identified(self) -> None:
+        """Test health check returns False when not identified."""
+        conn = SketchupConnection(host="localhost", port=9876)
+        conn.sock = Mock()
+        conn._identified = False
+        assert conn._is_connection_healthy() is False
+
+    @patch("socket.socket")
+    def test_connection_reuse_multiple_commands(self, mock_socket: Mock) -> None:
+        """Test that multiple commands reuse the same connection."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        # Mock hello response
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+
+        # Mock command response
+        command_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"status": "ok"},
+            "id": 1
+        }).encode("utf-8") + b"\n"
+
+        def recv_side_effect(*args, **kwargs):
+            # MSG_PEEK is used for health check - simulate no data available
+            if args and args[0] == 1:
+                raise BlockingIOError()
+            return recv_responses.pop(0)
+
+        recv_responses = [
+            hello_response,   # First connect hello
+            command_response,  # First command
+            command_response,  # Second command
+            command_response,  # Third command
+        ]
+        mock_sock_instance.recv.side_effect = recv_side_effect
+
+        conn = SketchupConnection(host="localhost", port=9876)
+
+        # Send 3 commands
+        for _ in range(3):
+            conn.send_command("ping")
+
+        # connect() should only be called once
+        assert mock_sock_instance.connect.call_count == 1
+
+    def test_health_check_detects_idle_timeout(self) -> None:
+        """Test health check returns False when connection has been idle too long."""
+        conn = SketchupConnection(host="localhost", port=9876)
+        conn.sock = Mock()
+        conn._identified = True
+
+        # Set last activity to long ago
+        conn._last_activity = time.time() - 1000
+
+        # Temporarily set short idle timeout
+        original_max_idle = connection_module.MAX_IDLE_TIME
+        try:
+            connection_module.MAX_IDLE_TIME = 1.0  # 1 second
+            assert conn._is_connection_healthy() is False
+        finally:
+            connection_module.MAX_IDLE_TIME = original_max_idle
+
+    def test_health_check_detects_closed_socket(self) -> None:
+        """Test health check returns False when socket is closed by server."""
+        conn = SketchupConnection(host="localhost", port=9876)
+        mock_sock = Mock()
+        conn.sock = mock_sock
+        conn._identified = True
+        conn._last_activity = time.time()
+
+        # Mock recv returning empty bytes (connection closed)
+        mock_sock.recv.return_value = b""
+
+        assert conn._is_connection_healthy() is False
+
+    def test_health_check_passes_when_no_data_available(self) -> None:
+        """Test health check returns True when socket is alive but no data."""
+        conn = SketchupConnection(host="localhost", port=9876)
+        mock_sock = Mock()
+        conn.sock = mock_sock
+        conn._identified = True
+        conn._last_activity = time.time()
+
+        # Mock recv raising BlockingIOError (no data available)
+        mock_sock.recv.side_effect = BlockingIOError()
+
+        assert conn._is_connection_healthy() is True
+
+    @patch("socket.socket")
+    def test_reconnect_after_idle_timeout(self, mock_socket: Mock) -> None:
+        """Test that connection reconnects after idle timeout."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        # Mock responses
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+        command_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"status": "ok"},
+            "id": 1
+        }).encode("utf-8") + b"\n"
+
+        def recv_side_effect(*args, **kwargs):
+            # MSG_PEEK is used for health check - simulate no data available
+            if args and args[0] == 1:
+                raise BlockingIOError()
+            return recv_responses.pop(0)
+
+        recv_responses = [
+            hello_response,   # First connect
+            command_response,  # First command
+            hello_response,   # Second connect (after idle)
+            command_response,  # Second command
+        ]
+        mock_sock_instance.recv.side_effect = recv_side_effect
+
+        conn = SketchupConnection(host="localhost", port=9876)
+
+        # Send first command
+        conn.send_command("ping")
+        first_connect_count = mock_sock_instance.connect.call_count
+        assert first_connect_count == 1
+
+        # Simulate idle timeout by setting last_activity to old time
+        original_max_idle = connection_module.MAX_IDLE_TIME
+        try:
+            connection_module.MAX_IDLE_TIME = 0.1
+            conn._last_activity = time.time() - 1.0  # 1 second ago
+
+            # Send second command - should trigger reconnect
+            conn.send_command("ping")
+            assert mock_sock_instance.connect.call_count == 2
+        finally:
+            connection_module.MAX_IDLE_TIME = original_max_idle
+
+    @patch("socket.socket")
+    def test_last_activity_updated_on_success(self, mock_socket: Mock) -> None:
+        """Test that _last_activity is updated after successful command."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+        command_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"status": "ok"},
+            "id": 1
+        }).encode("utf-8") + b"\n"
+
+        recv_responses = [hello_response, command_response]
+        mock_sock_instance.recv.side_effect = lambda *args, **kwargs: recv_responses.pop(0)
+
+        conn = SketchupConnection(host="localhost", port=9876)
+        assert conn._last_activity == 0.0
+
+        before = time.time()
+        conn.send_command("ping")
+        after = time.time()
+
+        assert conn._last_activity >= before
+        assert conn._last_activity <= after

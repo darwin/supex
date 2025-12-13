@@ -30,6 +30,7 @@ To disable path restrictions (not recommended), set `SUPEX_ALLOWED_ROOTS=*`.
 | `SUPEX_PORT` | `9876` | Server port |
 | `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
 | `SUPEX_RETRIES` | `2` | Max retry attempts |
+| `SUPEX_IDLE_TIMEOUT` | `300` | Connection idle timeout in seconds (driver reconnects after this) |
 | `SUPEX_LOG_DIR` | `~/.supex/logs` | Log directory |
 | `SUPEX_VERBOSE` | (unset) | Enable verbose logging (set to `1`) |
 | `SUPEX_AGENT` | (auto) | Agent identifier for logging |

@@ -6,6 +6,7 @@ import logging
 import os
 import socket
 import threading
+import time
 from dataclasses import dataclass, field
 from importlib.metadata import version as get_version
 from typing import Any
@@ -25,6 +26,7 @@ DEFAULT_PORT = int(os.environ.get("SUPEX_PORT", "9876"))
 DEFAULT_TIMEOUT = float(os.environ.get("SUPEX_TIMEOUT", "15.0"))
 MAX_RETRIES = int(os.environ.get("SUPEX_RETRIES", "2"))
 MAX_RESPONSE_BYTES = int(os.environ.get("SUPEX_MAX_RESPONSE", "10485760"))  # 10 MB default
+MAX_IDLE_TIME = float(os.environ.get("SUPEX_IDLE_TIMEOUT", "300"))  # 5 min default
 AUTH_TOKEN = os.environ.get("SUPEX_AUTH_TOKEN")
 
 # Client identification
@@ -55,6 +57,7 @@ class SketchupConnection:
     token: str | None = AUTH_TOKEN
     sock: socket.socket | None = field(default=None, repr=False)
     _identified: bool = field(default=False, repr=False)
+    _last_activity: float = field(default=0.0, repr=False)
 
     def connect(self) -> bool:
         """Connect to the SketchUp runtime socket server and send hello handshake.
@@ -192,6 +195,38 @@ class SketchupConnection:
         except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
             raise SketchUpConnectionError(f"Connection error: {e}")
 
+    def _is_connection_healthy(self) -> bool:
+        """Check if existing connection is still valid.
+
+        Returns:
+            True if connection is healthy and can be reused, False otherwise.
+        """
+        if not self.sock or not self._identified:
+            return False
+
+        # Check idle timeout
+        if self._last_activity > 0:
+            idle_time = time.time() - self._last_activity
+            if idle_time > MAX_IDLE_TIME:
+                logger.debug(f"Connection idle for {idle_time:.1f}s, will reconnect")
+                return False
+
+        # Check if socket is still connected (non-blocking peek)
+        try:
+            self.sock.setblocking(False)
+            try:
+                data = self.sock.recv(1, socket.MSG_PEEK)
+                if not data:
+                    return False  # Connection closed by server
+            except BlockingIOError:
+                pass  # No data available = connection is alive
+            finally:
+                self.sock.setblocking(True)
+                self.sock.settimeout(self.timeout)
+            return True
+        except Exception:
+            return False
+
     def send_command(
         self, method: str, params: dict[str, Any] | None = None, request_id: Any = None
     ) -> dict[str, Any]:
@@ -210,8 +245,10 @@ class SketchupConnection:
             SketchUpProtocolError: If response is invalid JSON.
             SketchUpTimeoutError: If socket operation times out.
         """
-        if not self.connect():
-            raise SketchUpConnectionError("Not connected to SketchUp")
+        # Reuse existing connection if healthy
+        if not self._is_connection_healthy():
+            if not self.connect():
+                raise SketchUpConnectionError("Not connected to SketchUp")
         assert self.sock is not None  # connect() sets self.sock on success
 
         # Convert to proper JSON-RPC format
@@ -268,6 +305,8 @@ class SketchupConnection:
                         data=error.get("data"),
                     )
 
+                # Update activity timestamp on success
+                self._last_activity = time.time()
                 return response.get("result", {})
 
             except (
