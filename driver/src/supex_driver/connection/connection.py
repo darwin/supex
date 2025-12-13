@@ -146,7 +146,7 @@ class SketchupConnection:
             logger.error(f"Hello handshake error: {e}")
             return False
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Disconnect from the SketchUp runtime."""
         if self.sock:
             try:
@@ -323,7 +323,8 @@ class SketchupConnection:
 
                 # Update activity timestamp on success
                 self._last_activity = time.time()
-                return response.get("result", {})
+                result: dict[str, Any] = response.get("result", {})
+                return result
 
             except (
                 TimeoutError,

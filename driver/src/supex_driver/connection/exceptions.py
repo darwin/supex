@@ -1,5 +1,7 @@
 """Custom exceptions for SketchUp client communication."""
 
+from typing import Any
+
 
 class SketchUpError(Exception):
     """Base exception for SketchUp client errors."""
@@ -34,7 +36,7 @@ class SketchUpRemoteError(SketchUpError):
         data: Optional additional error data (may include file, line, hint).
     """
 
-    def __init__(self, code: int, message: str, data: dict | None = None):
+    def __init__(self, code: int, message: str, data: dict[str, Any] | None = None):
         self.code = code
         self.message = message
         self.data = data or {}

@@ -4,10 +4,13 @@ import json
 import logging
 import os
 import sys
-from typing import IO
+from typing import IO, Any, TextIO, cast
 
 from mcp.server import fastmcp
 from mcp.server.fastmcp import Context, FastMCP
+
+# Type alias for MCP Context (generic with Any for session/lifespan/request types)
+McpContext = Context[Any, Any, Any]
 
 from supex_driver import __version__
 from supex_driver.connection import get_sketchup_connection
@@ -25,7 +28,7 @@ logger = logging.getLogger("supex.mcp")
 _mcp_client_name: str | None = None
 
 
-def get_agent_name(ctx: Context | None = None) -> str:
+def get_agent_name(ctx: McpContext | None = None) -> str:
     """Get agent name from MCP client info or environment.
 
     Priority:
@@ -47,8 +50,9 @@ def get_agent_name(ctx: Context | None = None) -> str:
                     if client_params:
                         client_info = getattr(client_params, 'clientInfo', None)
                         if client_info:
-                            name = getattr(client_info, 'name', None)
-                            if name:
+                            raw_name = getattr(client_info, 'name', None)
+                            if raw_name and isinstance(raw_name, str):
+                                name: str = cast(str, raw_name)
                                 logger.info(f"Got client name from MCP clientInfo: {name}")
                                 _mcp_client_name = name
                                 return name
@@ -84,24 +88,26 @@ atexit.register(_cleanup_log_files)
 
 class TeeStream:
     """Stream that writes to both original stream and log file"""
-    def __init__(self, original_stream, log_file):
+
+    def __init__(self, original_stream: TextIO, log_file: TextIO) -> None:
         self.original_stream = original_stream
         self.log_file = log_file
 
-    def write(self, data):
+    def write(self, data: str) -> int:
         self.original_stream.write(data)
         self.log_file.write(data)
         self.log_file.flush()
+        return len(data)
 
-    def flush(self):
+    def flush(self) -> None:
         self.original_stream.flush()
         self.log_file.flush()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self.original_stream, name)
 
 
-def setup_logging():
+def setup_logging() -> None:
     """Configure logging for the MCP server.
 
     Sets up file logging and configures the logging format.
@@ -144,9 +150,9 @@ mcp = FastMCP("Supex")
 
 
 def call_tool(
-    ctx: Context,
+    ctx: McpContext,
     method: str,
-    params: dict | None = None,
+    params: dict[str, Any] | None = None,
     operation: str = "operation"
 ) -> str:
     """Execute a tool call with standardized error handling.
@@ -189,7 +195,7 @@ def call_tool(
 
 # Status and connection tools
 @mcp.tool()
-def check_sketchup_status(ctx: Context) -> str:
+def check_sketchup_status(ctx: McpContext) -> str:
     """Check if SketchUp is connected and responding"""
     try:
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
@@ -245,7 +251,7 @@ def check_sketchup_status(ctx: Context) -> str:
 
 # Export functionality
 @mcp.tool()
-def export_scene(ctx: Context, format: str = "skp") -> str:
+def export_scene(ctx: McpContext, format: str = "skp") -> str:
     """Export the current SketchUp scene
 
     Args:
@@ -256,7 +262,7 @@ def export_scene(ctx: Context, format: str = "skp") -> str:
 
 # Ruby code evaluation
 @mcp.tool()
-def eval_ruby(ctx: Context, code: str) -> str:
+def eval_ruby(ctx: McpContext, code: str) -> str:
     """Evaluate arbitrary Ruby code in SketchUp context
 
     Args:
@@ -299,14 +305,14 @@ def eval_ruby(ctx: Context, code: str) -> str:
 
 # Console capture functionality
 @mcp.tool()
-def console_capture_status(ctx: Context) -> str:
+def console_capture_status(ctx: McpContext) -> str:
     """Get console capture status and log file information"""
     return call_tool(ctx, "console_capture_status", {}, "console_capture_status")
 
 
 # File-based Ruby evaluation tools
 @mcp.tool()
-def eval_ruby_file(ctx: Context, file_path: str) -> str:
+def eval_ruby_file(ctx: McpContext, file_path: str) -> str:
     """Evaluate Ruby code from a file in SketchUp context
 
     Args:
@@ -318,7 +324,7 @@ def eval_ruby_file(ctx: Context, file_path: str) -> str:
 
 # Introspection tools
 @mcp.tool()
-def get_model_info(ctx: Context) -> str:
+def get_model_info(ctx: McpContext) -> str:
     """Get basic information about the current SketchUp model
 
     Returns model statistics including:
@@ -334,7 +340,7 @@ def get_model_info(ctx: Context) -> str:
 
 
 @mcp.tool()
-def list_entities(ctx: Context, entity_type: str = "all") -> str:
+def list_entities(ctx: McpContext, entity_type: str = "all") -> str:
     """List entities in the model
 
     Args:
@@ -346,7 +352,7 @@ def list_entities(ctx: Context, entity_type: str = "all") -> str:
 
 
 @mcp.tool()
-def get_selection(ctx: Context) -> str:
+def get_selection(ctx: McpContext) -> str:
     """Get currently selected entities in SketchUp
 
     Returns:
@@ -357,7 +363,7 @@ def get_selection(ctx: Context) -> str:
 
 
 @mcp.tool()
-def get_layers(ctx: Context) -> str:
+def get_layers(ctx: McpContext) -> str:
     """Get list of layers (tags) in the model
 
     Returns list of layers with name, visible state, and entity count
@@ -366,7 +372,7 @@ def get_layers(ctx: Context) -> str:
 
 
 @mcp.tool()
-def get_materials(ctx: Context) -> str:
+def get_materials(ctx: McpContext) -> str:
     """Get list of materials in the model
 
     Returns list of materials with name, color, and texture information
@@ -375,7 +381,7 @@ def get_materials(ctx: Context) -> str:
 
 
 @mcp.tool()
-def get_camera_info(ctx: Context) -> str:
+def get_camera_info(ctx: McpContext) -> str:
     """Get current camera position and settings
 
     Returns camera eye position, target, up vector, and field of view
@@ -385,7 +391,7 @@ def get_camera_info(ctx: Context) -> str:
 
 @mcp.tool()
 def take_screenshot(
-    ctx: Context,
+    ctx: McpContext,
     width: int = 1920,
     height: int = 1080,
     transparent: bool = False,
@@ -419,8 +425,8 @@ def take_screenshot(
 
 @mcp.tool()
 def take_batch_screenshots(
-    ctx: Context,
-    shots: list,
+    ctx: McpContext,
+    shots: list[dict[str, Any]],
     output_dir: str | None = None,
     base_name: str = "screenshot",
     width: int = 1920,
@@ -475,7 +481,7 @@ def take_batch_screenshots(
             base_name="model_view"
         )
     """
-    params: dict = {
+    params: dict[str, Any] = {
         "shots": shots,
         "base_name": base_name,
         "width": width,
@@ -489,7 +495,7 @@ def take_batch_screenshots(
 
 
 @mcp.tool()
-def open_model(ctx: Context, path: str) -> str:
+def open_model(ctx: McpContext, path: str) -> str:
     """Open a SketchUp model file
 
     Args:
@@ -501,7 +507,7 @@ def open_model(ctx: Context, path: str) -> str:
 
 
 @mcp.tool()
-def save_model(ctx: Context, path: str | None = None) -> str:
+def save_model(ctx: McpContext, path: str | None = None) -> str:
     """Save the current SketchUp model
 
     Args:
@@ -513,7 +519,7 @@ def save_model(ctx: Context, path: str | None = None) -> str:
     return call_tool(ctx, "save_model", params, "save_model")
 
 
-def main():
+def main() -> None:
     """Main entry point for the server"""
     setup_logging()
     mcp.run()

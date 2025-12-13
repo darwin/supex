@@ -86,6 +86,7 @@ ignore = [
     "E402",    # module level import not at top (intentional for lazy loading)
     "PLR0913", # too many arguments
     "PLR0912", # too many branches
+    "PLR0915", # too many statements (connection.send_command has retry logic)
     "PLR2004", # magic value in comparison (acceptable in tests)
     "PLC0415", # import not at top-level (intentional lazy imports)
     "PLW0603", # global statement discouraged
@@ -119,6 +120,16 @@ module = [
     "mcp.*"
 ]
 ignore_missing_imports = true
+
+# Strict typing for core modules
+[[tool.mypy.overrides]]
+module = [
+    "supex_driver.connection.*",
+    "supex_driver.mcp.server"
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
 
 # Pytest configuration
 [tool.pytest.ini_options]
