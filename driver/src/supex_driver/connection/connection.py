@@ -25,6 +25,7 @@ DEFAULT_PORT = int(os.environ.get("SUPEX_PORT", "9876"))
 DEFAULT_TIMEOUT = float(os.environ.get("SUPEX_TIMEOUT", "15.0"))
 MAX_RETRIES = int(os.environ.get("SUPEX_RETRIES", "2"))
 MAX_RESPONSE_BYTES = int(os.environ.get("SUPEX_MAX_RESPONSE", "10485760"))  # 10 MB default
+AUTH_TOKEN = os.environ.get("SUPEX_AUTH_TOKEN")
 
 # Client identification
 CLIENT_NAME = "supex-driver"
@@ -51,6 +52,7 @@ class SketchupConnection:
     port: int = DEFAULT_PORT
     timeout: float = DEFAULT_TIMEOUT
     agent: str = "unknown"
+    token: str | None = AUTH_TOKEN
     sock: socket.socket | None = field(default=None, repr=False)
     _identified: bool = field(default=False, repr=False)
 
@@ -93,15 +95,21 @@ class SketchupConnection:
         if not self.sock:
             return False
 
+        hello_params = {
+            "name": CLIENT_NAME,
+            "version": CLIENT_VERSION,
+            "agent": self.agent,
+            "pid": os.getpid(),
+        }
+
+        # Add token if configured
+        if self.token:
+            hello_params["token"] = self.token
+
         hello_request = {
             "jsonrpc": "2.0",
             "method": "hello",
-            "params": {
-                "name": CLIENT_NAME,
-                "version": CLIENT_VERSION,
-                "agent": self.agent,
-                "pid": os.getpid(),
-            },
+            "params": hello_params,
             "id": "hello",
         }
 

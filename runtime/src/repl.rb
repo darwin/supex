@@ -26,6 +26,7 @@ CLIENT_VERSION = '2.0'
 DEFAULT_RETRIES = 10
 INITIAL_DELAY = 1.0
 BACKOFF_MULTIPLIER = 2
+AUTH_TOKEN = ENV['SUPEX_AUTH_TOKEN']
 
 # JSON-RPC REPL Client with persistent connection
 class REPLClient
@@ -56,11 +57,13 @@ class REPLClient
   # Send hello handshake
   # @return [Hash] response
   def send_hello
-    send_request('hello', {
-                   pid: Process.pid,
-                   name: CLIENT_NAME,
-                   version: CLIENT_VERSION
-                 })
+    params = {
+      pid: Process.pid,
+      name: CLIENT_NAME,
+      version: CLIENT_VERSION
+    }
+    params[:token] = AUTH_TOKEN if AUTH_TOKEN && !AUTH_TOKEN.empty?
+    send_request('hello', params)
   end
 
   # Evaluate code on server

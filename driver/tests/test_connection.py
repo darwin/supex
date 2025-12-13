@@ -124,3 +124,61 @@ class TestJSONRPCFormat:
         assert parsed["method"] == "tools/call"
         assert "name" in parsed["params"]
         assert "arguments" in parsed["params"]
+
+
+class TestTokenAuthentication:
+    """Test token authentication in hello handshake."""
+
+    @patch("socket.socket")
+    def test_hello_includes_token_when_set(self, mock_socket: Mock) -> None:
+        """Test that hello includes token when token is configured."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        # Mock the hello response
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True, "message": "Client identified"},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+        mock_sock_instance.recv.return_value = hello_response
+
+        conn = SketchupConnection(host="localhost", port=9876, agent="test", token="test-secret")
+        conn.connect()
+
+        # Verify hello was sent with token
+        mock_sock_instance.sendall.assert_called_once()
+        sent_data = mock_sock_instance.sendall.call_args[0][0]
+        sent_json = json.loads(sent_data.decode("utf-8").strip())
+        assert sent_json["method"] == "hello"
+        assert sent_json["params"]["token"] == "test-secret"
+
+    @patch("socket.socket")
+    def test_hello_without_token_when_not_set(self, mock_socket: Mock) -> None:
+        """Test that hello does not include token when not configured."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        # Mock the hello response
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True, "message": "Client identified"},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+        mock_sock_instance.recv.return_value = hello_response
+
+        conn = SketchupConnection(host="localhost", port=9876, agent="test", token=None)
+        conn.connect()
+
+        # Verify hello was sent without token
+        mock_sock_instance.sendall.assert_called_once()
+        sent_data = mock_sock_instance.sendall.call_args[0][0]
+        sent_json = json.loads(sent_data.decode("utf-8").strip())
+        assert sent_json["method"] == "hello"
+        assert "token" not in sent_json["params"]
+
+    def test_token_field_defaults_to_env(self) -> None:
+        """Test that token field uses AUTH_TOKEN constant by default."""
+        from supex_driver.connection.connection import AUTH_TOKEN
+        conn = SketchupConnection(host="localhost", port=9876)
+        assert conn.token == AUTH_TOKEN

@@ -184,6 +184,120 @@ class TestBridgeServer < Minitest::Test
   end
 
   # ==========================================================================
+  # Token authentication tests
+  # ==========================================================================
+
+  def test_handle_hello_with_valid_token
+    # Temporarily set AUTH_TOKEN via constant redefinition
+    original_token = SupexRuntime::BridgeServer::AUTH_TOKEN
+    SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+    SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, 'test-secret-token')
+
+    begin
+      server = SupexRuntime::BridgeServer.new(port: 0)
+      context = SupexRuntime::BridgeServer::ConnectionContext.new(client_info: nil)
+      request = {
+        'jsonrpc' => '2.0',
+        'method' => 'hello',
+        'params' => {
+          'name' => 'test', 'version' => '1.0', 'agent' => 'cli', 'pid' => 123,
+          'token' => 'test-secret-token'
+        },
+        'id' => 1
+      }
+
+      response = server.send(:handle_hello, request, context)
+
+      assert response[:result][:success], "Hello should succeed with valid token: #{response.inspect}"
+      assert context.identified?
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+      SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, original_token)
+    end
+  end
+
+  def test_handle_hello_with_invalid_token
+    original_token = SupexRuntime::BridgeServer::AUTH_TOKEN
+    SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+    SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, 'test-secret-token')
+
+    begin
+      server = SupexRuntime::BridgeServer.new(port: 0)
+      context = SupexRuntime::BridgeServer::ConnectionContext.new(client_info: nil)
+      request = {
+        'jsonrpc' => '2.0',
+        'method' => 'hello',
+        'params' => {
+          'name' => 'test', 'version' => '1.0', 'agent' => 'cli', 'pid' => 123,
+          'token' => 'wrong-token'
+        },
+        'id' => 1
+      }
+
+      response = server.send(:handle_hello, request, context)
+
+      assert response[:error], "Hello should fail with invalid token: #{response.inspect}"
+      assert_equal(-32_001, response[:error][:code])
+      refute context.identified?
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+      SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, original_token)
+    end
+  end
+
+  def test_handle_hello_with_missing_token_when_required
+    original_token = SupexRuntime::BridgeServer::AUTH_TOKEN
+    SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+    SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, 'test-secret-token')
+
+    begin
+      server = SupexRuntime::BridgeServer.new(port: 0)
+      context = SupexRuntime::BridgeServer::ConnectionContext.new(client_info: nil)
+      request = {
+        'jsonrpc' => '2.0',
+        'method' => 'hello',
+        'params' => { 'name' => 'test', 'version' => '1.0', 'agent' => 'cli', 'pid' => 123 },
+        'id' => 1
+      }
+
+      response = server.send(:handle_hello, request, context)
+
+      assert response[:error], "Hello should fail without token: #{response.inspect}"
+      assert_equal(-32_001, response[:error][:code])
+      refute context.identified?
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+      SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, original_token)
+    end
+  end
+
+  def test_handle_hello_without_token_when_not_required
+    # When AUTH_TOKEN is not set, hello should work without token
+    original_token = SupexRuntime::BridgeServer::AUTH_TOKEN
+    SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+    SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, nil)
+
+    begin
+      server = SupexRuntime::BridgeServer.new(port: 0)
+      context = SupexRuntime::BridgeServer::ConnectionContext.new(client_info: nil)
+      request = {
+        'jsonrpc' => '2.0',
+        'method' => 'hello',
+        'params' => { 'name' => 'test', 'version' => '1.0', 'agent' => 'cli', 'pid' => 123 },
+        'id' => 1
+      }
+
+      response = server.send(:handle_hello, request, context)
+
+      assert response[:result][:success], "Hello should succeed without token when not required"
+      assert context.identified?
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+      SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, original_token)
+    end
+  end
+
+  # ==========================================================================
   # handle_ping tests (unit)
   # ==========================================================================
 

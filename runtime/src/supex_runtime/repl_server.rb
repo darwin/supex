@@ -26,6 +26,7 @@ module SupexRuntime
     DEFAULT_REPL_HOST = '127.0.0.1'
     REQUEST_CHECK_INTERVAL = 0.1
     SNIPPETS_DIR = File.expand_path('../../../.tmp/repl', __dir__)
+    AUTH_TOKEN = ENV['SUPEX_AUTH_TOKEN']
 
     # Connection context for scoped client state
     ClientConnection = Struct.new(:socket, :client_info, :session_dir, :snippet_counter, keyword_init: true) do
@@ -241,6 +242,16 @@ module SupexRuntime
     # @return [Hash] JSON-RPC response
     def handle_hello(request, client)
       params = request['params'] || {}
+
+      # Token validation (if token is configured)
+      if AUTH_TOKEN && !AUTH_TOKEN.empty?
+        token = params['token']
+        unless token == AUTH_TOKEN
+          log 'Authentication failed: invalid or missing token'
+          return error_response(request, 'Authentication failed: invalid or missing token', -32_001)
+        end
+      end
+
       pid = params['pid']
       name = params['name'] || 'unknown'
 

@@ -2,6 +2,14 @@
 
 Supex can be configured via environment variables:
 
+## Authentication
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_AUTH_TOKEN` | (unset) | Shared authentication token for Bridge and REPL servers |
+
+When set, clients must provide this token in the `hello` handshake to connect. Without a valid token, the server returns error code `-32001`.
+
 ## Bridge Server (MCP)
 
 | Variable | Default | Description |

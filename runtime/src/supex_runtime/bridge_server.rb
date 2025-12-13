@@ -19,6 +19,7 @@ module SupexRuntime
     MAX_MESSAGE_SIZE = 1_048_576 # 1 MB limit to prevent DoS
     REQUEST_CHECK_INTERVAL = ENV['SUPEX_CHECK_INTERVAL']&.to_f || 0.25
     RESPONSE_DELAY = ENV['SUPEX_RESPONSE_DELAY']&.to_f || 0
+    AUTH_TOKEN = ENV['SUPEX_AUTH_TOKEN']
 
     # Connection context for scoped client state (thread-safe pattern)
     ConnectionContext = Struct.new(:client_info, keyword_init: true) do
@@ -361,6 +362,19 @@ module SupexRuntime
     # @return [Hash] JSON-RPC response
     def handle_hello(request, context)
       params = request['params'] || {}
+
+      # Token validation (if token is configured)
+      if AUTH_TOKEN && !AUTH_TOKEN.empty?
+        token = params['token']
+        unless token == AUTH_TOKEN
+          log 'Authentication failed: invalid or missing token'
+          return Utils.create_error_response(
+            request,
+            'Authentication failed: invalid or missing token',
+            -32_001
+          )
+        end
+      end
 
       # Validate required fields
       name = params['name']
