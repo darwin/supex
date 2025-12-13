@@ -143,6 +143,50 @@ def setup_logging():
 mcp = FastMCP("Supex")
 
 
+def call_tool(
+    ctx: Context,
+    method: str,
+    params: dict | None = None,
+    operation: str = "operation"
+) -> str:
+    """Execute a tool call with standardized error handling.
+
+    Args:
+        ctx: MCP request context
+        method: Tool method name to call
+        params: Optional parameters for the tool
+        operation: Description for error logging
+
+    Returns:
+        JSON string with result or error information
+    """
+    try:
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
+        result = sketchup.send_command(
+            method=method,
+            params=params or {},
+            request_id=ctx.request_id
+        )
+        return json.dumps(result)
+    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
+        logger.error(f"Connection error during {operation}: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+    except SketchUpProtocolError as e:
+        logger.error(f"Protocol error during {operation}: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error during {operation}: {e}")
+        return json.dumps({
+            "success": False,
+            "error": e.message,
+            "error_type": "remote",
+            "error_code": e.code
+        })
+    except Exception as e:
+        logger.exception(f"Unexpected error during {operation}: {e}")
+        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+
+
 # Status and connection tools
 @mcp.tool()
 def check_sketchup_status(ctx: Context) -> str:
@@ -207,24 +251,7 @@ def export_scene(ctx: Context, format: str = "skp") -> str:
     Args:
         format: Export format (skp, obj, dae, stl, png, jpg)
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="export_scene", params={"format": format}, request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error exporting scene: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error exporting scene: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error exporting scene: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error exporting scene: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "export_scene", {"format": format}, "export_scene")
 
 
 # Ruby code evaluation
@@ -274,24 +301,7 @@ def eval_ruby(ctx: Context, code: str) -> str:
 @mcp.tool()
 def console_capture_status(ctx: Context) -> str:
     """Get console capture status and log file information"""
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="console_capture_status", params={}, request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error getting console status: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error getting console status: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error getting console status: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error getting console status: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "console_capture_status", {}, "console_capture_status")
 
 
 # File-based Ruby evaluation tools
@@ -302,28 +312,8 @@ def eval_ruby_file(ctx: Context, file_path: str) -> str:
     Args:
         file_path: Absolute path to Ruby file to execute
     """
-    try:
-        logger.info(f"Evaluating Ruby file: {file_path}")
-
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="eval_ruby_file",
-            params={"file_path": file_path},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error evaluating Ruby file: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error evaluating Ruby file: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error evaluating Ruby file: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error evaluating Ruby file: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    logger.info(f"Evaluating Ruby file: {file_path}")
+    return call_tool(ctx, "eval_ruby_file", {"file_path": file_path}, "eval_ruby_file")
 
 
 # Introspection tools
@@ -340,26 +330,7 @@ def get_model_info(ctx: Context) -> str:
     - num_components: Number of component instances
     - modified: Whether model has unsaved changes
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="get_model_info",
-            params={},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error getting model info: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error getting model info: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error getting model info: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error getting model info: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "get_model_info", {}, "get_model_info")
 
 
 @mcp.tool()
@@ -371,26 +342,7 @@ def list_entities(ctx: Context, entity_type: str = "all") -> str:
 
     Returns list of entities with type, name, and layer information
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="list_entities",
-            params={"entity_type": entity_type},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error listing entities: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error listing entities: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error listing entities: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error listing entities: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "list_entities", {"entity_type": entity_type}, "list_entities")
 
 
 @mcp.tool()
@@ -401,26 +353,7 @@ def get_selection(ctx: Context) -> str:
     - count: Number of selected entities
     - entities: List of selected entities with details (type, properties)
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="get_selection",
-            params={},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error getting selection: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error getting selection: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error getting selection: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error getting selection: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "get_selection", {}, "get_selection")
 
 
 @mcp.tool()
@@ -429,26 +362,7 @@ def get_layers(ctx: Context) -> str:
 
     Returns list of layers with name, visible state, and entity count
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="get_layers",
-            params={},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error getting layers: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error getting layers: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error getting layers: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error getting layers: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "get_layers", {}, "get_layers")
 
 
 @mcp.tool()
@@ -457,26 +371,7 @@ def get_materials(ctx: Context) -> str:
 
     Returns list of materials with name, color, and texture information
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="get_materials",
-            params={},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error getting materials: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error getting materials: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error getting materials: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error getting materials: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "get_materials", {}, "get_materials")
 
 
 @mcp.tool()
@@ -485,26 +380,7 @@ def get_camera_info(ctx: Context) -> str:
 
     Returns camera eye position, target, up vector, and field of view
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="get_camera_info",
-            params={},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error getting camera info: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error getting camera info: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error getting camera info: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error getting camera info: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "get_camera_info", {}, "get_camera_info")
 
 
 @mcp.tool()
@@ -531,34 +407,14 @@ def take_screenshot(
         JSON with file_path where screenshot was saved (~200 tokens vs 21k!)
         Use Read tool on the file_path to view screenshot if necessary
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        params: dict[str, int | bool | str] = {
-            "width": width,
-            "height": height,
-            "transparent": transparent
-        }
-        if output_path:
-            params["output_path"] = output_path
-
-        result = sketchup.send_command(
-            method="take_screenshot",
-            params=params,
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error taking screenshot: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error taking screenshot: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error taking screenshot: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error taking screenshot: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    params: dict[str, int | bool | str] = {
+        "width": width,
+        "height": height,
+        "transparent": transparent
+    }
+    if output_path:
+        params["output_path"] = output_path
+    return call_tool(ctx, "take_screenshot", params, "take_screenshot")
 
 
 @mcp.tool()
@@ -619,37 +475,17 @@ def take_batch_screenshots(
             base_name="model_view"
         )
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        params = {
-            "shots": shots,
-            "base_name": base_name,
-            "width": width,
-            "height": height,
-            "transparent": transparent,
-            "restore_camera": restore_camera
-        }
-        if output_dir:
-            params["output_dir"] = output_dir
-
-        result = sketchup.send_command(
-            method="take_batch_screenshots",
-            params=params,
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error taking batch screenshots: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error taking batch screenshots: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error taking batch screenshots: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error taking batch screenshots: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    params: dict = {
+        "shots": shots,
+        "base_name": base_name,
+        "width": width,
+        "height": height,
+        "transparent": transparent,
+        "restore_camera": restore_camera
+    }
+    if output_dir:
+        params["output_dir"] = output_dir
+    return call_tool(ctx, "take_batch_screenshots", params, "take_batch_screenshots")
 
 
 @mcp.tool()
@@ -661,26 +497,7 @@ def open_model(ctx: Context, path: str) -> str:
 
     Returns success status and model information
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        result = sketchup.send_command(
-            method="open_model",
-            params={"path": path},
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error opening model: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error opening model: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error opening model: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error opening model: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    return call_tool(ctx, "open_model", {"path": path}, "open_model")
 
 
 @mcp.tool()
@@ -692,27 +509,8 @@ def save_model(ctx: Context, path: str | None = None) -> str:
 
     Returns success status and saved file path
     """
-    try:
-        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
-        params = {"path": path} if path else {}
-        result = sketchup.send_command(
-            method="save_model",
-            params=params,
-            request_id=ctx.request_id
-        )
-        return json.dumps(result)
-    except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        logger.error(f"Connection error saving model: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
-    except SketchUpProtocolError as e:
-        logger.error(f"Protocol error saving model: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
-    except SketchUpRemoteError as e:
-        logger.error(f"Remote error saving model: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
-    except Exception as e:
-        logger.exception(f"Unexpected error saving model: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+    params = {"path": path} if path else {}
+    return call_tool(ctx, "save_model", params, "save_model")
 
 
 def main():
