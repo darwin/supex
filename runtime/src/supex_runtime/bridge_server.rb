@@ -352,28 +352,44 @@ module SupexRuntime
     # @param context [ConnectionContext] connection-scoped state
     # @return [Hash] JSON-RPC response
     def handle_jsonrpc_request(request, context)
-      log_verbose "Handling JSON-RPC request: #{request.inspect}"
+      req_id = request['id']
+      log "[req:#{req_id}] Received: #{request['method']}"
 
       # Handle hello method first (no identification required)
-      return handle_hello(request, context) if request['method'] == 'hello'
+      if request['method'] == 'hello'
+        response = handle_hello(request, context)
+        log "[req:#{req_id}] Completed"
+        return response
+      end
 
       # Require client identification for all other methods
-      return require_identification_error(request) unless context.identified?
+      unless context.identified?
+        response = require_identification_error(request)
+        log "[req:#{req_id}] Error: not identified"
+        return response
+      end
 
       # Handle legacy command format for backwards compatibility
-      return handle_legacy_command(request) if request['command']
+      if request['command']
+        response = handle_legacy_command(request)
+        log "[req:#{req_id}] Completed (legacy)"
+        return response
+      end
 
       # Handle standard JSON-RPC methods
-      case request['method']
-      when 'tools/call'
-        handle_tool_call(request)
-      when 'ping'
-        handle_ping(request)
-      when 'resources/list'
-        handle_resources_list(request)
-      else
-        Utils.create_error_response(request, "Method not found: #{request['method']}", -32_601)
-      end
+      response = case request['method']
+                 when 'tools/call'
+                   handle_tool_call(request)
+                 when 'ping'
+                   handle_ping(request)
+                 when 'resources/list'
+                   handle_resources_list(request)
+                 else
+                   Utils.create_error_response(request, "Method not found: #{request['method']}", -32_601)
+                 end
+
+      log "[req:#{req_id}] Completed"
+      response
     end
 
     # Handle hello handshake request
@@ -692,6 +708,7 @@ module SupexRuntime
     # @param code [Integer] error code
     # @param request_id [Object] request ID
     def send_error_response(client, message, code, request_id)
+      log "[req:#{request_id}] Error: #{message}"
       error_response = { jsonrpc: '2.0', error: { code: code, message: message }, id: request_id }
       client.write("#{error_response.to_json}\n")
       client.flush

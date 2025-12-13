@@ -36,6 +36,18 @@ try:
 except Exception:
     CLIENT_VERSION = "0.0.0"
 
+# Request ID counter (thread-safe)
+_request_id_lock = threading.Lock()
+_request_id_counter = 0
+
+
+def _next_request_id() -> int:
+    """Generate next request ID (thread-safe monotonic counter)."""
+    global _request_id_counter
+    with _request_id_lock:
+        _request_id_counter += 1
+        return _request_id_counter
+
 
 @dataclass
 class SketchupConnection:
@@ -245,6 +257,10 @@ class SketchupConnection:
             SketchUpProtocolError: If response is invalid JSON.
             SketchUpTimeoutError: If socket operation times out.
         """
+        # Generate request_id if not provided
+        if request_id is None:
+            request_id = _next_request_id()
+
         # Reuse existing connection if healthy
         if not self._is_connection_healthy():
             if not self.connect():
@@ -287,7 +303,7 @@ class SketchupConnection:
 
         while retry_count <= MAX_RETRIES:
             try:
-                logger.debug(f"Sending JSON-RPC request: {request}")
+                logger.debug(f"[req:{request_id}] Sending {method}")
 
                 request_bytes = json.dumps(request).encode("utf-8") + b"\n"
                 self.sock.sendall(request_bytes)
@@ -295,7 +311,7 @@ class SketchupConnection:
                 response_data = self.receive_full_response(self.sock)
                 response = json.loads(response_data.decode("utf-8"))
 
-                logger.debug(f"Response parsed: {response}")
+                logger.debug(f"[req:{request_id}] Response received")
 
                 if "error" in response:
                     error = response["error"]
@@ -318,7 +334,7 @@ class SketchupConnection:
                 SketchUpConnectionError,
             ) as e:
                 logger.warning(
-                    f"Connection error (attempt {retry_count + 1}/{MAX_RETRIES + 1}): {e}"
+                    f"[req:{request_id}] Connection error (attempt {retry_count + 1}/{MAX_RETRIES + 1}): {e}"
                 )
                 retry_count += 1
 
@@ -336,15 +352,15 @@ class SketchupConnection:
                     )
 
             except json.JSONDecodeError as e:
-                logger.error(f"Invalid JSON response from SketchUp: {e}")
+                logger.error(f"[req:{request_id}] Invalid JSON response: {e}")
                 if "response_data" in locals() and response_data:
                     logger.error(
-                        f"Raw response (first 200 bytes): {response_data[:200]!r}"
+                        f"[req:{request_id}] Raw response (first 200 bytes): {response_data[:200]!r}"
                     )
                 raise SketchUpProtocolError(f"Invalid response from SketchUp: {e}")
 
             except Exception as e:
-                logger.error(f"Error communicating with SketchUp: {e}")
+                logger.error(f"[req:{request_id}] Error: {e}")
                 self.sock = None
                 raise
 
