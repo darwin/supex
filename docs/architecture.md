@@ -228,14 +228,16 @@ cd driver && uv run pytest tests/
 ## Security Considerations
 
 **Network Security**:
-- Localhost-only communication (no external network exposure)
-- No authentication required (local development context)
+- Localhost-only binding by default (no external network exposure)
+- Optional authentication via `SUPEX_AUTH_TOKEN`
 - JSON-RPC 2.0 with structured message validation
 
 **Code Execution**:
 - Ruby code execution confined to SketchUp context
-- No file system access outside SketchUp's normal permissions
-- Extension permissions limited to SketchUp Ruby API
+- File path restrictions via `SUPEX_PROJECT_ROOT` and `SUPEX_ALLOWED_ROOTS`
+- Eval binding isolation between calls
+
+See [Security](security.md) for detailed documentation.
 
 ## Performance Characteristics
 

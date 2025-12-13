@@ -258,3 +258,6 @@ mise run lint       # All linters
 - **[Interactive REPL](docs/repl.md)** - Interactive Ruby development in SketchUp
 - **[MCP Reference](docs/mcp.md)** - Tools available for AI agents (Claude Code)
 - **[Configuration](docs/configuration.md)** - Environment variables and settings
+- **[Protocol](docs/protocol.md)** - JSON-RPC communication protocol details
+- **[Security](docs/security.md)** - Authentication, path restrictions, and recommendations
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
