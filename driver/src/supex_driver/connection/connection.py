@@ -265,7 +265,8 @@ class SketchupConnection:
         if not self._is_connection_healthy():
             if not self.connect():
                 raise SketchUpConnectionError("Not connected to SketchUp")
-        assert self.sock is not None  # connect() sets self.sock on success
+        if self.sock is None:
+            raise SketchUpConnectionError("Socket not initialized after connect")
 
         # Convert to proper JSON-RPC format
         if (

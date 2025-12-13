@@ -5,8 +5,11 @@ import socket
 import time
 from unittest.mock import Mock, patch
 
+import pytest
+
 from supex_driver.connection import SketchupConnection
 from supex_driver.connection import connection as connection_module
+from supex_driver.connection.exceptions import SketchUpConnectionError
 
 
 class TestSketchupConnection:
@@ -367,3 +370,25 @@ class TestConnectionReuse:
 
         assert conn._last_activity >= before
         assert conn._last_activity <= after
+
+
+class TestConnectionErrorHandling:
+    """Test error handling in connection layer."""
+
+    def test_send_command_raises_error_when_socket_is_none_after_connect(self) -> None:
+        """Test that send_command raises proper error if socket is None after connect.
+
+        This tests the safety check that replaces the previous assert statement,
+        ensuring the code works correctly even with python -O.
+        """
+        conn = SketchupConnection(host="localhost", port=9876)
+
+        # Mock connect to return True but leave sock as None (shouldn't happen normally)
+        with patch.object(conn, "connect", return_value=True):
+            with patch.object(conn, "_is_connection_healthy", return_value=False):
+                conn.sock = None  # Ensure sock is None
+
+                with pytest.raises(SketchUpConnectionError) as exc_info:
+                    conn.send_command("ping")
+
+                assert "Socket not initialized" in str(exc_info.value)
