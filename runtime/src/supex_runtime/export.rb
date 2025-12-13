@@ -35,7 +35,7 @@ module SupexRuntime
 
       {
         success: true,
-        path: export_path,
+        file_path: export_path,
         format: format
       }
     end

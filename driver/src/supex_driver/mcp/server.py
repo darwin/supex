@@ -201,7 +201,7 @@ def export_scene(ctx: Context, format: str = "skp") -> str:
     try:
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
-            method="export", params={"format": format}, request_id=ctx.request_id
+            method="export_scene", params={"format": format}, request_id=ctx.request_id
         )
         return json.dumps(result)
     except (SketchUpConnectionError, SketchUpTimeoutError) as e:

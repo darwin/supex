@@ -418,7 +418,7 @@ def export(
     """Export the current SketchUp scene."""
     try:
         conn = get_connection(host, port)
-        result = conn.send_command("export", {"format": format})
+        result = conn.send_command("export_scene", {"format": format})
 
         content = result.get("content", [{}])
         if isinstance(content, list) and content:
