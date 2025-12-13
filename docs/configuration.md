@@ -8,10 +8,19 @@ Supex can be configured via environment variables:
 |----------|---------|-------------|
 | `SUPEX_AUTH_TOKEN` | (unset) | Shared authentication token for Bridge and REPL servers |
 | `SUPEX_ALLOW_REMOTE` | (unset) | Allow binding to non-loopback addresses (set to `1`) |
+| `SUPEX_ALLOWED_ROOTS` | (unset) | Colon-separated list of allowed file path roots |
+| `SUPEX_PROJECT_ROOT` | (unset) | Project root directory (automatically allowed for file operations) |
 
 **Authentication**: When `SUPEX_AUTH_TOKEN` is set, clients must provide this token in the `hello` handshake to connect. Without a valid token, the server returns error code `-32001`.
 
 **Remote binding**: By default, servers only bind to loopback addresses (`127.0.0.1`, `localhost`, `::1`). To bind to other addresses (e.g., `0.0.0.0`), set `SUPEX_ALLOW_REMOTE=1`. When binding remotely without a token, a security warning is logged.
+
+**Path restrictions**: File operations (`eval_ruby_file`, `open_model`, `save_model`, `take_screenshot`) are restricted to:
+- The `.tmp` directory within the runtime
+- Paths specified in `SUPEX_PROJECT_ROOT`
+- Paths specified in `SUPEX_ALLOWED_ROOTS` (colon-separated)
+
+To disable path restrictions (not recommended), set `SUPEX_ALLOWED_ROOTS=*`.
 
 ## Bridge Server (MCP)
 

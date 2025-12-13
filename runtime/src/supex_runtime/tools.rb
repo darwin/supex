@@ -3,6 +3,7 @@
 require 'fileutils'
 require_relative 'utils'
 require_relative 'batch_screenshot'
+require_relative 'path_policy'
 
 module SupexRuntime
   # Tool implementations for the Supex server
@@ -98,6 +99,9 @@ module SupexRuntime
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
 
+      # Validate output_path if provided
+      PathPolicy.validate!(params['output_path'], operation: 'take_screenshot') if params['output_path']
+
       screenshot_path = determine_screenshot_path(params['output_path'])
       write_screenshot(model, screenshot_path, params)
     rescue StandardError => e
@@ -124,6 +128,8 @@ module SupexRuntime
     def open_model(params)
       file_path = params['path']
       return { success: false, error: 'No file path provided' } unless file_path
+
+      PathPolicy.validate!(file_path, operation: 'open_model')
       return { success: false, error: "File not found: #{file_path}" } unless File.exist?(file_path)
 
       Sketchup.open_file(file_path)
@@ -141,6 +147,9 @@ module SupexRuntime
     def save_model(params)
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
+
+      # Validate path if provided
+      PathPolicy.validate!(params['path'], operation: 'save_model') if params['path']
 
       saved_path = perform_save(model, params['path'])
       { success: true, file_path: saved_path, file_name: File.basename(saved_path),

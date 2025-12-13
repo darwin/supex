@@ -8,6 +8,7 @@ require_relative 'utils'
 require_relative 'export'
 require_relative 'console_capture'
 require_relative 'tools'
+require_relative 'path_policy'
 
 module SupexRuntime
   # TCP server for handling JSON-RPC requests from the Python MCP server
@@ -627,6 +628,7 @@ module SupexRuntime
     # @return [Hash] evaluation result with file context
     def eval_ruby_file(params)
       file_path = params['file_path']
+      PathPolicy.validate!(file_path, operation: 'eval_ruby_file')
       raise "Ruby file not found: #{file_path}" unless File.exist?(file_path)
 
       log "Evaluating Ruby file: #{File.basename(file_path)}"
