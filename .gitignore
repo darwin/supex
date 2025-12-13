@@ -7,3 +7,4 @@ settings.local.json
 .direnv/
 /.tmp/
 .DS_Store
+/.code/
