@@ -35,7 +35,7 @@ WORKFLOW:
     1. Validates version format and git state
     2. Updates version in all component files
     3. Commits changes with "Release vX.Y.Z"
-    4. Creates annotated tag vX.Y.Z
+    4. Creates signed tag vX.Y.Z (requires GPG key)
     5. Fast-forwards main to dev
     6. Returns to dev branch
 
@@ -188,9 +188,9 @@ main() {
     log_success "Created commit"
 
     # === TAG ===
-    log_info "Creating tag..."
-    git tag -a "v$new_version" -m "Release v$new_version"
-    log_success "Created tag v$new_version"
+    log_info "Creating signed tag..."
+    git tag -s "v$new_version" -m "Release $new_version"
+    log_success "Created signed tag v$new_version"
 
     # === FAST-FORWARD MAIN ===
     log_info "Fast-forwarding main..."
