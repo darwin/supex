@@ -319,11 +319,11 @@ module SupexRuntime
       data.empty? ? nil : data
     end
 
-    # Check if data contains a complete JSON object
+    # Check if data contains a complete JSON message (newline-delimited)
     # @param data [String] data to check
-    # @return [Boolean] true if complete
+    # @return [Boolean] true if complete (ends with newline)
     def complete_json?(data)
-      data.include?("\n") || (data.count('{').positive? && data.count('{') == data.count('}'))
+      data.include?("\n")
     end
 
     # Handle JSON-RPC request

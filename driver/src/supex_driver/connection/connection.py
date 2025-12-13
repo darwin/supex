@@ -23,6 +23,7 @@ DEFAULT_HOST = os.environ.get("SUPEX_HOST", "localhost")
 DEFAULT_PORT = int(os.environ.get("SUPEX_PORT", "9876"))
 DEFAULT_TIMEOUT = float(os.environ.get("SUPEX_TIMEOUT", "15.0"))
 MAX_RETRIES = int(os.environ.get("SUPEX_RETRIES", "2"))
+MAX_RESPONSE_BYTES = int(os.environ.get("SUPEX_MAX_RESPONSE", "10485760"))  # 10 MB default
 
 # Client identification
 CLIENT_NAME = "supex-driver"
@@ -133,73 +134,54 @@ class SketchupConnection:
                 self._identified = False
 
     def receive_full_response(
-        self, sock: socket.socket, buffer_size: int = 8192
+        self, sock: socket.socket, buffer_size: int = 4096
     ) -> bytes:
-        """Receive the complete response, handling chunked data properly.
+        """Receive a complete newline-delimited JSON response.
+
+        Reads from socket until a newline character is encountered,
+        enforcing maximum response size limits.
 
         Args:
             sock: The socket to receive from.
             buffer_size: Size of receive buffer.
 
         Returns:
-            Complete response as bytes.
+            Complete response as bytes (including trailing newline).
 
         Raises:
-            SketchUpTimeoutError: If socket times out.
+            SketchUpTimeoutError: If socket times out with no data.
             SketchUpConnectionError: If connection is lost.
-            SketchUpProtocolError: If response is incomplete JSON.
+            SketchUpProtocolError: If response exceeds size limit or is incomplete.
         """
-        chunks: list[bytes] = []
+        data = bytearray()
         sock.settimeout(self.timeout)
 
         try:
             while True:
-                try:
-                    chunk = sock.recv(buffer_size)
-                    if not chunk:
-                        if not chunks:
-                            raise SketchUpConnectionError(
-                                "Connection closed before receiving any data"
-                            )
-                        break
+                chunk = sock.recv(buffer_size)
+                if not chunk:
+                    if not data:
+                        raise SketchUpConnectionError("Connection closed by server")
+                    raise SketchUpProtocolError("Incomplete response: connection closed")
 
-                    chunks.append(chunk)
+                data.extend(chunk)
 
-                    # Try to parse complete JSON
-                    try:
-                        data = b"".join(chunks)
-                        json.loads(data.decode("utf-8"))
-                        logger.debug(f"Received complete response ({len(data)} bytes)")
-                        return data
-                    except json.JSONDecodeError:
-                        continue
+                if len(data) > MAX_RESPONSE_BYTES:
+                    raise SketchUpProtocolError(
+                        f"Response exceeds maximum size ({MAX_RESPONSE_BYTES} bytes)"
+                    )
 
-                except TimeoutError:
-                    logger.warning("Socket timeout during chunked receive")
-                    break
-                except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
-                    logger.error(f"Socket connection error during receive: {e}")
-                    raise SketchUpConnectionError(str(e))
+                # Check if we have a complete message (newline-delimited)
+                if b"\n" in chunk:
+                    logger.debug(f"Received complete response ({len(data)} bytes)")
+                    return bytes(data)
 
         except TimeoutError:
-            logger.warning("Socket timeout during receive")
-            raise SketchUpTimeoutError("Socket timeout during receive")
-        except SketchUpConnectionError:
-            raise
-        except Exception as e:
-            logger.error(f"Error during receive: {e}")
-            raise
-
-        if chunks:
-            data = b"".join(chunks)
-            logger.debug(f"Returning partial data after timeout ({len(data)} bytes)")
-            try:
-                json.loads(data.decode("utf-8"))
-                return data
-            except json.JSONDecodeError:
-                raise SketchUpProtocolError("Incomplete JSON response received")
-        else:
-            raise SketchUpConnectionError("No data received")
+            if data:
+                raise SketchUpProtocolError("Incomplete response: timeout with partial data")
+            raise SketchUpTimeoutError(f"No response within {self.timeout}s")
+        except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
+            raise SketchUpConnectionError(f"Connection error: {e}")
 
     def send_command(
         self, method: str, params: dict[str, Any] | None = None, request_id: Any = None

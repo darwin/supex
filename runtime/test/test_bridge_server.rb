@@ -53,13 +53,14 @@ class TestBridgeServer < Minitest::Test
   def test_complete_json_with_newline
     server = SupexRuntime::BridgeServer.new(port: 0)
 
-    assert server.send(:complete_json?, '{"test": true}\n')
+    assert server.send(:complete_json?, "{\"test\": true}\n")
   end
 
-  def test_complete_json_with_braces
+  def test_complete_json_without_newline
     server = SupexRuntime::BridgeServer.new(port: 0)
 
-    assert server.send(:complete_json?, '{"test": true}')
+    # Without newline, message is not complete (regardless of balanced braces)
+    refute server.send(:complete_json?, '{"test": true}')
   end
 
   def test_complete_json_incomplete
@@ -68,10 +69,18 @@ class TestBridgeServer < Minitest::Test
     refute server.send(:complete_json?, '{"test": ')
   end
 
-  def test_complete_json_nested
+  def test_complete_json_nested_without_newline
     server = SupexRuntime::BridgeServer.new(port: 0)
 
-    assert server.send(:complete_json?, '{"outer": {"inner": true}}')
+    # Without newline, message is not complete (regardless of nesting)
+    refute server.send(:complete_json?, '{"outer": {"inner": true}}')
+  end
+
+  def test_complete_json_with_braces_in_string
+    server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # JSON with braces in string values should work correctly with newline
+    assert server.send(:complete_json?, "{\"msg\": \"{test}\"}\n")
   end
 
   # ==========================================================================
