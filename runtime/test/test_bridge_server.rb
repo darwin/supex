@@ -558,4 +558,46 @@ class TestBridgeServer < Minitest::Test
     assert response['error'], "Ping without hello should fail: #{response.inspect}"
     assert_includes response['error']['message'], 'hello'
   end
+
+  # ==========================================================================
+  # Framing tests (newline-delimited JSON)
+  # ==========================================================================
+
+  def test_complete_json_requires_newline
+    @server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Message without newline should not be complete
+    refute @server.send(:complete_json?, '{"test": 1}')
+  end
+
+  def test_complete_json_with_newline
+    @server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Message with newline should be complete
+    assert @server.send(:complete_json?, "{\"test\": 1}\n")
+  end
+
+  def test_complete_json_with_braces_in_string
+    @server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Message with braces in string value should work (newline-based, not brace counting)
+    json = "{\"msg\": \"{nested}\"}\n"
+    assert @server.send(:complete_json?, json)
+  end
+
+  def test_complete_json_with_complex_nested_braces
+    @server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Complex JSON with nested objects - complete when has newline
+    json = "{\"outer\": {\"inner\": {\"deep\": \"{value}\"}}}\n"
+    assert @server.send(:complete_json?, json)
+  end
+
+  def test_incomplete_json_without_trailing_newline
+    @server = SupexRuntime::BridgeServer.new(port: 0)
+
+    # Even valid JSON is incomplete without newline
+    json = '{"valid": true}'
+    refute @server.send(:complete_json?, json)
+  end
 end
