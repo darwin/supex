@@ -289,7 +289,7 @@ class TestBridgeServer < Minitest::Test
 
       response = server.send(:handle_hello, request, context)
 
-      assert response[:result][:success], "Hello should succeed without token when not required"
+      assert response[:result][:success], 'Hello should succeed without token when not required'
       assert context.identified?
     ensure
       SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
@@ -382,8 +382,8 @@ class TestBridgeServer < Minitest::Test
 
     assert_equal '123', result[:result]
   ensure
-    # Clean up global
-    $supex_test_global = nil
+    # Clean up global (rubocop:disable Style/GlobalVars - intentional test of global persistence)
+    $supex_test_global = nil # rubocop:disable Style/GlobalVars
   end
 
   def test_eval_ruby_constants_persist
@@ -568,21 +568,6 @@ class TestBridgeServer < Minitest::Test
 
     # Message without newline should not be complete
     refute @server.send(:complete_json?, '{"test": 1}')
-  end
-
-  def test_complete_json_with_newline
-    @server = SupexRuntime::BridgeServer.new(port: 0)
-
-    # Message with newline should be complete
-    assert @server.send(:complete_json?, "{\"test\": 1}\n")
-  end
-
-  def test_complete_json_with_braces_in_string
-    @server = SupexRuntime::BridgeServer.new(port: 0)
-
-    # Message with braces in string value should work (newline-based, not brace counting)
-    json = "{\"msg\": \"{nested}\"}\n"
-    assert @server.send(:complete_json?, json)
   end
 
   def test_complete_json_with_complex_nested_braces

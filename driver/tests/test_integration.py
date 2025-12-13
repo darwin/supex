@@ -8,7 +8,6 @@ from supex_driver.connection.exceptions import (
     SketchUpRemoteError,
     SketchUpTimeoutError,
 )
-
 from tests.helpers.mock_runtime import MockRuntimeServer
 
 
@@ -126,7 +125,7 @@ class TestIntegrationConnectionReuse:
         conn = SketchupConnection(host="127.0.0.1", port=mock_server.port)
 
         # Send multiple commands
-        for i in range(5):
+        for _i in range(5):
             result = conn.send_command("get_count")
             assert "count" in result
 

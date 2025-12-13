@@ -1,5 +1,6 @@
 """Mock SketchUp runtime server for integration testing."""
 
+import contextlib
 import json
 import socket
 import threading
@@ -49,10 +50,8 @@ class MockRuntimeServer:
         """Stop the mock server."""
         self._running = False
         if self.server:
-            try:
+            with contextlib.suppress(Exception):
                 self.server.close()
-            except Exception:
-                pass
             self.server = None
         if self._thread:
             self._thread.join(timeout=1.0)
@@ -98,7 +97,7 @@ class MockRuntimeServer:
                 threading.Thread(
                     target=self._handle_client, args=(client,), daemon=True
                 ).start()
-            except socket.timeout:
+            except TimeoutError:
                 continue
             except Exception:
                 if self._running:
@@ -118,9 +117,8 @@ class MockRuntimeServer:
 
                 # Apply delay before response (optionally only for specific method)
                 method = request.get("method", "")
-                if self.delay > 0:
-                    if self.delay_method is None or method == self.delay_method:
-                        time.sleep(self.delay)
+                if self.delay > 0 and (self.delay_method is None or method == self.delay_method):
+                    time.sleep(self.delay)
 
                 response = self._create_response(request)
                 client.sendall(json.dumps(response).encode("utf-8") + b"\n")
@@ -128,10 +126,8 @@ class MockRuntimeServer:
         except Exception:
             pass
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 client.close()
-            except Exception:
-                pass
 
     def _read_request(self, client: socket.socket) -> bytes | None:
         """Read a newline-delimited request."""
@@ -144,7 +140,7 @@ class MockRuntimeServer:
                 data.extend(chunk)
                 if b"\n" in chunk:
                     return bytes(data)
-            except socket.timeout:
+            except TimeoutError:
                 return None
             except Exception:
                 return None

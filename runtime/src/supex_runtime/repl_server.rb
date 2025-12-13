@@ -26,7 +26,7 @@ module SupexRuntime
     DEFAULT_REPL_HOST = '127.0.0.1'
     REQUEST_CHECK_INTERVAL = 0.1
     SNIPPETS_DIR = File.expand_path('../../../.tmp/repl', __dir__)
-    AUTH_TOKEN = ENV['SUPEX_AUTH_TOKEN']
+    AUTH_TOKEN = ENV.fetch('SUPEX_AUTH_TOKEN', nil)
     ALLOW_REMOTE = ENV['SUPEX_ALLOW_REMOTE'] == '1'
 
     # Connection context for scoped client state
@@ -59,7 +59,7 @@ module SupexRuntime
           return false
         end
         if !AUTH_TOKEN || AUTH_TOKEN.empty?
-          log "WARNING: Binding to non-loopback address without SUPEX_AUTH_TOKEN is insecure"
+          log 'WARNING: Binding to non-loopback address without SUPEX_AUTH_TOKEN is insecure'
         end
       end
 
@@ -104,7 +104,7 @@ module SupexRuntime
     # @param host [String] host address to check
     # @return [Boolean] true if loopback address
     def loopback_address?(host)
-      host == '127.0.0.1' || host == 'localhost' || host == '::1'
+      ['127.0.0.1', 'localhost', '::1'].include?(host)
     end
 
     # Start request handler timer

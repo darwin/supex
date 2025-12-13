@@ -384,11 +384,13 @@ class TestConnectionErrorHandling:
         conn = SketchupConnection(host="localhost", port=9876)
 
         # Mock connect to return True but leave sock as None (shouldn't happen normally)
-        with patch.object(conn, "connect", return_value=True):
-            with patch.object(conn, "_is_connection_healthy", return_value=False):
-                conn.sock = None  # Ensure sock is None
+        with (
+            patch.object(conn, "connect", return_value=True),
+            patch.object(conn, "_is_connection_healthy", return_value=False),
+        ):
+            conn.sock = None  # Ensure sock is None
 
-                with pytest.raises(SketchUpConnectionError) as exc_info:
-                    conn.send_command("ping")
+            with pytest.raises(SketchUpConnectionError) as exc_info:
+                conn.send_command("ping")
 
-                assert "Socket not initialized" in str(exc_info.value)
+            assert "Socket not initialized" in str(exc_info.value)

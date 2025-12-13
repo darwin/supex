@@ -262,9 +262,8 @@ class SketchupConnection:
             request_id = _next_request_id()
 
         # Reuse existing connection if healthy
-        if not self._is_connection_healthy():
-            if not self.connect():
-                raise SketchUpConnectionError("Not connected to SketchUp")
+        if not self._is_connection_healthy() and not self.connect():
+            raise SketchUpConnectionError("Not connected to SketchUp")
         if self.sock is None:
             raise SketchUpConnectionError("Socket not initialized after connect")
 

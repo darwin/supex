@@ -6,7 +6,7 @@ module SupexRuntime
   module PathPolicy
     # Environment configuration
     ALLOWED_ROOTS = (ENV['SUPEX_ALLOWED_ROOTS'] || '').split(':').reject(&:empty?)
-    PROJECT_ROOT = ENV['SUPEX_PROJECT_ROOT']
+    PROJECT_ROOT = ENV.fetch('SUPEX_PROJECT_ROOT', nil)
 
     # Default allowed: .tmp directory relative to runtime
     DEFAULT_TMP = File.expand_path('../../../.tmp', __dir__)

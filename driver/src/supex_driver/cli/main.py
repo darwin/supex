@@ -46,7 +46,10 @@ def _ensure_logging():
         _logging_configured = True
 
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
-from supex_driver.connection.exceptions import SketchUpConnectionError, SketchUpRemoteError
+from supex_driver.connection.exceptions import (
+    SketchUpConnectionError,
+    SketchUpRemoteError,
+)
 
 app = typer.Typer(
     name="supex",
