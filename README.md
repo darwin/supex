@@ -50,57 +50,21 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 
 Supex bridges AI agents and CLI tools with SketchUp through a client-server architecture:
 
-```
-┌─────────────────┐                              ┌─────────────────┐
-│   Claude Code   │                              │   CLI Tools     │
-│   (AI Agent)    │                              │   ./supex       │
-└────────┬────────┘                              └────────┬────────┘
-         │                                                │
-         │ MCP Protocol                                   │ Direct
-         │ (stdio)                                        │ Commands
-         │                                                │
-         └────────────────┬───────────────────────────────┘
-                          ▼
-                 ┌─────────────────┐
-                 │  Python Driver  │
-                 │  (driver/)      │
-                 │                 │
-                 │  • MCP Server   │ ◄── Interface for AI agents
-                 │  • CLI Handler  │ ◄── Interface for commands
-                 │  • Socket Client│
-                 └────────┬────────┘
-                          │
-                          │ TCP Socket (localhost:9876)
-                          │ JSON-RPC 2.0
-                          ▼
-                 ┌─────────────────┐       ┌─────────────────┐
-                 │ SketchUp Runtime│       │   REPL Client   │
-                 │ (runtime/)      │       │   ./repl        │
-                 │                 │       └────────┬────────┘
-                 │ • Ruby Extension│                │
-                 │ • Bridge Server │ :9876          │ TCP :4433
-                 │ • REPL Server   │ :4433 ◄────────┘
-                 │ • SketchUp API  │
-                 └─────────────────┘
-                          │
-                          ▼
-                  [ SketchUp Process ]
-```
+![Architecture Overview](assets/supex-architecture-poster.jpeg)
 
-**Key Components:**
+**Client-Side Components (Python):**
 
-1. **Python Driver** (`driver/`) - Central hub with two interfaces:
-    - **[MCP](https://modelcontextprotocol.io) Server**: For AI agent integration (FastMCP framework)
-    - **CLI Handler**: For direct command-line interaction
-    - **Socket Client**: Communicates with SketchUp extension
+- **Driver** (`./mcp`) - [MCP](https://modelcontextprotocol.io) server for AI agent integration (FastMCP framework)
+- **CLI** (`./supex`) - Command-line interface for direct interaction
+- **REPL** (`./repl`) - Interactive Ruby console for development
 
-2. **SketchUp Runtime** (`runtime/`) - Ruby extension:
-    - Runs inside SketchUp process
-    - Executes Ruby code in SketchUp's API context
-    - Provides bridge server (port 9876) for MCP/CLI communication
-    - Provides REPL server (port 4433) for interactive development
+**SketchUp-Side Components (Ruby):**
 
-**Communication**: TCP sockets (localhost:9876) with JSON-RPC 2.0 protocol enable AI agents and CLI tools to execute Ruby code directly in SketchUp's context and inspect model state in real-time.
+- **Supex Runtime** - Bridge server accepting JSON-RPC connections on ports 9876 (MCP/CLI) and 4433 (REPL)
+- **Supex StdLib** - Helper library for common SketchUp operations
+- **SketchUp API** - Native Ruby API for 3D modeling
+
+**Communication**: JSON-RPC 2.0 over TCP sockets (localhost:9876 for MCP/CLI, localhost:4433 for REPL) enables execution of Ruby code directly in SketchUp's context.
 
 For more details, see [Architecture](docs/architecture.md).
 
