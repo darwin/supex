@@ -21,6 +21,7 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 - [Project-Based Workflow](#project-based-workflow)
 - [Installation & Setup](#installation--setup)
 - [Quick Start](#quick-start)
+- [Development](#development)
 - [Reference](#reference)
 
 ## Key Features
@@ -227,6 +228,29 @@ The example covers:
 2. Creating geometry with Ruby scripts
 3. Using introspection tools to verify results
 4. Iterative development workflow
+
+## Development
+
+Run tests and linters from the repository root:
+
+```bash
+# Run all unit tests (driver, stdlib, runtime)
+./scripts/launch-tests.sh
+
+# Run all tests including E2E (requires SketchUp running)
+./scripts/launch-tests.sh --e2e
+
+# Run all linters (RuboCop, ruff, mypy)
+./scripts/lint.sh
+```
+
+If you have [mise](https://mise.jdx.dev/) installed:
+
+```bash
+mise run test       # Unit tests
+mise run test:e2e   # All tests including E2E
+mise run lint       # All linters
+```
 
 ## Reference
 
