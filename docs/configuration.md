@@ -2,13 +2,16 @@
 
 Supex can be configured via environment variables:
 
-## Authentication
+## Security
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SUPEX_AUTH_TOKEN` | (unset) | Shared authentication token for Bridge and REPL servers |
+| `SUPEX_ALLOW_REMOTE` | (unset) | Allow binding to non-loopback addresses (set to `1`) |
 
-When set, clients must provide this token in the `hello` handshake to connect. Without a valid token, the server returns error code `-32001`.
+**Authentication**: When `SUPEX_AUTH_TOKEN` is set, clients must provide this token in the `hello` handshake to connect. Without a valid token, the server returns error code `-32001`.
+
+**Remote binding**: By default, servers only bind to loopback addresses (`127.0.0.1`, `localhost`, `::1`). To bind to other addresses (e.g., `0.0.0.0`), set `SUPEX_ALLOW_REMOTE=1`. When binding remotely without a token, a security warning is logged.
 
 ## Bridge Server (MCP)
 

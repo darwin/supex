@@ -402,6 +402,81 @@ class TestBridgeServer < Minitest::Test
   end
 
   # ==========================================================================
+  # Non-loopback guard tests
+  # ==========================================================================
+
+  def test_loopback_address_detection
+    server = SupexRuntime::BridgeServer.new(port: 0)
+
+    assert server.send(:loopback_address?, '127.0.0.1')
+    assert server.send(:loopback_address?, 'localhost')
+    assert server.send(:loopback_address?, '::1')
+    refute server.send(:loopback_address?, '0.0.0.0')
+    refute server.send(:loopback_address?, '192.168.1.1')
+  end
+
+  def test_start_fails_on_non_loopback_without_allow_remote
+    original_allow = SupexRuntime::BridgeServer::ALLOW_REMOTE
+    SupexRuntime::BridgeServer.send(:remove_const, :ALLOW_REMOTE)
+    SupexRuntime::BridgeServer.const_set(:ALLOW_REMOTE, false)
+
+    begin
+      @server = SupexRuntime::BridgeServer.new(port: 0, host: '0.0.0.0')
+
+      @server.start
+
+      refute @server.running?, 'Server should not start on non-loopback without ALLOW_REMOTE'
+      output = SupexRuntime::Utils.console_output.join("\n")
+      assert_includes output, 'requires SUPEX_ALLOW_REMOTE=1'
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :ALLOW_REMOTE)
+      SupexRuntime::BridgeServer.const_set(:ALLOW_REMOTE, original_allow)
+    end
+  end
+
+  def test_start_succeeds_on_non_loopback_with_allow_remote
+    original_allow = SupexRuntime::BridgeServer::ALLOW_REMOTE
+    SupexRuntime::BridgeServer.send(:remove_const, :ALLOW_REMOTE)
+    SupexRuntime::BridgeServer.const_set(:ALLOW_REMOTE, true)
+
+    begin
+      @server = SupexRuntime::BridgeServer.new(port: 0, host: '0.0.0.0')
+
+      @server.start
+
+      assert @server.running?, 'Server should start on non-loopback with ALLOW_REMOTE=1'
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :ALLOW_REMOTE)
+      SupexRuntime::BridgeServer.const_set(:ALLOW_REMOTE, original_allow)
+    end
+  end
+
+  def test_start_warns_on_non_loopback_without_token
+    original_allow = SupexRuntime::BridgeServer::ALLOW_REMOTE
+    original_token = SupexRuntime::BridgeServer::AUTH_TOKEN
+    SupexRuntime::BridgeServer.send(:remove_const, :ALLOW_REMOTE)
+    SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+    SupexRuntime::BridgeServer.const_set(:ALLOW_REMOTE, true)
+    SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, nil)
+
+    begin
+      @server = SupexRuntime::BridgeServer.new(port: 0, host: '0.0.0.0')
+
+      @server.start
+
+      assert @server.running?
+      output = SupexRuntime::Utils.console_output.join("\n")
+      assert_includes output, 'WARNING'
+      assert_includes output, 'insecure'
+    ensure
+      SupexRuntime::BridgeServer.send(:remove_const, :ALLOW_REMOTE)
+      SupexRuntime::BridgeServer.send(:remove_const, :AUTH_TOKEN)
+      SupexRuntime::BridgeServer.const_set(:ALLOW_REMOTE, original_allow)
+      SupexRuntime::BridgeServer.const_set(:AUTH_TOKEN, original_token)
+    end
+  end
+
+  # ==========================================================================
   # Integration tests (real TCP)
   # ==========================================================================
 

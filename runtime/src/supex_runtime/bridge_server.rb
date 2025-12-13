@@ -20,6 +20,7 @@ module SupexRuntime
     REQUEST_CHECK_INTERVAL = ENV['SUPEX_CHECK_INTERVAL']&.to_f || 0.25
     RESPONSE_DELAY = ENV['SUPEX_RESPONSE_DELAY']&.to_f || 0
     AUTH_TOKEN = ENV['SUPEX_AUTH_TOKEN']
+    ALLOW_REMOTE = ENV['SUPEX_ALLOW_REMOTE'] == '1'
 
     # Connection context for scoped client state (thread-safe pattern)
     ConnectionContext = Struct.new(:client_info, keyword_init: true) do
@@ -44,6 +45,17 @@ module SupexRuntime
     # Start the TCP server
     def start
       return if @running
+
+      # Check if binding to non-loopback without explicit opt-in
+      unless loopback_address?(@host)
+        unless ALLOW_REMOTE
+          log "ERROR: Binding to non-loopback address '#{@host}' requires SUPEX_ALLOW_REMOTE=1"
+          return
+        end
+        if !AUTH_TOKEN || AUTH_TOKEN.empty?
+          log "WARNING: Binding to non-loopback address without SUPEX_AUTH_TOKEN is insecure"
+        end
+      end
 
       begin
         log "Starting bridge server on #{@host}:#{@port}..."
@@ -82,6 +94,13 @@ module SupexRuntime
     end
 
     private
+
+    # Check if host is a loopback address
+    # @param host [String] host address to check
+    # @return [Boolean] true if loopback address
+    def loopback_address?(host)
+      host == '127.0.0.1' || host == 'localhost' || host == '::1'
+    end
 
     # Setup SketchUp console for debugging
     def setup_console
