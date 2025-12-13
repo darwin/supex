@@ -57,7 +57,8 @@ app = typer.Typer(
     no_args_is_help=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-console = Console()
+# Use wide console to prevent truncation in non-terminal contexts (e.g., subprocess)
+console = Console(width=200)
 
 # Common options
 HostOption = Annotated[str, typer.Option("--host", "-H", help="SketchUp host")]
@@ -454,7 +455,8 @@ def export(
         conn = get_connection(host, port)
         result = conn.send_command("export_scene", {"format": format})
 
-        content = result.get("content", [{}])
+        # Handle both MCP format (content array) and direct format (file_path)
+        content = result.get("content")
         if isinstance(content, list) and content:
             data = json.loads(content[0].get("text", "{}"))
         else:

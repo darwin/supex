@@ -200,7 +200,7 @@ class CLIRunner:
 
     def export(self, format: str = "skp") -> CLIResult:
         """Export the model."""
-        return self._run("export", "--format", format)
+        return self._run("export", format)
 
     def new_model(self) -> CLIResult:
         """Create a new empty model."""
