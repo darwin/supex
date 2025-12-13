@@ -112,23 +112,21 @@ def setup_logging():
         return
     _logging_configured = True
 
-    # Setup file logging for stdout and stderr
+    # Setup file logging for stderr only (stdout is used by MCP protocol)
     log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
-    os.makedirs(log_dir, exist_ok=True)
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+        stderr_log_file = os.path.join(log_dir, "stderr.log")
 
-    stdout_log_file = os.path.join(log_dir, "stdout.log")
-    stderr_log_file = os.path.join(log_dir, "stderr.log")
+        # Redirect stderr to log file while preserving original
+        stderr_logger = open(stderr_log_file, 'a', encoding='utf-8')
+        _log_files.append(stderr_logger)
 
-    # Redirect stdout to log file while preserving original
-    stdout_logger = open(stdout_log_file, 'a', encoding='utf-8')
-    stderr_logger = open(stderr_log_file, 'a', encoding='utf-8')
-
-    # Track files for cleanup on exit
-    _log_files.extend([stdout_logger, stderr_logger])
-
-    # Replace sys.stdout and sys.stderr with tee streams
-    sys.stdout = TeeStream(sys.stdout, stdout_logger)
-    sys.stderr = TeeStream(sys.stderr, stderr_logger)
+        # Only tee stderr, never stdout (MCP protocol uses stdout)
+        sys.stderr = TeeStream(sys.stderr, stderr_logger)
+    except OSError:
+        # If we can't create log directory, continue without file logging
+        pass
 
     # Configure logging to stderr to avoid interfering with MCP stdio
     logging.basicConfig(

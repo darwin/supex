@@ -12,17 +12,38 @@ from rich.json import JSON
 from rich.panel import Panel
 from rich.table import Table
 
-# Configure logging to file only (suppress console output)
-_log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
-os.makedirs(_log_dir, exist_ok=True)
-_cli_log_file = os.path.join(_log_dir, "cli.log")
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    filename=_cli_log_file,
-    filemode="a",
-)
+def _setup_logging():
+    """Configure logging to file only (lazy initialization).
+
+    Called once when first needed. Fails gracefully if log directory
+    cannot be created.
+    """
+    log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "cli.log")
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            filename=log_file,
+            filemode="a",
+        )
+    except OSError:
+        # If we can't create log directory, configure null handler
+        logging.basicConfig(level=logging.WARNING, handlers=[logging.NullHandler()])
+
+
+# Lazy logging setup - only configure when needed
+_logging_configured = False
+
+
+def _ensure_logging():
+    """Ensure logging is configured (lazy init)."""
+    global _logging_configured
+    if not _logging_configured:
+        _setup_logging()
+        _logging_configured = True
 
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
 from supex_driver.connection.exceptions import SketchUpConnectionError, SketchUpRemoteError
@@ -31,11 +52,12 @@ app = typer.Typer(
     name="supex",
     help="CLI for SketchUp automation via Supex runtime.",
     no_args_is_help=True,
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 console = Console()
 
 # Common options
-HostOption = Annotated[str, typer.Option("--host", "-h", help="SketchUp host")]
+HostOption = Annotated[str, typer.Option("--host", "-H", help="SketchUp host")]
 PortOption = Annotated[int, typer.Option("--port", "-p", help="SketchUp port")]
 
 
@@ -443,6 +465,7 @@ def export(
 
 def main():
     """Main entry point."""
+    _ensure_logging()
     try:
         app()
     except KeyboardInterrupt:
