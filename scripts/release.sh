@@ -203,8 +203,12 @@ main() {
     echo ""
     log_success "Release v$new_version complete!"
     echo ""
-    log_info "Next step - push to remote:"
-    echo "  git push origin main dev --tags"
+    log_info "Next steps:"
+    echo "  1. Generate changelog for GitHub Release:"
+    echo "     ./scripts/changelog.sh v$new_version"
+    echo ""
+    echo "  2. Push to remote:"
+    echo "     git push origin main dev --tags"
     echo ""
 }
 
