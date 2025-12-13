@@ -1,5 +1,7 @@
 > **Note**: Unless you explicitly switched, you are viewing the `main` branch which contains stable releases. Active development happens on the [`dev` branch](https://github.com/darwin/supex/tree/dev).
 
+![Supex Hero](assets/supex-hero-poster.jpeg)
+
 # Supex: SketchUp Automation for Agentic Coding
 
 An experimental platform that brings [agentic coding](https://www.claude.com/blog/introduction-to-agentic-coding) to [SketchUp](https://www.sketchup.com). Describe what you want to build in natural language, and let AI write and execute Ruby scripts directly in SketchUp. Designed for programmers who want to augment their 3D modeling workflow with AI assistance and direct API access.
