@@ -7,10 +7,8 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
-from rich.json import JSON
-from rich.panel import Panel
-from rich.table import Table
+
+from supex_driver.cli.output import get_output
 
 
 def _setup_logging():
@@ -57,8 +55,6 @@ app = typer.Typer(
     no_args_is_help=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-# Use wide console to prevent truncation in non-terminal contexts (e.g., subprocess)
-console = Console(width=200)
 
 # Common options
 HostOption = Annotated[str, typer.Option("--host", "-H", help="SketchUp host")]
@@ -74,32 +70,34 @@ def get_connection(host: str = "localhost", port: int = 9876) -> SketchupConnect
 
 def handle_error(e: Exception, exit_code: int = 1):
     """Handle and display errors."""
+    out = get_output()
     if isinstance(e, SketchUpRemoteError):
-        console.print(f"[red]SketchUp error [{e.code}]:[/red] {e.message}")
+        out.error(f"SketchUp error [{e.code}]: {e.message}")
         if e.data:
             if "file" in e.data:
-                console.print(f"[dim]File: {e.data['file']}[/dim]")
+                out.info(f"File: {e.data['file']}", dim=True)
             if "line" in e.data:
-                console.print(f"[dim]Line: {e.data['line']}[/dim]")
+                out.info(f"Line: {e.data['line']}", dim=True)
             if "hint" in e.data:
-                console.print(f"[dim]Hint: {e.data['hint']}[/dim]")
+                out.info(f"Hint: {e.data['hint']}", dim=True)
     elif isinstance(e, SketchUpConnectionError):
-        console.print(f"[red]Connection error:[/red] {e}")
-        console.print("[dim]Make sure SketchUp is running with the Supex runtime.[/dim]")
+        out.error(f"Connection error: {e}")
+        out.info("Make sure SketchUp is running with the Supex runtime.", dim=True)
     else:
-        console.print(f"[red]Error:[/red] {e}")
+        out.error(str(e))
     raise typer.Exit(exit_code)
 
 
 def print_result(result: dict, as_json: bool = False) -> None:
     """Print command result to console."""
+    out = get_output()
     if as_json:
-        console.print(JSON(json.dumps(result)))
+        out.json(result)
     # Pretty print based on content
     elif "success" in result and not result.get("success"):
-        console.print(f"[red]Failed:[/red] {result.get('error', 'Unknown error')}")
+        out.error(f"Failed: {result.get('error', 'Unknown error')}")
     else:
-        console.print(JSON(json.dumps(result)))
+        out.json(result)
 
 
 def get_project_root() -> Path:
@@ -125,6 +123,7 @@ def status(
     port: PortOption = 9876,
 ):
     """Check SketchUp connection and system status."""
+    out = get_output()
     sketchup_connected = False
 
     # SketchUp connection status
@@ -132,25 +131,25 @@ def status(
         conn = get_connection(host, port)
         result = conn.send_command("ping")
         version = result.get('version', 'unknown')
-        console.print(Panel(
+        out.panel(
             f"[green]Connected[/green]\nVersion: {version}",
             title="SketchUp Status",
-        ))
+        )
         sketchup_connected = True
     except Exception as e:
-        console.print(Panel(
+        out.panel(
             f"[red]Disconnected[/red]\n{e}",
             title="SketchUp Status",
-        ))
-        console.print("[dim]Make sure SketchUp is running with the Supex runtime.[/dim]")
+        )
+        out.info("Make sure SketchUp is running with the Supex runtime.", dim=True)
 
     # Documentation status
     docs_available, docs_path = check_docs_available()
     if docs_available:
-        console.print(f"\n[dim]API Docs:[/dim] [green]Available[/green] at {docs_path}")
+        out.print(f"\n[dim]API Docs:[/dim] [green]Available[/green] at {docs_path}")
     else:
-        console.print("\n[dim]API Docs:[/dim] [yellow]Not installed[/yellow] (optional)")
-        console.print("[dim]  Generate with: ./scripts/regenerate-sketchup-api-docs.sh[/dim]")
+        out.print("\n[dim]API Docs:[/dim] [yellow]Not installed[/yellow] (optional)")
+        out.info("  Generate with: ./scripts/regenerate-sketchup-api-docs.sh", dim=True)
 
     # Exit with error only if SketchUp disconnected
     if not sketchup_connected:
@@ -163,19 +162,20 @@ def reload(
     port: PortOption = 9876,
 ):
     """Reload the SketchUp extension without restarting SketchUp."""
+    out = get_output()
     try:
-        console.print("[yellow]Reloading SketchUp extension...[/yellow]")
+        out.warning("Reloading SketchUp extension...")
         conn = get_connection(host, port)
         result = conn.send_command("reload_extension")
 
         if result.get("success"):
-            console.print("[green]Extension reloaded successfully[/green]")
+            out.success("Extension reloaded successfully")
             if "message" in result:
-                console.print(result["message"])
+                out.print(result["message"])
         else:
-            console.print("[red]Failed to reload extension[/red]")
+            out.error("Failed to reload extension")
             error_msg = result.get("error", "Unknown error")
-            console.print(error_msg)
+            out.print(error_msg)
             raise typer.Exit(1)
 
     except Exception as e:
@@ -190,6 +190,7 @@ def eval_ruby(
     raw: Annotated[bool, typer.Option("--raw", "-r", help="Output raw JSON")] = False,
 ):
     """Evaluate Ruby code in SketchUp context."""
+    out = get_output()
     try:
         conn = get_connection(host, port)
         result = conn.send_command("eval_ruby", {"code": code})
@@ -201,9 +202,9 @@ def eval_ruby(
             content = result.get("content", [])
             if isinstance(content, list) and content:
                 text = content[0].get("text", str(result))
-                console.print(text)
+                out.print(text)
             else:
-                console.print(result.get("result", str(result)))
+                out.print(result.get("result", str(result)))
     except Exception as e:
         handle_error(e)
 
@@ -216,11 +217,12 @@ def eval_ruby_file(
     raw: Annotated[bool, typer.Option("--raw", "-r", help="Output raw JSON")] = False,
 ):
     """Evaluate Ruby code from a file in SketchUp context."""
+    out = get_output()
     # Resolve to absolute path
     abs_path = file_path.resolve()
 
     if not abs_path.exists():
-        console.print(f"[red]File not found:[/red] {abs_path}")
+        out.error(f"File not found: {abs_path}")
         raise typer.Exit(1)
 
     try:
@@ -230,14 +232,14 @@ def eval_ruby_file(
         if raw:
             print(json.dumps(result))
         elif result.get("success"):
-            console.print(f"[green]✓[/green] Executed {abs_path.name}")
+            out.success(f"Executed {abs_path.name}")
             content = result.get("content", [])
             if isinstance(content, list) and content:
                 text = content[0].get("text", "")
                 if text:
-                    console.print(text)
+                    out.print(text)
         else:
-            console.print(f"[red]✗[/red] {result.get('error', 'Unknown error')}")
+            out.error(f"{result.get('error', 'Unknown error')}")
     except Exception as e:
         handle_error(e)
 
@@ -249,6 +251,7 @@ def info(
     raw: Annotated[bool, typer.Option("--raw", "-r", help="Output raw JSON")] = False,
 ):
     """Get information about the current SketchUp model."""
+    out = get_output()
     try:
         conn = get_connection(host, port)
         result = conn.send_command("get_model_info")
@@ -262,14 +265,7 @@ def info(
             else:
                 data = result
 
-            table = Table(title="Model Info")
-            table.add_column("Property", style="cyan")
-            table.add_column("Value")
-
-            for key, value in data.items():
-                table.add_row(key, str(value))
-
-            console.print(table)
+            out.table(data, title="Model Info")
     except Exception as e:
         handle_error(e)
 
@@ -380,6 +376,7 @@ def screenshot(
     port: PortOption = 9876,
 ):
     """Take a screenshot of the current SketchUp view."""
+    out = get_output()
     try:
         conn = get_connection(host, port)
         params: dict[str, int | bool | str] = {
@@ -399,7 +396,7 @@ def screenshot(
             data = result
 
         file_path = data.get("file_path", "unknown")
-        console.print(f"[green]✓[/green] Screenshot saved to: {file_path}")
+        out.success(f"Screenshot saved to: {file_path}")
     except Exception as e:
         handle_error(e)
 
@@ -411,16 +408,17 @@ def open_model(
     port: PortOption = 9876,
 ):
     """Open a SketchUp model file."""
+    out = get_output()
     abs_path = path.resolve()
 
     if not abs_path.exists():
-        console.print(f"[red]File not found:[/red] {abs_path}")
+        out.error(f"File not found: {abs_path}")
         raise typer.Exit(1)
 
     try:
         conn = get_connection(host, port)
         conn.send_command("open_model", {"path": str(abs_path)})
-        console.print(f"[green]✓[/green] Opened: {abs_path.name}")
+        out.success(f"Opened: {abs_path.name}")
     except Exception as e:
         handle_error(e)
 
@@ -432,6 +430,7 @@ def save(
     port: PortOption = 9876,
 ):
     """Save the current SketchUp model."""
+    out = get_output()
     try:
         conn = get_connection(host, port)
         params = {}
@@ -439,7 +438,7 @@ def save(
             params["path"] = str(path.resolve())
 
         conn.send_command("save_model", params)
-        console.print("[green]✓[/green] Model saved")
+        out.success("Model saved")
     except Exception as e:
         handle_error(e)
 
@@ -451,6 +450,7 @@ def export(
     port: PortOption = 9876,
 ):
     """Export the current SketchUp scene."""
+    out = get_output()
     try:
         conn = get_connection(host, port)
         result = conn.send_command("export_scene", {"format": format})
@@ -463,7 +463,7 @@ def export(
             data = result
 
         file_path = data.get("file_path", "unknown")
-        console.print(f"[green]✓[/green] Exported to: {file_path}")
+        out.success(f"Exported to: {file_path}")
     except Exception as e:
         handle_error(e)
 

@@ -6,6 +6,8 @@ opening model files, and saving models.
 
 import os
 import re
+import time
+import uuid
 from pathlib import Path
 
 import pytest
@@ -22,15 +24,8 @@ def get_project_temp_dir(subpath: str = "") -> Path:
 
 
 def extract_path_from_output(output: str) -> str | None:
-    """Extract file path from CLI output like 'Exported to: /path/to/file'.
-
-    The CLI uses Rich formatting, so we need to handle ANSI escape codes.
-    """
-    # Remove ANSI escape codes
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    clean_output = ansi_escape.sub('', output)
-
-    match = re.search(r"Exported to:\s*(.+)$", clean_output, re.MULTILINE)
+    """Extract file path from CLI output like 'Exported to: /path/to/file'."""
+    match = re.search(r"Exported to:\s*(.+)$", output, re.MULTILINE)
     if match:
         return match.group(1).strip()
     return None
@@ -143,24 +138,44 @@ class TestOpenModel:
 
     def test_open_existing_model(self, cli: CLIRunner) -> None:
         """Open an existing model file."""
-        # First save a model with known content
+        # Use unique filenames to avoid conflicts
         temp_dir = get_project_temp_dir("tests/e2e/models")
-        model_path = temp_dir / "test_open_model.skp"
+        unique_id = uuid.uuid4().hex[:8]
+        model_with_geometry = temp_dir / f"test_model_with_geometry_{unique_id}.skp"
+        empty_model = temp_dir / f"test_empty_model_{unique_id}.skp"
 
         # Create and save a model with geometry
         cli.call_snippet("fixture_clear_all")
         cli.call_snippet("geom_create_cube")
-        cli.save_model(str(model_path))
 
-        # Clear the model
-        cli.call_snippet("fixture_clear_all")
+        # Verify geometry exists before save
+        result = cli.eval("Sketchup.active_model.entities.grep(Sketchup::Group).count")
+        groups_before_save = int(result.stdout.strip())
+        assert groups_before_save > 0, f"Should have groups before save, got {groups_before_save}"
 
-        # Verify model is empty (no groups)
+        # Save the model with geometry
+        save_result = cli.save_model(str(model_with_geometry))
+        assert save_result.success, f"Save failed: {save_result.stderr}"
+        assert model_with_geometry.exists(), f"Model file not created at {model_with_geometry}"
+        file_size = model_with_geometry.stat().st_size
+        assert file_size > 1000, f"Model file too small: {file_size} bytes"
+
+        # Save an empty model to a different path (this switches SketchUp to a different file)
+        cli.eval("Sketchup.active_model.entities.clear!")
+        time.sleep(0.3)
+        cli.save_model(str(empty_model))
+
+        # Verify model is now empty
         result = cli.eval("Sketchup.active_model.entities.grep(Sketchup::Group).count")
         assert result.stdout.strip() == "0", "Model should be empty after clear"
 
-        # Open the saved model
-        result = cli.open_model(str(model_path))
+        # Verify we're now at the empty model path
+        result = cli.eval("Sketchup.active_model.path")
+        current_path = result.stdout.strip()
+        assert current_path == str(empty_model), f"Should be at empty model path, but at: {current_path}"
+
+        # Open the model with geometry - this should load from a different file
+        result = cli.open_model(str(model_with_geometry))
         assert result.success, f"Open model failed: {result.stderr}"
 
         # Verify geometry was loaded (has groups)

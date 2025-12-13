@@ -104,7 +104,8 @@ class CLIRunner:
         """Run a supex CLI command."""
         cmd = ["uv", "run", "supex", *args]
         # Pass SUPEX_AGENT to identify as e2e test in logs
-        env = {**os.environ, "SUPEX_AGENT": self.AGENT_NAME}
+        # Use SUPEX_PLAIN=1 to disable Rich formatting for predictable output parsing
+        env = {**os.environ, "SUPEX_AGENT": self.AGENT_NAME, "SUPEX_PLAIN": "1"}
         result = subprocess.run(
             cmd,
             capture_output=True,
