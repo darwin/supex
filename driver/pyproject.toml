@@ -35,10 +35,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anthropics/supex"
-Issues = "https://github.com/anthropics/supex/issues"
-Repository = "https://github.com/anthropics/supex.git"
-Documentation = "https://github.com/anthropics/supex#readme"
+Homepage = "https://github.com/darwin/supex"
+Issues = "https://github.com/darwin/supex/issues"
+Repository = "https://github.com/darwin/supex.git"
+Documentation = "https://github.com/darwin/supex#readme"
 
 [project.scripts]
 supex-mcp = "supex_driver.mcp:main"
