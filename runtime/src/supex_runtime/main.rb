@@ -327,8 +327,8 @@ module SupexRuntime
   end
 end
 
-# Auto-start server when extension loads (unless disabled)
-unless defined?(SUPEX_NO_AUTOSTART) && SUPEX_NO_AUTOSTART
+# Auto-start server when extension loads (unless disabled via SUPEX_NO_AUTOSTART=1)
+unless ENV['SUPEX_NO_AUTOSTART'] == '1'
   # Use a timer to start after SketchUp finishes loading
   UI.start_timer(1.0, false) do
     SupexRuntime::Main.start
