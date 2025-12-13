@@ -13,6 +13,7 @@ from typing import Any
 from supex_driver.connection.exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
+    SketchUpRemoteError,
     SketchUpTimeoutError,
 )
 
@@ -252,11 +253,12 @@ class SketchupConnection:
                 logger.debug(f"Response parsed: {response}")
 
                 if "error" in response:
-                    error_msg = response["error"].get(
-                        "message", "Unknown error from SketchUp"
+                    error = response["error"]
+                    raise SketchUpRemoteError(
+                        code=error.get("code", -1),
+                        message=error.get("message", "Unknown error from SketchUp"),
+                        data=error.get("data"),
                     )
-                    logger.error(f"SketchUp error: {error_msg}")
-                    raise Exception(error_msg)
 
                 return response.get("result", {})
 

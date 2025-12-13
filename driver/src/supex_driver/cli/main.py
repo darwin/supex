@@ -25,7 +25,7 @@ logging.basicConfig(
 )
 
 from supex_driver.connection import SketchupConnection, get_sketchup_connection
-from supex_driver.connection.exceptions import SketchUpConnectionError
+from supex_driver.connection.exceptions import SketchUpConnectionError, SketchUpRemoteError
 
 app = typer.Typer(
     name="supex",
@@ -48,7 +48,16 @@ def get_connection(host: str = "localhost", port: int = 9876) -> SketchupConnect
 
 def handle_error(e: Exception, exit_code: int = 1):
     """Handle and display errors."""
-    if isinstance(e, SketchUpConnectionError):
+    if isinstance(e, SketchUpRemoteError):
+        console.print(f"[red]SketchUp error [{e.code}]:[/red] {e.message}")
+        if e.data:
+            if "file" in e.data:
+                console.print(f"[dim]File: {e.data['file']}[/dim]")
+            if "line" in e.data:
+                console.print(f"[dim]Line: {e.data['line']}[/dim]")
+            if "hint" in e.data:
+                console.print(f"[dim]Hint: {e.data['hint']}[/dim]")
+    elif isinstance(e, SketchUpConnectionError):
         console.print(f"[red]Connection error:[/red] {e}")
         console.print("[dim]Make sure SketchUp is running with the Supex runtime.[/dim]")
     else:

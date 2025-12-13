@@ -14,6 +14,7 @@ from supex_driver.connection import get_sketchup_connection
 from supex_driver.connection.exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
+    SketchUpRemoteError,
     SketchUpTimeoutError,
 )
 
@@ -178,6 +179,16 @@ def check_sketchup_status(ctx: Context) -> str:
                 "message": "Communication error with SketchUp",
             }
         )
+    except SketchUpRemoteError as e:
+        return json.dumps(
+            {
+                "status": "error",
+                "error": e.message,
+                "error_type": "remote",
+                "error_code": e.code,
+                "message": "SketchUp execution error",
+            }
+        )
     except Exception as e:
         logger.exception(f"Unexpected error checking status: {e}")
         return json.dumps(
@@ -210,6 +221,9 @@ def export_scene(ctx: Context, format: str = "skp") -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error exporting scene: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error exporting scene: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error exporting scene: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -250,6 +264,9 @@ def eval_ruby(ctx: Context, code: str) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error evaluating Ruby code: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error evaluating Ruby code: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error evaluating Ruby code: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -271,6 +288,9 @@ def console_capture_status(ctx: Context) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error getting console status: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error getting console status: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error getting console status: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -300,6 +320,9 @@ def eval_ruby_file(ctx: Context, file_path: str) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error evaluating Ruby file: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error evaluating Ruby file: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error evaluating Ruby file: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -333,6 +356,9 @@ def get_model_info(ctx: Context) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error getting model info: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error getting model info: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error getting model info: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -361,6 +387,9 @@ def list_entities(ctx: Context, entity_type: str = "all") -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error listing entities: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error listing entities: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error listing entities: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -388,6 +417,9 @@ def get_selection(ctx: Context) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error getting selection: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error getting selection: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error getting selection: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -413,6 +445,9 @@ def get_layers(ctx: Context) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error getting layers: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error getting layers: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error getting layers: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -438,6 +473,9 @@ def get_materials(ctx: Context) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error getting materials: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error getting materials: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error getting materials: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -463,6 +501,9 @@ def get_camera_info(ctx: Context) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error getting camera info: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error getting camera info: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error getting camera info: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -514,6 +555,9 @@ def take_screenshot(
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error taking screenshot: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error taking screenshot: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error taking screenshot: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -602,6 +646,9 @@ def take_batch_screenshots(
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error taking batch screenshots: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error taking batch screenshots: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error taking batch screenshots: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -630,6 +677,9 @@ def open_model(ctx: Context, path: str) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error opening model: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error opening model: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error opening model: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
@@ -659,6 +709,9 @@ def save_model(ctx: Context, path: str | None = None) -> str:
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error saving model: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
+    except SketchUpRemoteError as e:
+        logger.error(f"Remote error saving model: {e}")
+        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
     except Exception as e:
         logger.exception(f"Unexpected error saving model: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
