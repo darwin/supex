@@ -8,3 +8,5 @@ AGENTS.override.md
 .DS_Store
 /.claude/
 /.code/
+.envrc
+supex
