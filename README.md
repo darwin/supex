@@ -156,6 +156,17 @@ ln -s ../supex/examples/SUPEX-AGENTS.md SUPEX-AGENTS.md
 
 **Note**: Adjust the path if your Supex installation is in a different location. The symlink must point to `SUPEX-AGENTS.md` in the Supex `examples/` directory.
 
+### Optional: Symlink Supex CLI Tool
+
+For convenience, you can symlink the `supex` CLI tool to your project root:
+
+```bash
+# From the project directory
+ln -s /path/to/supex/supex supex
+```
+
+This allows you to run commands like `./supex status` directly from your project without specifying the full path.
+
 ### Verify Configuration
 
 Both agents automatically start the MCP server - you don't need to run anything manually.
