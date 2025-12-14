@@ -1,10 +1,15 @@
-import atexit
-import contextlib
 import json
 import logging
 import os
 import sys
-from typing import IO, Any, TextIO, cast
+from typing import Any, cast
+
+# Configure logging BEFORE importing fastmcp to prevent rich handler installation
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stderr
+)
 
 from mcp.server import fastmcp
 from mcp.server.fastmcp import Context, FastMCP
@@ -72,45 +77,12 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
 
 # Flag to track if logging has been configured
 _logging_configured = False
-# Track open log files for cleanup
-_log_files: list[IO[str]] = []
-
-
-def _cleanup_log_files() -> None:
-    """Close all open log files on exit."""
-    for f in _log_files:
-        with contextlib.suppress(Exception):
-            f.close()
-
-
-atexit.register(_cleanup_log_files)
-
-
-class TeeStream:
-    """Stream that writes to both original stream and log file"""
-
-    def __init__(self, original_stream: TextIO, log_file: TextIO) -> None:
-        self.original_stream = original_stream
-        self.log_file = log_file
-
-    def write(self, data: str) -> int:
-        self.original_stream.write(data)
-        self.log_file.write(data)
-        self.log_file.flush()
-        return len(data)
-
-    def flush(self) -> None:
-        self.original_stream.flush()
-        self.log_file.flush()
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self.original_stream, name)
 
 
 def setup_logging() -> None:
     """Configure logging for the MCP server.
 
-    Sets up file logging and configures the logging format.
+    Adds a file handler to log to $SUPEX_WORKSPACE/.tmp/logs/supex-mcp.log.
     Only runs once, even if called multiple times.
     """
     global _logging_configured
@@ -118,7 +90,7 @@ def setup_logging() -> None:
         return
     _logging_configured = True
 
-    # Setup file logging for stderr only (stdout is used by MCP protocol)
+    # Add file handler for logging
     workspace = os.environ.get("SUPEX_WORKSPACE")
     default_log_dir = os.path.join(workspace, ".tmp", "logs") if workspace else os.path.expanduser("~/.supex/logs")
     log_dir = os.environ.get("SUPEX_LOG_DIR", default_log_dir)
@@ -126,22 +98,16 @@ def setup_logging() -> None:
         os.makedirs(log_dir, exist_ok=True)
         mcp_log_file = os.path.join(log_dir, "supex-mcp.log")
 
-        # Redirect stderr to log file while preserving original
-        mcp_logger = open(mcp_log_file, 'a', encoding='utf-8')
-        _log_files.append(mcp_logger)
-
-        # Only tee stderr, never stdout (MCP protocol uses stdout)
-        sys.stderr = TeeStream(sys.stderr, mcp_logger)
+        # Add file handler to root logger
+        file_handler = logging.FileHandler(mcp_log_file, encoding='utf-8')
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        ))
+        logging.getLogger().addHandler(file_handler)
     except OSError:
         # If we can't create log directory, continue without file logging
         pass
-
-    # Configure logging to stderr to avoid interfering with MCP stdio
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        stream=sys.stderr
-    )
 
     logger.info(f"Supex MCP Server version {__version__} starting up")
     logger.info(f"FastMCP version: {fastmcp.__version__}")
