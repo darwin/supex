@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
 
 # Supex CLI wrapper for convenient access from project root
-# This script allows running supex commands without cd to driver/
+# Logs stdout to supex-cli-stdout.log
+# Logs stderr to supex-cli-stderr.log
 
 set -e
 
-# Change to supex project root (directory containing this script)
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$PROJECT_ROOT" || exit 1
+SUPEX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Fallback to ~/.supex/tmp-workspace for ad-hoc CLI usage (not pwd to avoid pollution)
+export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$HOME/.supex/tmp-workspace}"
 
-# Change to driver directory
-cd driver || exit 1
+LOG_DIR="${SUPEX_LOG_DIR:-$SUPEX_WORKSPACE/.tmp/logs}"
+mkdir -p "$LOG_DIR"
 
-# Run supex CLI with all arguments passed through
-exec uv run supex "$@"
+STDOUT_LOG="$LOG_DIR/supex-cli-stdout.log"
+STDERR_LOG="$LOG_DIR/supex-cli-stderr.log"
+
+# Run supex CLI with logging
+uv run --project "$SUPEX_ROOT/driver" supex "$@" 2>>"$STDERR_LOG" | \
+  tee -a "$STDOUT_LOG"

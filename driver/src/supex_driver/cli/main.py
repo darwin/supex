@@ -17,10 +17,12 @@ def _setup_logging():
     Called once when first needed. Fails gracefully if log directory
     cannot be created.
     """
-    log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
+    workspace = os.environ.get("SUPEX_WORKSPACE", os.path.expanduser("~/.supex/tmp-workspace"))
+    default_log_dir = os.path.join(workspace, ".tmp", "logs")
+    log_dir = os.environ.get("SUPEX_LOG_DIR", default_log_dir)
     try:
         os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, "cli.log")
+        log_file = os.path.join(log_dir, "supex-cli.log")
         logging.basicConfig(
             level=logging.DEBUG,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
