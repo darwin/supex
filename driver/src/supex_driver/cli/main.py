@@ -261,13 +261,9 @@ def info(
         if raw:
             print(json.dumps(result))
         else:
-            content = result.get("content", [{}])
-            if isinstance(content, list) and content:
-                data = json.loads(content[0].get("text", "{}"))
-            else:
-                data = result
-
-            out.table(data, title="Model Info")
+            # Remove internal fields before display
+            display_data = {k: v for k, v in result.items() if k != "success"}
+            out.table(display_data, title="Model Info")
     except Exception as e:
         handle_error(e)
 
