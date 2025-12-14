@@ -82,7 +82,7 @@ your-project/
 │   └── materials.rb       # Apply materials
 ├── models/
 │   └── project.skp
-└── .mcp.json              # Claude Code configuration
+└── .mcp.json              # MCP client configuration
 ```
 
 ### Development Cycle
@@ -155,7 +155,7 @@ The development launcher handles extension deployment automatically:
 ```
 
 This script:
-- Detects SketchUp 2026 installation
+- Launches the installed SketchUp app
 - Deploys Ruby extension sources directly (no .rbz building required)
 - Enables live reloading during development
 - Optionally opens a model given as parameter  

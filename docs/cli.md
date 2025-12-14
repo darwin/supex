@@ -20,47 +20,39 @@ The REPL provides a terminal-based interface for executing Ruby code directly in
 
 | Command | Description |
 |---------|-------------|
-| `status` | Check SketchUp connection status |
-| `reload` | Reload extension without restarting SketchUp |
+| `./supex status` | Check SketchUp connection status |
+| `./supex reload` | Reload extension without restarting SketchUp |
 
 ## Ruby Execution
 
 | Command | Description |
 |---------|-------------|
-| `eval <code>` | Execute Ruby code inline |
-| `eval-file <path>` | Execute Ruby script from file (recommended) |
+| `./supex eval <code>` | Execute Ruby code inline |
+| `./supex eval-file <path>` | Execute Ruby script from file (recommended) |
 
 ## Model Introspection
 
 | Command | Description |
 |---------|-------------|
-| `info` | Display model statistics and state |
-| `entities [type]` | List entities (all/faces/edges/groups/components) |
-| `selection` | Show currently selected entities |
-| `layers` | List all layers/tags |
-| `materials` | List all materials |
-| `camera` | Get camera position and settings |
+| `./supex info` | Display model statistics and state |
+| `./supex entities [type]` | List entities (all/faces/edges/groups/components) |
+| `./supex selection` | Show currently selected entities |
+| `./supex layers` | List all layers/tags |
+| `./supex materials` | List all materials |
+| `./supex camera` | Get camera position and settings |
 
 ## Visualization
 
 | Command | Description |
 |---------|-------------|
-| `screenshot` | Capture view to PNG file |
+| `./supex screenshot` | Capture view to PNG file |
 
 ## Model Management
 
 | Command | Description |
 |---------|-------------|
-| `open <path>` | Open .skp file |
-| `save [path]` | Save model (optionally to new path) |
-| `export <format>` | Export to skp/obj/stl/png/jpg |
-
-## Documentation
-
-| Command | Description |
-|---------|-------------|
-| `docs tree` | Show documentation hierarchy |
-| `docs show <uri>` | View specific documentation |
-| `docs search <term>` | Search documentation |
+| `./supex open <path>` | Open .skp file |
+| `./supex save [path]` | Save model (optionally to new path) |
+| `./supex export <format>` | Export to skp/obj/stl/png/jpg |
 
 For full options: `./supex --help` or `./supex <command> --help`

@@ -267,10 +267,7 @@ take_batch_screenshots(
 
 ### Common Pitfalls
 
-- **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1.mm
-- **Tiny edges** - Edges < 1mm can cause issues. Use reasonable minimums
-- **Reversed faces** - Back faces (blue) showing means normals are wrong
-- **Stray edges** - Leftover edges break face creation. Clean up with `entities.grep(Sketchup::Edge)`
+For detailed geometry troubleshooting (coplanar faces, tiny edges, reversed faces, stray edges), see `supex-docs/best_practices.md`.
 
 ## Tools Reference
 
@@ -291,7 +288,7 @@ take_batch_screenshots(
 ### Model Management
 - `open_model(path)` - Open .skp file
 - `save_model(path?)` - Save model (optional path for Save As)
-- `export_scene(format)` - Export: skp, obj, dae, stl, png, jpg
+- `export_scene(format)` - Export: skp, obj, stl, png, jpg
 
 ### Status
 - `check_sketchup_status()` - Verify connection health

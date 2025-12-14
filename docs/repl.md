@@ -56,7 +56,7 @@ Features:
 - RubyMine compatible (can be configured as external tool)
 - Code is sent to SketchUp via monkey-patched eval
 
-Note: Requires the `pry` gem to be installed (`gem install pry`).
+Note: Requires the `pry` gem. In the repository, run `bundle install` in the `runtime/` directory. Outside the repository, use `gem install pry`.
 
 ### RubyMine Integration
 
@@ -129,7 +129,7 @@ The REPL can be configured via environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SUPEX_REPL_PORT` | `4433` | Server port |
-| `SUPEX_REPL_HOST` | `127.0.0.1` | Server bind address |
+| `SUPEX_REPL_HOST` | `127.0.0.1` | REPL client default host |
 | `SUPEX_REPL_DISABLED` | (unset) | Disable REPL server (set to `1`) |
 | `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 
@@ -143,7 +143,7 @@ Supex provides two ways to execute Ruby code in SketchUp:
 |---------|-----------------|-------------------|
 | **Use case** | Interactive exploration | AI-driven automation |
 | **Interface** | Terminal prompt | MCP protocol |
-| **Binding** | TOPLEVEL_BINDING | TOPLEVEL_BINDING |
+| **Binding** | TOPLEVEL_BINDING | Fresh binding per call |
 | **Best for** | Quick tests, debugging | Scripts, batch operations |
 | **State** | Persistent session | Each call is independent |
 

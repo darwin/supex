@@ -56,7 +56,7 @@ Environment variables (all optional):
 |------|-------------|
 | `open_model(path)` | Open .skp file |
 | `save_model(path?)` | Save model |
-| `export_scene(format)` | Export: skp, obj, dae, stl, png, jpg |
+| `export_scene(format)` | Export: skp, obj, stl, png, jpg |
 
 ### Status
 
@@ -93,14 +93,6 @@ Environment variables (all optional):
 - `--port/-p` - SketchUp port (default: 9876)
 - `--raw/-r` - Output raw JSON
 
-### Documentation Browser
-
-```bash
-./supex docs tree              # Show documentation hierarchy
-./supex docs show <uri>        # View specific documentation
-./supex docs search <term>     # Search documentation
-```
-
 ## Example Usage
 
 ```ruby
@@ -118,7 +110,7 @@ group.name = 'Box'
 model.commit_operation
 ```
 
-For complete examples, see `examples/simple-table/`.
+For complete examples, see the [example-simple-table](https://github.com/darwin/supex/tree/example-simple-table) branch.
 
 ## Architecture
 

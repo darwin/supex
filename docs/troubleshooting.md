@@ -31,8 +31,7 @@ Common issues and solutions when using Supex.
 **Solutions**:
 1. Close other SketchUp instances
 2. Wait a few seconds for the port to be released
-3. Use a different port: `SUPEX_PORT=9877`
-4. Check what is using the port: `lsof -i :9876`
+3. Check what is using the port: `lsof -i :9876`
 
 ### Timeout Errors
 
@@ -114,9 +113,8 @@ Common issues and solutions when using Supex.
 Log files are stored in `~/.supex/logs/` by default. You can change this with `SUPEX_LOG_DIR`.
 
 **Driver logs**:
-- Located at `$SUPEX_LOG_DIR/supex.log`
+- Located at `$SUPEX_LOG_DIR/cli.log` (CLI) and `$SUPEX_LOG_DIR/stderr.log` (MCP server)
 - Contains connection attempts, requests, and errors
-- Enable verbose logging: `SUPEX_VERBOSE=1`
 
 **Runtime logs**:
 - Visible in SketchUp's Ruby Console

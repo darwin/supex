@@ -122,7 +122,7 @@ positions.each { |t| entities.add_instance(leg_def, t) }
 
 ## Common Pitfalls
 
-- **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1.mm
+- **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1 mm
 - **Tiny edges** - Edges < 1mm can cause issues. Use reasonable minimums
 - **Reversed faces** - Back faces (blue) showing means normals are wrong
 - **Stray edges** - Leftover edges break face creation. Clean up with `entities.grep(Sketchup::Edge)`

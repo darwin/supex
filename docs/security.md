@@ -16,10 +16,9 @@ Supex exposes Ruby code execution capabilities over TCP sockets. The primary thr
 
 By default, both Bridge and REPL servers bind only to loopback addresses (`127.0.0.1`, `localhost`, `::1`). This prevents network access from other machines.
 
-To explicitly bind to all interfaces (not recommended):
+To allow binding to non-loopback addresses (not recommended):
 
 ```bash
-export SUPEX_HOST=0.0.0.0
 export SUPEX_ALLOW_REMOTE=1
 ```
 
@@ -55,7 +54,7 @@ With authentication enabled:
 File operations (`eval_ruby_file`, `open_model`, `save_model`, `take_screenshot`) are restricted to specific directories.
 
 **Default allowed paths**:
-- `.tmp` directory within the runtime installation
+- repository `.tmp/` directory
 
 **Configure allowed paths**:
 
@@ -131,8 +130,8 @@ Even with localhost binding, consider:
 Enable verbose logging to track all operations:
 
 ```bash
-export SUPEX_VERBOSE=1
-export SUPEX_LOG_DIR=/var/log/supex
+export SUPEX_VERBOSE=1      # Runtime verbose logging
+export SUPEX_LOG_DIR=/var/log/supex  # Driver log directory
 ```
 
 Logs include:

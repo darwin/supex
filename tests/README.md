@@ -416,7 +416,7 @@ FileNotFoundError: Template file not found: tests/data/template.skp
 
 **Debugging:**
 - Stack traces show actual file:line from `.rb` files
-- Check Ruby version compatibility (Ruby 3.4 for SketchUp 2026)
+- Check Ruby version compatibility (Ruby 3.2.2 for SketchUp 2026)
 - Verify SketchUp API version matches expectations
 - Review `.tmp/sketchup_console.log` for detailed errors
 

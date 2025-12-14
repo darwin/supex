@@ -22,12 +22,13 @@ Supex implements a dual-process architecture for robust SketchUp automation:
 supex/
 ├── driver/                    # Python MCP Server + CLI
 │   ├── src/supex_driver/
-│   │   ├── cli/               # CLI interface (status, eval, docs)
+│   │   ├── cli/               # CLI interface (status, eval)
 │   │   ├── connection/        # Socket communication layer
 │   │   └── mcp/               # MCP server
 │   └── tests/                 # Unit tests
 ├── runtime/                   # Ruby SketchUp Extension
 │   └── src/supex_runtime/     # Extension modules
+├── stdlib/                    # Ruby standard library helpers
 ├── scripts/                   # Development automation
 ├── tests/                     # E2E and integration tests
 │   ├── e2e/                   # End-to-end tests
@@ -71,7 +72,7 @@ The connection module provides reliable communication with the SketchUp runtime:
 - `SketchUpProtocolError` - Invalid JSON response or protocol violation
 
 **Reliability Features**:
-- Automatic reconnection with exponential backoff (2 retries default)
+- Automatic reconnection with retries (2 retries default)
 - Configurable timeout (15s default)
 - Hello handshake for connection identification
 - Chunked response handling for large payloads
@@ -135,8 +136,8 @@ Response (Ruby to Python):
 ```
 
 **Connection Management**:
-- Automatic reconnection with exponential backoff
-- Health checking with ping/pong heartbeat
+- Automatic reconnection with retries
+- Health checking with `ping` requests
 - Graceful degradation and error recovery
 - Thread-safe singleton pattern for connection management
 
@@ -161,7 +162,7 @@ Response (Ruby to Python):
 ### Modern Toolchain
 
 **Python**: UV package management, Python 3.14+
-**Ruby**: mise isolation, Ruby 3.4.7, Bundler dependency management
+**Ruby**: mise isolation, Ruby 3.2.2, Bundler dependency management
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
 **Testing**: pytest (Python), Test::Unit (Ruby)
 

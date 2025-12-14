@@ -79,7 +79,7 @@ All camera types support `zoom_extents` boolean (default true) - when true, auto
 |------|-------------|
 | `open_model` | Open .skp file by path |
 | `save_model` | Save current model |
-| `export_scene` | Export to various formats |
+| `export_scene` | Export to skp/obj/stl/png/jpg |
 
 ## Status
 

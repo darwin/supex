@@ -151,7 +151,7 @@ SupexStdlib::Color.dark?(color, threshold)        # Test if dark
 SupexStdlib::Color.light?(color, threshold)       # Test if light
 SupexStdlib::Color.contrast_color(color)          # Get black or white for contrast
 SupexStdlib::Color.to_grayscale(color)            # Convert to grayscale [r,g,b]
-SupexStdlib::Color.to_hex(color, alpha)           # Convert to "#RRGGBB"
+SupexStdlib::Color.to_hex(color, include_alpha=false) # Convert to "#RRGGBB" (or "#RRGGBBAA" if include_alpha)
 ```
 
 ### Platform

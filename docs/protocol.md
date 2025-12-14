@@ -60,7 +60,10 @@ Handshake to establish connection and authenticate.
   "jsonrpc": "2.0",
   "method": "hello",
   "params": {
-    "agent": "supex-driver",
+    "name": "supex-driver",
+    "version": "0.2.0",
+    "agent": "claude-code",
+    "pid": 12345,
     "token": "optional-auth-token"
   },
   "id": 1
@@ -73,7 +76,11 @@ Handshake to establish connection and authenticate.
   "jsonrpc": "2.0",
   "result": {
     "success": true,
-    "message": "Supex Runtime"
+    "message": "Client identified",
+    "server": {
+      "name": "supex-runtime",
+      "version": "0.2.0"
+    }
   },
   "id": 1
 }
@@ -114,7 +121,7 @@ Execute a tool with arguments.
 
 ### ping
 
-Health check (REPL server only).
+Health check (Bridge and REPL servers).
 
 **Request**:
 ```json
@@ -172,10 +179,10 @@ The driver maintains a persistent connection and reuses it for multiple requests
 Client connects to localhost:9876
 
 Client -> Server:
-{"jsonrpc":"2.0","method":"hello","params":{"agent":"supex-driver"},"id":1}
+{"jsonrpc":"2.0","method":"hello","params":{"name":"supex-driver","version":"0.2.0","agent":"claude-code","pid":12345},"id":1}
 
 Server -> Client:
-{"jsonrpc":"2.0","result":{"success":true,"message":"Supex Runtime"},"id":1}
+{"jsonrpc":"2.0","result":{"success":true,"message":"Client identified","server":{"name":"supex-runtime","version":"0.2.0"}},"id":1}
 
 Client -> Server:
 {"jsonrpc":"2.0","method":"tools/call","params":{"name":"eval_ruby","arguments":{"code":"Sketchup.version"}},"id":2}

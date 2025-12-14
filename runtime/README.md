@@ -98,10 +98,12 @@ runtime/
 
 **Menu Options**:
 - Server Status - Show current status
-- Stop Server - Stop TCP server
-- Restart Server - Restart TCP server
+- Stop All Servers - Stop both Bridge and REPL servers
+- Restart All Servers - Restart both servers
+- Start REPL / Stop REPL - Control REPL server separately
 - Reload Extension - Hot reload code changes
 - Show Console - Open Ruby console
+- About - Show version information
 
 ### Default Configuration
 
@@ -118,10 +120,9 @@ The REPL server provides interactive Ruby development in SketchUp context.
 Use the REPL client script:
 
 ```bash
-cd runtime/src
-./repl.rb              # Simple line-by-line mode
-./repl.rb --pry        # Pry mode (RubyMine compatible)
-./repl.rb -p 4433      # Connect to specific port
+./repl              # Simple line-by-line mode (from repo root)
+./repl --pry        # Pry mode (RubyMine compatible)
+./repl -p 4433      # Connect to specific port
 ```
 
 ### RubyMine Integration
@@ -152,7 +153,7 @@ Each session creates a snippet directory in `.tmp/repl/` for debugging.
 | `SUPEX_CHECK_INTERVAL` | `0.25` | Request check interval in seconds |
 | `SUPEX_RESPONSE_DELAY` | `0` | Response delay in seconds (for debugging) |
 | `SUPEX_REPL_PORT` | `4433` | REPL server port |
-| `SUPEX_REPL_HOST` | `127.0.0.1` | REPL server host |
+| `SUPEX_REPL_HOST` | `127.0.0.1` | REPL client default host |
 | `SUPEX_REPL_DISABLED` | not set | Set to `1` to disable REPL server |
 | `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 

@@ -18,12 +18,12 @@ docs/agents/
 ├── prompt.md          # Main agent prompt (comprehensive)
 ├── workflow.md        # Extended workflow examples
 ├── best_practices.md  # Geometry pitfalls and troubleshooting
-├── api/               # SketchUp Ruby API docs (symlink)
-├── stdlib/            # Standard library helpers (symlink)
+├── api/               # SketchUp Ruby API docs (symlink to ../../docgen/generated-sketchup-api-docs/)
+├── stdlib/            # Standard library helpers (symlink to ../../stdlib/)
 └── README.md          # This file
 ```
 
-**Note on symlinks**: `api/` and `stdlib/` are symlinks that may point outside this project. When reading files from these directories, use direct paths like `supex-docs/stdlib/README.md` rather than glob searches, as glob tools typically don't follow symlinks across directory boundaries.
+**Note on symlinks**: `api/` and `stdlib/` are symlinks that may point outside this project. When reading files from these directories as an agent, use direct paths like `supex-docs/stdlib/README.md` rather than glob searches, as glob tools typically don't follow symlinks across directory boundaries.
 
 ### File Descriptions
 

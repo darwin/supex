@@ -13,10 +13,10 @@ Supex can be configured via environment variables:
 
 **Authentication**: When `SUPEX_AUTH_TOKEN` is set, clients must provide this token in the `hello` handshake to connect. Without a valid token, the server returns error code `-32001`.
 
-**Remote binding**: By default, servers only bind to loopback addresses (`127.0.0.1`, `localhost`, `::1`). To bind to other addresses (e.g., `0.0.0.0`), set `SUPEX_ALLOW_REMOTE=1`. When binding remotely without a token, a security warning is logged.
+**Remote binding**: By default, servers only bind to loopback addresses (`127.0.0.1`, `localhost`, `::1`). To allow binding to non-loopback addresses, set `SUPEX_ALLOW_REMOTE=1`. When binding remotely without a token, a security warning is logged.
 
 **Path restrictions**: File operations (`eval_ruby_file`, `open_model`, `save_model`, `take_screenshot`) are restricted to:
-- The `.tmp` directory within the runtime
+- The repository `.tmp/` directory
 - Paths specified in `SUPEX_PROJECT_ROOT`
 - Paths specified in `SUPEX_ALLOWED_ROOTS` (colon-separated)
 
@@ -26,13 +26,13 @@ To disable path restrictions (not recommended), set `SUPEX_ALLOWED_ROOTS=*`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SUPEX_HOST` | `localhost` | Server bind address |
-| `SUPEX_PORT` | `9876` | Server port |
+| `SUPEX_HOST` | `localhost` | SketchUp runtime host (driver/CLI connects to this) |
+| `SUPEX_PORT` | `9876` | SketchUp runtime port (driver/CLI connects to this) |
 | `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
 | `SUPEX_RETRIES` | `2` | Max retry attempts |
 | `SUPEX_IDLE_TIMEOUT` | `300` | Connection idle timeout in seconds (driver reconnects after this) |
-| `SUPEX_LOG_DIR` | `~/.supex/logs` | Log directory |
-| `SUPEX_VERBOSE` | (unset) | Enable verbose logging (set to `1`) |
+| `SUPEX_LOG_DIR` | `~/.supex/logs` | Driver log directory |
+| `SUPEX_VERBOSE` | (unset) | Enable runtime verbose logging (set to `1`) |
 | `SUPEX_AGENT` | (auto) | Agent identifier for logging |
 | `SUPEX_NO_AUTOSTART` | (unset) | Disable automatic server start on extension load (set to `1`) |
 | `SUPEX_CHECK_INTERVAL` | `0.25` | Request check interval in seconds |
@@ -49,7 +49,7 @@ To disable path restrictions (not recommended), set `SUPEX_ALLOWED_ROOTS=*`.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SUPEX_REPL_PORT` | `4433` | REPL server port |
-| `SUPEX_REPL_HOST` | `127.0.0.1` | REPL server bind address |
+| `SUPEX_REPL_HOST` | `127.0.0.1` | REPL client default host |
 | `SUPEX_REPL_DISABLED` | (unset) | Disable REPL server (set to `1`) |
 | `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 
