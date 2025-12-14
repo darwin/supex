@@ -1,6 +1,5 @@
 .tmp/
 /.idea/
-.mcp.json
 .gemini/
 supex-docs
 AGENTS.override.md

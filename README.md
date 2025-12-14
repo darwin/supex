@@ -88,51 +88,36 @@ This project supports **Claude Code**, **Gemini CLI**, and **Codex CLI**. Config
 
 ### Claude Code
 
-**Option A: Command Line (Recommended)**
+Configure the MCP server locally (stored in `~/.claude.json` under this project's path):
 
 ```bash
-claude mcp add supex /absolute/path/to/supex/mcp --scope project
+claude mcp add supex /absolute/path/to/supex/mcp \
+  --scope local \
+  --transport stdio \
+  -e SUPEX_WORKSPACE="$(pwd)"
 ```
 
-**Option B: Manual Configuration**
-
-Create `.mcp.json` in the project directory:
-
-```json
-{
-  "mcpServers": {
-    "supex": {
-      "type": "stdio",
-      "command": "/absolute/path/to/supex/mcp",
-      "args": [],
-      "env": {}
-    }
-  }
-}
-```
+The `SUPEX_WORKSPACE` environment variable tells Supex where your project is located. This enables relative path resolution for `eval_ruby_file` and other file operations.
 
 ### Gemini CLI
 
-Create `.gemini/settings.json` in the project directory:
+Configure the MCP server locally (stored in `~/.gemini/settings.json`):
 
-```json
-{
-  "mcpServers": {
-    "supex": {
-      "command": "/absolute/path/to/supex/mcp",
-      "args": [],
-      "env": {}
-    }
-  }
-}
+```bash
+gemini mcp add supex /absolute/path/to/supex/mcp \
+  --scope user \
+  --transport stdio \
+  -e SUPEX_WORKSPACE="$(pwd)"
 ```
 
 ### Codex CLI
 
-Add MCP server via command line:
+Configure the MCP server globally (stored in `~/.codex/`):
 
 ```bash
-codex mcp add supex -- /absolute/path/to/supex/mcp
+codex mcp add supex \
+  --env SUPEX_WORKSPACE="$(pwd)" \
+  -- /absolute/path/to/supex/mcp
 ```
 
 Generate the instructions file (Codex doesn't support `@` syntax):
@@ -184,23 +169,21 @@ Now you're ready to create your first 3D model! Let's build a simple table.
 
 ```
 example-simple-table/
-├── .mcp.json               # MCP config for Claude Code (create this)
-├── .gemini/settings.json   # MCP config for Gemini CLI (create this)
-├── AGENTS.md               # Shared AI agent instructions
-├── AGENTS.override.md      # Generated for Codex CLI (run script)
-├── CLAUDE.md               # Claude Code entry point
-├── GEMINI.md               # Gemini CLI entry point
-├── SUPEX-AGENTS.md         # Symlink to supex/examples/ (create this)
-├── README.md               # This file
-├── mise.toml               # Ruby version (3.2.2 for SketchUp 2026)
-├── Gemfile                 # Ruby dependencies
+├── AGENTS.md                    # Shared AI agent instructions
+├── AGENTS.override.md           # Generated for Codex CLI (run script)
+├── CLAUDE.md                    # Claude Code entry point
+├── GEMINI.md                    # Gemini CLI entry point
+├── SUPEX-AGENTS.md              # Symlink to supex/examples/ (create this)
+├── README.md                    # This file
+├── mise.toml                    # Ruby version (3.2.2 for SketchUp 2026)
+├── Gemfile                      # Ruby dependencies
 ├── scripts/
 │   └── generate-agents-override.sh  # Generate AGENTS.override.md
 └── src/
-    ├── helpers.rb          # Shared utilities
-    ├── create_table.rb     # Table creation functions
-    ├── add_decorations.rb  # Decoration functions
-    └── add_vase.rb         # Vase creation functions
+    ├── helpers.rb               # Shared utilities
+    ├── create_table.rb          # Table creation functions
+    ├── add_decorations.rb       # Decoration functions
+    └── add_vase.rb              # Vase creation functions
 ```
 
 ### Execute the Table Script
@@ -538,7 +521,7 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 **Symptom**: Your AI agent can't find Supex tools
 
 **Solutions:**
-1. Verify your MCP config exists (`.mcp.json` for Claude Code, `.gemini/settings.json` for Gemini CLI)
+1. Verify your MCP server is configured (`claude mcp list` for Claude Code, `.gemini/settings.json` for Gemini CLI)
 2. Check the path in config is absolute (not relative)
 3. Make sure SketchUp is running with the extension
 4. Check `.tmp/supex-mcp.log` for error messages
@@ -589,8 +572,8 @@ cd my-sketchup-project
 mkdir src
 mkdir _tmp
 
-# Copy the .mcp.json template (edit the path inside to point to your supex/mcp)
-cp /path/to/example-simple-table/.mcp.json .
+# Configure MCP server for Claude Code
+claude mcp add supex /path/to/supex/mcp --scope local --transport stdio -e SUPEX_WORKSPACE="$(pwd)"
 
 # Copy Ruby version config and helpers
 cp /path/to/example-simple-table/mise.toml .
