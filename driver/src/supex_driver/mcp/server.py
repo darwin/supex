@@ -119,17 +119,19 @@ def setup_logging() -> None:
     _logging_configured = True
 
     # Setup file logging for stderr only (stdout is used by MCP protocol)
-    log_dir = os.environ.get("SUPEX_LOG_DIR", os.path.expanduser("~/.supex/logs"))
+    workspace = os.environ.get("SUPEX_WORKSPACE")
+    default_log_dir = os.path.join(workspace, ".tmp", "logs") if workspace else os.path.expanduser("~/.supex/logs")
+    log_dir = os.environ.get("SUPEX_LOG_DIR", default_log_dir)
     try:
         os.makedirs(log_dir, exist_ok=True)
-        stderr_log_file = os.path.join(log_dir, "stderr.log")
+        mcp_log_file = os.path.join(log_dir, "supex-mcp.log")
 
         # Redirect stderr to log file while preserving original
-        stderr_logger = open(stderr_log_file, 'a', encoding='utf-8')
-        _log_files.append(stderr_logger)
+        mcp_logger = open(mcp_log_file, 'a', encoding='utf-8')
+        _log_files.append(mcp_logger)
 
         # Only tee stderr, never stdout (MCP protocol uses stdout)
-        sys.stderr = TeeStream(sys.stderr, stderr_logger)
+        sys.stderr = TeeStream(sys.stderr, mcp_logger)
     except OSError:
         # If we can't create log directory, continue without file logging
         pass
@@ -143,6 +145,7 @@ def setup_logging() -> None:
 
     logger.info(f"Supex MCP Server version {__version__} starting up")
     logger.info(f"FastMCP version: {fastmcp.__version__}")
+    logger.info(f"SUPEX_WORKSPACE: {os.environ.get('SUPEX_WORKSPACE', 'not set')}")
 
 
 # Create MCP server

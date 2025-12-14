@@ -1,31 +1,16 @@
 #!/usr/bin/env bash
 
 # MCP server wrapper for Claude Code integration
-# This script provides clean stdio for MCP communication (no logging interference)
-# Logs stderr to .tmp/supex-mcp.log for debugging
+# Logging handled by server.py to $SUPEX_WORKSPACE/logs/supex-mcp.log
 
 set -e
 
-# Change to supex project root (directory containing this script)
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$PROJECT_ROOT" || exit 1
+# Get supex project root (directory containing this script)
+SUPEX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Setup logging (stderr only - stdout must stay clean for MCP)
-LOG_DIR="$PROJECT_ROOT/.tmp"
-LOG_FILE="$LOG_DIR/supex-mcp.log"
-mkdir -p "$LOG_DIR"
+# Set SUPEX_WORKSPACE to current CWD if not already set
+# This is the user's project directory when launched from Claude Code
+export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$(pwd)}"
 
-# Log startup info
-{
-    echo "=== MCP Server Start: $(date '+%Y-%m-%d %H:%M:%S') ==="
-    echo "Working directory: $PROJECT_ROOT"
-    echo "Log file: $LOG_FILE"
-    echo "Command: uv run supex-mcp"
-    echo "=========================================="
-} >> "$LOG_FILE" 2>&1
-
-# Change to MCP driver directory
-cd driver || exit 1
-
-# Run MCP server with stderr logging (stdout clean for MCP communication)
-exec uv run supex-mcp 2>> "$LOG_FILE"
+# Run MCP server (stdout clean for MCP communication)
+exec uv run --project "$SUPEX_ROOT/driver" supex-mcp
