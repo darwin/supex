@@ -6,7 +6,15 @@
 
 set -e
 
-SUPEX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks to find real script location
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  # Handle relative symlinks
+  [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SUPEX_ROOT="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 # Fallback to ~/.supex/tmp-workspace for ad-hoc CLI usage (not pwd to avoid pollution)
 export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$HOME/.supex/tmp-workspace}"
 
@@ -17,5 +25,6 @@ STDOUT_LOG="$LOG_DIR/supex-cli-stdout.log"
 STDERR_LOG="$LOG_DIR/supex-cli-stderr.log"
 
 # Run supex CLI with logging
-uv run --project "$SUPEX_ROOT/driver" supex "$@" 2>>"$STDERR_LOG" | \
+# Use process substitution to tee stderr (show in terminal AND log to file)
+uv run --project "$SUPEX_ROOT/driver" supex "$@" 2> >(tee -a "$STDERR_LOG" >&2) | \
   tee -a "$STDOUT_LOG"
