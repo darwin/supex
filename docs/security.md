@@ -53,18 +53,17 @@ With authentication enabled:
 
 File operations (`eval_ruby_file`, `open_model`, `save_model`, `take_screenshot`) are restricted to specific directories.
 
-**Default allowed paths**:
-- repository `.tmp/` directory
-
 **Configure allowed paths**:
 
 ```bash
-# Set project root (recommended for most use cases)
-export SUPEX_PROJECT_ROOT=/path/to/your/project
+# Set workspace in MCP client env config (recommended)
+# SUPEX_WORKSPACE=/path/to/your/project
 
 # Add additional allowed paths (colon-separated)
 export SUPEX_ALLOWED_ROOTS=/path/one:/path/two
 ```
+
+Note: `SUPEX_WORKSPACE` is set in your MCP client's environment configuration and passed to the runtime via the hello handshake. Default screenshot paths use `$SUPEX_WORKSPACE/.tmp/`.
 
 ### Path Validation
 
@@ -143,11 +142,11 @@ Logs include:
 
 For local development (default):
 - [ ] Using localhost binding (default)
-- [ ] Path restrictions configured via `SUPEX_PROJECT_ROOT`
+- [ ] `SUPEX_WORKSPACE` configured in MCP client env
 
 For shared environments:
 - [ ] `SUPEX_AUTH_TOKEN` set with a strong random value
-- [ ] `SUPEX_PROJECT_ROOT` and `SUPEX_ALLOWED_ROOTS` configured
+- [ ] `SUPEX_WORKSPACE` and `SUPEX_ALLOWED_ROOTS` configured
 - [ ] Firewall rules in place
 - [ ] Logging enabled
 

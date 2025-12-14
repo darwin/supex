@@ -7,41 +7,23 @@ class TestPathPolicy < Minitest::Test
   def setup
     # Store original constants
     @original_allowed_roots = SupexRuntime::PathPolicy::ALLOWED_ROOTS.dup
-    @original_project_root = SupexRuntime::PathPolicy::PROJECT_ROOT
   end
 
   def teardown
     # Restore original constants
     restore_constant(:ALLOWED_ROOTS, @original_allowed_roots)
-    restore_constant(:PROJECT_ROOT, @original_project_root)
   end
 
   # ==========================================================================
   # Basic validation tests
   # ==========================================================================
 
-  def test_path_in_default_tmp_is_allowed
-    tmp_path = File.join(SupexRuntime::PathPolicy::DEFAULT_TMP, 'test.rb')
-
-    # Should not raise
-    SupexRuntime::PathPolicy.validate!(tmp_path)
-  end
-
   def test_path_outside_allowed_roots_raises
     set_constant(:ALLOWED_ROOTS, [])
-    set_constant(:PROJECT_ROOT, nil)
 
     assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
       SupexRuntime::PathPolicy.validate!('/etc/passwd')
     end
-  end
-
-  def test_path_in_project_root_is_allowed
-    project_root = '/tmp/test_project'
-    set_constant(:PROJECT_ROOT, project_root)
-
-    # Should not raise
-    SupexRuntime::PathPolicy.validate!(File.join(project_root, 'script.rb'))
   end
 
   def test_path_in_allowed_roots_is_allowed
@@ -51,13 +33,32 @@ class TestPathPolicy < Minitest::Test
     SupexRuntime::PathPolicy.validate!('/tmp/allowed/test.rb')
   end
 
+  def test_path_in_workspace_is_allowed
+    set_constant(:ALLOWED_ROOTS, [])
+    workspace = '/tmp/my_workspace'
+
+    # Should not raise when workspace is provided
+    SupexRuntime::PathPolicy.validate!(
+      File.join(workspace, 'script.rb'),
+      workspace: workspace
+    )
+  end
+
+  def test_path_outside_workspace_raises
+    set_constant(:ALLOWED_ROOTS, [])
+    workspace = '/tmp/my_workspace'
+
+    assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
+      SupexRuntime::PathPolicy.validate!('/etc/passwd', workspace: workspace)
+    end
+  end
+
   # ==========================================================================
   # Traversal attack tests
   # ==========================================================================
 
   def test_traversal_attack_is_blocked
     set_constant(:ALLOWED_ROOTS, ['/tmp/allowed'])
-    set_constant(:PROJECT_ROOT, nil)
 
     # Attempt traversal
     assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
@@ -66,10 +67,10 @@ class TestPathPolicy < Minitest::Test
   end
 
   def test_traversal_within_allowed_root_works
-    tmp_path = SupexRuntime::PathPolicy::DEFAULT_TMP
-    path_with_dots = File.join(tmp_path, 'subdir', '..', 'test.rb')
+    set_constant(:ALLOWED_ROOTS, ['/tmp/allowed'])
+    path_with_dots = '/tmp/allowed/subdir/../test.rb'
 
-    # Should not raise - resolves to within DEFAULT_TMP
+    # Should not raise - resolves to within allowed root
     SupexRuntime::PathPolicy.validate!(path_with_dots)
   end
 
@@ -79,7 +80,6 @@ class TestPathPolicy < Minitest::Test
 
   def test_allow_all_mode
     set_constant(:ALLOWED_ROOTS, ['*'])
-    set_constant(:PROJECT_ROOT, nil)
 
     # Should allow any path
     SupexRuntime::PathPolicy.validate!('/etc/passwd')
@@ -101,7 +101,6 @@ class TestPathPolicy < Minitest::Test
 
   def test_error_message_includes_operation
     set_constant(:ALLOWED_ROOTS, [])
-    set_constant(:PROJECT_ROOT, nil)
 
     error = assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
       SupexRuntime::PathPolicy.validate!('/etc/passwd', operation: 'eval_ruby_file')
@@ -115,19 +114,65 @@ class TestPathPolicy < Minitest::Test
   # allowed_roots method tests
   # ==========================================================================
 
-  def test_allowed_roots_includes_default_tmp
+  def test_allowed_roots_returns_configured_roots
+    set_constant(:ALLOWED_ROOTS, ['/tmp/root1', '/tmp/root2'])
+
     roots = SupexRuntime::PathPolicy.allowed_roots
 
-    assert_includes roots, File.expand_path(SupexRuntime::PathPolicy::DEFAULT_TMP)
+    assert_includes roots, '/tmp/root1'
+    assert_includes roots, '/tmp/root2'
   end
 
-  def test_allowed_roots_includes_project_root
-    project_root = '/tmp/my_project'
-    set_constant(:PROJECT_ROOT, project_root)
+  def test_allowed_roots_includes_workspace_when_provided
+    set_constant(:ALLOWED_ROOTS, ['/tmp/allowed'])
+    workspace = '/tmp/my_workspace'
 
-    roots = SupexRuntime::PathPolicy.allowed_roots
+    roots = SupexRuntime::PathPolicy.allowed_roots(workspace: workspace)
 
-    assert_includes roots, project_root
+    assert_includes roots, '/tmp/allowed'
+    assert_includes roots, workspace
+  end
+
+  def test_allowed_roots_ignores_empty_workspace
+    set_constant(:ALLOWED_ROOTS, ['/tmp/allowed'])
+
+    roots = SupexRuntime::PathPolicy.allowed_roots(workspace: '')
+
+    assert_includes roots, '/tmp/allowed'
+    assert_equal 1, roots.length
+  end
+
+  # ==========================================================================
+  # default_tmp_dir tests
+  # ==========================================================================
+
+  def test_default_tmp_dir_returns_workspace_tmp
+    workspace = '/tmp/my_project'
+
+    result = SupexRuntime::PathPolicy.default_tmp_dir(workspace)
+
+    assert_equal '/tmp/my_project/.tmp', result
+  end
+
+  def test_default_tmp_dir_raises_without_workspace
+    assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
+      SupexRuntime::PathPolicy.default_tmp_dir(nil)
+    end
+  end
+
+  def test_default_tmp_dir_raises_with_empty_workspace
+    assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
+      SupexRuntime::PathPolicy.default_tmp_dir('')
+    end
+  end
+
+  def test_default_tmp_dir_expands_relative_path
+    workspace = 'relative/path'
+
+    result = SupexRuntime::PathPolicy.default_tmp_dir(workspace)
+
+    assert result.start_with?('/')
+    assert result.end_with?('/.tmp')
   end
 
   private

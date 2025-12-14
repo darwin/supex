@@ -67,6 +67,7 @@ class SketchupConnection:
     timeout: float = DEFAULT_TIMEOUT
     agent: str = "unknown"
     token: str | None = AUTH_TOKEN
+    workspace: str | None = field(default_factory=lambda: os.environ.get("SUPEX_WORKSPACE"))
     sock: socket.socket | None = field(default=None, repr=False)
     _identified: bool = field(default=False, repr=False)
     _last_activity: float = field(default=0.0, repr=False)
@@ -120,6 +121,10 @@ class SketchupConnection:
         # Add token if configured
         if self.token:
             hello_params["token"] = self.token
+
+        # Add workspace if configured
+        if self.workspace:
+            hello_params["workspace"] = self.workspace
 
         hello_request = {
             "jsonrpc": "2.0",

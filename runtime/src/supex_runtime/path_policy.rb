@@ -2,14 +2,11 @@
 
 module SupexRuntime
   # Path validation policy for file operations
-  # Restricts file access to configured roots to prevent traversal attacks
+  # This is a guardrail to prevent accidental writes to wrong directories,
+  # NOT a security boundary (arbitrary Ruby execution bypasses it).
   module PathPolicy
-    # Environment configuration
+    # Environment configuration for additional allowed paths
     ALLOWED_ROOTS = (ENV['SUPEX_ALLOWED_ROOTS'] || '').split(':').reject(&:empty?)
-    PROJECT_ROOT = ENV.fetch('SUPEX_PROJECT_ROOT', nil)
-
-    # Default allowed: .tmp directory relative to runtime
-    DEFAULT_TMP = File.expand_path('../../../.tmp', __dir__)
 
     # Exception raised when path access is denied
     class PathAccessDenied < StandardError; end
@@ -18,31 +15,44 @@ module SupexRuntime
       # Validate path is within allowed roots
       # @param path [String] path to validate
       # @param operation [String] operation name for error messages
+      # @param workspace [String, nil] optional workspace to include in allowed roots
       # @raise [PathAccessDenied] if path is not allowed
-      def validate!(path, operation: 'access')
+      def validate!(path, operation: 'access', workspace: nil)
         return if allow_all?
         return unless path
 
         resolved = resolve_path(path)
-        return if allowed?(resolved)
+        return if allowed?(resolved, workspace: workspace)
 
         raise PathAccessDenied, "Path access denied for #{operation}: #{path}"
       end
 
       # Check if path is within allowed roots
       # @param resolved_path [String] resolved path
+      # @param workspace [String, nil] optional workspace to include
       # @return [Boolean]
-      def allowed?(resolved_path)
-        allowed_roots.any? { |root| path_within?(resolved_path, root) }
+      def allowed?(resolved_path, workspace: nil)
+        roots = allowed_roots(workspace: workspace)
+        roots.any? { |root| path_within?(resolved_path, root) }
       end
 
-      # Get list of allowed roots for debugging
+      # Get list of allowed roots
+      # @param workspace [String, nil] optional workspace to include
       # @return [Array<String>]
-      def allowed_roots
+      def allowed_roots(workspace: nil)
         roots = ALLOWED_ROOTS.dup
-        roots << PROJECT_ROOT if PROJECT_ROOT && !PROJECT_ROOT.empty?
-        roots << DEFAULT_TMP
+        roots << workspace if workspace && !workspace.empty?
         roots.map { |r| File.expand_path(r) }.uniq
+      end
+
+      # Get default .tmp directory for a workspace
+      # @param workspace [String] workspace path
+      # @return [String] path to .tmp directory
+      # @raise [PathAccessDenied] if workspace is not set
+      def default_tmp_dir(workspace)
+        raise PathAccessDenied, 'workspace is required for default paths' unless workspace && !workspace.empty?
+
+        File.join(File.expand_path(workspace), '.tmp')
       end
 
       private

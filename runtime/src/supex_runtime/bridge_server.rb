@@ -24,7 +24,7 @@ module SupexRuntime
     ALLOW_REMOTE = ENV['SUPEX_ALLOW_REMOTE'] == '1'
 
     # Connection context for scoped client state (thread-safe pattern)
-    ConnectionContext = Struct.new(:client_info, keyword_init: true) do
+    ConnectionContext = Struct.new(:client_info, :workspace, keyword_init: true) do
       def identified?
         !client_info.nil?
       end
@@ -379,7 +379,7 @@ module SupexRuntime
       # Handle standard JSON-RPC methods
       response = case request['method']
                  when 'tools/call'
-                   handle_tool_call(request)
+                   handle_tool_call(request, context)
                  when 'ping'
                    handle_ping(request)
                  when 'resources/list'
@@ -426,15 +426,17 @@ module SupexRuntime
         )
       end
 
-      # Store client info in connection context
+      # Store client info and workspace in connection context
       context.client_info = {
         name: name,
         version: version,
         agent: agent,
         pid: pid
       }
+      context.workspace = params['workspace']
 
-      log "Client connected: #{name}/#{version} [PID:#{pid}] (agent: #{agent})"
+      workspace_info = context.workspace ? " workspace: #{context.workspace}" : ''
+      log "Client connected: #{name}/#{version} [PID:#{pid}] (agent: #{agent}#{workspace_info})"
 
       Utils.create_success_response(request, {
                                       success: true,
@@ -499,15 +501,16 @@ module SupexRuntime
 
     # Handle tool call request
     # @param request [Hash] JSON-RPC request
+    # @param context [ConnectionContext] connection-scoped state
     # @return [Hash] JSON-RPC response
-    def handle_tool_call(request)
+    def handle_tool_call(request, context)
       log_verbose "Handling tool call: #{request.inspect}"
       tool_name = request['params']['name']
       args = request['params']['arguments']
       log "Calling #{tool_name}(#{format_args(args)})"
 
       begin
-        result = execute_tool(tool_name, args)
+        result = execute_tool(tool_name, args, context.workspace)
         log "Tool call result: #{result.inspect}"
         Utils.create_success_response(request, result)
       rescue StandardError => e
@@ -520,28 +523,31 @@ module SupexRuntime
     # Execute tool by name
     # @param tool_name [String] name of tool to execute
     # @param args [Hash] tool arguments
+    # @param workspace [String, nil] workspace path for file operations
     # @return [Hash] tool execution result
-    def execute_tool(tool_name, args)
-      execute_core_tool(tool_name, args) || execute_introspection_tool(tool_name, args) ||
+    def execute_tool(tool_name, args, workspace)
+      execute_core_tool(tool_name, args, workspace) || execute_introspection_tool(tool_name, args, workspace) ||
         (raise "Unknown tool: #{tool_name}")
     end
 
     # Execute core tools (eval, export, etc.)
+    # @param workspace [String, nil] workspace path for file operations
     # @return [Hash, nil] result or nil if not a core tool
-    def execute_core_tool(tool_name, args)
+    def execute_core_tool(tool_name, args, workspace)
       case tool_name
       when 'ping' then ping
       when 'export_scene' then Export.export_scene(args)
       when 'eval_ruby' then eval_ruby(args)
       when 'reload_extension' then reload_extension
       when 'console_capture_status' then console_capture_status
-      when 'eval_ruby_file' then eval_ruby_file(args)
+      when 'eval_ruby_file' then eval_ruby_file(args, workspace: workspace)
       end
     end
 
     # Execute introspection and file tools
+    # @param workspace [String, nil] workspace path for file operations
     # @return [Hash, nil] result or nil if not an introspection tool
-    def execute_introspection_tool(tool_name, args)
+    def execute_introspection_tool(tool_name, args, workspace)
       case tool_name
       when 'get_model_info' then model_info
       when 'list_entities' then list_entities(args)
@@ -549,10 +555,10 @@ module SupexRuntime
       when 'get_layers' then layers_info
       when 'get_materials' then materials_info
       when 'get_camera_info' then camera_info
-      when 'take_screenshot' then take_screenshot(args)
-      when 'take_batch_screenshots' then batch_screenshot(args)
-      when 'open_model' then open_model(args)
-      when 'save_model' then save_model(args)
+      when 'take_screenshot' then take_screenshot(args, workspace: workspace)
+      when 'take_batch_screenshots' then batch_screenshot(args, workspace: workspace)
+      when 'open_model' then open_model(args, workspace: workspace)
+      when 'save_model' then save_model(args, workspace: workspace)
       end
     end
 
@@ -653,10 +659,11 @@ module SupexRuntime
 
     # Evaluate Ruby code from a file in SketchUp context
     # @param params [Hash] parameters containing file path
+    # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] evaluation result with file context
-    def eval_ruby_file(params)
+    def eval_ruby_file(params, workspace: nil)
       file_path = params['file_path']
-      PathPolicy.validate!(file_path, operation: 'eval_ruby_file')
+      PathPolicy.validate!(file_path, operation: 'eval_ruby_file', workspace: workspace)
       raise "Ruby file not found: #{file_path}" unless File.exist?(file_path)
 
       log "Evaluating Ruby file: #{File.basename(file_path)}"

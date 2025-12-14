@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require_relative 'path_policy'
 
 module SupexRuntime
   # Batch screenshot functionality with zero-flicker camera control
@@ -38,8 +39,9 @@ module SupexRuntime
     class << self
       # Execute batch screenshot operation
       # @param params [Hash] batch parameters
+      # @param workspace [String, nil] workspace path for default output directory
       # @return [Hash] results with file paths and any errors
-      def execute(params)
+      def execute(params, workspace: nil)
         model = Sketchup.active_model
         return { success: false, error: 'No active model' } unless model
 
@@ -47,7 +49,7 @@ module SupexRuntime
         return { success: false, error: 'No shots specified' } if shots.empty?
 
         view = model.active_view
-        output_dir = prepare_output_dir(params['output_dir'])
+        output_dir = prepare_output_dir(params['output_dir'], workspace)
         base_name = params['base_name'] || 'screenshot'
         defaults = extract_defaults(params)
 
@@ -385,13 +387,14 @@ module SupexRuntime
 
       # Prepare output directory
       # @param output_dir [String, nil] requested output directory
+      # @param workspace [String, nil] workspace path for default directory
       # @return [String] resolved output directory path
-      def prepare_output_dir(output_dir)
+      def prepare_output_dir(output_dir, workspace)
         dir = if output_dir
                 File.expand_path(output_dir)
               else
                 timestamp = Time.now.strftime('%Y%m%d-%H%M%S')
-                File.join(File.dirname(__FILE__), '..', '..', '..', '.tmp', 'batch_screenshots', timestamp)
+                File.join(PathPolicy.default_tmp_dir(workspace), 'batch_screenshots', timestamp)
               end
         FileUtils.mkdir_p(dir)
         dir

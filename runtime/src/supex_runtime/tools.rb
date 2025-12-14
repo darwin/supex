@@ -94,15 +94,16 @@ module SupexRuntime
 
     # Take a screenshot of the current view and save to disk
     # @param params [Hash] parameters with width, height, transparent, output_path
+    # @param workspace [String, nil] workspace path for default output directory
     # @return [Hash] screenshot result with file path (not image data)
-    def take_screenshot(params)
+    def take_screenshot(params, workspace: nil)
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
 
       # Validate output_path if provided
-      PathPolicy.validate!(params['output_path'], operation: 'take_screenshot') if params['output_path']
+      PathPolicy.validate!(params['output_path'], operation: 'take_screenshot', workspace: workspace) if params['output_path']
 
-      screenshot_path = determine_screenshot_path(params['output_path'])
+      screenshot_path = determine_screenshot_path(params['output_path'], workspace)
       write_screenshot(model, screenshot_path, params)
     rescue StandardError => e
       log "Error taking screenshot: #{e.message}"
@@ -113,9 +114,10 @@ module SupexRuntime
     # Take batch screenshots with different camera positions
     # Designed for zero visual flicker - renders happen offscreen
     # @param params [Hash] batch screenshot parameters
+    # @param workspace [String, nil] workspace path for default output directory
     # @return [Hash] batch results with file paths
-    def batch_screenshot(params)
-      BatchScreenshot.execute(params)
+    def batch_screenshot(params, workspace: nil)
+      BatchScreenshot.execute(params, workspace: workspace)
     rescue StandardError => e
       log "Error taking batch screenshots: #{e.message}"
       log e.backtrace.join("\n")
@@ -124,12 +126,13 @@ module SupexRuntime
 
     # Open a SketchUp model file
     # @param params [Hash] parameters with file path
+    # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] open operation result
-    def open_model(params)
+    def open_model(params, workspace: nil)
       file_path = params['path']
       return { success: false, error: 'No file path provided' } unless file_path
 
-      PathPolicy.validate!(file_path, operation: 'open_model')
+      PathPolicy.validate!(file_path, operation: 'open_model', workspace: workspace)
       return { success: false, error: "File not found: #{file_path}" } unless File.exist?(file_path)
 
       Sketchup.open_file(file_path)
@@ -143,13 +146,14 @@ module SupexRuntime
 
     # Save the current model
     # @param params [Hash] parameters with optional save path
+    # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] save operation result
-    def save_model(params)
+    def save_model(params, workspace: nil)
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
 
       # Validate path if provided
-      PathPolicy.validate!(params['path'], operation: 'save_model') if params['path']
+      PathPolicy.validate!(params['path'], operation: 'save_model', workspace: workspace) if params['path']
 
       saved_path = perform_save(model, params['path'])
       { success: true, file_path: saved_path, file_name: File.basename(saved_path),
@@ -260,13 +264,13 @@ module SupexRuntime
       }
     end
 
-    def determine_screenshot_path(output_path)
+    def determine_screenshot_path(output_path, workspace)
       if output_path
         path = File.expand_path(output_path)
         FileUtils.mkdir_p(File.dirname(path))
         path
       else
-        screenshots_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '.tmp', 'screenshots')
+        screenshots_dir = File.join(PathPolicy.default_tmp_dir(workspace), 'screenshots')
         FileUtils.mkdir_p(screenshots_dir)
         timestamp = Time.now.strftime('%Y%m%d-%H%M%S')
         File.join(screenshots_dir, "screenshot-#{timestamp}.png")

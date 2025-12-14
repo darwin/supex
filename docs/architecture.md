@@ -235,7 +235,7 @@ cd driver && uv run pytest tests/
 
 **Code Execution**:
 - Ruby code execution confined to SketchUp context
-- File path restrictions via `SUPEX_PROJECT_ROOT` and `SUPEX_ALLOWED_ROOTS`
+- File path restrictions via `SUPEX_WORKSPACE` and `SUPEX_ALLOWED_ROOTS`
 - Eval binding isolation between calls
 
 See [Security](security.md) for detailed documentation.
