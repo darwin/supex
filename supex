@@ -24,6 +24,11 @@ mkdir -p "$LOG_DIR"
 STDOUT_LOG="$LOG_DIR/supex-cli-stdout.log"
 STDERR_LOG="$LOG_DIR/supex-cli-stderr.log"
 
+# Preserve TTY detection for rich formatting (tee breaks isatty())
+if [ -t 1 ]; then
+  export FORCE_COLOR=1
+fi
+
 # Run supex CLI with logging
 # Use process substitution to tee stderr (show in terminal AND log to file)
 uv run --project "$SUPEX_ROOT/driver" supex "$@" 2> >(tee -a "$STDERR_LOG" >&2) | \
