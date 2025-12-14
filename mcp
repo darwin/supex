@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 
 # MCP server wrapper for Claude Code integration
-# Logging handled by server.py to $SUPEX_WORKSPACE/logs/supex-mcp.log
+# Logs protocol (stdin/stdout) to supex-mcp-protocol.jsonl
+# Logs stderr to supex-mcp-stderr.log
 
 set -e
 
-# Get supex project root (directory containing this script)
 SUPEX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Set SUPEX_WORKSPACE to current CWD if not already set
-# This is the user's project directory when launched from Claude Code
 export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$(pwd)}"
 
-# Run MCP server (stdout clean for MCP communication)
-exec uv run --project "$SUPEX_ROOT/driver" supex-mcp
+LOG_DIR="${SUPEX_LOG_DIR:-$SUPEX_WORKSPACE/.tmp/logs}"
+mkdir -p "$LOG_DIR"
+
+PROTOCOL_LOG="$LOG_DIR/supex-mcp-protocol.jsonl"
+STDERR_LOG="$LOG_DIR/supex-mcp-stderr.log"
+
+# stdin → tee → command → tee → stdout
+# Both tees append to same protocol log (preserves request/response order)
+tee -a "$PROTOCOL_LOG" | \
+  uv run --project "$SUPEX_ROOT/driver" supex-mcp 2>>"$STDERR_LOG" | \
+  tee -a "$PROTOCOL_LOG"

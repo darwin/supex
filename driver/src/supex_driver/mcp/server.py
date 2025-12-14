@@ -75,39 +75,16 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
     # Default
     return "mcp"
 
-# Flag to track if logging has been configured
-_logging_configured = False
+# Flag to track if startup info has been logged
+_startup_logged = False
 
 
-def setup_logging() -> None:
-    """Configure logging for the MCP server.
-
-    Adds a file handler to log to $SUPEX_WORKSPACE/.tmp/logs/supex-mcp.log.
-    Only runs once, even if called multiple times.
-    """
-    global _logging_configured
-    if _logging_configured:
+def log_startup_info() -> None:
+    """Log server startup information. Only runs once."""
+    global _startup_logged
+    if _startup_logged:
         return
-    _logging_configured = True
-
-    # Add file handler for logging
-    workspace = os.environ.get("SUPEX_WORKSPACE")
-    default_log_dir = os.path.join(workspace, ".tmp", "logs") if workspace else os.path.expanduser("~/.supex/logs")
-    log_dir = os.environ.get("SUPEX_LOG_DIR", default_log_dir)
-    try:
-        os.makedirs(log_dir, exist_ok=True)
-        mcp_log_file = os.path.join(log_dir, "supex-mcp.log")
-
-        # Add file handler to root logger
-        file_handler = logging.FileHandler(mcp_log_file, encoding='utf-8')
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        ))
-        logging.getLogger().addHandler(file_handler)
-    except OSError:
-        # If we can't create log directory, continue without file logging
-        pass
+    _startup_logged = True
 
     logger.info(f"Supex MCP Server version {__version__} starting up")
     logger.info(f"FastMCP version: {fastmcp.__version__}")
@@ -490,7 +467,7 @@ def save_model(ctx: McpContext, path: str | None = None) -> str:
 
 def main() -> None:
     """Main entry point for the server"""
-    setup_logging()
+    log_startup_info()
     mcp.run()
 
 
