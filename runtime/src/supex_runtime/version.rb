@@ -2,7 +2,7 @@
 
 module SupexRuntime
   # Version information for the Supex SketchUp extension
-  VERSION = '0.1.0'
+  VERSION = '0.2.0'
 
   # SketchUp API compatibility
   REQUIRED_SKETCHUP_VERSION = '2026'
