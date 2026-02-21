@@ -1,9 +1,10 @@
 use crate::adt_cache::AdtCache;
-use crate::obj_export::{compute_mesh_bbox, mesh_to_obj};
+use crate::dae_export::{brep_to_dae, mesh_to_dae};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use vcad_eval::{evaluate_document, EvalOptions};
 use vcad_ir::Document;
+use vcad_kernel_tessellate::TessellationParams;
 use vcad_loon::{eval_vcad, eval_vcad_file, eval_vcad_to_value};
 
 struct TempRetention {
@@ -87,8 +88,8 @@ impl Evaluator {
             let path = entry.path();
             let ext = path.extension().and_then(|s| s.to_str());
 
-            // Only manage .obj files as primary artifacts; manifests follow their obj
-            if ext != Some("obj") {
+            // Only manage mesh artifacts; manifests follow their mesh file
+            if ext != Some("obj") && ext != Some("dae") {
                 continue;
             }
 
@@ -134,7 +135,8 @@ impl Evaluator {
 
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) != Some("obj") {
+            let ext = path.extension().and_then(|s| s.to_str());
+            if ext != Some("obj") && ext != Some("dae") {
                 continue;
             }
             let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
@@ -154,7 +156,7 @@ impl Evaluator {
         max_seq
     }
 
-    fn next_obj_path(&mut self, name: &str) -> Result<PathBuf, String> {
+    fn next_artifact_path(&mut self, name: &str, ext: &str) -> Result<PathBuf, String> {
         let safe_name = Self::sanitize_obj_name(name);
 
         loop {
@@ -166,7 +168,7 @@ impl Evaluator {
             self.retention.seq = next_seq;
             let candidate = self
                 .temp_dir
-                .join(format!("{}-{:020}.obj", safe_name, self.retention.seq));
+                .join(format!("{}-{:020}.{}", safe_name, self.retention.seq, ext));
             if !candidate.exists() {
                 return Ok(candidate);
             }
@@ -269,8 +271,14 @@ impl Evaluator {
             (0.0, 0.0, bb, false)
         };
 
-        let obj_content = mesh_to_obj(&part.mesh);
-        let obj_path = self.next_obj_path(name)?;
+        let (obj_content, ext) = if let Some(brep) = part.solid.as_ref().and_then(|s| s.brep()) {
+            let params = TessellationParams::from_segments(32);
+            let dae = brep_to_dae(brep, &params);
+            (dae.into_bytes(), "dae")
+        } else {
+            (mesh_to_dae(&part.mesh).into_bytes(), "dae")
+        };
+        let obj_path = self.next_artifact_path(name, ext)?;
         let manifest_path = Self::manifest_path_for_obj(&obj_path, &self.temp_dir)?;
         let manifest = ArtifactManifest {
             status: "applied".to_string(),
@@ -315,7 +323,7 @@ impl Evaluator {
     fn write_artifact_pair_atomic(
         allowed_root: &Path,
         obj_path: &Path,
-        obj_content: &str,
+        obj_content: &[u8],
         manifest_path: &Path,
         manifest: &ArtifactManifest,
     ) -> Result<(), String> {
@@ -334,7 +342,8 @@ impl Evaluator {
             }
         }
 
-        let obj_tmp = obj_path.with_extension("obj.tmp");
+        let ext = obj_path.extension().and_then(|s| s.to_str()).unwrap_or("dae");
+        let obj_tmp = obj_path.with_extension(format!("{ext}.tmp"));
         let manifest_tmp = manifest_path.with_extension("json.tmp");
         let pair_marker = obj_path.with_extension("pair.pending");
 
@@ -379,7 +388,8 @@ impl Evaluator {
                         // Clean up tmp files referenced in the marker
                         if let Some(obj_path) = marker.get("obj_path").and_then(|v| v.as_str()) {
                             let obj = PathBuf::from(obj_path);
-                            std::fs::remove_file(obj.with_extension("obj.tmp")).ok();
+                            let tmp_ext = obj.extension().and_then(|s| s.to_str()).unwrap_or("dae");
+                            std::fs::remove_file(obj.with_extension(format!("{tmp_ext}.tmp"))).ok();
                             // Remove half-published files too
                             std::fs::remove_file(&obj).ok();
                         }
@@ -429,6 +439,25 @@ impl Evaluator {
     fn now_rfc3339() -> String {
         chrono::Utc::now().to_rfc3339()
     }
+}
+
+/// Compute bounding box from mesh positions (fallback when Solid not available).
+fn compute_mesh_bbox(mesh: &vcad_eval::EvaluatedMesh) -> BBox {
+    let mut min = [f64::MAX; 3];
+    let mut max = [f64::MIN; 3];
+    let positions = &mesh.positions;
+    for i in (0..positions.len()).step_by(3) {
+        for j in 0..3 {
+            let v = positions[i + j] as f64;
+            min[j] = min[j].min(v);
+            max[j] = max[j].max(v);
+        }
+    }
+    if positions.is_empty() {
+        min = [0.0; 3];
+        max = [0.0; 3];
+    }
+    BBox { min, max }
 }
 
 /// Enforce single-part contract.
@@ -569,7 +598,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
         evaluator.retention.seq = u64::MAX;
-        let result = evaluator.next_obj_path("test");
+        let result = evaluator.next_artifact_path("test", "dae");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("TEMP_SEQ_EXHAUSTED"));
     }
@@ -650,8 +679,8 @@ mod tests {
         .unwrap();
 
         let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
-        // After restart, seq should be >= 5, so next_obj_path should produce seq > 5
-        let path = evaluator.next_obj_path("eval").unwrap();
+        // After restart, seq should be >= 5, so next_artifact_path should produce seq > 5
+        let path = evaluator.next_artifact_path("eval", "dae").unwrap();
         assert!(
             path.to_string_lossy().contains("00000000000000000006"),
             "Expected seq 6, got: {}",
@@ -660,4 +689,5 @@ mod tests {
         // Existing file should still be there
         assert!(temp.path().join("eval-00000000000000000005.obj").exists());
     }
+
 }

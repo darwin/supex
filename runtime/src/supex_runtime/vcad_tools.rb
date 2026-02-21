@@ -4,7 +4,7 @@ require_relative 'path_policy'
 
 module SupexRuntime
   # Tool implementations for vcad node management in SketchUp.
-  # Handles OBJ mesh import, vcad attribute storage, and instance lifecycle.
+  # Handles mesh import, vcad attribute storage, and instance lifecycle.
   module VcadTools
     extend self
 
@@ -94,7 +94,6 @@ module SupexRuntime
         unless new_defn.is_a?(Sketchup::ComponentDefinition)
           raise "IMPORT_DEFINITION_NOT_FOUND: #{obj_path}"
         end
-
         # Keep the new definition hidden from UI naming collisions until swap is complete.
         new_defn.name = "#{old_name}__updating"
         new_defn.set_attribute(VCAD_DICT, 'node_id', node_id)

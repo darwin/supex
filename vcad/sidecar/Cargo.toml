@@ -10,6 +10,11 @@ vcad-loon = { path = "../../../vcad/crates/vcad-loon" }
 vcad-eval = { path = "../../../vcad/crates/vcad-eval" }
 vcad-kernel = { path = "../../../vcad/crates/vcad-kernel" }
 vcad-ir = { path = "../../../vcad/crates/vcad-ir" }
+vcad-kernel-primitives = { path = "../../../vcad/crates/vcad-kernel-primitives" }
+vcad-kernel-topo = { path = "../../../vcad/crates/vcad-kernel-topo" }
+vcad-kernel-geom = { path = "../../../vcad/crates/vcad-kernel-geom" }
+vcad-kernel-math = { path = "../../../vcad/crates/vcad-kernel-math" }
+vcad-kernel-tessellate = { path = "../../../vcad/crates/vcad-kernel-tessellate" }
 
 # JSON-RPC + serialization
 serde = { version = "1", features = ["derive"] }
