@@ -10,16 +10,16 @@ module SketchupMock
       @definitions = []
     end
 
-    def each(&block)
-      @definitions.each(&block)
+    def each(&)
+      @definitions.each(&)
     end
 
-    def select(&block)
-      @definitions.select(&block)
+    def select(&)
+      @definitions.select(&)
     end
 
-    def find(&block)
-      @definitions.find(&block)
+    def find(&)
+      @definitions.find(&)
     end
 
     def to_a

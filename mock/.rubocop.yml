@@ -1,0 +1,74 @@
+# RuboCop configuration for SketchUp API mock
+
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/Documentation:
+  Enabled: false
+
+Metrics:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 120
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  SupportedStyles:
+    - single_quotes
+    - double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+# Mock API needs short parameter names to match SketchUp API (x, y, z, r, g, b)
+Naming/MethodParameterName:
+  MinNameLength: 1
+
+Naming/PredicateMethod:
+  Enabled: false
+
+Naming/MethodName:
+  Exclude:
+    - 'src/sketchup_api/**/*'
+
+Naming/VariableName:
+  Exclude:
+    - 'src/sketchup_api/**/*'
+
+Naming/MemoizedInstanceVariableName:
+  Exclude:
+    - 'src/sketchup_api/**/*'
+
+Style/OptionalBooleanParameter:
+  Exclude:
+    - 'src/sketchup_api/**/*'
+
+Style/GlobalVars:
+  AllowedVariables:
+    - '$SKETCHUP_CONSOLE'
+
+Lint/FloatComparison:
+  Enabled: false
+
+Style/RescueStandardError:
+  Enabled: false
+
+Lint/DuplicateBranch:
+  Enabled: false
+
+# Mock API must match SketchUp method names (set_manifold, set_mesh_data)
+Naming/AccessorMethodName:
+  Exclude:
+    - 'src/sketchup_api/**/*'
+
+# Test mocks may use empty blocks intentionally
+Lint/EmptyBlock:
+  Exclude:
+    - 'test/**/*'

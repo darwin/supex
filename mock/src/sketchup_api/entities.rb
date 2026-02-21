@@ -14,8 +14,8 @@ module SketchupMock
       @manifold = true
     end
 
-    def each(&block)
-      @entities.each(&block)
+    def each(&)
+      @entities.each(&)
     end
 
     def add_entity(entity)
@@ -31,13 +31,13 @@ module SketchupMock
       instance
     end
 
-    def add_face(*args)
+    def add_face(*_args)
       face = Sketchup::Face.new
       @entities << face
       face
     end
 
-    def add_edge(*args)
+    def add_edge(*_args)
       edge = Sketchup::Edge.new
       @entities << edge
       edge

@@ -168,7 +168,7 @@ module SketchupMock
     # Configure manifold? return value on model entities
     def test_set_manifold(args)
       model = Sketchup.active_model
-      value = args['value'] == true || args['value'] == 'true'
+      value = [true, 'true'].include?(args['value'])
       model.active_entities.set_manifold(value)
 
       { success: true, manifold: value }

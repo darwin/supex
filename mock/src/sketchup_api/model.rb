@@ -20,9 +20,7 @@ module SketchupMock
       @rendering_options = MockRenderingOptions.new
     end
 
-    def entities
-      @entities
-    end
+    attr_reader :entities, :rendering_options
 
     def active_entities
       @entities
@@ -35,8 +33,6 @@ module SketchupMock
     def find_entity_by_id(id)
       SketchupMock::EntityRegistry.find(id)
     end
-
-    attr_reader :rendering_options
 
     def save(path = nil)
       @path = path if path

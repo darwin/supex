@@ -30,8 +30,8 @@ module SketchupMock
       @materials = []
     end
 
-    def each(&block)
-      @materials.each(&block)
+    def each(&)
+      @materials.each(&)
     end
 
     def add(name)

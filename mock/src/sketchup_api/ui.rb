@@ -53,9 +53,7 @@ module UI
       @timers[@timer_id] = timer
 
       # In blocking mode, capture the repeating timer for the blocking loop
-      if @blocking_mode && repeat
-        @blocking_timer = timer
-      end
+      @blocking_timer = timer if @blocking_mode && repeat
 
       @timer_id
     end
@@ -104,8 +102,8 @@ module UI
         begin
           block.call
         rescue StandardError => e
-          $stderr.puts "Timer handler error: #{e.message}"
-          $stderr.puts e.backtrace.join("\n")
+          warn "Timer handler error: #{e.message}"
+          warn e.backtrace.join("\n")
         end
         sleep(interval)
       end

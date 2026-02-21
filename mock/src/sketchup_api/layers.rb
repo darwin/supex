@@ -22,8 +22,8 @@ module SketchupMock
       @layers = [MockLayer.new]
     end
 
-    def each(&block)
-      @layers.each(&block)
+    def each(&)
+      @layers.each(&)
     end
 
     def add(name)

@@ -8,8 +8,8 @@ module SketchupMock
       @selection = []
     end
 
-    def each(&block)
-      @selection.each(&block)
+    def each(&)
+      @selection.each(&)
     end
 
     def count

@@ -77,7 +77,7 @@ module Sketchup
       @mock_model = nil
       @force_no_model = false
       SketchupMock::EntityRegistry.reset
-      SketchupMock::reset_default_layer
+      SketchupMock.reset_default_layer
     end
   end
 end
@@ -93,10 +93,10 @@ class SketchupExtension
 end
 
 # Stubs for file_loaded tracking (SketchUp extension guard)
-def file_loaded?(path)
+def file_loaded?(_path)
   false
 end
 
-def file_loaded(path)
+def file_loaded(_path)
   true
 end

@@ -23,4 +23,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-exec ruby "$PROJECT_DIR/mock/su-mock.rb" --port "$PORT"
+exec ruby "$PROJECT_DIR/mock/src/su_mock.rb" --port "$PORT"

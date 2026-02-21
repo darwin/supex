@@ -10,7 +10,7 @@ require 'tmpdir'
 require 'fileutils'
 
 # Load the mock SketchUp API
-require_relative '../sketchup_api/core'
+require_relative '../src/sketchup_api/core'
 
 class TestEntityRegistry < Minitest::Test
   def setup
@@ -124,7 +124,7 @@ class TestTransformation < Minitest::Test
     tr = Geom::Transformation.new
     a = tr.to_a
     assert_equal 16, a.length
-    assert_equal 1.0, a[0]  # identity diagonal
+    assert_equal 1.0, a[0] # identity diagonal
     assert_equal 1.0, a[5]
     assert_equal 1.0, a[10]
     assert_equal 1.0, a[15]
@@ -666,7 +666,7 @@ class TestTestControl < Minitest::Test
   def setup
     Sketchup.reset_mocks
     # Load test control module for direct testing
-    require_relative '../test_control'
+    require_relative '../src/test_control'
     @ctrl = Object.new
     @ctrl.extend(SketchupMock::TestControl)
   end
@@ -876,7 +876,7 @@ class TestVcadToolsIntegration < Minitest::Test
     d2 = model.definitions.add('plate')
     d2.set_attribute('vcad', 'node_id', 'n2')
 
-    d3 = model.definitions.add('not-vcad')
+    model.definitions.add('not-vcad')
 
     vcad_defs = model.definitions.select { |d| d.get_attribute('vcad', 'node_id') }
     assert_equal 2, vcad_defs.length

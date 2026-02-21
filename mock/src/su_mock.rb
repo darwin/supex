@@ -7,7 +7,7 @@
 # Python integration tests connect over TCP exactly like they connect to real SketchUp.
 #
 # Usage:
-#   ruby mock/su-mock.rb [--port PORT]
+#   ruby mock/src/su_mock.rb [--port PORT]
 
 # Parse command line arguments
 port = 9876
@@ -28,7 +28,7 @@ require_relative 'sketchup_api/core'
 UI.enable_blocking_mode!
 
 # Load the real supex runtime code
-runtime_src = File.expand_path('../runtime/src/supex_runtime', __dir__)
+runtime_src = File.expand_path('../../runtime/src/supex_runtime', __dir__)
 require File.join(runtime_src, 'bridge_server')
 
 # Load test control and patch into BridgeServer
@@ -36,13 +36,13 @@ require_relative 'test_control'
 SupexRuntime::BridgeServer.prepend(SketchupMock::TestControl)
 
 # Start the server
-$stderr.puts "su-mock: Starting on port #{port}..."
+warn "su-mock: Starting on port #{port}..."
 server = SupexRuntime::BridgeServer.new(port: port)
 server.start
 
 # Signal handling for clean shutdown
 trap('INT') do
-  $stderr.puts "\nsu-mock: Shutting down..."
+  warn "\nsu-mock: Shutting down..."
   server.stop
   UI.stop_blocking_loop!
 end
@@ -52,7 +52,7 @@ trap('TERM') do
   UI.stop_blocking_loop!
 end
 
-$stderr.puts "su-mock: Ready on port #{port}"
+warn "su-mock: Ready on port #{port}"
 $stdout.flush
 $stderr.flush
 

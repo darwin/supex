@@ -9,7 +9,7 @@ module Sketchup
 
     def initialize
       @entityID = SketchupMock::EntityRegistry.next_id
-      @layer = SketchupMock::default_layer
+      @layer = SketchupMock.default_layer
       @valid = true
       @attribute_dictionaries = {}
       SketchupMock::EntityRegistry.register(self)
@@ -38,7 +38,7 @@ module Sketchup
 
   class ComponentDefinition < Entity
     attr_accessor :name, :bounds
-    attr_reader :instances
+    attr_reader :instances, :entities
 
     def initialize(name = 'Component')
       super()
@@ -46,10 +46,6 @@ module Sketchup
       @entities = SketchupMock::MockEntities.new(self)
       @instances = []
       @bounds = Geom::BoundingBox.new
-    end
-
-    def entities
-      @entities
     end
 
     def is_a?(klass)
