@@ -1,7 +1,7 @@
-"""SketchUp and vcad sidecar connection communication.
+"""SketchUp and VCAD sidecar connection communication.
 
 This module provides connection classes for communicating with the SketchUp
-extension and vcad sidecar via TCP sockets and JSON-RPC.
+extension and VCAD sidecar via TCP sockets and JSON-RPC.
 """
 
 from supex_driver.connection.sketchup_connection import (

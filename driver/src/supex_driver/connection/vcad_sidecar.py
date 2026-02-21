@@ -1,4 +1,4 @@
-"""vcad sidecar process lifecycle management."""
+"""VCAD sidecar process lifecycle management."""
 
 import logging
 import os
@@ -30,10 +30,10 @@ def _find_supex_root() -> str | None:
 
 
 class VCADSidecar:
-    """Manages vcad sidecar Rust binary process lifecycle.
+    """Manages VCAD sidecar Rust binary process lifecycle.
 
     The sidecar is a Rust TCP server that evaluates Loon code and produces
-    vcad IR documents, BRep geometry, and meshes.
+    VCAD IR documents, BRep geometry, and meshes.
 
     The sidecar binary path defaults to
     ``<supex_root>/vcad/sidecar/target/release/supex-vcad-sidecar``
@@ -74,7 +74,7 @@ class VCADSidecar:
             if self.process is None:
                 return
 
-            logger.info(f"Stopping vcad sidecar (pid={self.process.pid})")
+            logger.info(f"Stopping VCAD sidecar (pid={self.process.pid})")
             try:
                 self.process.send_signal(signal.SIGTERM)
                 try:
@@ -98,19 +98,19 @@ class VCADSidecar:
         """Start the sidecar binary as a subprocess."""
         if not self.sidecar_path:
             logger.warning(
-                "vcad sidecar path not configured. "
+                "VCAD sidecar path not configured. "
                 "Set VCAD_SIDECAR_PATH or build the sidecar binary."
             )
             return
 
         if not os.path.isfile(self.sidecar_path):
-            logger.warning(f"vcad sidecar binary not found at {self.sidecar_path}")
+            logger.warning(f"VCAD sidecar binary not found at {self.sidecar_path}")
             return
 
-        logger.info(f"Starting vcad sidecar: {self.sidecar_path}")
+        logger.info(f"Starting VCAD sidecar: {self.sidecar_path}")
 
         env = os.environ.copy()
-        # Pass through vcad-related env vars
+        # Pass through VCAD-related env vars
         for key in (
             "VCAD_HOST",
             "VCAD_PORT",
@@ -155,15 +155,15 @@ class VCADSidecar:
                 self._cleanup_process()
                 return
 
-            logger.info(f"vcad sidecar started (pid={self.process.pid})")
+            logger.info(f"VCAD sidecar started (pid={self.process.pid})")
         except FileNotFoundError:
-            logger.error(f"vcad sidecar binary not found: {self.sidecar_path}")
+            logger.error(f"VCAD sidecar binary not found: {self.sidecar_path}")
             self.process = None
         except PermissionError:
-            logger.error(f"vcad sidecar binary not executable: {self.sidecar_path}")
+            logger.error(f"VCAD sidecar binary not executable: {self.sidecar_path}")
             self.process = None
         except Exception as e:
-            logger.error(f"Failed to start vcad sidecar: {e}")
+            logger.error(f"Failed to start VCAD sidecar: {e}")
             self.process = None
 
     def _cleanup_process(self) -> None:

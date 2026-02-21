@@ -563,11 +563,11 @@ module SupexRuntime
       end
     end
 
-    # Execute vcad node tools
-    # @param tool_name [String] name of vcad tool
+    # Execute VCAD node tools
+    # @param tool_name [String] name of VCAD tool
     # @param args [Hash] tool arguments
     # @param workspace [String, nil] workspace path for file operations
-    # @return [Hash, nil] result or nil if not a vcad tool
+    # @return [Hash, nil] result or nil if not a VCAD tool
     def execute_vcad_tool(tool_name, args, workspace)
       result = case tool_name
                when 'place_vcad_node'

@@ -1,4 +1,4 @@
-"""vcad runtime state management.
+"""VCAD runtime state management.
 
 Handles per-node revision tracking, eval queue with supersede pruning,
 trigger coalescing, persistent state, and startup recovery/reconciliation.
@@ -24,7 +24,7 @@ VCAD_TRIGGER_COALESCE_MS = float(os.environ.get("VCAD_TRIGGER_COALESCE_MS", "150
 
 @dataclass
 class NodeState:
-    """Persisted per-node vcad runtime state."""
+    """Persisted per-node VCAD runtime state."""
 
     node_id: str
     source_file: str
@@ -253,7 +253,7 @@ class TriggerCoalescer:
 
 
 class VCADPersistentState:
-    """Manages persistent vcad runtime state on disk.
+    """Manages persistent VCAD runtime state on disk.
 
     State is stored at ``<workspace>/.supex/vcad-state.json``.
     Writes are atomic (temp file + rename) to avoid partial state on crash.

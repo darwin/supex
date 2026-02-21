@@ -1,4 +1,4 @@
-"""vcad sidecar connection adapter via TCP sockets and JSON-RPC."""
+"""VCAD sidecar connection adapter via TCP sockets and JSON-RPC."""
 
 import contextlib
 import json
@@ -69,7 +69,7 @@ DIRECT_METHODS = {"hello", "ping", "resources/list"}
 
 @dataclass
 class VCADConnection:
-    """TCP JSON-RPC 2.0 client for vcad Rust sidecar.
+    """TCP JSON-RPC 2.0 client for VCAD Rust sidecar.
 
     Mirrors SketchupConnection transport behavior with added protocol
     version negotiation and capability checking.
@@ -94,7 +94,7 @@ class VCADConnection:
     _limits: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def connect(self) -> bool:
-        """Connect to the vcad sidecar and perform protocol negotiation.
+        """Connect to the VCAD sidecar and perform protocol negotiation.
 
         Returns:
             True if connection and handshake successful, False otherwise.
@@ -106,10 +106,10 @@ class VCADConnection:
             self.sock.settimeout(self.timeout)
             self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.sock.connect((self.host, self.port))
-            logger.debug(f"Created connection to vcad sidecar at {self.host}:{self.port}")
+            logger.debug(f"Created connection to VCAD sidecar at {self.host}:{self.port}")
 
             if not self._send_hello():
-                logger.error("Failed to identify with vcad sidecar")
+                logger.error("Failed to identify with VCAD sidecar")
                 self.disconnect()
                 return False
 
@@ -121,7 +121,7 @@ class VCADConnection:
             self._identified = False
             raise
         except Exception as e:
-            logger.error(f"Failed to connect to vcad sidecar: {e}")
+            logger.error(f"Failed to connect to VCAD sidecar: {e}")
             self.sock = None
             self._identified = False
             return False
@@ -167,7 +167,7 @@ class VCADConnection:
 
             if "error" in response:
                 error_msg = response["error"].get("message", "Hello failed")
-                logger.error(f"vcad hello handshake failed: {error_msg}")
+                logger.error(f"VCAD hello handshake failed: {error_msg}")
                 return False
 
             result = response.get("result", {})
@@ -194,23 +194,23 @@ class VCADConnection:
             self._limits = result.get("limits", {})
 
             logger.debug(
-                f"vcad hello successful: version={sidecar_version}, "
+                f"VCAD hello successful: version={sidecar_version}, "
                 f"capabilities={self._capabilities}"
             )
             return True
         except VCADProtocolError:
             raise
         except Exception as e:
-            logger.error(f"vcad hello handshake error: {e}")
+            logger.error(f"VCAD hello handshake error: {e}")
             return False
 
     def disconnect(self) -> None:
-        """Disconnect from the vcad sidecar."""
+        """Disconnect from the VCAD sidecar."""
         if self.sock:
             try:
                 self.sock.close()
             except Exception as e:
-                logger.error(f"Error disconnecting from vcad sidecar: {e}")
+                logger.error(f"Error disconnecting from VCAD sidecar: {e}")
             finally:
                 self.sock = None
                 self._identified = False
@@ -269,7 +269,7 @@ class VCADConnection:
         if self._last_activity > 0:
             idle_time = time.time() - self._last_activity
             if idle_time > VCAD_MAX_IDLE_TIME:
-                logger.debug(f"vcad connection idle for {idle_time:.1f}s, will reconnect")
+                logger.debug(f"VCAD connection idle for {idle_time:.1f}s, will reconnect")
                 return False
 
         try:
@@ -307,7 +307,7 @@ class VCADConnection:
     def send_command(
         self, method: str, params: dict[str, Any] | None = None, request_id: Any = None
     ) -> dict[str, Any]:
-        """Send a JSON-RPC request to vcad sidecar and return the response.
+        """Send a JSON-RPC request to VCAD sidecar and return the response.
 
         Methods in DIRECT_METHODS (hello, ping, resources/list) are sent as
         direct JSON-RPC calls. All other methods are wrapped as tools/call
@@ -331,7 +331,7 @@ class VCADConnection:
             request_id = _next_request_id()
 
         if not self._is_connection_healthy() and not self.connect():
-            raise VCADConnectionError("Not connected to vcad sidecar")
+            raise VCADConnectionError("Not connected to VCAD sidecar")
         if self.sock is None:
             raise VCADConnectionError("Socket not initialized after connect")
 
@@ -381,7 +381,7 @@ class VCADConnection:
                     error = response["error"]
                     raise VCADRemoteError(
                         code=error.get("code", -1),
-                        message=error.get("message", "Unknown error from vcad sidecar"),
+                        message=error.get("message", "Unknown error from VCAD sidecar"),
                         data=error.get("data"),
                     )
 
@@ -404,16 +404,16 @@ class VCADConnection:
                 retry_count += 1
 
                 if retry_count <= VCAD_MAX_RETRIES:
-                    logger.info("Retrying vcad connection...")
+                    logger.info("Retrying VCAD connection...")
                     self.disconnect()
                     if not self.connect():
-                        logger.error("Failed to reconnect to vcad sidecar")
+                        logger.error("Failed to reconnect to VCAD sidecar")
                         break
                 else:
-                    logger.error("Max retries reached for vcad sidecar")
+                    logger.error("Max retries reached for VCAD sidecar")
                     self.sock = None
                     raise VCADConnectionError(
-                        f"Connection to vcad sidecar lost after "
+                        f"Connection to VCAD sidecar lost after "
                         f"{VCAD_MAX_RETRIES + 1} attempts: {e}"
                     )
 
@@ -424,16 +424,16 @@ class VCADConnection:
                         f"[req:{request_id}] Raw response (first 200 bytes): "
                         f"{response_data[:200]!r}"
                     )
-                raise VCADProtocolError(f"Invalid response from vcad sidecar: {e}")
+                raise VCADProtocolError(f"Invalid response from VCAD sidecar: {e}")
 
             except Exception as e:
                 logger.error(f"[req:{request_id}] Error: {e}")
                 self.sock = None
                 raise
 
-        raise VCADConnectionError("Connection to vcad sidecar lost after all retries")
+        raise VCADConnectionError("Connection to VCAD sidecar lost after all retries")
 
-    # Convenience methods for vcad operations
+    # Convenience methods for VCAD operations
 
     def eval_code(self, code: str) -> dict[str, Any]:
         """Evaluate Loon code and return the result.
@@ -480,7 +480,7 @@ def get_vcad_connection(
     port: int = VCAD_PORT,
     agent: str = "unknown",
 ) -> VCADConnection:
-    """Get or create a persistent vcad sidecar connection.
+    """Get or create a persistent VCAD sidecar connection.
 
     Thread-safe singleton pattern. On first call, ensures the sidecar
     process is running via VCADSidecar.ensure_running().
@@ -499,7 +499,7 @@ def get_vcad_connection(
         if _vcad_connection is not None and _vcad_connection_agent != agent:
             logger.debug(
                 f"Agent changed from {_vcad_connection_agent} to {agent}, "
-                "recreating vcad connection"
+                "recreating VCAD connection"
             )
             with contextlib.suppress(Exception):
                 _vcad_connection.disconnect()
@@ -510,7 +510,7 @@ def get_vcad_connection(
                 if _vcad_connection.sock:
                     return _vcad_connection
             except Exception as e:
-                logger.warning(f"Existing vcad connection is no longer valid: {e}")
+                logger.warning(f"Existing VCAD connection is no longer valid: {e}")
                 with contextlib.suppress(Exception):
                     _vcad_connection.disconnect()
                 _vcad_connection = None
@@ -525,7 +525,7 @@ def get_vcad_connection(
             _vcad_connection = VCADConnection(host=host, port=port, agent=agent)
             _vcad_connection_agent = agent
             logger.debug(
-                f"Created vcad connection (agent: {agent}, "
+                f"Created VCAD connection (agent: {agent}, "
                 "will be established on first use)"
             )
 

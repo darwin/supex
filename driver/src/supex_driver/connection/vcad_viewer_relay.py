@@ -1,4 +1,4 @@
-"""WebSocket relay between driver and vcad viewer.
+"""WebSocket relay between driver and VCAD viewer.
 
 Runs a WebSocket server on localhost:9878 (configurable) that bridges
 mesh data from the sidecar evaluation pipeline to the Tauri viewer
@@ -104,7 +104,7 @@ class VCADViewerSession:
 
 
 class VCADViewerRelay:
-    """WebSocket relay server for the vcad viewer.
+    """WebSocket relay server for the VCAD viewer.
 
     Manages mesh push, viewer state, and screenshot relay between
     the driver (MCP tools + eval pipeline) and the Tauri viewer.

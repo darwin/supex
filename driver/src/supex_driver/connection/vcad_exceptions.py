@@ -1,4 +1,4 @@
-"""Custom exceptions for vcad sidecar communication."""
+"""Custom exceptions for VCAD sidecar communication."""
 
 from typing import Any
 
@@ -13,15 +13,15 @@ MULTI_PART_UNSUPPORTED = "MULTI_PART_UNSUPPORTED"
 
 
 class VCADError(Exception):
-    """Base exception for vcad client errors."""
+    """Base exception for VCAD client errors."""
 
 
 class VCADConnectionError(VCADError):
-    """Raised when connection to vcad sidecar fails."""
+    """Raised when connection to VCAD sidecar fails."""
 
 
 class VCADTimeoutError(VCADError):
-    """Raised when communication with vcad sidecar times out."""
+    """Raised when communication with VCAD sidecar times out."""
 
 
 class VCADProtocolError(VCADError):
@@ -41,7 +41,7 @@ class VCADProtocolError(VCADError):
 
 
 class VCADRemoteError(VCADError):
-    """Raised when vcad sidecar returns a JSON-RPC error response.
+    """Raised when VCAD sidecar returns a JSON-RPC error response.
 
     Preserves sidecar error_code unchanged for MCP tool responses.
 

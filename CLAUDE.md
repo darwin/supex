@@ -79,7 +79,12 @@ cd runtime && bundle exec rake build
 - `mcp` - MCP server entry point
 - `supex` - CLI entry point
 
-## vcad Sidecar
+## Naming Conventions
+
+- **VCAD** is an acronym — always write "VCAD" in prose (docs, comments, docstrings, log messages), never "vcad"
+- Lowercase `vcad` is correct in identifiers (`vcad_place`, `vcad_connection`), file paths (`vcad/sidecar/`), logger names (`supex.vcad`), and Rust crate names (`vcad-eval`, `vcad-kernel`)
+
+## VCAD Sidecar
 
 Rust binary at `vcad/sidecar/`. After any code change that affects the sidecar:
 

@@ -3,14 +3,14 @@
 require_relative 'path_policy'
 
 module SupexRuntime
-  # Tool implementations for vcad node management in SketchUp.
-  # Handles mesh import, vcad attribute storage, and instance lifecycle.
+  # Tool implementations for VCAD node management in SketchUp.
+  # Handles mesh import, VCAD attribute storage, and instance lifecycle.
   module VCADTools
     extend self
 
     VCAD_DICT = 'vcad'
 
-    # Import OBJ as ComponentDefinition, set vcad attributes, place instance
+    # Import OBJ as ComponentDefinition, set VCAD attributes, place instance
     # @param params [Hash] parameters: obj_path, node_id, source_file, component_name, position
     # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] result with entity_id, definition_name
@@ -21,11 +21,11 @@ module SupexRuntime
       component_name = params['component_name'] || "vcad_#{node_id}"
       position = params['position'] || [0, 0, 0]
 
-      PathPolicy.validate!(obj_path, operation: 'vcad import', workspace: workspace)
-      PathPolicy.validate!(source_file, operation: 'vcad source', workspace: workspace) if source_file
+      PathPolicy.validate!(obj_path, operation: 'VCAD import', workspace: workspace)
+      PathPolicy.validate!(source_file, operation: 'VCAD source', workspace: workspace) if source_file
 
       model = Sketchup.active_model
-      model.start_operation('Place vcad node', true)
+      model.start_operation('Place VCAD node', true)
 
       # SketchUp 2026: definitions.import returns ComponentDefinition.
       defn = model.definitions.import(obj_path)
@@ -66,14 +66,14 @@ module SupexRuntime
       node_id = params['node_id']
       source_file = params['source_file']
 
-      PathPolicy.validate!(obj_path, operation: 'vcad import', workspace: workspace)
-      PathPolicy.validate!(source_file, operation: 'vcad source', workspace: workspace) if source_file
+      PathPolicy.validate!(obj_path, operation: 'VCAD import', workspace: workspace)
+      PathPolicy.validate!(source_file, operation: 'VCAD source', workspace: workspace) if source_file
 
       model = Sketchup.active_model
       old_defn = find_vcad_definition(model, node_id)
-      raise "vcad node not found: #{node_id}" unless old_defn
+      raise "VCAD node not found: #{node_id}" unless old_defn
 
-      model.start_operation('Update vcad node', true)
+      model.start_operation('Update VCAD node', true)
 
       begin
         placements = old_defn.instances.map do |inst|
@@ -125,14 +125,14 @@ module SupexRuntime
         }
       rescue StandardError => e
         model.abort_operation
-        raise "Update vcad node failed: #{e.message}"
+        raise "Update VCAD node failed: #{e.message}"
       end
     end
 
-    # List all vcad nodes in the model
+    # List all VCAD nodes in the model
     # @param _params [Hash] unused
     # @param workspace [String, nil] unused
-    # @return [Array<Hash>] list of vcad node metadata
+    # @return [Array<Hash>] list of VCAD node metadata
     def list_vcad_nodes(_params = {}, workspace: nil)
       model = Sketchup.active_model
       nodes = model.definitions.select { |d| d.get_attribute(VCAD_DICT, 'node_id') }
@@ -147,15 +147,15 @@ module SupexRuntime
       end
     end
 
-    # Get single vcad node metadata
+    # Get single VCAD node metadata
     # @param params [Hash] parameters: node_id
     # @param workspace [String, nil] unused
-    # @return [Hash] vcad node metadata with bounds
+    # @return [Hash] VCAD node metadata with bounds
     def get_vcad_node(params, workspace: nil)
       node_id = params['node_id']
       model = Sketchup.active_model
       defn = find_vcad_definition(model, node_id)
-      raise "vcad node not found: #{node_id}" unless defn
+      raise "VCAD node not found: #{node_id}" unless defn
 
       {
         node_id: node_id,

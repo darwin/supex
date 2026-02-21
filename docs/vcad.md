@@ -1,22 +1,22 @@
-# vcad Integration
+# VCAD Integration
 
-vcad is a BRep (Boundary Representation) kernel integrated into SketchUp via supex. The agent writes parametric CAD code in Loon (a Lisp with algebraic data types), the vcad Rust sidecar evaluates the code to produce BRep geometry, exports the mesh as OBJ, and SketchUp natively imports it as a component.
+VCAD is a BRep (Boundary Representation) kernel integrated into SketchUp via supex. The agent writes parametric CAD code in Loon (a Lisp with algebraic data types), the VCAD Rust sidecar evaluates the code to produce BRep geometry, exports the mesh as OBJ, and SketchUp natively imports it as a component.
 
 ## Architecture
 
 ```
-            AI Agent (Claude Code, MCP client)
-                         |
-                  [MCP Protocol (stdio)]
-                         |
-                supex Python MCP Driver
-                /                    \
-  [TCP JSON-RPC :9876]        [TCP JSON-RPC :9877]
-         |                            |
-  SketchUp Ruby Runtime       vcad Rust Sidecar
-  (bridge_server.rb)          (loon-lang + vcad-eval + vcad-kernel)
-         |                            |
-  SketchUp Application         .skp.oo files (source of truth)
+                AI Agent (Claude Code, MCP client)
+                             |
+                      [MCP Protocol (stdio)]
+                             |
+                    supex Python MCP Driver
+                /            |              \
+  [TCP JSON-RPC :9876]  [WebSocket :9878]  [TCP JSON-RPC :9877]
+         |                   |                      |
+  SketchUp Ruby Runtime  VCAD Viewer        VCAD Rust Sidecar
+  (bridge_server.rb)     (Tauri app)        (loon-lang + vcad-eval + vcad-kernel)
+         |                                          |
+  SketchUp Application                       .skp.oo files (source of truth)
 ```
 
 ### Evaluation Pipeline
@@ -40,9 +40,10 @@ TriangleMesh
 | Component | Location | Language | Role |
 |-----------|----------|----------|------|
 | MCP Driver | `driver/src/supex_driver/` | Python | Exposes MCP tools, mediates sidecar and SketchUp |
-| vcad Sidecar | `vcad/sidecar/` | Rust | Evaluates Loon code, produces BRep geometry + OBJ |
-| Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports OBJ into SketchUp, manages vcad nodes |
-| Viewer | `viewer/` | Rust/TypeScript | Standalone Tauri BRep preview |
+| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates Loon code, produces BRep geometry + OBJ |
+| Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports OBJ into SketchUp, manages VCAD nodes |
+| Viewer | `vcad/viewer/` | Rust/TypeScript | Standalone Tauri BRep preview |
+| Viewer Relay | `driver/src/supex_driver/connection/vcad_viewer_relay.py` | Python | WebSocket bridge (:9878) between MCP driver and viewer |
 
 ## Getting Started
 
@@ -214,18 +215,18 @@ Evaluate a `.skp.oo` file and place the resulting mesh in SketchUp.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `node_id` | string | Unique identifier for this vcad node |
+| `node_id` | string | Unique identifier for this VCAD node |
 | `source_file` | string | Path to the `.skp.oo` file |
 | `position` | [x,y,z] | Position in mm (default [0,0,0]) |
 | `component_name` | string | Optional SketchUp component name |
 
 ### vcad_update
 
-Re-evaluate a vcad node and update SketchUp geometry. Atomic definition swap preserves instance placements.
+Re-evaluate a VCAD node and update SketchUp geometry. Atomic definition swap preserves instance placements.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `node_id` | string | The vcad node to update |
+| `node_id` | string | The VCAD node to update |
 | `source_file` | string | Optional new source file (uses existing if omitted) |
 
 ### vcad_inspect
@@ -258,9 +259,25 @@ REPL mode evaluation of Loon code. Returns display string, no geometry output.
 
 ### vcad_list_nodes
 
-List all vcad nodes in the current SketchUp model. No parameters.
+List all VCAD nodes in the current SketchUp model. No parameters.
 
 Returns array of `{node_id, source_file, version, name, instances}`.
+
+### vcad_viewer_state
+
+Get current VCAD viewer state: camera position, selection, visible nodes. No parameters.
+
+### vcad_viewer_screenshot
+
+Capture screenshot from the VCAD viewer. Returns metadata with workspace-relative file path. The PNG is saved to `.tmp/vcad-viewer/`. No parameters.
+
+### vcad_viewer_focus
+
+Focus viewer camera on a specific VCAD node.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `node_id` | string | The VCAD node identifier to focus on |
 
 ## Troubleshooting
 

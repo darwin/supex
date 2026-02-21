@@ -1,4 +1,4 @@
-"""MCP tools for vcad BRep evaluation and SketchUp placement."""
+"""MCP tools for VCAD BRep evaluation and SketchUp placement."""
 
 import json
 import logging
@@ -32,7 +32,7 @@ logger = logging.getLogger("supex.mcp.vcad")
 
 
 def _handle_vcad_error(e: Exception, operation: str) -> str:
-    """Standardized error handling for vcad sidecar errors.
+    """Standardized error handling for VCAD sidecar errors.
 
     Preserves upstream error_code and details unchanged.
     Driver must not rewrite upstream error_code; it may only enrich
@@ -142,20 +142,20 @@ def vcad_place(
 ) -> str:
     """Evaluate a .skp.oo file and place the resulting mesh in SketchUp.
 
-    1. Send source file to vcad sidecar for evaluation -> OBJ file
+    1. Send source file to VCAD sidecar for evaluation -> OBJ file
     2. Send OBJ path to SketchUp -> definitions.import -> ComponentDefinition
-    3. Store vcad metadata in attribute dictionary
+    3. Store VCAD metadata in attribute dictionary
 
     Args:
         ctx: MCP context
-        node_id: Unique identifier for this vcad node
+        node_id: Unique identifier for this VCAD node
         source_file: Path to the .skp.oo file
         position: Optional [x, y, z] position in mm (default [0, 0, 0])
         component_name: Optional name for the SketchUp component
     """
     agent = get_agent_name(ctx)
 
-    # Step 1: Evaluate source file via vcad sidecar
+    # Step 1: Evaluate source file via VCAD sidecar
     try:
         vcad = get_vcad_connection(agent=agent)
         eval_result = vcad.eval_file(source_file)
@@ -212,14 +212,14 @@ def vcad_place(
 
 @mcp.tool()
 def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -> str:
-    """Re-evaluate vcad node and update SketchUp geometry.
+    """Re-evaluate VCAD node and update SketchUp geometry.
 
     If source_file is not provided, queries SketchUp for the node's
     current source_file attribute.
 
     Args:
         ctx: MCP context
-        node_id: The vcad node identifier to update
+        node_id: The VCAD node identifier to update
         source_file: Optional new source file path (uses existing if omitted)
     """
     agent = get_agent_name(ctx)
@@ -303,7 +303,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
 
 @mcp.tool()
 def vcad_inspect(ctx: McpContext, source: str) -> str:
-    """Inspect vcad geometry: volume, surface area, bounding box.
+    """Inspect VCAD geometry: volume, surface area, bounding box.
 
     Source can be a .skp.oo file path or inline Loon code.
 
@@ -334,7 +334,7 @@ def vcad_export(
     format: str = "obj",
     output_path: str = "",
 ) -> str:
-    """Export vcad geometry to OBJ or STEP.
+    """Export VCAD geometry to OBJ or STEP.
 
     Args:
         ctx: MCP context
@@ -366,7 +366,7 @@ def vcad_export(
 
 @mcp.tool()
 def vcad_eval(ctx: McpContext, code: str) -> str:
-    """Evaluate Loon code in vcad sidecar (REPL mode). Returns display string.
+    """Evaluate Loon code in VCAD sidecar (REPL mode). Returns display string.
 
     Args:
         ctx: MCP context
@@ -390,7 +390,7 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
 
 @mcp.tool()
 def vcad_list_nodes(ctx: McpContext) -> str:
-    """List all vcad nodes in the current SketchUp model."""
+    """List all VCAD nodes in the current SketchUp model."""
     try:
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(

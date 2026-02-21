@@ -72,9 +72,9 @@ To disable path restrictions, set `SUPEX_ALLOWED_ROOTS=*`.
 
 See [Interactive REPL](repl.md) for usage details.
 
-## vcad Sidecar
+## VCAD Sidecar
 
-The vcad Rust sidecar evaluates Loon CAD code and produces BRep geometry. See [vcad Integration](vcad.md) for full documentation.
+The VCAD Rust sidecar evaluates Loon CAD code and produces BRep geometry. See [VCAD Integration](vcad.md) for full documentation.
 
 ### Connection
 

@@ -544,10 +544,10 @@ def _handle_viewer_error(e: VCADViewerError, operation: str) -> str:
     )
 
 
-# vcad viewer tools
+# VCAD viewer tools
 @mcp.tool()
 def vcad_viewer_state(ctx: McpContext) -> str:
-    """Get current vcad viewer state: camera position, selection, visible nodes."""
+    """Get current VCAD viewer state: camera position, selection, visible nodes."""
     try:
         relay = get_vcad_viewer_relay()
         relay.require_viewer("vcad_viewer_state")
@@ -574,7 +574,7 @@ def vcad_viewer_state(ctx: McpContext) -> str:
 
 @mcp.tool()
 def vcad_viewer_screenshot(ctx: McpContext) -> str:
-    """Capture screenshot from vcad viewer.
+    """Capture screenshot from VCAD viewer.
 
     Returns metadata including workspace-relative file path (no large base64
     payload). The screenshot PNG is saved to .tmp/vcad-viewer/ under the
@@ -611,10 +611,10 @@ def vcad_viewer_screenshot(ctx: McpContext) -> str:
 
 @mcp.tool()
 def vcad_viewer_focus(ctx: McpContext, node_id: str) -> str:
-    """Focus viewer camera on a specific vcad node.
+    """Focus viewer camera on a specific VCAD node.
 
     Args:
-        node_id: The vcad node identifier to focus on.
+        node_id: The VCAD node identifier to focus on.
     """
     try:
         relay = get_vcad_viewer_relay()
