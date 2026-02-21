@@ -185,28 +185,46 @@ module Sketchup
   end
 
   class ComponentInstance < Entity
-    attr_accessor :definition, :bounds, :parent
+    attr_accessor :definition, :bounds, :parent, :transformation, :material, :name
 
     def initialize(id: rand(10_000), definition_name: 'Component', parent: nil)
       super(id: id)
       @definition = MockComponentDefinition.new(definition_name, self)
       @bounds = MockBounds.new
       @parent = parent  # Can be Model.entities or ComponentDefinition
+      @transformation = nil
+      @material = nil
+      @name = ''
+    end
+
+    def erase!
+      @definition.instances.delete(self)
+      @valid = false
     end
 
     def respond_to?(method, include_private = false)
-      method == :bounds || super
+      %i[bounds layer material name name=].include?(method) || super
     end
   end
 end
 
 class MockComponentDefinition
-  attr_reader :name
-  attr_accessor :instances
+  attr_accessor :name, :instances, :bounds
 
-  def initialize(name, instance = nil)
+  def initialize(name = 'Component', instance = nil)
     @name = name
     @instances = instance ? [instance] : []
+    @attributes = {}
+    @bounds = MockBounds.new
+  end
+
+  def set_attribute(dict, key, value)
+    @attributes[dict] ||= {}
+    @attributes[dict][key] = value
+  end
+
+  def get_attribute(dict, key, default = nil)
+    @attributes.dig(dict, key) || default
   end
 end
 
@@ -230,6 +248,15 @@ class MockLayer
   end
 end
 
+# Mock parent for entity context (provides .entities accessor for vcad update)
+class MockParent
+  attr_reader :entities
+
+  def initialize(entities)
+    @entities = entities
+  end
+end
+
 # Mock collections
 class MockEntities
   include Enumerable
@@ -245,6 +272,16 @@ class MockEntities
   def add_entity(entity)
     @entities << entity
     entity
+  end
+
+  def add_instance(definition, transformation = nil)
+    instance = Sketchup::ComponentInstance.new(definition_name: definition.name)
+    instance.definition = definition
+    instance.transformation = transformation
+    instance.parent = MockParent.new(self)
+    definition.instances << instance
+    @entities << instance
+    instance
   end
 
   def grep(type)
@@ -420,13 +457,58 @@ class MockRenderingOptions
   end
 end
 
+class MockDefinitions
+  include Enumerable
+
+  def initialize
+    @definitions = []
+  end
+
+  def each(&)
+    @definitions.each(&)
+  end
+
+  def select(&)
+    @definitions.select(&)
+  end
+
+  def find(&)
+    @definitions.find(&)
+  end
+
+  def import(_path)
+    defn = MockComponentDefinition.new("imported_#{@definitions.length}")
+    @definitions << defn
+    defn
+  end
+
+  def remove(defn)
+    @definitions.delete(defn)
+  end
+
+  def add(defn)
+    @definitions << defn
+    defn
+  end
+
+  def to_a
+    @definitions.dup
+  end
+
+  def count
+    @definitions.length
+  end
+end
+
 class MockModel
-  attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options, :bounds, :active_path
+  attr_accessor :title, :path, :entities, :selection, :layers, :materials, :active_view, :options, :bounds,
+                :active_path, :definitions
 
   def initialize(path: nil, title: 'Untitled')
     @path = path
     @title = title
     @entities = MockEntities.new
+    @definitions = MockDefinitions.new
     @selection = MockSelection.new
     @layers = MockLayers.new
     @materials = MockMaterials.new
@@ -435,6 +517,10 @@ class MockModel
     @bounds = MockBounds.new
     @active_path = nil
     @rendering_options = MockRenderingOptions.new
+  end
+
+  def active_entities
+    @entities
   end
 
   def modified?
@@ -545,6 +631,26 @@ module Geom
         super
       end
     end
+  end
+
+  class Transformation
+    attr_reader :origin
+
+    def initialize(point = nil)
+      @origin = point || Point3d.new(0, 0, 0)
+    end
+  end
+end
+
+# SketchUp unit conversion extensions on Numeric.
+# In SketchUp, internal units are inches. .mm converts mm -> inches, .to_mm converts inches -> mm.
+class Numeric
+  def mm
+    self / 25.4
+  end
+
+  def to_mm
+    self * 25.4
   end
 end
 

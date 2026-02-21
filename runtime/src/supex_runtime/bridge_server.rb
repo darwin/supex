@@ -8,6 +8,7 @@ require_relative 'utils'
 require_relative 'export'
 require_relative 'console_capture'
 require_relative 'tools'
+require_relative 'vcad_tools'
 require_relative 'path_policy'
 
 module SupexRuntime
@@ -527,7 +528,7 @@ module SupexRuntime
     # @return [Hash] tool execution result
     def execute_tool(tool_name, args, workspace = nil)
       execute_core_tool(tool_name, args, workspace) || execute_introspection_tool(tool_name, args, workspace) ||
-        (raise "Unknown tool: #{tool_name}")
+        execute_vcad_tool(tool_name, args, workspace) || (raise "Unknown tool: #{tool_name}")
     end
 
     # Execute core tools (eval, export, etc.)
@@ -560,6 +561,27 @@ module SupexRuntime
       when 'open_model' then open_model(args, workspace: workspace)
       when 'save_model' then save_model(args, workspace: workspace)
       end
+    end
+
+    # Execute vcad node tools
+    # @param tool_name [String] name of vcad tool
+    # @param args [Hash] tool arguments
+    # @param workspace [String, nil] workspace path for file operations
+    # @return [Hash, nil] result or nil if not a vcad tool
+    def execute_vcad_tool(tool_name, args, workspace)
+      result = case tool_name
+               when 'place_vcad_node'
+                 VcadTools.place_vcad_node(args, workspace: workspace)
+               when 'update_vcad_node'
+                 VcadTools.update_vcad_node(args, workspace: workspace)
+               when 'list_vcad_nodes'
+                 VcadTools.list_vcad_nodes(args, workspace: workspace)
+               when 'get_vcad_node'
+                 VcadTools.get_vcad_node(args, workspace: workspace)
+               end
+      result
+    rescue PathPolicy::PathAccessDenied => e
+      { success: false, error_code: 'PATH_NOT_ALLOWED', error: e.message }
     end
 
     # List available resources (entities in the model)

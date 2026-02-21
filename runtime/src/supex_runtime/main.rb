@@ -5,6 +5,7 @@ require 'sketchup'
 require_relative 'version'
 require_relative 'bridge_server'
 require_relative 'repl_server'
+require_relative 'vcad_tools'
 require_relative 'utils'
 
 module SupexRuntime
@@ -210,7 +211,7 @@ module SupexRuntime
     def self.unload_extension_files
       files_to_reload = %w[
         version.rb utils.rb geometry.rb materials.rb
-        export.rb joinery.rb batch_screenshot.rb tools.rb
+        export.rb joinery.rb batch_screenshot.rb tools.rb vcad_tools.rb
         bridge_server.rb repl_server.rb main.rb
       ]
       extension_dir = __dir__
