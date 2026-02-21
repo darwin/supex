@@ -132,6 +132,8 @@ main() {
     # Check required tools
     require_command "uv" "pip install uv"
     require_command "bundle" "gem install bundler"
+    require_command "cargo" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    require_command "npx" "brew install node"
 
     # Run Python Driver tests
     run_test_suite \
@@ -152,6 +154,27 @@ main() {
         "Ruby Runtime Tests" \
         "${PROJECT_ROOT}/runtime" \
         "bundle exec rake test" \
+        || true  # Continue even if failed
+
+    # Run Ruby Mock tests
+    run_test_suite \
+        "Ruby Mock Tests" \
+        "${PROJECT_ROOT}/mock" \
+        "bundle exec rake test" \
+        || true  # Continue even if failed
+
+    # Run VCAD Sidecar tests (Rust)
+    run_test_suite \
+        "VCAD Sidecar Tests" \
+        "${PROJECT_ROOT}/vcad/sidecar" \
+        "cargo test" \
+        || true  # Continue even if failed
+
+    # Run VCAD Viewer tests (TypeScript)
+    run_test_suite \
+        "VCAD Viewer Tests" \
+        "${PROJECT_ROOT}/vcad/viewer" \
+        "npx vitest run" \
         || true  # Continue even if failed
 
     # Run E2E tests if flag is set
