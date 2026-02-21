@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Launch the su-mock headless SketchUp API mock server.
-# Usage: scripts/launch-su-mock.sh [--port PORT]
+# Launch the sketchup-mock headless SketchUp API mock server.
+# Usage: scripts/launch-sketchup-mock.sh [--port PORT]
 
 set -euo pipefail
 
@@ -23,4 +23,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-exec ruby "$PROJECT_DIR/mock/src/su_mock.rb" --port "$PORT"
+exec ruby "$PROJECT_DIR/mock/src/sketchup_mock.rb" --port "$PORT"

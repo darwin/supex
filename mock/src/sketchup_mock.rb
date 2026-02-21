@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# su-mock: Standalone headless SketchUp API mock server.
+# sketchup-mock: Standalone headless SketchUp API mock server.
 # Loads comprehensive SketchUp API mocks, then loads the real supex runtime
 # (bridge_server.rb, tools.rb, vcad_tools.rb) and runs the TCP bridge server.
 # Python integration tests connect over TCP exactly like they connect to real SketchUp.
 #
 # Usage:
-#   ruby mock/src/su_mock.rb [--port PORT]
+#   ruby mock/src/sketchup_mock.rb [--port PORT]
 
 # Parse command line arguments
 port = 9876
@@ -36,13 +36,13 @@ require_relative 'test_control'
 SupexRuntime::BridgeServer.prepend(SketchupMock::TestControl)
 
 # Start the server
-warn "su-mock: Starting on port #{port}..."
+warn "sketchup-mock: Starting on port #{port}..."
 server = SupexRuntime::BridgeServer.new(port: port)
 server.start
 
 # Signal handling for clean shutdown
 trap('INT') do
-  warn "\nsu-mock: Shutting down..."
+  warn "\nsketchup-mock: Shutting down..."
   server.stop
   UI.stop_blocking_loop!
 end
@@ -52,7 +52,7 @@ trap('TERM') do
   UI.stop_blocking_loop!
 end
 
-warn "su-mock: Ready on port #{port}"
+warn "sketchup-mock: Ready on port #{port}"
 $stdout.flush
 $stderr.flush
 

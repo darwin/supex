@@ -27,10 +27,10 @@ def su_mock_process():
     project_root = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..")
     )
-    mock_script = os.path.join(project_root, "mock", "su-mock.rb")
+    mock_script = os.path.join(project_root, "mock", "src", "sketchup_mock.rb")
 
     if not os.path.exists(mock_script):
-        pytest.skip("su-mock.rb not found")
+        pytest.skip("sketchup_mock.rb not found")
 
     proc = subprocess.Popen(
         ["ruby", mock_script, "--port", str(SU_MOCK_PORT)],

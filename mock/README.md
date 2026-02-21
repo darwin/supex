@@ -19,7 +19,7 @@ mock/
 +-- Gemfile                # Dependencies
 +-- Rakefile               # Build tasks
 +-- src/
-|   +-- su_mock.rb         # Server launcher (entry point)
+|   +-- sketchup_mock.rb         # Server launcher (entry point)
 |   +-- test_control.rb    # Test control API (_test.* handlers)
 |   +-- sketchup_api/      # SketchUp API mock library
 |       +-- core.rb        # Loader for all mock modules
@@ -42,10 +42,10 @@ mock/
 
 ```bash
 # From repository root
-./scripts/launch-su-mock.sh
+./scripts/launch-sketchup-mock.sh
 
 # Or directly
-ruby mock/src/su_mock.rb --port 9876
+ruby mock/src/sketchup_mock.rb --port 9876
 ```
 
 ### Test Control Tools
