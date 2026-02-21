@@ -317,12 +317,12 @@ class TestVcadConnectionIntegration:
         )
 
         conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
-        result = conn.eval_file("/path/to/test.vcad.loon")
+        result = conn.eval_file("/path/to/test.skp.oo")
 
         assert "mesh" in result
         tool_call = mock_sidecar.requests[-1]
         assert tool_call["params"]["name"] == "vcad.eval_file"
-        assert tool_call["params"]["arguments"]["path"] == "/path/to/test.vcad.loon"
+        assert tool_call["params"]["arguments"]["path"] == "/path/to/test.skp.oo"
         conn.disconnect()
 
     def test_inspect(self, mock_sidecar: MockVcadSidecar) -> None:
@@ -687,7 +687,7 @@ class TestVcadConnectionPersistentState:
         state = VcadPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
-            source_file="/test/bracket.vcad.loon",
+            source_file="/test/bracket.skp.oo",
             revision=5,
             applied_revision=5,
             last_entity_id="ent-123",
@@ -695,7 +695,7 @@ class TestVcadConnectionPersistentState:
         ))
         state.set_node(NodeState(
             node_id="node-2",
-            source_file="/test/plate.vcad.loon",
+            source_file="/test/plate.skp.oo",
             revision=3,
             applied_revision=2,
             status="active",
@@ -710,7 +710,7 @@ class TestVcadConnectionPersistentState:
 
         nodes = loaded.all_nodes()
         assert len(nodes) == 2
-        assert nodes["node-1"].source_file == "/test/bracket.vcad.loon"
+        assert nodes["node-1"].source_file == "/test/bracket.skp.oo"
         assert nodes["node-1"].revision == 5
         assert nodes["node-2"].applied_revision == 2
 
@@ -721,7 +721,7 @@ class TestVcadConnectionPersistentState:
     def test_atomic_write(self, tmp_state_path: str) -> None:
         """Verify save uses atomic write (no partial state on crash)."""
         state = VcadPersistentState(state_path=tmp_state_path)
-        state.set_node(NodeState(node_id="n1", source_file="/a.loon"))
+        state.set_node(NodeState(node_id="n1", source_file="/a.skp.oo"))
         state.save()
 
         # File should be valid JSON
@@ -732,8 +732,8 @@ class TestVcadConnectionPersistentState:
 
     def test_remove_node(self, tmp_state_path: str) -> None:
         state = VcadPersistentState(state_path=tmp_state_path)
-        state.set_node(NodeState(node_id="n1", source_file="/a.loon"))
-        state.set_node(NodeState(node_id="n2", source_file="/b.loon"))
+        state.set_node(NodeState(node_id="n1", source_file="/a.skp.oo"))
+        state.set_node(NodeState(node_id="n2", source_file="/b.skp.oo"))
 
         state.remove_node("n1")
 
@@ -795,7 +795,7 @@ class TestVcadConnectionRecovery:
     def test_source_missing_marks_degraded(self, tmp_state_path: str) -> None:
         """Remove a source file and verify node is marked degraded."""
         # Create a temp file then delete it to simulate missing source
-        with tempfile.NamedTemporaryFile(suffix=".vcad.loon", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
             missing_path = f.name
         os.unlink(missing_path)
 
@@ -850,13 +850,13 @@ class TestVcadConnectionRecovery:
         state = VcadPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
-            source_file="/test/a.loon",
+            source_file="/test/a.skp.oo",
             revision=7,
             applied_revision=7,
         ))
         state.set_node(NodeState(
             node_id="node-2",
-            source_file="/test/b.loon",
+            source_file="/test/b.skp.oo",
             revision=3,
             applied_revision=3,
         ))
@@ -888,7 +888,7 @@ class TestVcadConnectionRecovery:
         ))
         state.set_node(NodeState(
             node_id="node-2",
-            source_file="/nonexistent/missing.vcad.loon",
+            source_file="/nonexistent/missing.skp.oo",
             revision=3,
             applied_revision=3,
         ))

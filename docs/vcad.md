@@ -16,13 +16,13 @@ vcad is a BRep (Boundary Representation) kernel integrated into SketchUp via sup
   SketchUp Ruby Runtime       vcad Rust Sidecar
   (bridge_server.rb)          (loon-lang + vcad-eval + vcad-kernel)
          |                            |
-  SketchUp Application         .vcad.loon files (source of truth)
+  SketchUp Application         .skp.oo files (source of truth)
 ```
 
 ### Evaluation Pipeline
 
 ```
-.vcad.loon source
+.skp.oo source
     | (loon-lang: parse + interpret)
 Value::Adt tree (pure data)
     | (vcad-loon: value_to_document)
@@ -67,32 +67,32 @@ cargo build --release --manifest-path vcad/sidecar/Cargo.toml
 1. Start sidecar: `./vcad-sidecar`
 2. Start SketchUp with supex runtime: `./scripts/launch-sketchup.sh`
 3. Via MCP tools:
-   - Create a `.vcad.loon` file with a solid
-   - Call `vcad_place("test-bracket", "bracket.vcad.loon")`
+   - Create a `.skp.oo` file with a solid
+   - Call `vcad_place("test-bracket", "bracket.skp.oo")`
    - Verify the component appears: `vcad_list_nodes()`
    - Modify the source file
    - Call `vcad_update("test-bracket")`
 
-## Writing .vcad.loon Files
+## Writing .skp.oo Files
 
-Each `.vcad.loon` file must produce exactly one solid. The last expression is evaluated and converted to geometry.
+Each `.skp.oo` file must produce exactly one solid. The last expression is evaluated and converted to geometry.
 
 ### Data model
 
-One `.vcad.loon` file = one SketchUp ComponentDefinition. For multi-part assemblies, use multiple files with shared modules:
+One `.skp.oo` file = one SketchUp ComponentDefinition. For multi-part assemblies, use multiple files with shared modules:
 
 ```
 project/
   src/
-    build.loon           # Shared parametric functions
-  base-plate.vcad.loon   # One solid output
-  bracket.vcad.loon      # One solid output
+    build.oo           # Shared parametric functions
+  base-plate.skp.oo   # One solid output
+  bracket.skp.oo      # One solid output
 ```
 
 ### Example
 
 ```loon
-; bracket.vcad.loon
+; bracket.skp.oo
 [pipe [cube 50.0 30.0 5.0]
   [difference [cylinder 3.0 10.0]]
   [fillet 1.0]
@@ -128,7 +128,7 @@ Thread-last macro for chaining:
 ### Module system
 
 ```loon
-[use build]                 ; Import module from build.loon
+[use build]                 ; Import module from build.oo
 [build.make-plate]          ; Call exported function
 ```
 
@@ -210,12 +210,12 @@ All geometry constructors produce ADT values (pure data, no BRep objects):
 
 ### vcad_place
 
-Evaluate a `.vcad.loon` file and place the resulting mesh in SketchUp.
+Evaluate a `.skp.oo` file and place the resulting mesh in SketchUp.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `node_id` | string | Unique identifier for this vcad node |
-| `source_file` | string | Path to the `.vcad.loon` file |
+| `source_file` | string | Path to the `.skp.oo` file |
 | `position` | [x,y,z] | Position in mm (default [0,0,0]) |
 | `component_name` | string | Optional SketchUp component name |
 

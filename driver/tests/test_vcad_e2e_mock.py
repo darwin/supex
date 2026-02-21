@@ -127,8 +127,8 @@ class TestVcadE2EMockSidecarEval:
         conn.disconnect()
 
     def test_vcad_e2e_mock_eval_file(self, mock_sidecar, tmp_path):
-        """eval_file with a .vcad.loon file returns eval result."""
-        loon_file = tmp_path / "test.vcad.loon"
+        """eval_file with a .skp.oo file returns eval result."""
+        loon_file = tmp_path / "test.skp.oo"
         loon_file.write_text("[pipe [cube 50.0 10.0 30.0] [fillet 2.0]]")
         obj_path = write_obj(str(tmp_path))
 
@@ -215,7 +215,7 @@ class TestVcadE2EMockSecurity:
 
         conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         with pytest.raises(VcadRemoteError) as exc_info:
-            conn.eval_file("../outside/test.vcad.loon")
+            conn.eval_file("../outside/test.skp.oo")
 
         assert exc_info.value.code == -32000
         assert exc_info.value.data.get("error_code") == "PATH_NOT_ALLOWED"
@@ -293,7 +293,7 @@ class TestVcadE2EMockFullPipeline:
         vcad_conn = VcadConnection(
             host="127.0.0.1", port=mock_sidecar.port, agent="e2e"
         )
-        eval_result = vcad_conn.eval_file(str(tmp_path / "bracket.vcad.loon"))
+        eval_result = vcad_conn.eval_file(str(tmp_path / "bracket.skp.oo"))
         assert eval_result["obj_path"] == obj_path
 
         # Place in SketchUp via su-mock (real Ruby bridge)
@@ -302,7 +302,7 @@ class TestVcadE2EMockFullPipeline:
             params={
                 "obj_path": obj_path,
                 "node_id": "e2e-bracket",
-                "source_file": str(tmp_path / "bracket.vcad.loon"),
+                "source_file": str(tmp_path / "bracket.skp.oo"),
                 "position": [0, 0, 0],
             },
         )
@@ -320,7 +320,7 @@ class TestVcadE2EMockFullPipeline:
         """Place a node, then update it with new geometry."""
         obj_path_v1 = write_obj(str(tmp_path), "v1.obj")
         obj_path_v2 = write_obj(str(tmp_path), "v2.obj")
-        source_file = str(tmp_path / "part.vcad.loon")
+        source_file = str(tmp_path / "part.skp.oo")
 
         mock_sidecar.set_response(
             "tools/call",
@@ -481,7 +481,7 @@ class TestVcadE2EMockRecovery:
         state.set_node(
             NodeState(
                 node_id="node-gone",
-                source_file="/nonexistent/gone.vcad.loon",
+                source_file="/nonexistent/gone.skp.oo",
                 revision=2,
                 applied_revision=2,
                 status="active",

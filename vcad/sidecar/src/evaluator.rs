@@ -193,7 +193,7 @@ impl Evaluator {
         self.evaluate_and_export(&doc, "eval")
     }
 
-    /// Evaluate .vcad.loon file (with module resolution via base_dir).
+    /// Evaluate .skp.oo file (with module resolution via base_dir).
     pub fn eval_file(&mut self, path: &str) -> Result<EvalResult, EvalError> {
         let file_path = Path::new(path);
         let doc = eval_vcad_file(file_path).map_err(EvalError::Loon)?;
@@ -212,7 +212,7 @@ impl Evaluator {
 
     /// Inspect: evaluate and return only geometry metadata (no OBJ export).
     pub fn inspect(&self, code_or_path: &str) -> Result<EvalResult, EvalError> {
-        let doc = if code_or_path.ends_with(".vcad.loon") || code_or_path.ends_with(".loon") {
+        let doc = if code_or_path.ends_with(".skp.oo") || code_or_path.ends_with(".skp.loon") || code_or_path.ends_with(".oo") {
             eval_vcad_file(Path::new(code_or_path)).map_err(EvalError::Loon)?
         } else {
             eval_vcad(code_or_path, None).map_err(EvalError::Loon)?

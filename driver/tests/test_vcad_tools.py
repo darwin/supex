@@ -81,7 +81,7 @@ class TestVcadPlace:
             vcad_place(
                 mock_ctx,
                 node_id="bracket",
-                source_file="/project/bracket.vcad.loon",
+                source_file="/project/bracket.skp.oo",
                 position=[10.0, 20.0, 0.0],
                 component_name="my_bracket",
             )
@@ -89,7 +89,7 @@ class TestVcadPlace:
 
         assert result["success"] is True
         assert result["node_id"] == "bracket"
-        mock_vcad.eval_file.assert_called_once_with("/project/bracket.vcad.loon")
+        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo")
         call_args = mock_sketchup.send_command.call_args
         assert call_args.kwargs["method"] == "place_vcad_node"
         params = call_args.kwargs["params"]
@@ -103,7 +103,7 @@ class TestVcadPlace:
         mock_vcad.eval_file.return_value = {"obj_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {"success": True, "node_id": "n1"}
 
-        vcad_place(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+        vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
 
         params = mock_sketchup.send_command.call_args.kwargs["params"]
         assert "position" not in params
@@ -115,7 +115,7 @@ class TestVcadPlace:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/bad.vcad.loon")
+            vcad_place(mock_ctx, node_id="n1", source_file="/bad.skp.oo")
         )
 
         assert result["success"] is False
@@ -127,7 +127,7 @@ class TestVcadPlace:
         mock_vcad.eval_file.return_value = {"result": "no mesh"}
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+            vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
         )
 
         assert result["success"] is False
@@ -141,7 +141,7 @@ class TestVcadPlace:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+            vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
         )
 
         assert result["success"] is False
@@ -170,19 +170,19 @@ class TestVcadUpdate:
             vcad_update(
                 mock_ctx,
                 node_id="bracket",
-                source_file="/project/bracket.vcad.loon",
+                source_file="/project/bracket.skp.oo",
             )
         )
 
         assert result["success"] is True
         assert result["version"] == 2
-        mock_vcad.eval_file.assert_called_once_with("/project/bracket.vcad.loon")
+        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo")
 
     def test_update_lookup_source(self, mock_ctx, mock_vcad, mock_sketchup):
         """Update without source_file looks it up from SketchUp."""
         # First call: get_vcad_node lookup; second call: update_vcad_node
         mock_sketchup.send_command.side_effect = [
-            {"source_file": "/project/plate.vcad.loon", "node_id": "plate"},
+            {"source_file": "/project/plate.skp.oo", "node_id": "plate"},
             {"success": True, "node_id": "plate", "version": 4},
         ]
         mock_vcad.eval_file.return_value = {"obj_path": "/tmp/plate.obj"}
@@ -193,7 +193,7 @@ class TestVcadUpdate:
         # Verify lookup was done
         first_call = mock_sketchup.send_command.call_args_list[0]
         assert first_call.kwargs["method"] == "get_vcad_node"
-        mock_vcad.eval_file.assert_called_once_with("/project/plate.vcad.loon")
+        mock_vcad.eval_file.assert_called_once_with("/project/plate.skp.oo")
 
     def test_update_node_not_found(self, mock_ctx, mock_sketchup):
         """Node not found in SketchUp returns error."""
@@ -209,7 +209,7 @@ class TestVcadUpdate:
         mock_vcad.eval_file.side_effect = VcadTimeoutError("Eval timed out")
 
         result = json.loads(
-            vcad_update(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+            vcad_update(mock_ctx, node_id="n1", source_file="/f.skp.oo")
         )
 
         assert result["success"] is False
@@ -266,14 +266,14 @@ class TestVcadExport:
         }
 
         result = json.loads(
-            vcad_export(mock_ctx, source="/project/part.vcad.loon", format="obj")
+            vcad_export(mock_ctx, source="/project/part.skp.oo", format="obj")
         )
 
         assert result["success"] is True
         assert result["file_path"] == "/tmp/output.obj"
         call_args = mock_vcad.send_command.call_args
         assert call_args[0][0] == "vcad.export"
-        assert call_args[0][1]["source"] == "/project/part.vcad.loon"
+        assert call_args[0][1]["source"] == "/project/part.skp.oo"
         assert call_args[0][1]["format"] == "obj"
 
     def test_export_with_output_path(self, mock_ctx, mock_vcad):
@@ -342,8 +342,8 @@ class TestVcadListNodes:
     def test_list_nodes(self, mock_ctx, mock_sketchup):
         """List returns nodes from SketchUp."""
         mock_sketchup.send_command.return_value = [
-            {"node_id": "bracket", "source_file": "/a.vcad.loon", "version": 2},
-            {"node_id": "plate", "source_file": "/b.vcad.loon", "version": 1},
+            {"node_id": "bracket", "source_file": "/a.skp.oo", "version": 2},
+            {"node_id": "plate", "source_file": "/b.skp.oo", "version": 1},
         ]
 
         result = json.loads(vcad_list_nodes(mock_ctx))
@@ -414,7 +414,7 @@ class TestVcadToolsErrorPropagation:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+            vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
         )
 
         assert result["success"] is False
@@ -432,7 +432,7 @@ class TestVcadToolsErrorPropagation:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+            vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
         )
 
         assert result["success"] is False
@@ -491,7 +491,7 @@ class TestVcadToolsErrorPropagation:
         )
 
         result = json.loads(
-            vcad_update(mock_ctx, node_id="n1", source_file="/f.vcad.loon")
+            vcad_update(mock_ctx, node_id="n1", source_file="/f.skp.oo")
         )
 
         assert result["success"] is False

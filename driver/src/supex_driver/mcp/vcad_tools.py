@@ -140,7 +140,7 @@ def vcad_place(
     position: list[float] | None = None,
     component_name: str | None = None,
 ) -> str:
-    """Evaluate a .vcad.loon file and place the resulting mesh in SketchUp.
+    """Evaluate a .skp.oo file and place the resulting mesh in SketchUp.
 
     1. Send source file to vcad sidecar for evaluation -> OBJ file
     2. Send OBJ path to SketchUp -> definitions.import -> ComponentDefinition
@@ -149,7 +149,7 @@ def vcad_place(
     Args:
         ctx: MCP context
         node_id: Unique identifier for this vcad node
-        source_file: Path to the .vcad.loon file
+        source_file: Path to the .skp.oo file
         position: Optional [x, y, z] position in mm (default [0, 0, 0])
         component_name: Optional name for the SketchUp component
     """
@@ -305,11 +305,11 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
 def vcad_inspect(ctx: McpContext, source: str) -> str:
     """Inspect vcad geometry: volume, surface area, bounding box.
 
-    Source can be a .vcad.loon file path or inline Loon code.
+    Source can be a .skp.oo file path or inline Loon code.
 
     Args:
         ctx: MCP context
-        source: A .vcad.loon file path or inline Loon code
+        source: A .skp.oo file path or inline Loon code
     """
     try:
         vcad = get_vcad_connection(agent=get_agent_name(ctx))
@@ -338,7 +338,7 @@ def vcad_export(
 
     Args:
         ctx: MCP context
-        source: A .vcad.loon file path or inline Loon code
+        source: A .skp.oo file path or inline Loon code
         format: Export format - "obj" or "step" (default "obj")
         output_path: Optional output file path. Auto-generated if empty.
     """

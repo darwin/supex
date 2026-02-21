@@ -450,7 +450,7 @@ class VcadConnection:
         """Evaluate a Loon file and return the result.
 
         Args:
-            path: Path to the .vcad.loon file.
+            path: Path to the .skp.oo file.
 
         Returns:
             Evaluation result from sidecar.
