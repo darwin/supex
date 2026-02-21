@@ -10,7 +10,7 @@ def __getattr__(name: str):
     submodules like supex_driver.mcp.resources.
     """
     if name in ("mcp", "main"):
-        from supex_driver.mcp.server import main, mcp
+        from supex_driver.mcp.mcp_server import main, mcp
         if name == "mcp":
             return mcp
         return main

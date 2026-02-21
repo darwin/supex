@@ -1,6 +1,6 @@
 """Tests for MCP server functionality."""
 
-from supex_driver.mcp.server import mcp
+from supex_driver.mcp.mcp_server import mcp
 
 
 class TestMCPServer:
@@ -37,7 +37,7 @@ class TestMCPServer:
 
         # Since FastMCP doesn't expose internal tools directly,
         # we test that the functions exist in the module
-        from supex_driver.mcp import server
+        from supex_driver.mcp import mcp_server as server
 
         for expected_tool in expected_tools:
             assert hasattr(server, expected_tool), f"Missing tool: {expected_tool}"

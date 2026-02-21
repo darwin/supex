@@ -127,7 +127,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "supex_driver.connection.*",
-    "supex_driver.mcp.server"
+    "supex_driver.mcp.mcp_server"
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

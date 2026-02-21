@@ -526,7 +526,7 @@ class TestVCADToolsRegistration:
 
     def test_tools_registered_on_server(self):
         """vcad tools are registered via side-effect import in server.py."""
-        from supex_driver.mcp.server import mcp
+        from supex_driver.mcp.mcp_server import mcp
 
         # After importing server.py, vcad_tools should be loaded
         # We can verify by checking the module is accessible

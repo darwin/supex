@@ -21,7 +21,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADRemoteError,
     VCADTimeoutError,
 )
-from supex_driver.mcp.server import McpContext, get_agent_name, mcp
+from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
 
 logger = logging.getLogger("supex.mcp.vcad")
 
