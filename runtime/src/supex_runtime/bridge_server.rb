@@ -525,7 +525,7 @@ module SupexRuntime
     # @param args [Hash] tool arguments
     # @param workspace [String, nil] workspace path for file operations
     # @return [Hash] tool execution result
-    def execute_tool(tool_name, args, workspace)
+    def execute_tool(tool_name, args, workspace = nil)
       execute_core_tool(tool_name, args, workspace) || execute_introspection_tool(tool_name, args, workspace) ||
         (raise "Unknown tool: #{tool_name}")
     end

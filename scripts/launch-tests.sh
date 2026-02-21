@@ -137,7 +137,7 @@ main() {
     run_test_suite \
         "Python Driver Tests" \
         "${PROJECT_ROOT}/driver" \
-        "uv run pytest tests/" \
+        "uv run python -m pytest tests/" \
         || true  # Continue even if failed
 
     # Run Ruby Stdlib tests
@@ -159,7 +159,7 @@ main() {
         run_test_suite \
             "E2E Tests" \
             "${PROJECT_ROOT}/tests" \
-            "uv run pytest e2e/ -v" \
+            "uv run python -m pytest e2e/ -v" \
             || true  # Continue even if failed
     fi
 
