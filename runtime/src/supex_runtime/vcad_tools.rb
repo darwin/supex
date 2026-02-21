@@ -5,7 +5,7 @@ require_relative 'path_policy'
 module SupexRuntime
   # Tool implementations for vcad node management in SketchUp.
   # Handles mesh import, vcad attribute storage, and instance lifecycle.
-  module VcadTools
+  module VCADTools
     extend self
 
     VCAD_DICT = 'vcad'

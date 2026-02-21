@@ -15,11 +15,11 @@ from supex_driver.connection.exceptions import (
     SketchUpTimeoutError,
 )
 from supex_driver.connection.vcad_exceptions import (
-    VcadCapabilityError,
-    VcadConnectionError,
-    VcadProtocolError,
-    VcadRemoteError,
-    VcadTimeoutError,
+    VCADCapabilityError,
+    VCADConnectionError,
+    VCADProtocolError,
+    VCADRemoteError,
+    VCADTimeoutError,
 )
 from supex_driver.mcp.server import McpContext, get_agent_name, mcp
 
@@ -38,7 +38,7 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
     Driver must not rewrite upstream error_code; it may only enrich
     missing details.operation.
     """
-    if isinstance(e, VcadCapabilityError):
+    if isinstance(e, VCADCapabilityError):
         logger.error(f"Capability error during {operation}: {e}")
         return json.dumps(
             {
@@ -48,7 +48,7 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
                 "details": e.details,
             }
         )
-    if isinstance(e, VcadProtocolError):
+    if isinstance(e, VCADProtocolError):
         logger.error(f"Protocol error during {operation}: {e}")
         response: dict[str, Any] = {
             "success": False,
@@ -58,7 +58,7 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
         if e.details:
             response["details"] = e.details
         return json.dumps(response)
-    if isinstance(e, VcadRemoteError):
+    if isinstance(e, VCADRemoteError):
         logger.error(f"Remote error during {operation}: {e}")
         response = {
             "success": False,
@@ -68,7 +68,7 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
         if e.data:
             response["details"] = e.data
         return json.dumps(response)
-    if isinstance(e, (VcadConnectionError, VcadTimeoutError)):
+    if isinstance(e, (VCADConnectionError, VCADTimeoutError)):
         logger.error(f"Connection error during {operation}: {e}")
         return json.dumps(
             {
@@ -160,11 +160,11 @@ def vcad_place(
         vcad = get_vcad_connection(agent=agent)
         eval_result = vcad.eval_file(source_file)
     except (
-        VcadCapabilityError,
-        VcadProtocolError,
-        VcadRemoteError,
-        VcadConnectionError,
-        VcadTimeoutError,
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_place:eval")
     except Exception as e:
@@ -257,11 +257,11 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
         vcad = get_vcad_connection(agent=agent)
         eval_result = vcad.eval_file(source_file)
     except (
-        VcadCapabilityError,
-        VcadProtocolError,
-        VcadRemoteError,
-        VcadConnectionError,
-        VcadTimeoutError,
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_update:eval")
     except Exception as e:
@@ -316,11 +316,11 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
         result = vcad.inspect(source)
         return json.dumps({"success": True, **result})
     except (
-        VcadCapabilityError,
-        VcadProtocolError,
-        VcadRemoteError,
-        VcadConnectionError,
-        VcadTimeoutError,
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_inspect")
     except Exception as e:
@@ -353,11 +353,11 @@ def vcad_export(
         result = vcad.send_command("vcad.export", params)
         return json.dumps({"success": True, **result})
     except (
-        VcadCapabilityError,
-        VcadProtocolError,
-        VcadRemoteError,
-        VcadConnectionError,
-        VcadTimeoutError,
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_export")
     except Exception as e:
@@ -377,11 +377,11 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
         result = vcad.eval_code(code)
         return json.dumps({"success": True, **result})
     except (
-        VcadCapabilityError,
-        VcadProtocolError,
-        VcadRemoteError,
-        VcadConnectionError,
-        VcadTimeoutError,
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_eval")
     except Exception as e:

@@ -11,28 +11,28 @@ import pytest
 
 from supex_driver.connection.vcad_connection import (
     PROTOCOL_VERSION,
-    VcadConnection,
+    VCADConnection,
     _parse_major_version,
 )
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
-    VcadCapabilityError,
-    VcadConnectionError,
-    VcadProtocolError,
-    VcadRemoteError,
+    VCADCapabilityError,
+    VCADConnectionError,
+    VCADProtocolError,
+    VCADRemoteError,
 )
-from supex_driver.connection.vcad_sidecar import VcadSidecar
+from supex_driver.connection.vcad_sidecar import VCADSidecar
 from supex_driver.connection.vcad_state import (
     EvalJob,
     EvalQueue,
     NodeState,
     RevisionTracker,
     TriggerCoalescer,
-    VcadPersistentState,
-    VcadReconciler,
+    VCADPersistentState,
+    VCADReconciler,
 )
-from tests.helpers.mock_vcad_sidecar import MockVcadSidecar
+from tests.helpers.mock_vcad_sidecar import MockVCADSidecar
 
 
 # ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ from tests.helpers.mock_vcad_sidecar import MockVcadSidecar
 @pytest.fixture
 def mock_sidecar():
     """Create and start a mock vcad sidecar server."""
-    server = MockVcadSidecar()
+    server = MockVCADSidecar()
     server.start()
     yield server
     server.stop()
@@ -56,15 +56,15 @@ def tmp_state_path(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# VcadConnection — basic
+# VCADConnection — basic
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionBasic:
-    """Test VcadConnection initialization and basic behavior."""
+class TestVCADConnectionBasic:
+    """Test VCADConnection initialization and basic behavior."""
 
     def test_initialization(self) -> None:
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
         assert conn.host == "localhost"
         assert conn.port == 9877
         assert conn.timeout == 30.0
@@ -87,7 +87,7 @@ class TestVcadConnectionBasic:
         }).encode("utf-8") + b"\n"
         mock_sock.recv.return_value = hello_response
 
-        conn = VcadConnection(host="localhost", port=9877, agent="test")
+        conn = VCADConnection(host="localhost", port=9877, agent="test")
         result = conn.connect()
 
         assert result is True
@@ -100,7 +100,7 @@ class TestVcadConnectionBasic:
     def test_connect_failure(self, mock_socket: Mock) -> None:
         mock_socket.side_effect = ConnectionRefusedError("Connection refused")
 
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
         result = conn.connect()
 
         assert result is False
@@ -108,7 +108,7 @@ class TestVcadConnectionBasic:
 
     def test_disconnect(self) -> None:
         mock_sock = Mock()
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
         conn.sock = mock_sock
 
         conn.disconnect()
@@ -120,7 +120,7 @@ class TestVcadConnectionBasic:
         mock_sock = Mock()
         mock_sock.close.side_effect = OSError("Socket error")
 
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
         conn.sock = mock_sock
 
         conn.disconnect()
@@ -128,11 +128,11 @@ class TestVcadConnectionBasic:
 
 
 # ---------------------------------------------------------------------------
-# VcadConnection — protocol negotiation
+# VCADConnection — protocol negotiation
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionProtocol:
+class TestVCADConnectionProtocol:
     """Test protocol version negotiation and capability checking."""
 
     def test_parse_major_version(self) -> None:
@@ -159,9 +159,9 @@ class TestVcadConnectionProtocol:
         }).encode("utf-8") + b"\n"
         mock_sock.recv.return_value = hello_response
 
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
 
-        with pytest.raises(VcadProtocolError) as exc_info:
+        with pytest.raises(VCADProtocolError) as exc_info:
             conn.connect()
 
         assert exc_info.value.error_code == PROTOCOL_MISMATCH
@@ -188,9 +188,9 @@ class TestVcadConnectionProtocol:
         }).encode("utf-8") + b"\n"
         mock_sock.recv.return_value = hello_response
 
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
 
-        with pytest.raises(VcadProtocolError) as exc_info:
+        with pytest.raises(VCADProtocolError) as exc_info:
             conn.connect()
 
         assert exc_info.value.error_code == PROTOCOL_MISMATCH
@@ -215,10 +215,10 @@ class TestVcadConnectionProtocol:
         }).encode("utf-8") + b"\n"
         mock_sock.recv.return_value = hello_response
 
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
         conn.connect()
 
-        with pytest.raises(VcadCapabilityError) as exc_info:
+        with pytest.raises(VCADCapabilityError) as exc_info:
             conn.require_capability("adt_cache", "cross_node_import")
 
         assert exc_info.value.error_code == CAPABILITY_UNAVAILABLE
@@ -250,7 +250,7 @@ class TestVcadConnectionProtocol:
         }).encode("utf-8") + b"\n"
         mock_sock.recv.return_value = hello_response
 
-        conn = VcadConnection(host="localhost", port=9877)
+        conn = VCADConnection(host="localhost", port=9877)
         conn.connect()
 
         assert conn._capabilities == capabilities
@@ -258,9 +258,9 @@ class TestVcadConnectionProtocol:
         # Should not raise for available capability
         conn.require_capability("eval", "eval_code")
 
-    def test_hello_includes_protocol_version(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_hello_includes_protocol_version(self, mock_sidecar: MockVCADSidecar) -> None:
         """Hello handshake includes protocol_version."""
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
         conn.connect()
         conn.disconnect()
 
@@ -269,9 +269,9 @@ class TestVcadConnectionProtocol:
         assert hello_req["method"] == "hello"
         assert hello_req["params"]["protocol_version"] == PROTOCOL_VERSION
 
-    def test_hello_includes_workspace_and_token(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_hello_includes_workspace_and_token(self, mock_sidecar: MockVCADSidecar) -> None:
         """Hello handshake includes workspace and token when configured."""
-        conn = VcadConnection(
+        conn = VCADConnection(
             host="127.0.0.1",
             port=mock_sidecar.port,
             workspace="/test/workspace",
@@ -286,20 +286,20 @@ class TestVcadConnectionProtocol:
 
 
 # ---------------------------------------------------------------------------
-# VcadConnection — integration with mock sidecar
+# VCADConnection — integration with mock sidecar
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionIntegration:
+class TestVCADConnectionIntegration:
     """Integration tests with mock vcad sidecar."""
 
-    def test_eval_code(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_eval_code(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response(
             "tools/call",
             result={"mesh": {"vertices": [], "indices": []}},
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
         result = conn.eval_code("[cube 10.0 10.0 10.0]")
 
         assert "mesh" in result
@@ -310,13 +310,13 @@ class TestVcadConnectionIntegration:
         assert tool_call["params"]["arguments"]["code"] == "[cube 10.0 10.0 10.0]"
         conn.disconnect()
 
-    def test_eval_file(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_eval_file(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response(
             "tools/call",
             result={"mesh": {"vertices": [0.0], "indices": [0]}},
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
         result = conn.eval_file("/path/to/test.skp.oo")
 
         assert "mesh" in result
@@ -325,13 +325,13 @@ class TestVcadConnectionIntegration:
         assert tool_call["params"]["arguments"]["path"] == "/path/to/test.skp.oo"
         conn.disconnect()
 
-    def test_inspect(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_inspect(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response(
             "tools/call",
             result={"type": "Cube", "params": [10.0, 10.0, 10.0]},
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
         result = conn.inspect("[cube 10.0 10.0 10.0]")
 
         assert result["type"] == "Cube"
@@ -339,25 +339,25 @@ class TestVcadConnectionIntegration:
         assert tool_call["params"]["name"] == "vcad.inspect"
         conn.disconnect()
 
-    def test_remote_error(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_remote_error(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response(
             "tools/call",
             error={"code": -32000, "message": "Loon parse error"},
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
 
-        with pytest.raises(VcadRemoteError) as exc_info:
+        with pytest.raises(VCADRemoteError) as exc_info:
             conn.eval_code("invalid code")
 
         assert exc_info.value.code == -32000
         assert "parse error" in exc_info.value.message
         conn.disconnect()
 
-    def test_connection_reuse(self, mock_sidecar: MockVcadSidecar) -> None:
+    def test_connection_reuse(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response("tools/call", result={"ok": True})
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port)
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
 
         for _ in range(5):
             conn.send_command("vcad.eval_code", {"code": "test"})
@@ -369,7 +369,7 @@ class TestVcadConnectionIntegration:
         conn.disconnect()
 
     def test_send_command_raises_when_not_connected(self) -> None:
-        conn = VcadConnection(host="localhost", port=1)
+        conn = VCADConnection(host="localhost", port=1)
 
         with (
             patch.object(conn, "connect", return_value=True),
@@ -377,7 +377,7 @@ class TestVcadConnectionIntegration:
         ):
             conn.sock = None
 
-            with pytest.raises(VcadConnectionError) as exc_info:
+            with pytest.raises(VCADConnectionError) as exc_info:
                 conn.send_command("ping")
 
             assert "Socket not initialized" in str(exc_info.value)
@@ -388,7 +388,7 @@ class TestVcadConnectionIntegration:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionStaleGuard:
+class TestVCADConnectionStaleGuard:
     """Test revision tracking and stale-result protection."""
 
     def test_basic_revision_tracking(self) -> None:
@@ -457,7 +457,7 @@ class TestVcadConnectionStaleGuard:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionSupersedeQueue:
+class TestVCADConnectionSupersedeQueue:
     """Test eval queue with supersede pruning."""
 
     def test_basic_enqueue_dequeue(self) -> None:
@@ -560,7 +560,7 @@ class TestVcadConnectionSupersedeQueue:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionTriggerCoalescing:
+class TestVCADConnectionTriggerCoalescing:
     """Test trigger coalescing window for event merging."""
 
     def test_events_within_window_merged(self) -> None:
@@ -680,11 +680,11 @@ class TestVcadConnectionTriggerCoalescing:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionPersistentState:
+class TestVCADConnectionPersistentState:
     """Test persistent vcad runtime state management."""
 
     def test_save_and_load(self, tmp_state_path: str) -> None:
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
             source_file="/test/bracket.skp.oo",
@@ -705,7 +705,7 @@ class TestVcadConnectionPersistentState:
         assert os.path.exists(tmp_state_path)
 
         # Load into fresh instance
-        loaded = VcadPersistentState(state_path=tmp_state_path)
+        loaded = VCADPersistentState(state_path=tmp_state_path)
         assert loaded.load() is True
 
         nodes = loaded.all_nodes()
@@ -715,12 +715,12 @@ class TestVcadConnectionPersistentState:
         assert nodes["node-2"].applied_revision == 2
 
     def test_load_missing_file(self, tmp_state_path: str) -> None:
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         assert state.load() is False
 
     def test_atomic_write(self, tmp_state_path: str) -> None:
         """Verify save uses atomic write (no partial state on crash)."""
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(node_id="n1", source_file="/a.skp.oo"))
         state.save()
 
@@ -731,7 +731,7 @@ class TestVcadConnectionPersistentState:
         assert "n1" in data["nodes"]
 
     def test_remove_node(self, tmp_state_path: str) -> None:
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(node_id="n1", source_file="/a.skp.oo"))
         state.set_node(NodeState(node_id="n2", source_file="/b.skp.oo"))
 
@@ -747,7 +747,7 @@ class TestVcadConnectionPersistentState:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionRecovery:
+class TestVCADConnectionRecovery:
     """Test startup recovery and state reconciliation."""
 
     def test_no_drift(self) -> None:
@@ -762,11 +762,11 @@ class TestVcadConnectionRecovery:
         }
         runtime = [{"node_id": "node-1"}]
 
-        drift = VcadReconciler.classify_drift(persisted, runtime)
+        drift = VCADReconciler.classify_drift(persisted, runtime)
         assert len(drift) == 0
 
-        result = VcadReconciler.reconcile(
-            VcadPersistentState(state_path="/dev/null"), drift
+        result = VCADReconciler.reconcile(
+            VCADPersistentState(state_path="/dev/null"), drift
         )
         assert result["status"] == "ok"
 
@@ -779,7 +779,7 @@ class TestVcadConnectionRecovery:
         }
         runtime: list[dict] = []
 
-        drift = VcadReconciler.classify_drift(persisted, runtime)
+        drift = VCADReconciler.classify_drift(persisted, runtime)
         assert len(drift) == 1
         assert drift[0].drift_type == "missing_node"
 
@@ -788,7 +788,7 @@ class TestVcadConnectionRecovery:
         persisted: dict[str, NodeState] = {}
         runtime = [{"node_id": "orphan-1"}]
 
-        drift = VcadReconciler.classify_drift(persisted, runtime)
+        drift = VCADReconciler.classify_drift(persisted, runtime)
         assert len(drift) == 1
         assert drift[0].drift_type == "orphan_definition"
 
@@ -799,7 +799,7 @@ class TestVcadConnectionRecovery:
             missing_path = f.name
         os.unlink(missing_path)
 
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
             source_file=missing_path,
@@ -811,10 +811,10 @@ class TestVcadConnectionRecovery:
         persisted = state.all_nodes()
         runtime = [{"node_id": "node-1"}]
 
-        drift = VcadReconciler.classify_drift(persisted, runtime)
+        drift = VCADReconciler.classify_drift(persisted, runtime)
         assert any(d.drift_type == "source_missing" for d in drift)
 
-        result = VcadReconciler.reconcile(state, drift)
+        result = VCADReconciler.reconcile(state, drift)
         assert result["status"] == "degraded"
 
         # Verify node was marked degraded
@@ -841,13 +841,13 @@ class TestVcadConnectionRecovery:
         }
         runtime = [{"node_id": "node-1"}]
 
-        drift = VcadReconciler.classify_drift(persisted, runtime)
+        drift = VCADReconciler.classify_drift(persisted, runtime)
         assert len(drift) == 1
         assert drift[0].drift_type == "revision_gap"
 
     def test_rebuild_revisions_from_state(self, tmp_state_path: str) -> None:
         """Rebuild revision counters from persisted state after restart."""
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
             source_file="/test/a.skp.oo",
@@ -863,11 +863,11 @@ class TestVcadConnectionRecovery:
         state.save()
 
         # Simulate restart — load state and rebuild tracker
-        loaded_state = VcadPersistentState(state_path=tmp_state_path)
+        loaded_state = VCADPersistentState(state_path=tmp_state_path)
         loaded_state.load()
 
         tracker = RevisionTracker()
-        VcadReconciler.rebuild_revisions(loaded_state, tracker)
+        VCADReconciler.rebuild_revisions(loaded_state, tracker)
 
         assert tracker.current_revision("node-1") == 7
         assert tracker.current_revision("node-2") == 3
@@ -879,7 +879,7 @@ class TestVcadConnectionRecovery:
     def test_full_reconciliation_flow(self, tmp_state_path: str) -> None:
         """Full startup recovery: load state, classify drift, reconcile."""
         # Set up persisted state
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
             source_file=__file__,  # exists
@@ -895,7 +895,7 @@ class TestVcadConnectionRecovery:
         state.save()
 
         # Simulate restart — load persisted state
-        loaded = VcadPersistentState(state_path=tmp_state_path)
+        loaded = VCADPersistentState(state_path=tmp_state_path)
         loaded.load()
 
         # SketchUp bridge returns node-1, node-2, and an orphan node-3
@@ -906,19 +906,19 @@ class TestVcadConnectionRecovery:
             {"node_id": "node-3"},
         ]
 
-        drift = VcadReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
+        drift = VCADReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
 
         # Should have: source_missing for node-2, orphan for node-3
         drift_types = {d.drift_type for d in drift}
         assert "source_missing" in drift_types
         assert "orphan_definition" in drift_types
 
-        result = VcadReconciler.reconcile(loaded, drift)
+        result = VCADReconciler.reconcile(loaded, drift)
         assert result["status"] == "degraded"
 
         # Rebuild tracker
         tracker = RevisionTracker()
-        VcadReconciler.rebuild_revisions(loaded, tracker)
+        VCADReconciler.rebuild_revisions(loaded, tracker)
 
         # node-1 should still be at revision 5
         assert tracker.current_revision("node-1") == 5
@@ -931,7 +931,7 @@ class TestVcadConnectionRecovery:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionSidecarRestart:
+class TestVCADConnectionSidecarRestart:
     """Test sidecar restart behavior under load."""
 
     def test_stale_guard_prevents_rollback_on_restart(self) -> None:
@@ -972,7 +972,7 @@ class TestVcadConnectionSidecarRestart:
 
     def test_topological_cascade_on_reconnect(self, tmp_state_path: str) -> None:
         """After sidecar restart, rebuild caches via topological cascade."""
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-a",
             source_file=__file__,
@@ -988,11 +988,11 @@ class TestVcadConnectionSidecarRestart:
         state.save()
 
         # Simulate restart: load state and rebuild
-        loaded = VcadPersistentState(state_path=tmp_state_path)
+        loaded = VCADPersistentState(state_path=tmp_state_path)
         loaded.load()
 
         tracker = RevisionTracker()
-        VcadReconciler.rebuild_revisions(loaded, tracker)
+        VCADReconciler.rebuild_revisions(loaded, tracker)
 
         # Simulate cache rebuild cascade: bump revisions
         cascade_nodes = list(loaded.all_nodes().keys())
@@ -1013,34 +1013,34 @@ class TestVcadConnectionSidecarRestart:
 
 
 # ---------------------------------------------------------------------------
-# VcadSidecar lifecycle
+# VCADSidecar lifecycle
 # ---------------------------------------------------------------------------
 
 
-class TestVcadConnectionSidecarLifecycle:
-    """Test VcadSidecar process lifecycle management."""
+class TestVCADConnectionSidecarLifecycle:
+    """Test VCADSidecar process lifecycle management."""
 
     def test_init_default_path(self) -> None:
-        sidecar = VcadSidecar()
+        sidecar = VCADSidecar()
         # Should have resolved some path (or None if root not found)
         assert isinstance(sidecar.process, type(None))
 
     def test_init_custom_path(self) -> None:
-        sidecar = VcadSidecar(sidecar_path="/custom/path/binary")
+        sidecar = VCADSidecar(sidecar_path="/custom/path/binary")
         assert sidecar.sidecar_path == "/custom/path/binary"
 
     def test_init_from_env(self) -> None:
         with patch.dict(os.environ, {"VCAD_SIDECAR_PATH": "/env/path/binary"}):
-            sidecar = VcadSidecar()
+            sidecar = VCADSidecar()
             assert sidecar.sidecar_path == "/env/path/binary"
 
     def test_ensure_running_no_binary(self) -> None:
         """ensure_running is a no-op when binary doesn't exist."""
-        sidecar = VcadSidecar(sidecar_path="/nonexistent/binary")
+        sidecar = VCADSidecar(sidecar_path="/nonexistent/binary")
         sidecar.ensure_running()
         assert sidecar.process is None
 
     def test_stop_no_process(self) -> None:
         """stop is a no-op when no process is running."""
-        sidecar = VcadSidecar(sidecar_path="/test")
+        sidecar = VCADSidecar(sidecar_path="/test")
         sidecar.stop()  # Should not raise

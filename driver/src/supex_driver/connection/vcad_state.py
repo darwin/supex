@@ -252,7 +252,7 @@ class TriggerCoalescer:
                 self._timer = None
 
 
-class VcadPersistentState:
+class VCADPersistentState:
     """Manages persistent vcad runtime state on disk.
 
     State is stored at ``<workspace>/.supex/vcad-state.json``.
@@ -352,7 +352,7 @@ class DriftEntry:
     details: dict[str, Any] = field(default_factory=dict)
 
 
-class VcadReconciler:
+class VCADReconciler:
     """Handles startup recovery and state reconciliation.
 
     Compares persisted state with authoritative SketchUp model state
@@ -405,7 +405,7 @@ class VcadReconciler:
 
     @staticmethod
     def reconcile(
-        state: VcadPersistentState,
+        state: VCADPersistentState,
         drift: list[DriftEntry],
     ) -> dict[str, Any]:
         """Apply reconciliation policy based on drift entries.
@@ -471,7 +471,7 @@ class VcadReconciler:
 
     @staticmethod
     def rebuild_revisions(
-        state: VcadPersistentState,
+        state: VCADPersistentState,
         tracker: RevisionTracker,
     ) -> None:
         """Reconstruct revision counters from persisted state.

@@ -29,7 +29,7 @@ def _find_supex_root() -> str | None:
     return None
 
 
-class VcadSidecar:
+class VCADSidecar:
     """Manages vcad sidecar Rust binary process lifecycle.
 
     The sidecar is a Rust TCP server that evaluates Loon code and produces
@@ -178,21 +178,21 @@ class VcadSidecar:
 
 # Global sidecar singleton
 _sidecar_lock = threading.Lock()
-_sidecar: VcadSidecar | None = None
+_sidecar: VCADSidecar | None = None
 
 
-def get_vcad_sidecar(sidecar_path: str | None = None) -> VcadSidecar:
-    """Get or create the global VcadSidecar instance.
+def get_vcad_sidecar(sidecar_path: str | None = None) -> VCADSidecar:
+    """Get or create the global VCADSidecar instance.
 
     Args:
         sidecar_path: Optional path to sidecar binary.
 
     Returns:
-        The VcadSidecar singleton.
+        The VCADSidecar singleton.
     """
     global _sidecar
 
     with _sidecar_lock:
         if _sidecar is None:
-            _sidecar = VcadSidecar(sidecar_path=sidecar_path)
+            _sidecar = VCADSidecar(sidecar_path=sidecar_path)
         return _sidecar

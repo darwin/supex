@@ -14,11 +14,11 @@ from typing import Any
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
-    VcadCapabilityError,
-    VcadConnectionError,
-    VcadProtocolError,
-    VcadRemoteError,
-    VcadTimeoutError,
+    VCADCapabilityError,
+    VCADConnectionError,
+    VCADProtocolError,
+    VCADRemoteError,
+    VCADTimeoutError,
 )
 
 logger = logging.getLogger("supex.vcad.connection")
@@ -68,14 +68,14 @@ DIRECT_METHODS = {"hello", "ping", "resources/list"}
 
 
 @dataclass
-class VcadConnection:
+class VCADConnection:
     """TCP JSON-RPC 2.0 client for vcad Rust sidecar.
 
     Mirrors SketchupConnection transport behavior with added protocol
     version negotiation and capability checking.
 
     Example:
-        >>> conn = VcadConnection(agent="mcp")
+        >>> conn = VCADConnection(agent="mcp")
         >>> result = conn.eval_code("[cube 10.0 10.0 10.0]")
     """
 
@@ -115,7 +115,7 @@ class VcadConnection:
 
             self._identified = True
             return True
-        except VcadProtocolError:
+        except VCADProtocolError:
             # Protocol mismatch is fail-fast — propagate immediately
             self.sock = None
             self._identified = False
@@ -133,7 +133,7 @@ class VcadConnection:
             True if handshake and protocol negotiation successful.
 
         Raises:
-            VcadProtocolError: On major protocol version mismatch (fail-fast).
+            VCADProtocolError: On major protocol version mismatch (fail-fast).
         """
         if not self.sock:
             return False
@@ -178,7 +178,7 @@ class VcadConnection:
             remote_major = _parse_major_version(sidecar_version)
 
             if local_major != remote_major:
-                raise VcadProtocolError(
+                raise VCADProtocolError(
                     f"Protocol version mismatch: driver={PROTOCOL_VERSION}, "
                     f"sidecar={sidecar_version}",
                     error_code=PROTOCOL_MISMATCH,
@@ -198,7 +198,7 @@ class VcadConnection:
                 f"capabilities={self._capabilities}"
             )
             return True
-        except VcadProtocolError:
+        except VCADProtocolError:
             raise
         except Exception as e:
             logger.error(f"vcad hello handshake error: {e}")
@@ -228,9 +228,9 @@ class VcadConnection:
             Complete response as bytes.
 
         Raises:
-            VcadTimeoutError: If socket times out with no data.
-            VcadConnectionError: If connection is lost.
-            VcadProtocolError: If response exceeds size limit or is incomplete.
+            VCADTimeoutError: If socket times out with no data.
+            VCADConnectionError: If connection is lost.
+            VCADProtocolError: If response exceeds size limit or is incomplete.
         """
         data = bytearray()
         sock.settimeout(self.timeout)
@@ -240,13 +240,13 @@ class VcadConnection:
                 chunk = sock.recv(buffer_size)
                 if not chunk:
                     if not data:
-                        raise VcadConnectionError("Connection closed by sidecar")
-                    raise VcadProtocolError("Incomplete response: connection closed")
+                        raise VCADConnectionError("Connection closed by sidecar")
+                    raise VCADProtocolError("Incomplete response: connection closed")
 
                 data.extend(chunk)
 
                 if len(data) > VCAD_MAX_RESPONSE_BYTES:
-                    raise VcadProtocolError(
+                    raise VCADProtocolError(
                         f"Response exceeds maximum size ({VCAD_MAX_RESPONSE_BYTES} bytes)"
                     )
 
@@ -256,10 +256,10 @@ class VcadConnection:
 
         except TimeoutError:
             if data:
-                raise VcadProtocolError("Incomplete response: timeout with partial data")
-            raise VcadTimeoutError(f"No response within {self.timeout}s")
+                raise VCADProtocolError("Incomplete response: timeout with partial data")
+            raise VCADTimeoutError(f"No response within {self.timeout}s")
         except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
-            raise VcadConnectionError(f"Connection error: {e}")
+            raise VCADConnectionError(f"Connection error: {e}")
 
     def _is_connection_healthy(self) -> bool:
         """Check if existing connection is still valid."""
@@ -295,10 +295,10 @@ class VcadConnection:
             operation: The operation requiring this capability.
 
         Raises:
-            VcadCapabilityError: If capability was not negotiated.
+            VCADCapabilityError: If capability was not negotiated.
         """
         if capability not in self._capabilities:
-            raise VcadCapabilityError(
+            raise VCADCapabilityError(
                 required_capability=capability,
                 negotiated_capabilities=list(self._capabilities),
                 operation=operation,
@@ -322,18 +322,18 @@ class VcadConnection:
             The result from the JSON-RPC response.
 
         Raises:
-            VcadConnectionError: If connection fails.
-            VcadProtocolError: If response is invalid.
-            VcadTimeoutError: If operation times out.
-            VcadRemoteError: If sidecar returns an error.
+            VCADConnectionError: If connection fails.
+            VCADProtocolError: If response is invalid.
+            VCADTimeoutError: If operation times out.
+            VCADRemoteError: If sidecar returns an error.
         """
         if request_id is None:
             request_id = _next_request_id()
 
         if not self._is_connection_healthy() and not self.connect():
-            raise VcadConnectionError("Not connected to vcad sidecar")
+            raise VCADConnectionError("Not connected to vcad sidecar")
         if self.sock is None:
-            raise VcadConnectionError("Socket not initialized after connect")
+            raise VCADConnectionError("Socket not initialized after connect")
 
         # Build JSON-RPC request
         if (
@@ -379,7 +379,7 @@ class VcadConnection:
 
                 if "error" in response:
                     error = response["error"]
-                    raise VcadRemoteError(
+                    raise VCADRemoteError(
                         code=error.get("code", -1),
                         message=error.get("message", "Unknown error from vcad sidecar"),
                         data=error.get("data"),
@@ -394,8 +394,8 @@ class VcadConnection:
                 ConnectionError,
                 BrokenPipeError,
                 ConnectionResetError,
-                VcadTimeoutError,
-                VcadConnectionError,
+                VCADTimeoutError,
+                VCADConnectionError,
             ) as e:
                 logger.warning(
                     f"[req:{request_id}] Connection error "
@@ -412,7 +412,7 @@ class VcadConnection:
                 else:
                     logger.error("Max retries reached for vcad sidecar")
                     self.sock = None
-                    raise VcadConnectionError(
+                    raise VCADConnectionError(
                         f"Connection to vcad sidecar lost after "
                         f"{VCAD_MAX_RETRIES + 1} attempts: {e}"
                     )
@@ -424,14 +424,14 @@ class VcadConnection:
                         f"[req:{request_id}] Raw response (first 200 bytes): "
                         f"{response_data[:200]!r}"
                     )
-                raise VcadProtocolError(f"Invalid response from vcad sidecar: {e}")
+                raise VCADProtocolError(f"Invalid response from vcad sidecar: {e}")
 
             except Exception as e:
                 logger.error(f"[req:{request_id}] Error: {e}")
                 self.sock = None
                 raise
 
-        raise VcadConnectionError("Connection to vcad sidecar lost after all retries")
+        raise VCADConnectionError("Connection to vcad sidecar lost after all retries")
 
     # Convenience methods for vcad operations
 
@@ -471,7 +471,7 @@ class VcadConnection:
 
 # Global connection management with thread safety
 _vcad_connection_lock = threading.Lock()
-_vcad_connection: VcadConnection | None = None
+_vcad_connection: VCADConnection | None = None
 _vcad_connection_agent: str | None = None
 
 
@@ -479,11 +479,11 @@ def get_vcad_connection(
     host: str = VCAD_HOST,
     port: int = VCAD_PORT,
     agent: str = "unknown",
-) -> VcadConnection:
+) -> VCADConnection:
     """Get or create a persistent vcad sidecar connection.
 
     Thread-safe singleton pattern. On first call, ensures the sidecar
-    process is running via VcadSidecar.ensure_running().
+    process is running via VCADSidecar.ensure_running().
 
     Args:
         host: Host to connect to.
@@ -491,7 +491,7 @@ def get_vcad_connection(
         agent: Agent identifier.
 
     Returns:
-        A VcadConnection instance.
+        A VCADConnection instance.
     """
     global _vcad_connection, _vcad_connection_agent
 
@@ -522,7 +522,7 @@ def get_vcad_connection(
             sidecar = get_vcad_sidecar()
             sidecar.ensure_running()
 
-            _vcad_connection = VcadConnection(host=host, port=port, agent=agent)
+            _vcad_connection = VCADConnection(host=host, port=port, agent=agent)
             _vcad_connection_agent = agent
             logger.debug(
                 f"Created vcad connection (agent: {agent}, "

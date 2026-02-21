@@ -8,11 +8,11 @@ import pytest
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
-    VcadCapabilityError,
-    VcadConnectionError,
-    VcadProtocolError,
-    VcadRemoteError,
-    VcadTimeoutError,
+    VCADCapabilityError,
+    VCADConnectionError,
+    VCADProtocolError,
+    VCADRemoteError,
+    VCADTimeoutError,
 )
 from supex_driver.connection.exceptions import (
     SketchUpConnectionError,
@@ -43,7 +43,7 @@ def mock_ctx():
 
 @pytest.fixture
 def mock_vcad():
-    """Patch get_vcad_connection to return a mock VcadConnection."""
+    """Patch get_vcad_connection to return a mock VCADConnection."""
     with patch("supex_driver.mcp.vcad_tools.get_vcad_connection") as mock_get:
         conn = MagicMock()
         mock_get.return_value = conn
@@ -64,7 +64,7 @@ def mock_sketchup():
 # ---------------------------------------------------------------------------
 
 
-class TestVcadPlace:
+class TestVCADPlace:
     """Test vcad_place tool."""
 
     def test_place_success(self, mock_ctx, mock_vcad, mock_sketchup):
@@ -110,7 +110,7 @@ class TestVcadPlace:
 
     def test_place_eval_error_returns_vcad_error(self, mock_ctx, mock_vcad):
         """Sidecar eval failure returns error without calling SketchUp."""
-        mock_vcad.eval_file.side_effect = VcadRemoteError(
+        mock_vcad.eval_file.side_effect = VCADRemoteError(
             code=-32000, message="Parse error in Loon code"
         )
 
@@ -153,7 +153,7 @@ class TestVcadPlace:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadUpdate:
+class TestVCADUpdate:
     """Test vcad_update tool."""
 
     def test_update_with_source(self, mock_ctx, mock_vcad, mock_sketchup):
@@ -206,7 +206,7 @@ class TestVcadUpdate:
 
     def test_update_eval_error(self, mock_ctx, mock_vcad, mock_sketchup):
         """Sidecar eval error during update."""
-        mock_vcad.eval_file.side_effect = VcadTimeoutError("Eval timed out")
+        mock_vcad.eval_file.side_effect = VCADTimeoutError("Eval timed out")
 
         result = json.loads(
             vcad_update(mock_ctx, node_id="n1", source_file="/f.skp.oo")
@@ -221,7 +221,7 @@ class TestVcadUpdate:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadInspect:
+class TestVCADInspect:
     """Test vcad_inspect tool."""
 
     def test_inspect_success(self, mock_ctx, mock_vcad):
@@ -240,7 +240,7 @@ class TestVcadInspect:
 
     def test_inspect_error(self, mock_ctx, mock_vcad):
         """Inspect with invalid code returns error."""
-        mock_vcad.inspect.side_effect = VcadRemoteError(
+        mock_vcad.inspect.side_effect = VCADRemoteError(
             code=-32000, message="Invalid Loon"
         )
 
@@ -255,7 +255,7 @@ class TestVcadInspect:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadExport:
+class TestVCADExport:
     """Test vcad_export tool."""
 
     def test_export_obj(self, mock_ctx, mock_vcad):
@@ -292,7 +292,7 @@ class TestVcadExport:
 
     def test_export_error(self, mock_ctx, mock_vcad):
         """Export failure."""
-        mock_vcad.send_command.side_effect = VcadConnectionError(
+        mock_vcad.send_command.side_effect = VCADConnectionError(
             "Sidecar not running"
         )
 
@@ -307,7 +307,7 @@ class TestVcadExport:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadEval:
+class TestVCADEval:
     """Test vcad_eval tool."""
 
     def test_eval_success(self, mock_ctx, mock_vcad):
@@ -321,7 +321,7 @@ class TestVcadEval:
 
     def test_eval_parse_error(self, mock_ctx, mock_vcad):
         """Eval with parse error."""
-        mock_vcad.eval_code.side_effect = VcadRemoteError(
+        mock_vcad.eval_code.side_effect = VCADRemoteError(
             code=-32000, message="Unexpected token"
         )
 
@@ -336,7 +336,7 @@ class TestVcadEval:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadListNodes:
+class TestVCADListNodes:
     """Test vcad_list_nodes tool."""
 
     def test_list_nodes(self, mock_ctx, mock_sketchup):
@@ -377,7 +377,7 @@ class TestVcadListNodes:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadToolsErrorPropagation:
+class TestVCADToolsErrorPropagation:
     """Test that negotiation errors propagate correctly through MCP tools.
 
     Verifies:
@@ -389,7 +389,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_protocol_mismatch_surfaces_in_mcp(self, mock_ctx, mock_vcad):
         """Sidecar major version mismatch surfaces as PROTOCOL_MISMATCH in tool response."""
-        mock_vcad.eval_code.side_effect = VcadProtocolError(
+        mock_vcad.eval_code.side_effect = VCADProtocolError(
             "Protocol version mismatch: driver=1.0, sidecar=2.0",
             error_code=PROTOCOL_MISMATCH,
             details={
@@ -407,7 +407,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_capability_unavailable_surfaces_in_mcp(self, mock_ctx, mock_vcad):
         """Missing capability surfaces as CAPABILITY_UNAVAILABLE with full details."""
-        mock_vcad.eval_file.side_effect = VcadCapabilityError(
+        mock_vcad.eval_file.side_effect = VCADCapabilityError(
             required_capability="adt_cache",
             negotiated_capabilities=["eval", "inspect"],
             operation="vcad_place",
@@ -425,7 +425,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_protocol_mismatch_no_fallback(self, mock_ctx, mock_vcad, mock_sketchup):
         """Tool returns error directly on protocol mismatch (no retry/fallback)."""
-        mock_vcad.eval_file.side_effect = VcadProtocolError(
+        mock_vcad.eval_file.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
             details={"driver_version": "1.0", "sidecar_version": "3.0"},
@@ -442,7 +442,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_capability_error_no_fallback(self, mock_ctx, mock_vcad, mock_sketchup):
         """Tool returns error directly on capability mismatch (no fallback)."""
-        mock_vcad.inspect.side_effect = VcadCapabilityError(
+        mock_vcad.inspect.side_effect = VCADCapabilityError(
             required_capability="inspect",
             negotiated_capabilities=["eval"],
             operation="vcad_inspect",
@@ -458,7 +458,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_remote_error_code_preserved(self, mock_ctx, mock_vcad):
         """Upstream error_code from sidecar is preserved unchanged."""
-        mock_vcad.eval_code.side_effect = VcadRemoteError(
+        mock_vcad.eval_code.side_effect = VCADRemoteError(
             code=-32001, message="NO_GEOMETRY", data={"node_id": "empty"}
         )
 
@@ -471,7 +471,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_protocol_mismatch_in_export(self, mock_ctx, mock_vcad):
         """Protocol mismatch propagates through vcad_export."""
-        mock_vcad.send_command.side_effect = VcadProtocolError(
+        mock_vcad.send_command.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
             details={"driver_version": "1.0", "sidecar_version": "2.0"},
@@ -484,7 +484,7 @@ class TestVcadToolsErrorPropagation:
 
     def test_capability_unavailable_in_update(self, mock_ctx, mock_vcad):
         """Capability error propagates through vcad_update."""
-        mock_vcad.eval_file.side_effect = VcadCapabilityError(
+        mock_vcad.eval_file.side_effect = VCADCapabilityError(
             required_capability="eval",
             negotiated_capabilities=[],
             operation="vcad_update",
@@ -506,7 +506,7 @@ class TestVcadToolsErrorPropagation:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadToolsRegistration:
+class TestVCADToolsRegistration:
     """Test that vcad tools are properly registered on the MCP server."""
 
     def test_tools_exist_in_module(self):

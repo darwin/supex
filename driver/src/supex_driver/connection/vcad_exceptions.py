@@ -12,19 +12,19 @@ NO_GEOMETRY = "NO_GEOMETRY"
 MULTI_PART_UNSUPPORTED = "MULTI_PART_UNSUPPORTED"
 
 
-class VcadError(Exception):
+class VCADError(Exception):
     """Base exception for vcad client errors."""
 
 
-class VcadConnectionError(VcadError):
+class VCADConnectionError(VCADError):
     """Raised when connection to vcad sidecar fails."""
 
 
-class VcadTimeoutError(VcadError):
+class VCADTimeoutError(VCADError):
     """Raised when communication with vcad sidecar times out."""
 
 
-class VcadProtocolError(VcadError):
+class VCADProtocolError(VCADError):
     """Raised when there's a protocol error (invalid JSON, version mismatch, etc.).
 
     Attributes:
@@ -40,7 +40,7 @@ class VcadProtocolError(VcadError):
         super().__init__(message)
 
 
-class VcadRemoteError(VcadError):
+class VCADRemoteError(VCADError):
     """Raised when vcad sidecar returns a JSON-RPC error response.
 
     Preserves sidecar error_code unchanged for MCP tool responses.
@@ -58,7 +58,7 @@ class VcadRemoteError(VcadError):
         super().__init__(f"[{code}] {message}")
 
 
-class VcadCapabilityError(VcadError):
+class VCADCapabilityError(VCADError):
     """Raised when a required capability is not available after negotiation.
 
     Attributes:

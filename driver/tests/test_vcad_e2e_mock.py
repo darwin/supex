@@ -4,7 +4,7 @@ Tests are named with 'vcad_e2e_mock' to match the verification filter:
     uv run pytest tests/ -v -k vcad_e2e_mock
 
 Coverage:
-    - Sidecar eval_code / eval_file via MockVcadSidecar
+    - Sidecar eval_code / eval_file via MockVCADSidecar
     - Full pipeline: eval -> OBJ -> SketchUp import via su-mock
     - Security: auth token, path traversal
     - State reconciliation and recovery
@@ -15,20 +15,20 @@ import os
 
 import pytest
 
-from supex_driver.connection.vcad_connection import VcadConnection
+from supex_driver.connection.vcad_connection import VCADConnection
 from supex_driver.connection.vcad_exceptions import (
-    VcadProtocolError,
-    VcadRemoteError,
+    VCADProtocolError,
+    VCADRemoteError,
 )
 from supex_driver.connection.vcad_state import (
     EvalJob,
     EvalQueue,
     NodeState,
     RevisionTracker,
-    VcadPersistentState,
-    VcadReconciler,
+    VCADPersistentState,
+    VCADReconciler,
 )
-from tests.helpers.mock_vcad_sidecar import MockVcadSidecar
+from tests.helpers.mock_vcad_sidecar import MockVCADSidecar
 
 # ---------------------------------------------------------------------------
 # Minimal OBJ content for mock import
@@ -68,8 +68,8 @@ def write_obj(directory, name="mesh.obj"):
 
 @pytest.fixture
 def mock_sidecar():
-    """Start a MockVcadSidecar on a random port."""
-    server = MockVcadSidecar()
+    """Start a MockVCADSidecar on a random port."""
+    server = MockVCADSidecar()
     server.start()
     yield server
     server.stop()
@@ -77,8 +77,8 @@ def mock_sidecar():
 
 @pytest.fixture
 def vcad_conn(mock_sidecar):
-    """VcadConnection wired to the mock sidecar."""
-    conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e-test")
+    """VCADConnection wired to the mock sidecar."""
+    conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e-test")
     yield conn
     conn.disconnect()
 
@@ -101,8 +101,8 @@ def tmp_state_path(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-class TestVcadE2EMockSidecarEval:
-    """Test sidecar evaluation via MockVcadSidecar over real TCP."""
+class TestVCADE2EMockSidecarEval:
+    """Test sidecar evaluation via MockVCADSidecar over real TCP."""
 
     def test_vcad_e2e_mock_eval_code(self, mock_sidecar, obj_dir):
         """eval_code returns obj_path and volume."""
@@ -118,7 +118,7 @@ class TestVcadE2EMockSidecarEval:
             },
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         result = conn.eval_code("[cube 10.0 10.0 10.0]")
 
         assert "obj_path" in result
@@ -142,7 +142,7 @@ class TestVcadE2EMockSidecarEval:
             },
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         result = conn.eval_file(str(loon_file))
 
         assert result["volume"] > 0
@@ -160,8 +160,8 @@ class TestVcadE2EMockSidecarEval:
             },
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
-        with pytest.raises(VcadRemoteError) as exc_info:
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        with pytest.raises(VCADRemoteError) as exc_info:
             conn.eval_code("[invalid ]")
 
         assert exc_info.value.code == -32000
@@ -174,12 +174,12 @@ class TestVcadE2EMockSidecarEval:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadE2EMockSecurity:
+class TestVCADE2EMockSecurity:
     """Security validation: auth tokens, path traversal, error_code values."""
 
     def test_vcad_e2e_mock_auth_invalid_token(self):
         """Token mismatch on hello returns AUTH_INVALID."""
-        server = MockVcadSidecar()
+        server = MockVCADSidecar()
         # Simulate auth-required sidecar: respond with error on wrong token
         server.responses["hello"] = {
             "result": None,
@@ -191,7 +191,7 @@ class TestVcadE2EMockSecurity:
         }
         server.start()
         try:
-            conn = VcadConnection(
+            conn = VCADConnection(
                 host="127.0.0.1",
                 port=server.port,
                 agent="e2e",
@@ -213,8 +213,8 @@ class TestVcadE2EMockSecurity:
             },
         )
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
-        with pytest.raises(VcadRemoteError) as exc_info:
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        with pytest.raises(VCADRemoteError) as exc_info:
             conn.eval_file("../outside/test.skp.oo")
 
         assert exc_info.value.code == -32000
@@ -241,12 +241,12 @@ class TestVcadE2EMockSecurity:
             },
         ]
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
 
         for scenario in error_scenarios:
             mock_sidecar.set_response("tools/call", error=scenario)
 
-            with pytest.raises(VcadRemoteError) as exc_info:
+            with pytest.raises(VCADRemoteError) as exc_info:
                 conn.eval_code("[cube 1.0 1.0 1.0]")
 
             assert exc_info.value.code == scenario["code"]
@@ -266,11 +266,11 @@ class TestVcadE2EMockSecurity:
 
 
 @pytest.mark.su_mock
-class TestVcadE2EMockFullPipeline:
+class TestVCADE2EMockFullPipeline:
     """Full E2E pipeline tests via su-mock + mock sidecar.
 
     These tests exercise the real Ruby bridge server running against
-    mock SketchUp API, combined with MockVcadSidecar for the sidecar side.
+    mock SketchUp API, combined with MockVCADSidecar for the sidecar side.
     """
 
     def test_vcad_e2e_mock_place_and_list(self, su_mock, mock_sidecar, tmp_path):
@@ -290,7 +290,7 @@ class TestVcadE2EMockFullPipeline:
         )
 
         # Eval via mock sidecar
-        vcad_conn = VcadConnection(
+        vcad_conn = VCADConnection(
             host="127.0.0.1", port=mock_sidecar.port, agent="e2e"
         )
         eval_result = vcad_conn.eval_file(str(tmp_path / "bracket.skp.oo"))
@@ -328,7 +328,7 @@ class TestVcadE2EMockFullPipeline:
         )
 
         # Place initial version
-        vcad_conn = VcadConnection(
+        vcad_conn = VCADConnection(
             host="127.0.0.1", port=mock_sidecar.port, agent="e2e"
         )
         vcad_conn.eval_file(source_file)
@@ -374,7 +374,7 @@ class TestVcadE2EMockFullPipeline:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadE2EMockRecovery:
+class TestVCADE2EMockRecovery:
     """Restart and recovery scenarios with state reconciliation."""
 
     def test_vcad_e2e_mock_driver_restart_reconcile(self, tmp_state_path):
@@ -384,7 +384,7 @@ class TestVcadE2EMockRecovery:
         queries SketchUp for current nodes, classifies drift, and reconciles.
         """
         # Pre-crash state: two active nodes
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(
             NodeState(
                 node_id="node-a",
@@ -406,21 +406,21 @@ class TestVcadE2EMockRecovery:
         state.save()
 
         # Simulate restart: load persisted state
-        loaded = VcadPersistentState(state_path=tmp_state_path)
+        loaded = VCADPersistentState(state_path=tmp_state_path)
         assert loaded.load() is True
 
         # SketchUp reports both nodes still present
         runtime_nodes = [{"node_id": "node-a"}, {"node_id": "node-b"}]
 
-        drift = VcadReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
+        drift = VCADReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
         assert len(drift) == 0
 
-        result = VcadReconciler.reconcile(loaded, drift)
+        result = VCADReconciler.reconcile(loaded, drift)
         assert result["status"] == "ok"
 
         # Rebuild revision tracker
         tracker = RevisionTracker()
-        VcadReconciler.rebuild_revisions(loaded, tracker)
+        VCADReconciler.rebuild_revisions(loaded, tracker)
         assert tracker.current_revision("node-a") == 5
         assert tracker.current_revision("node-b") == 3
 
@@ -469,7 +469,7 @@ class TestVcadE2EMockRecovery:
 
     def test_vcad_e2e_mock_reconcile_with_orphan_and_missing(self, tmp_state_path):
         """Reconciliation handles orphan definitions and missing sources."""
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(
             NodeState(
                 node_id="node-a",
@@ -489,7 +489,7 @@ class TestVcadE2EMockRecovery:
         )
         state.save()
 
-        loaded = VcadPersistentState(state_path=tmp_state_path)
+        loaded = VCADPersistentState(state_path=tmp_state_path)
         loaded.load()
 
         # SketchUp has node-a, node-gone, plus an orphan
@@ -499,13 +499,13 @@ class TestVcadE2EMockRecovery:
             {"node_id": "node-orphan"},
         ]
 
-        drift = VcadReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
+        drift = VCADReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
         drift_types = {d.drift_type for d in drift}
 
         assert "source_missing" in drift_types
         assert "orphan_definition" in drift_types
 
-        result = VcadReconciler.reconcile(loaded, drift)
+        result = VCADReconciler.reconcile(loaded, drift)
         assert result["status"] == "degraded"
 
         # Verify error_code in actions
@@ -516,7 +516,7 @@ class TestVcadE2EMockRecovery:
 
     def test_vcad_e2e_mock_revision_gap_triggers_cascade(self, tmp_state_path):
         """Revision gap (applied < current) triggers cascade update."""
-        state = VcadPersistentState(state_path=tmp_state_path)
+        state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(
             NodeState(
                 node_id="stale-node",
@@ -527,11 +527,11 @@ class TestVcadE2EMockRecovery:
         )
         state.save()
 
-        loaded = VcadPersistentState(state_path=tmp_state_path)
+        loaded = VCADPersistentState(state_path=tmp_state_path)
         loaded.load()
 
         runtime_nodes = [{"node_id": "stale-node"}]
-        drift = VcadReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
+        drift = VCADReconciler.classify_drift(loaded.all_nodes(), runtime_nodes)
 
         assert len(drift) == 1
         assert drift[0].drift_type == "revision_gap"
@@ -543,7 +543,7 @@ class TestVcadE2EMockRecovery:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadE2EMockViewerReconnect:
+class TestVCADE2EMockViewerReconnect:
     """Viewer reconnect after burst of updates."""
 
     def test_vcad_e2e_mock_revision_matches_after_burst(self, tmp_state_path):
@@ -587,12 +587,12 @@ class TestVcadE2EMockViewerReconnect:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadE2EMockProtocol:
+class TestVCADE2EMockProtocol:
     """Protocol negotiation and version checks over real TCP."""
 
     def test_vcad_e2e_mock_protocol_version_negotiated(self, mock_sidecar):
         """Successful hello negotiates protocol version and capabilities."""
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         result = conn.connect()
 
         assert result is True
@@ -603,13 +603,13 @@ class TestVcadE2EMockProtocol:
 
     def test_vcad_e2e_mock_protocol_mismatch(self):
         """Major version mismatch triggers PROTOCOL_MISMATCH error."""
-        server = MockVcadSidecar()
+        server = MockVCADSidecar()
         server.protocol_version = "2.0"
         server.start()
 
         try:
-            conn = VcadConnection(host="127.0.0.1", port=server.port, agent="e2e")
-            with pytest.raises(VcadProtocolError) as exc_info:
+            conn = VCADConnection(host="127.0.0.1", port=server.port, agent="e2e")
+            with pytest.raises(VCADProtocolError) as exc_info:
                 conn.connect()
 
             assert exc_info.value.error_code == "PROTOCOL_MISMATCH"
@@ -622,7 +622,7 @@ class TestVcadE2EMockProtocol:
         """Multiple commands reuse single connection (one hello)."""
         mock_sidecar.set_response("tools/call", result={"ok": True})
 
-        conn = VcadConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
+        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
 
         for _ in range(5):
             conn.send_command("vcad.eval_code", {"code": "[cube 1.0 1.0 1.0]"})

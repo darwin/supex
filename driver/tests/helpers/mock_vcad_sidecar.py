@@ -8,14 +8,14 @@ import time
 from typing import Any
 
 
-class MockVcadSidecar:
+class MockVCADSidecar:
     """Mock TCP server simulating vcad Rust sidecar.
 
     Supports protocol version negotiation and configurable responses
-    for testing VcadConnection behavior.
+    for testing VCADConnection behavior.
 
     Usage:
-        server = MockVcadSidecar()
+        server = MockVCADSidecar()
         server.start()
         # ... run tests ...
         server.stop()

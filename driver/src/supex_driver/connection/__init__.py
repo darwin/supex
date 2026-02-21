@@ -15,19 +15,19 @@ from supex_driver.connection.exceptions import (
     SketchUpTimeoutError,
 )
 from supex_driver.connection.vcad_connection import (
-    VcadConnection,
+    VCADConnection,
     get_vcad_connection,
 )
 from supex_driver.connection.vcad_exceptions import (
-    VcadCapabilityError,
-    VcadConnectionError,
-    VcadError,
-    VcadProtocolError,
-    VcadRemoteError,
-    VcadTimeoutError,
+    VCADCapabilityError,
+    VCADConnectionError,
+    VCADError,
+    VCADProtocolError,
+    VCADRemoteError,
+    VCADTimeoutError,
 )
 from supex_driver.connection.vcad_sidecar import (
-    VcadSidecar,
+    VCADSidecar,
     get_vcad_sidecar,
 )
 from supex_driver.connection.viewer_relay import (
@@ -47,16 +47,16 @@ __all__ = [
     "SketchUpConnectionError",
     "SketchUpTimeoutError",
     "SketchUpProtocolError",
-    "VcadConnection",
+    "VCADConnection",
     "get_vcad_connection",
-    "VcadSidecar",
+    "VCADSidecar",
     "get_vcad_sidecar",
-    "VcadError",
-    "VcadConnectionError",
-    "VcadTimeoutError",
-    "VcadProtocolError",
-    "VcadRemoteError",
-    "VcadCapabilityError",
+    "VCADError",
+    "VCADConnectionError",
+    "VCADTimeoutError",
+    "VCADProtocolError",
+    "VCADRemoteError",
+    "VCADCapabilityError",
     "ViewerRelay",
     "get_viewer_relay",
     "ViewerError",

@@ -743,7 +743,7 @@ class TestTestControl < Minitest::Test
   end
 end
 
-class TestVcadToolsIntegration < Minitest::Test
+class TestVCADToolsIntegration < Minitest::Test
   # Integration test: verify the mock API surface supports vcad_tools.rb operations
 
   def setup
@@ -919,7 +919,7 @@ class TestRealRuntimeLoading < Minitest::Test
   def test_load_bridge_server
     assert defined?(SupexRuntime::BridgeServer)
     assert defined?(SupexRuntime::Tools)
-    assert defined?(SupexRuntime::VcadTools)
+    assert defined?(SupexRuntime::VCADTools)
     assert defined?(SupexRuntime::VERSION)
   end
 

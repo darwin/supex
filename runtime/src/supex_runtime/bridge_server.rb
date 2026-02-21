@@ -571,13 +571,13 @@ module SupexRuntime
     def execute_vcad_tool(tool_name, args, workspace)
       result = case tool_name
                when 'place_vcad_node'
-                 VcadTools.place_vcad_node(args, workspace: workspace)
+                 VCADTools.place_vcad_node(args, workspace: workspace)
                when 'update_vcad_node'
-                 VcadTools.update_vcad_node(args, workspace: workspace)
+                 VCADTools.update_vcad_node(args, workspace: workspace)
                when 'list_vcad_nodes'
-                 VcadTools.list_vcad_nodes(args, workspace: workspace)
+                 VCADTools.list_vcad_nodes(args, workspace: workspace)
                when 'get_vcad_node'
-                 VcadTools.get_vcad_node(args, workspace: workspace)
+                 VCADTools.get_vcad_node(args, workspace: workspace)
                end
       result
     rescue PathPolicy::PathAccessDenied => e
