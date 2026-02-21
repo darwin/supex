@@ -1,7 +1,7 @@
-"""SketchUp connection communication.
+"""SketchUp and vcad sidecar connection communication.
 
-This module provides the SketchupConnection class for communicating
-with the SketchUp extension via TCP sockets and JSON-RPC.
+This module provides connection classes for communicating with the SketchUp
+extension and vcad sidecar via TCP sockets and JSON-RPC.
 """
 
 from supex_driver.connection.connection import (
@@ -14,6 +14,22 @@ from supex_driver.connection.exceptions import (
     SketchUpProtocolError,
     SketchUpTimeoutError,
 )
+from supex_driver.connection.vcad_connection import (
+    VcadConnection,
+    get_vcad_connection,
+)
+from supex_driver.connection.vcad_exceptions import (
+    VcadCapabilityError,
+    VcadConnectionError,
+    VcadError,
+    VcadProtocolError,
+    VcadRemoteError,
+    VcadTimeoutError,
+)
+from supex_driver.connection.vcad_sidecar import (
+    VcadSidecar,
+    get_vcad_sidecar,
+)
 
 __all__ = [
     "SketchupConnection",
@@ -22,4 +38,14 @@ __all__ = [
     "SketchUpConnectionError",
     "SketchUpTimeoutError",
     "SketchUpProtocolError",
+    "VcadConnection",
+    "get_vcad_connection",
+    "VcadSidecar",
+    "get_vcad_sidecar",
+    "VcadError",
+    "VcadConnectionError",
+    "VcadTimeoutError",
+    "VcadProtocolError",
+    "VcadRemoteError",
+    "VcadCapabilityError",
 ]
