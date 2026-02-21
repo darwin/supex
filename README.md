@@ -19,6 +19,7 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 ## Contents
 
 - [Key Features](#key-features)
+- [VCAD Integration](#vcad-integration)
 - [Architecture Overview](#architecture-overview)
 - [Project-Based Workflow](#project-based-workflow)
 - [Installation & Setup](#installation--setup)
@@ -48,6 +49,37 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 - **Modular Organization**: Separate scripts for different features and utilities
 - **Export Capabilities**: SKP, OBJ, STL, PNG, JPG formats
 
+## VCAD Integration
+
+VCAD is a BRep (Boundary Representation) kernel that brings parametric CAD modeling to SketchUp. The AI agent writes geometry code in [Loon](https://loonlang.com/) (a Lisp with algebraic data types and type inference), a Rust sidecar evaluates it into solid geometry, and SketchUp imports the resulting mesh as a native component.
+
+```
+.skp.oo source  ->  Loon interpreter  ->  VCAD IR  ->  BRep kernel  ->  mesh  ->  SketchUp component
+```
+
+### Current Capabilities
+
+- **Parametric primitives**: cube, cylinder, sphere, cone
+- **Boolean operations**: union, difference, intersection
+- **Features**: fillet, chamfer, shell
+- **Transforms**: translate, rotate, scale
+- **Patterns**: linear and circular arrays
+- **Sketch + extrude/revolve**: 2D profiles to 3D solids
+- **Sweep and loft**: path-based and multi-profile geometry
+- **Live preview**: Standalone Tauri viewer with BRep rendering
+- **Idempotent updates**: Atomic definition swap preserves instance placements
+- **Revision tracking**: Stale result detection and supersede-aware eval queue
+
+### Planned
+
+- Filesystem watcher for automatic re-evaluation on `.skp.oo` file changes
+- DAG-based dependency graph with topological cascade updates
+- Module tracking for shared Loon library watching
+- SketchUp model observer for bidirectional sync
+- Cross-node ADT composition (shared parametric geometry between files)
+
+For full documentation, see [VCAD Integration](docs/vcad.md).
+
 ## Architecture Overview
 
 Supex bridges AI agents and CLI tools with SketchUp through a client-server architecture:
@@ -66,7 +98,12 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 - **Supex StdLib** - Helper library for common SketchUp operations
 - **SketchUp API** - Native Ruby API for 3D modeling
 
-**Communication**: JSON-RPC 2.0 over TCP sockets (localhost:9876 for MCP/CLI, localhost:4433 for REPL) enables execution of Ruby code directly in SketchUp's context.
+**VCAD Components (Rust):**
+
+- **VCAD Sidecar** (`vcad/sidecar/`) - Rust TCP server evaluating Loon code into BRep geometry (localhost:9877)
+- **VCAD Viewer** (`vcad/viewer/`) - Standalone Tauri app for high-fidelity BRep preview
+
+**Communication**: JSON-RPC 2.0 over TCP sockets (localhost:9876 for MCP/CLI, localhost:4433 for REPL, localhost:9877 for VCAD sidecar). WebSocket on localhost:9878 bridges the driver and VCAD viewer.
 
 For more details, see [Architecture](docs/architecture.md).
 
@@ -226,4 +263,5 @@ mise run lint       # All linters
 - **[Configuration](docs/configuration.md)** - Environment variables and settings
 - **[Protocol](docs/protocol.md)** - JSON-RPC communication protocol details
 - **[Security](docs/security.md)** - Authentication, path restrictions, and recommendations
+- **[VCAD Integration](docs/vcad.md)** - Parametric BRep CAD via Loon language
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions

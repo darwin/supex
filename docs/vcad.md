@@ -198,6 +198,7 @@ All geometry constructors produce ADT values (pure data, no BRep objects):
 [sweep-line sx sy sz ex ey ez sk]
 [sweep-helix radius pitch height turns sk]
 [loft sketches]
+[loft-closed sketches]
 ```
 
 ### Scene and Material
@@ -205,6 +206,37 @@ All geometry constructors produce ADT values (pure data, no BRep objects):
 ```loon
 [root solid "material-name"]
 [material "name" r g b metallic roughness]
+```
+
+### Assembly (out of scope)
+
+The upstream VCAD cad-lib defines assembly, joint, and simulation types. These are not supported by the supex sidecar.
+
+```loon
+; Parts and instances
+[part "name" solid "material"]
+[instance "name" "part-name" x y z]
+
+; Joints
+[revolute-joint "name" ax ay az lo hi "parent" px py pz "child" cx cy cz]
+[prismatic-joint "name" ax ay az lo hi "parent" px py pz "child" cx cy cz]
+[fixed-joint "name" "parent" px py pz "child" cx cy cz]
+[ball-joint "name" "parent" px py pz "child" cx cy cz]
+
+; Assembly
+[assembly parts instances joints "ground-part"]
+```
+
+### ECAD (out of scope)
+
+Electronic CAD types for schematic and PCB design. Not supported by the supex sidecar.
+
+```loon
+[ecad-component "ref" "value" "footprint-id" x y rotation]
+[ecad-wire x1 y1 x2 y2]
+[ecad-trace x1 y1 x2 y2 width "layer" "net"]
+[ecad-via x y diameter drill "net"]
+[ecad-footprint "ref" "value" "footprint" x y rotation front]
 ```
 
 ## MCP Tools Reference

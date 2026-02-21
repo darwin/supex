@@ -66,8 +66,10 @@ cd runtime && bundle exec rake build
 ## Key Files
 
 **Driver (Python):**
-- `driver/src/supex_driver/mcp/server.py` - MCP server and tools
-- `driver/src/supex_driver/connection/connection.py` - Socket connection
+- `driver/src/supex_driver/mcp/mcp_server.py` - MCP server and tools
+- `driver/src/supex_driver/mcp/vcad_tools.py` - VCAD MCP tools
+- `driver/src/supex_driver/connection/sketchup_connection.py` - SketchUp socket connection
+- `driver/src/supex_driver/connection/vcad_connection.py` - VCAD sidecar connection
 - `driver/src/supex_driver/cli/main.py` - CLI implementation
 
 **Runtime (Ruby):**
