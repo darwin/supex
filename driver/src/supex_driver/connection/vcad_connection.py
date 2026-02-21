@@ -55,10 +55,10 @@ def _next_request_id() -> int:
         return _vcad_request_id_counter
 
 
-def _parse_major_version(version: str) -> int:
-    """Extract major version number from version string."""
+def _parse_major_version(version) -> int:
+    """Extract major version number from version string or int."""
     try:
-        return int(version.split(".")[0])
+        return int(str(version).split(".")[0])
     except (ValueError, IndexError):
         return -1
 
