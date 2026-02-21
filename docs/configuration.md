@@ -71,3 +71,47 @@ To disable path restrictions, set `SUPEX_ALLOWED_ROOTS=*`.
 | `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
 
 See [Interactive REPL](repl.md) for usage details.
+
+## vcad Sidecar
+
+The vcad Rust sidecar evaluates Loon CAD code and produces BRep geometry. See [vcad Integration](vcad.md) for full documentation.
+
+### Connection
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VCAD_HOST` | `127.0.0.1` | Sidecar bind/connect host |
+| `VCAD_PORT` | `9877` | Sidecar TCP port |
+| `VCAD_TIMEOUT` | `30` | Request timeout in seconds |
+| `VCAD_SIDECAR_PATH` | (auto) | Path to sidecar binary (auto-detected from repo) |
+
+### Security
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VCAD_AUTH_TOKEN` | (unset) | Authentication token (required when `VCAD_ALLOW_REMOTE=1`) |
+| `VCAD_ALLOW_REMOTE` | `0` | Allow non-loopback bind (requires `VCAD_AUTH_TOKEN`) |
+
+**Non-loopback binding**: The sidecar refuses to bind to non-loopback addresses unless both `VCAD_ALLOW_REMOTE=1` and `VCAD_AUTH_TOKEN` are set. This prevents unauthenticated remote access to the evaluation engine.
+
+### Evaluation
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VCAD_MAX_QUEUE` | `64` | Maximum queued eval jobs |
+| `VCAD_EVAL_TIMEOUT_MS` | `120000` | Max wait per queued eval request in milliseconds |
+| `VCAD_ADT_CACHE_MAX` | `256` | Max entries in ADT cache (LRU eviction) |
+
+### Temp Files
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VCAD_TEMP_DIR` | (system temp) | Directory for OBJ and manifest files |
+| `VCAD_TEMP_TTL_SEC` | `3600` | Max age of temp artifact files in seconds |
+| `VCAD_TEMP_MAX_FILES` | `500` | Max number of retained artifact sets (OBJ + manifest) |
+
+### Driver State
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VCAD_STATE_PATH` | `<workspace>/.supex/vcad-state.json` | Persisted driver state file |

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# vcad sidecar wrapper for convenient access from project root
+# Logs stderr to vcad-sidecar-stderr.log
+
+set -e
+
+# Resolve symlinks to find real script location
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  # Handle relative symlinks
+  [[ "$SCRIPT_PATH" != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SUPEX_ROOT="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$(pwd)}"
+
+LOG_DIR="${SUPEX_LOG_DIR:-$SUPEX_WORKSPACE/.tmp/logs}"
+mkdir -p "$LOG_DIR"
+
+STDERR_LOG="$LOG_DIR/vcad-sidecar-stderr.log"
+
+exec "$SUPEX_ROOT/scripts/launch-vcad-sidecar.sh" "$@" 2>>"$STDERR_LOG"
