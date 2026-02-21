@@ -8,3 +8,13 @@ settings.local.json
 /.tmp/
 .DS_Store
 /.code/
+
+# vcad sidecar build artifacts
+/vcad/sidecar/Cargo.lock
+/vcad/sidecar/target/
+
+# vcad viewer build artifacts
+/vcad/viewer/node_modules/
+/vcad/viewer/dist/
+/vcad/viewer/src-tauri/Cargo.lock
+/vcad/viewer/src-tauri/target/

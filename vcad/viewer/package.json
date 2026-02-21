@@ -1,0 +1,39 @@
+{
+  "name": "supex-vcad-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10",
+    "@react-three/fiber": "^9",
+    "@react-three/postprocessing": "^3",
+    "@tauri-apps/api": "^2",
+    "react": "^19",
+    "react-dom": "^19",
+    "three": "^0.172",
+    "zustand": "^5"
+  },
+  "devDependencies": {
+    "@react-three/test-renderer": "^9",
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.172",
+    "@vitejs/plugin-react": "^4",
+    "autoprefixer": "^10",
+    "happy-dom": "^17",
+    "postcss": "^8",
+    "tailwindcss": "^3",
+    "typescript": "^5.7",
+    "vite": "^6",
+    "vitest": "^3"
+  }
+}
