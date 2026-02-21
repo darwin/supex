@@ -1,0 +1,28 @@
+[package]
+name = "supex-vcad-sidecar"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# vcad evaluation pipeline (path deps to supex-ws siblings)
+loon-lang = { path = "../../../loon/crates/loon-lang" }
+vcad-loon = { path = "../../../vcad/crates/vcad-loon" }
+vcad-eval = { path = "../../../vcad/crates/vcad-eval" }
+vcad-kernel = { path = "../../../vcad/crates/vcad-kernel" }
+vcad-ir = { path = "../../../vcad/crates/vcad-ir" }
+
+# JSON-RPC + serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["clock"] }
+blake3 = "1"
+
+# Temp files
+tempfile = "3"
+
+# Signal handling
+ctrlc = "3"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
