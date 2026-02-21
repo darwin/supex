@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from importlib.metadata import version as get_version
 from typing import Any
 
-from supex_driver.connection.exceptions import (
+from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
     SketchUpRemoteError,

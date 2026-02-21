@@ -19,7 +19,7 @@ McpContext = Context[Any, Any, Any]
 
 from supex_driver import __version__
 from supex_driver.connection import get_sketchup_connection
-from supex_driver.connection.exceptions import (
+from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
     SketchUpRemoteError,

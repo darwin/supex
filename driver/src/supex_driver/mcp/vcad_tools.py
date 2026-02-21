@@ -8,7 +8,7 @@ from supex_driver.connection import (
     get_sketchup_connection,
     get_vcad_connection,
 )
-from supex_driver.connection.exceptions import (
+from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
     SketchUpRemoteError,

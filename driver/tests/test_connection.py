@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from supex_driver.connection import SketchupConnection
-from supex_driver.connection import connection as connection_module
-from supex_driver.connection.exceptions import SketchUpConnectionError
+from supex_driver.connection import sketchup_connection as connection_module
+from supex_driver.connection.sketchup_exceptions import SketchUpConnectionError
 
 
 class TestSketchupConnection:
@@ -184,7 +184,7 @@ class TestTokenAuthentication:
 
     def test_token_field_defaults_to_env(self) -> None:
         """Test that token field uses AUTH_TOKEN constant by default."""
-        from supex_driver.connection.connection import AUTH_TOKEN
+        from supex_driver.connection.sketchup_connection import AUTH_TOKEN
         conn = SketchupConnection(host="localhost", port=9876)
         assert conn.token == AUTH_TOKEN
 

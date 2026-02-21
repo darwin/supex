@@ -3,7 +3,7 @@
 import pytest
 
 from supex_driver.connection import SketchupConnection
-from supex_driver.connection.exceptions import (
+from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpRemoteError,
     SketchUpTimeoutError,

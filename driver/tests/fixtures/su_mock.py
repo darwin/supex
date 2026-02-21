@@ -76,7 +76,7 @@ def su_mock(su_mock_process):
             os.path.dirname(__file__), "..", "..", "src"
         ),
     )
-    from supex_driver.connection.connection import SketchupConnection
+    from supex_driver.connection.sketchup_connection import SketchupConnection
 
     conn = SketchupConnection(port=SU_MOCK_PORT)
 

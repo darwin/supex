@@ -14,7 +14,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADRemoteError,
     VCADTimeoutError,
 )
-from supex_driver.connection.exceptions import (
+from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpRemoteError,
 )
