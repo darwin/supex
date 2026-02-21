@@ -912,12 +912,11 @@ class TestRealRuntimeLoading < Minitest::Test
 
   def setup
     Sketchup.reset_mocks
+    runtime_src = File.expand_path('../../runtime/src/supex_runtime', __dir__)
+    require File.join(runtime_src, 'bridge_server')
   end
 
   def test_load_bridge_server
-    runtime_src = File.expand_path('../../runtime/src/supex_runtime', __dir__)
-    require File.join(runtime_src, 'bridge_server')
-
     assert defined?(SupexRuntime::BridgeServer)
     assert defined?(SupexRuntime::Tools)
     assert defined?(SupexRuntime::VcadTools)

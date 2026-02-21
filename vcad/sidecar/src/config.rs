@@ -79,9 +79,14 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    // Env vars are process-global; serialize tests that manipulate them.
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_defaults() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // Clear env vars that might interfere
         std::env::remove_var("VCAD_HOST");
         std::env::remove_var("VCAD_PORT");
@@ -118,6 +123,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set")]
     fn test_temp_dir_panics_without_env() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::remove_var("VCAD_TEMP_DIR");
         std::env::remove_var("SUPEX_WORKSPACE");
         Config::resolve_temp_dir();
@@ -125,6 +131,7 @@ mod tests {
 
     #[test]
     fn test_vcad_temp_dir_takes_precedence() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let ws = tempfile::tempdir().unwrap();
         std::env::set_var("VCAD_TEMP_DIR", tmp.path());
