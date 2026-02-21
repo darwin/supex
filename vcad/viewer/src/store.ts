@@ -8,6 +8,7 @@ export interface MeshMaterial {
 
 export interface MeshEntry {
   id: string;
+  revision: number;
   positions: Float32Array;
   indices: Uint32Array;
   normals: Float32Array;

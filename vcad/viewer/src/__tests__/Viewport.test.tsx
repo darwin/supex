@@ -7,6 +7,7 @@ import type { MeshEntry } from "../store";
 function makeMesh(id: string): MeshEntry {
   return {
     id,
+    revision: 0,
     positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
     indices: new Uint32Array([0, 1, 2]),
     normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),

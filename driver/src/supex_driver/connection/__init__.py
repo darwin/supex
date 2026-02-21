@@ -30,6 +30,15 @@ from supex_driver.connection.vcad_sidecar import (
     VcadSidecar,
     get_vcad_sidecar,
 )
+from supex_driver.connection.viewer_relay import (
+    ViewerCapabilityError,
+    ViewerError,
+    ViewerNotConnectedError,
+    ViewerProtocolError,
+    ViewerRelay,
+    ViewerTimeoutError,
+    get_viewer_relay,
+)
 
 __all__ = [
     "SketchupConnection",
@@ -48,4 +57,11 @@ __all__ = [
     "VcadProtocolError",
     "VcadRemoteError",
     "VcadCapabilityError",
+    "ViewerRelay",
+    "get_viewer_relay",
+    "ViewerError",
+    "ViewerNotConnectedError",
+    "ViewerTimeoutError",
+    "ViewerProtocolError",
+    "ViewerCapabilityError",
 ]

@@ -8,7 +8,7 @@ from typing import Any, cast
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stderr
+    stream=sys.stderr,
 )
 
 from mcp.server import fastmcp
@@ -24,6 +24,14 @@ from supex_driver.connection.exceptions import (
     SketchUpProtocolError,
     SketchUpRemoteError,
     SketchUpTimeoutError,
+)
+from supex_driver.connection.viewer_relay import (
+    ViewerCapabilityError,
+    ViewerError,
+    ViewerNotConnectedError,
+    ViewerProtocolError,
+    ViewerTimeoutError,
+    get_viewer_relay,
 )
 
 # Logger instance (configured when server starts)
@@ -47,18 +55,20 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
     if ctx is not None:
         try:
             # Access: ctx.request_context.session.client_params.clientInfo.name
-            request_context = getattr(ctx, 'request_context', None)
+            request_context = getattr(ctx, "request_context", None)
             if request_context:
-                session = getattr(request_context, 'session', None)
+                session = getattr(request_context, "session", None)
                 if session:
-                    client_params = getattr(session, 'client_params', None)
+                    client_params = getattr(session, "client_params", None)
                     if client_params:
-                        client_info = getattr(client_params, 'clientInfo', None)
+                        client_info = getattr(client_params, "clientInfo", None)
                         if client_info:
-                            raw_name = getattr(client_info, 'name', None)
+                            raw_name = getattr(client_info, "name", None)
                             if raw_name and isinstance(raw_name, str):
                                 name: str = cast(str, raw_name)
-                                logger.info(f"Got client name from MCP clientInfo: {name}")
+                                logger.info(
+                                    f"Got client name from MCP clientInfo: {name}"
+                                )
                                 _mcp_client_name = name
                                 return name
         except Exception as e:
@@ -74,6 +84,7 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
 
     # Default
     return "mcp"
+
 
 # Flag to track if startup info has been logged
 _startup_logged = False
@@ -99,7 +110,7 @@ def call_tool(
     ctx: McpContext,
     method: str,
     params: dict[str, Any] | None = None,
-    operation: str = "operation"
+    operation: str = "operation",
 ) -> str:
     """Execute a tool call with standardized error handling.
 
@@ -115,28 +126,32 @@ def call_tool(
     try:
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
-            method=method,
-            params=params or {},
-            request_id=ctx.request_id
+            method=method, params=params or {}, request_id=ctx.request_id
         )
         return json.dumps(result)
     except (SketchUpConnectionError, SketchUpTimeoutError) as e:
         logger.error(f"Connection error during {operation}: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "connection"}
+        )
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error during {operation}: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except SketchUpRemoteError as e:
         logger.error(f"Remote error during {operation}: {e}")
-        return json.dumps({
-            "success": False,
-            "error": e.message,
-            "error_type": "remote",
-            "error_code": e.code
-        })
+        return json.dumps(
+            {
+                "success": False,
+                "error": e.message,
+                "error_type": "remote",
+                "error_code": e.code,
+            }
+        )
     except Exception as e:
         logger.exception(f"Unexpected error during {operation}: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unexpected"}
+        )
 
 
 # Status and connection tools
@@ -237,16 +252,27 @@ def eval_ruby(ctx: McpContext, code: str) -> str:
         return json.dumps(response)
     except (SketchUpConnectionError, SketchUpTimeoutError) as e:
         logger.error(f"Connection error evaluating Ruby code: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "connection"})
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "connection"}
+        )
     except SketchUpProtocolError as e:
         logger.error(f"Protocol error evaluating Ruby code: {e}")
         return json.dumps({"success": False, "error": str(e), "error_type": "protocol"})
     except SketchUpRemoteError as e:
         logger.error(f"Remote error evaluating Ruby code: {e}")
-        return json.dumps({"success": False, "error": e.message, "error_type": "remote", "error_code": e.code})
+        return json.dumps(
+            {
+                "success": False,
+                "error": e.message,
+                "error_type": "remote",
+                "error_code": e.code,
+            }
+        )
     except Exception as e:
         logger.exception(f"Unexpected error evaluating Ruby code: {e}")
-        return json.dumps({"success": False, "error": str(e), "error_type": "unexpected"})
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unexpected"}
+        )
 
 
 # Console capture functionality
@@ -294,7 +320,9 @@ def list_entities(ctx: McpContext, entity_type: str = "all") -> str:
 
     Returns list of entities with type, name, and layer information
     """
-    return call_tool(ctx, "list_entities", {"entity_type": entity_type}, "list_entities")
+    return call_tool(
+        ctx, "list_entities", {"entity_type": entity_type}, "list_entities"
+    )
 
 
 @mcp.tool()
@@ -341,7 +369,7 @@ def take_screenshot(
     width: int = 1920,
     height: int = 1080,
     transparent: bool = False,
-    output_path: str | None = None
+    output_path: str | None = None,
 ) -> str:
     """Take a screenshot of the current SketchUp view and save to disk
 
@@ -362,7 +390,7 @@ def take_screenshot(
     params: dict[str, int | bool | str] = {
         "width": width,
         "height": height,
-        "transparent": transparent
+        "transparent": transparent,
     }
     if output_path:
         params["output_path"] = output_path
@@ -378,7 +406,7 @@ def take_batch_screenshots(
     width: int = 1920,
     height: int = 1080,
     transparent: bool = False,
-    restore_camera: bool = True
+    restore_camera: bool = True,
 ) -> str:
     """Take multiple screenshots with different camera positions in a single batch.
 
@@ -433,7 +461,7 @@ def take_batch_screenshots(
         "width": width,
         "height": height,
         "transparent": transparent,
-        "restore_camera": restore_camera
+        "restore_camera": restore_camera,
     }
     if output_dir:
         params["output_dir"] = output_dir
@@ -463,6 +491,142 @@ def save_model(ctx: McpContext, path: str | None = None) -> str:
     """
     params = {"path": path} if path else {}
     return call_tool(ctx, "save_model", params, "save_model")
+
+
+def _handle_viewer_error(e: ViewerError, operation: str) -> str:
+    """Standardized error handling for viewer relay tools."""
+    if isinstance(e, ViewerCapabilityError):
+        logger.error(f"Capability error during {operation}: {e}")
+        return json.dumps(
+            {
+                "success": False,
+                "error": str(e),
+                "error_code": e.error_code,
+                "error_type": "capability",
+                "details": e.details,
+            }
+        )
+    if isinstance(e, ViewerProtocolError):
+        logger.error(f"Protocol error during {operation}: {e}")
+        return json.dumps(
+            {
+                "success": False,
+                "error": str(e),
+                "error_code": e.error_code,
+                "error_type": "protocol",
+            }
+        )
+    if isinstance(e, ViewerNotConnectedError):
+        logger.error(f"Viewer not connected during {operation}: {e}")
+        return json.dumps(
+            {
+                "success": False,
+                "error": str(e),
+                "error_type": "viewer_not_connected",
+            }
+        )
+    if isinstance(e, ViewerTimeoutError):
+        logger.error(f"Viewer timeout during {operation}: {e}")
+        return json.dumps(
+            {
+                "success": False,
+                "error": str(e),
+                "error_type": "timeout",
+            }
+        )
+    logger.error(f"Viewer error during {operation}: {e}")
+    return json.dumps(
+        {
+            "success": False,
+            "error": str(e),
+            "error_type": "viewer_error",
+        }
+    )
+
+
+# vcad viewer tools
+@mcp.tool()
+def vcad_viewer_state(ctx: McpContext) -> str:
+    """Get current vcad viewer state: camera position, selection, visible nodes."""
+    try:
+        relay = get_viewer_relay()
+        relay.require_viewer("vcad_viewer_state")
+
+        state = relay.get_viewer_state()
+        if state is None:
+            return json.dumps(
+                {
+                    "success": True,
+                    "state": None,
+                    "message": "Viewer connected but no state reported yet",
+                }
+            )
+
+        return json.dumps({"success": True, "state": state})
+    except ViewerError as e:
+        return _handle_viewer_error(e, "vcad_viewer_state")
+    except Exception as e:
+        logger.exception(f"Unexpected error in vcad_viewer_state: {e}")
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unexpected"}
+        )
+
+
+@mcp.tool()
+def vcad_viewer_screenshot(ctx: McpContext) -> str:
+    """Capture screenshot from vcad viewer.
+
+    Returns metadata including workspace-relative file path (no large base64
+    payload). The screenshot PNG is saved to .tmp/vcad-viewer/ under the
+    workspace directory.
+    """
+    try:
+        relay = get_viewer_relay()
+        result = relay.request_screenshot()
+
+        if not result.get("data"):
+            return json.dumps(
+                {
+                    "success": False,
+                    "error": "Viewer returned empty screenshot data",
+                    "error_type": "viewer_error",
+                }
+            )
+
+        metadata = relay.save_screenshot(
+            data_b64=result["data"],
+            width=result["width"],
+            height=result["height"],
+        )
+
+        return json.dumps({"success": True, **metadata})
+    except ViewerError as e:
+        return _handle_viewer_error(e, "vcad_viewer_screenshot")
+    except Exception as e:
+        logger.exception(f"Unexpected error in vcad_viewer_screenshot: {e}")
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unexpected"}
+        )
+
+
+@mcp.tool()
+def vcad_viewer_focus(ctx: McpContext, node_id: str) -> str:
+    """Focus viewer camera on a specific vcad node.
+
+    Args:
+        node_id: The vcad node identifier to focus on.
+    """
+    try:
+        relay = get_viewer_relay()
+        relay.send_focus(node_id)
+        return json.dumps({"success": True, "node_id": node_id})
+    except ViewerError as e:
+        return _handle_viewer_error(e, "vcad_viewer_focus")
+    except Exception as e:
+        logger.exception(f"Unexpected error in vcad_viewer_focus: {e}")
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unexpected"}
+        )
 
 
 def main() -> None:
