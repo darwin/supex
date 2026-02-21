@@ -46,19 +46,19 @@ def _parse_major_version(version: str) -> int:
 # --- Viewer-specific exceptions ---
 
 
-class ViewerError(Exception):
+class VCADViewerError(Exception):
     """Base exception for viewer relay errors."""
 
 
-class ViewerNotConnectedError(ViewerError):
+class VCADViewerNotConnectedError(VCADViewerError):
     """Raised when no viewer is connected."""
 
 
-class ViewerTimeoutError(ViewerError):
+class VCADViewerTimeoutError(VCADViewerError):
     """Raised when a viewer operation times out."""
 
 
-class ViewerProtocolError(ViewerError):
+class VCADViewerProtocolError(VCADViewerError):
     """Raised on protocol mismatch."""
 
     def __init__(self, message: str, error_code: str = "PROTOCOL_MISMATCH") -> None:
@@ -67,7 +67,7 @@ class ViewerProtocolError(ViewerError):
         super().__init__(message)
 
 
-class ViewerCapabilityError(ViewerError):
+class VCADViewerCapabilityError(VCADViewerError):
     """Raised when a required viewer capability is not available."""
 
     def __init__(
@@ -95,7 +95,7 @@ class ViewerCapabilityError(ViewerError):
 
 
 @dataclass
-class ViewerSession:
+class VCADViewerSession:
     """State for a connected viewer."""
 
     protocol_version: str = ""
@@ -103,7 +103,7 @@ class ViewerSession:
     negotiated: bool = False
 
 
-class ViewerRelay:
+class VCADViewerRelay:
     """WebSocket relay server for the vcad viewer.
 
     Manages mesh push, viewer state, and screenshot relay between
@@ -131,7 +131,7 @@ class ViewerRelay:
 
         # Connected viewer
         self._ws: Any = None  # websockets ServerConnection
-        self._session = ViewerSession()
+        self._session = VCADViewerSession()
         self._lock = threading.Lock()
 
         # Viewer state (latest from viewer.state messages)
@@ -233,7 +233,7 @@ class ViewerRelay:
         with self._lock:
             old_ws = self._ws
             self._ws = ws
-            self._session = ViewerSession()
+            self._session = VCADViewerSession()
             self._viewer_state = None
 
         if old_ws is not None:
@@ -255,7 +255,7 @@ class ViewerRelay:
             with self._lock:
                 if self._ws is ws:
                     self._ws = None
-                    self._session = ViewerSession()
+                    self._session = VCADViewerSession()
             logger.info("Viewer connection closed")
 
     async def _handle_message(self, ws: Any, msg: dict[str, Any]) -> None:
@@ -452,9 +452,9 @@ class ViewerRelay:
         """Assert viewer is connected and negotiated."""
         with self._lock:
             if self._ws is None:
-                raise ViewerNotConnectedError(f"No viewer connected for {operation}")
+                raise VCADViewerNotConnectedError(f"No viewer connected for {operation}")
             if not self._session.negotiated:
-                raise ViewerProtocolError(
+                raise VCADViewerProtocolError(
                     f"Viewer not negotiated for {operation}",
                     error_code="PROTOCOL_MISMATCH",
                 )
@@ -464,7 +464,7 @@ class ViewerRelay:
         self.require_viewer(operation)
         with self._lock:
             if feature not in self._session.features:
-                raise ViewerCapabilityError(
+                raise VCADViewerCapabilityError(
                     required_capability=feature,
                     negotiated_capabilities=list(self._session.features),
                     operation=operation,
@@ -478,7 +478,7 @@ class ViewerRelay:
         self.require_feature("screenshot", "vcad_viewer_screenshot")
 
         if self._loop is None or self._loop.is_closed():
-            raise ViewerNotConnectedError("Relay not running")
+            raise VCADViewerNotConnectedError("Relay not running")
 
         async def _do_screenshot() -> dict[str, Any]:
             assert self._loop is not None
@@ -491,7 +491,7 @@ class ViewerRelay:
 
             if ws is None:
                 self._screenshot_futures.pop(request_id, None)
-                raise ViewerNotConnectedError("No viewer connected")
+                raise VCADViewerNotConnectedError("No viewer connected")
 
             await ws.send(
                 json.dumps({"type": "screenshot.request", "request_id": request_id})
@@ -501,7 +501,7 @@ class ViewerRelay:
                 return await asyncio.wait_for(future, timeout)
             except TimeoutError:
                 self._screenshot_futures.pop(request_id, None)
-                raise ViewerTimeoutError(f"Screenshot timeout after {timeout}s")
+                raise VCADViewerTimeoutError(f"Screenshot timeout after {timeout}s")
 
         concurrent_future = asyncio.run_coroutine_threadsafe(
             _do_screenshot(), self._loop
@@ -553,7 +553,7 @@ class ViewerRelay:
             not real_save.startswith(real_workspace + os.sep)
             and real_save != real_workspace
         ):
-            raise ViewerError(
+            raise VCADViewerError(
                 "PATH_NOT_ALLOWED: screenshot path must be within workspace"
             )
 
@@ -580,19 +580,19 @@ class ViewerRelay:
 
 # Singleton relay instance
 _relay_lock = threading.Lock()
-_relay: ViewerRelay | None = None
+_relay: VCADViewerRelay | None = None
 
 
-def get_viewer_relay(
+def get_vcad_viewer_relay(
     workspace: str | None = None,
-) -> ViewerRelay:
-    """Get or create the singleton ViewerRelay instance.
+) -> VCADViewerRelay:
+    """Get or create the singleton VCADViewerRelay instance.
 
     Starts the relay server on first call.
     """
     global _relay
     with _relay_lock:
         if _relay is None:
-            _relay = ViewerRelay(workspace=workspace)
+            _relay = VCADViewerRelay(workspace=workspace)
             _relay.start()
         return _relay

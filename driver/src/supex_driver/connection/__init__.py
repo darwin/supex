@@ -30,14 +30,14 @@ from supex_driver.connection.vcad_sidecar import (
     VCADSidecar,
     get_vcad_sidecar,
 )
-from supex_driver.connection.viewer_relay import (
-    ViewerCapabilityError,
-    ViewerError,
-    ViewerNotConnectedError,
-    ViewerProtocolError,
-    ViewerRelay,
-    ViewerTimeoutError,
-    get_viewer_relay,
+from supex_driver.connection.vcad_viewer_relay import (
+    VCADViewerCapabilityError,
+    VCADViewerError,
+    VCADViewerNotConnectedError,
+    VCADViewerProtocolError,
+    VCADViewerRelay,
+    VCADViewerTimeoutError,
+    get_vcad_viewer_relay,
 )
 
 __all__ = [
@@ -57,11 +57,11 @@ __all__ = [
     "VCADProtocolError",
     "VCADRemoteError",
     "VCADCapabilityError",
-    "ViewerRelay",
-    "get_viewer_relay",
-    "ViewerError",
-    "ViewerNotConnectedError",
-    "ViewerTimeoutError",
-    "ViewerProtocolError",
-    "ViewerCapabilityError",
+    "VCADViewerRelay",
+    "get_vcad_viewer_relay",
+    "VCADViewerError",
+    "VCADViewerNotConnectedError",
+    "VCADViewerTimeoutError",
+    "VCADViewerProtocolError",
+    "VCADViewerCapabilityError",
 ]

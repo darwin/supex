@@ -25,13 +25,13 @@ from supex_driver.connection.sketchup_exceptions import (
     SketchUpRemoteError,
     SketchUpTimeoutError,
 )
-from supex_driver.connection.viewer_relay import (
-    ViewerCapabilityError,
-    ViewerError,
-    ViewerNotConnectedError,
-    ViewerProtocolError,
-    ViewerTimeoutError,
-    get_viewer_relay,
+from supex_driver.connection.vcad_viewer_relay import (
+    VCADViewerCapabilityError,
+    VCADViewerError,
+    VCADViewerNotConnectedError,
+    VCADViewerProtocolError,
+    VCADViewerTimeoutError,
+    get_vcad_viewer_relay,
 )
 
 # Logger instance (configured when server starts)
@@ -493,9 +493,9 @@ def save_model(ctx: McpContext, path: str | None = None) -> str:
     return call_tool(ctx, "save_model", params, "save_model")
 
 
-def _handle_viewer_error(e: ViewerError, operation: str) -> str:
+def _handle_viewer_error(e: VCADViewerError, operation: str) -> str:
     """Standardized error handling for viewer relay tools."""
-    if isinstance(e, ViewerCapabilityError):
+    if isinstance(e, VCADViewerCapabilityError):
         logger.error(f"Capability error during {operation}: {e}")
         return json.dumps(
             {
@@ -506,7 +506,7 @@ def _handle_viewer_error(e: ViewerError, operation: str) -> str:
                 "details": e.details,
             }
         )
-    if isinstance(e, ViewerProtocolError):
+    if isinstance(e, VCADViewerProtocolError):
         logger.error(f"Protocol error during {operation}: {e}")
         return json.dumps(
             {
@@ -516,7 +516,7 @@ def _handle_viewer_error(e: ViewerError, operation: str) -> str:
                 "error_type": "protocol",
             }
         )
-    if isinstance(e, ViewerNotConnectedError):
+    if isinstance(e, VCADViewerNotConnectedError):
         logger.error(f"Viewer not connected during {operation}: {e}")
         return json.dumps(
             {
@@ -525,7 +525,7 @@ def _handle_viewer_error(e: ViewerError, operation: str) -> str:
                 "error_type": "viewer_not_connected",
             }
         )
-    if isinstance(e, ViewerTimeoutError):
+    if isinstance(e, VCADViewerTimeoutError):
         logger.error(f"Viewer timeout during {operation}: {e}")
         return json.dumps(
             {
@@ -549,7 +549,7 @@ def _handle_viewer_error(e: ViewerError, operation: str) -> str:
 def vcad_viewer_state(ctx: McpContext) -> str:
     """Get current vcad viewer state: camera position, selection, visible nodes."""
     try:
-        relay = get_viewer_relay()
+        relay = get_vcad_viewer_relay()
         relay.require_viewer("vcad_viewer_state")
 
         state = relay.get_viewer_state()
@@ -563,7 +563,7 @@ def vcad_viewer_state(ctx: McpContext) -> str:
             )
 
         return json.dumps({"success": True, "state": state})
-    except ViewerError as e:
+    except VCADViewerError as e:
         return _handle_viewer_error(e, "vcad_viewer_state")
     except Exception as e:
         logger.exception(f"Unexpected error in vcad_viewer_state: {e}")
@@ -581,7 +581,7 @@ def vcad_viewer_screenshot(ctx: McpContext) -> str:
     workspace directory.
     """
     try:
-        relay = get_viewer_relay()
+        relay = get_vcad_viewer_relay()
         result = relay.request_screenshot()
 
         if not result.get("data"):
@@ -600,7 +600,7 @@ def vcad_viewer_screenshot(ctx: McpContext) -> str:
         )
 
         return json.dumps({"success": True, **metadata})
-    except ViewerError as e:
+    except VCADViewerError as e:
         return _handle_viewer_error(e, "vcad_viewer_screenshot")
     except Exception as e:
         logger.exception(f"Unexpected error in vcad_viewer_screenshot: {e}")
@@ -617,10 +617,10 @@ def vcad_viewer_focus(ctx: McpContext, node_id: str) -> str:
         node_id: The vcad node identifier to focus on.
     """
     try:
-        relay = get_viewer_relay()
+        relay = get_vcad_viewer_relay()
         relay.send_focus(node_id)
         return json.dumps({"success": True, "node_id": node_id})
-    except ViewerError as e:
+    except VCADViewerError as e:
         return _handle_viewer_error(e, "vcad_viewer_focus")
     except Exception as e:
         logger.exception(f"Unexpected error in vcad_viewer_focus: {e}")
