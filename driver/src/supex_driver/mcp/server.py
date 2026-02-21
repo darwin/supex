@@ -629,6 +629,9 @@ def vcad_viewer_focus(ctx: McpContext, node_id: str) -> str:
         )
 
 
+from supex_driver.mcp import vcad_tools as _vcad_tools  # noqa: F401, E402
+
+
 def main() -> None:
     """Main entry point for the server"""
     log_startup_info()
