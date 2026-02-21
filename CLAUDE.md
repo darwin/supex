@@ -79,6 +79,25 @@ cd runtime && bundle exec rake build
 - `mcp` - MCP server entry point
 - `supex` - CLI entry point
 
+## vcad Sidecar
+
+Rust binary at `vcad/sidecar/`. After any code change that affects the sidecar:
+
+1. **Rebuild release binary** (SketchUp uses release, not debug):
+   ```bash
+   cargo build --release --manifest-path vcad/sidecar/Cargo.toml
+   ```
+2. **Restart the running sidecar** — kill the old process and relaunch:
+   ```bash
+   kill $(pgrep -f supex-vcad-sidecar)
+   sleep 1
+   SUPEX_WORKSPACE=$WORKSPACE scripts/launch-vcad-sidecar.sh &
+   ```
+   `$WORKSPACE` is the user's project directory (e.g. an `example-*` project).
+3. **Verify** with `check_sketchup_status` or `vcad_place`.
+
+Temp directory is resolved as: `VCAD_TEMP_DIR` (explicit) > `SUPEX_WORKSPACE/.tmp/vcad-sidecar` (derived). If neither env var is set, the sidecar panics at startup.
+
 ## Agent Prompts Convention
 
 User projects symlink `docs/agents/` as `supex-docs/` in their project root. Therefore:

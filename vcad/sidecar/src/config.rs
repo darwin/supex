@@ -21,9 +21,7 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(9877),
-            temp_dir: std::env::var("VCAD_TEMP_DIR")
-                .map(PathBuf::from)
-                .unwrap_or_else(|_| std::env::temp_dir().join("vcad-sidecar")),
+            temp_dir: Self::resolve_temp_dir(),
             temp_ttl_sec: std::env::var("VCAD_TEMP_TTL_SEC")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -54,6 +52,24 @@ impl Config {
         }
     }
 
+    /// Resolve temp directory: VCAD_TEMP_DIR > SUPEX_WORKSPACE/.tmp/vcad-sidecar.
+    ///
+    /// Panics if neither variable is set — silent fallback to system temp caused
+    /// PATH_NOT_ALLOWED errors because SketchUp's path policy rejects imports
+    /// from outside the workspace.
+    fn resolve_temp_dir() -> PathBuf {
+        if let Ok(dir) = std::env::var("VCAD_TEMP_DIR") {
+            return PathBuf::from(dir);
+        }
+        if let Ok(ws) = std::env::var("SUPEX_WORKSPACE") {
+            return PathBuf::from(ws).join(".tmp").join("vcad-sidecar");
+        }
+        panic!(
+            "VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set. \
+             Without a workspace-relative temp directory, SketchUp will reject imported files."
+        );
+    }
+
     /// Returns true if the configured host is a loopback address.
     pub fn is_loopback(&self) -> bool {
         matches!(self.host.as_str(), "127.0.0.1" | "localhost" | "::1")
@@ -78,6 +94,10 @@ mod tests {
         std::env::remove_var("VCAD_TEMP_TTL_SEC");
         std::env::remove_var("VCAD_TEMP_MAX_FILES");
 
+        // resolve_temp_dir requires at least SUPEX_WORKSPACE
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("SUPEX_WORKSPACE", tmp.path());
+
         let config = Config::from_env();
         assert_eq!(config.host, "127.0.0.1");
         assert_eq!(config.port, 9877);
@@ -87,12 +107,51 @@ mod tests {
         assert!(!config.allow_remote);
         assert!(config.auth_token.is_none());
         assert!(config.is_loopback());
+        assert_eq!(
+            config.temp_dir,
+            tmp.path().join(".tmp").join("vcad-sidecar")
+        );
+
+        std::env::remove_var("SUPEX_WORKSPACE");
+    }
+
+    #[test]
+    #[should_panic(expected = "VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set")]
+    fn test_temp_dir_panics_without_env() {
+        std::env::remove_var("VCAD_TEMP_DIR");
+        std::env::remove_var("SUPEX_WORKSPACE");
+        Config::resolve_temp_dir();
+    }
+
+    #[test]
+    fn test_vcad_temp_dir_takes_precedence() {
+        let tmp = tempfile::tempdir().unwrap();
+        let ws = tempfile::tempdir().unwrap();
+        std::env::set_var("VCAD_TEMP_DIR", tmp.path());
+        std::env::set_var("SUPEX_WORKSPACE", ws.path());
+
+        let dir = Config::resolve_temp_dir();
+        assert_eq!(dir, tmp.path());
+
+        std::env::remove_var("VCAD_TEMP_DIR");
+        std::env::remove_var("SUPEX_WORKSPACE");
     }
 
     #[test]
     fn test_is_loopback() {
-        let mut config = Config::from_env();
-        config.host = "127.0.0.1".into();
+        // Don't use from_env() — we only need to test the is_loopback method
+        let mut config = Config {
+            host: "127.0.0.1".into(),
+            port: 9877,
+            temp_dir: PathBuf::from("/tmp"),
+            temp_ttl_sec: 3600,
+            temp_max_files: 500,
+            max_queue: 64,
+            eval_timeout_ms: 120_000,
+            adt_cache_max: 256,
+            allow_remote: false,
+            auth_token: None,
+        };
         assert!(config.is_loopback());
         config.host = "localhost".into();
         assert!(config.is_loopback());
