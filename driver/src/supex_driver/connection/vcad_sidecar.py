@@ -121,9 +121,19 @@ class VcadSidecar:
             "VCAD_TEMP_TTL_SEC",
             "VCAD_TEMP_MAX_FILES",
             "VCAD_AUTH_TOKEN",
+            "VCAD_TEMP_DIR",
         ):
             if key in os.environ:
                 env[key] = os.environ[key]
+
+        # Default VCAD_TEMP_DIR to workspace .tmp/vcad-sidecar/ so OBJ files
+        # are within SketchUp PathPolicy allowed roots
+        if "VCAD_TEMP_DIR" not in env:
+            workspace = os.environ.get("SUPEX_WORKSPACE")
+            if workspace:
+                temp_dir = os.path.join(workspace, ".tmp", "vcad-sidecar")
+                os.makedirs(temp_dir, exist_ok=True)
+                env["VCAD_TEMP_DIR"] = temp_dir
 
         try:
             self.process = subprocess.Popen(
