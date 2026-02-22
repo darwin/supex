@@ -5,14 +5,15 @@
 Supex implements a multi-process architecture for robust SketchUp automation:
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Claude Code   │────▶│   Python MCP     │────▶│   SketchUp      │
-│   AI Client     │     │   Driver         │     │   Ruby Runtime  │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                          │    :9876 TCP JSON-RPC         │
-                          │                               │
-                          ├──────────────────────────────-┘
-                          │
+                                                  ┌─────────────────┐
+                                           ┌─────▶│   Ruby REPL     │
+                                           │      │   :4433 TCP     │
+┌─────────────────┐     ┌──────────────────┤      └─────────────────┘
+│   Claude Code   │────▶│   Python MCP     │      ┌─────────────────┐
+│   AI Client     │     │   Driver         │─────▶│   SketchUp      │
+└─────────────────┘     └──────────────────┘      │   Ruby Runtime  │
+                          │    :9876 TCP JSON-RPC  │   :9876 TCP     │
+                          │                        └─────────────────┘
                           │    :9877 TCP JSON-RPC
                           ▼
                   ┌──────────────────┐     ┌─────────────────┐
@@ -103,6 +104,7 @@ The connection module provides reliable communication with the SketchUp runtime:
 | `SUPEX_PORT`         | `9876`      | SketchUp runtime port               |
 | `SUPEX_TIMEOUT`      | `15`        | Socket timeout in seconds           |
 | `SUPEX_RETRIES`      | `2`         | Reconnection attempts               |
+| `SUPEX_REPL_PORT`    | `4433`      | Ruby REPL server port               |
 | `VCAD_HOST`          | `127.0.0.1` | VCAD sidecar host                  |
 | `VCAD_PORT`          | `9877`      | VCAD sidecar port                  |
 | `VCAD_AUTH_TOKEN`    | —           | Auth token (required for remote)    |
@@ -182,6 +184,7 @@ See [VCAD Integration](vcad.md) for detailed documentation.
 
 | Port | Transport | Direction | Purpose |
 |------|-----------|-----------|---------|
+| 4433 | TCP | Driver ↔ SketchUp | Ruby REPL (interactive eval in TOPLEVEL_BINDING) |
 | 9876 | TCP | Driver ↔ SketchUp | Ruby bridge (eval, introspection, import) |
 | 9877 | TCP | Driver ↔ Sidecar | VCAD evaluation, import extraction |
 | 9878 | WebSocket | Driver ↔ Viewer | BRep preview relay |
