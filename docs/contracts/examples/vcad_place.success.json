@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "node_id": "bracket",
+  "entity_id": 42,
+  "definition_name": "vcad_bracket",
+  "obj_path": "/tmp/vcad-sidecar/bracket.dae",
+  "source_file": "/project/bracket.skp.oo",
+  "revision": 1,
+  "bbox": {
+    "min": [0.0, 0.0, 0.0],
+    "max": [50.0, 30.0, 10.0]
+  },
+  "volume": 15000.0,
+  "surface_area": 3800.0
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supex/contracts/v1/tools-call",
+  "title": "Tools Call Envelope",
+  "description": "JSON-RPC tools/call input envelope for sidecar method invocation.",
+  "type": "object",
+  "required": ["name", "arguments"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Tool method name to invoke."
+    },
+    "arguments": {
+      "type": "object",
+      "description": "Tool-specific arguments object.",
+      "additionalProperties": true
+    },
+    "request_id": {
+      "type": ["string", "integer"],
+      "description": "Correlation ID for request tracking."
+    }
+  },
+  "additionalProperties": true
+}

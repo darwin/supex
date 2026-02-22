@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supex/contracts/v1/vcad-tools-results",
+  "title": "VCAD Tools Results",
+  "description": "Canonical success payloads for vcad_* MCP tools.",
+  "oneOf": [
+    { "$ref": "#/$defs/vcad_place_result" },
+    { "$ref": "#/$defs/vcad_update_cascade_result" },
+    { "$ref": "#/$defs/vcad_inspect_result" },
+    { "$ref": "#/$defs/vcad_eval_result" }
+  ],
+  "$defs": {
+    "vcad_place_result": {
+      "type": "object",
+      "title": "vcad_place success",
+      "required": ["success", "node_id", "entity_id", "definition_name", "obj_path"],
+      "properties": {
+        "success": { "const": true },
+        "node_id": { "type": "string" },
+        "entity_id": { "type": "integer" },
+        "definition_name": { "type": "string" },
+        "obj_path": {
+          "type": "string",
+          "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
+        },
+        "source_file": { "type": "string" },
+        "revision": { "type": "integer" },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "volume": { "type": "number" },
+        "surface_area": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "vcad_update_cascade_result": {
+      "type": "object",
+      "title": "vcad_update_cascade success",
+      "required": ["success", "updated", "failed", "results"],
+      "properties": {
+        "success": { "type": "boolean" },
+        "updated": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["node_id", "success"],
+            "properties": {
+              "node_id": { "type": "string" },
+              "success": { "type": "boolean" },
+              "error": { "type": "string" },
+              "error_code": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "vcad_inspect_result": {
+      "type": "object",
+      "title": "vcad_inspect success",
+      "required": ["success"],
+      "properties": {
+        "success": { "const": true },
+        "volume": { "type": "number" },
+        "surface_area": { "type": "number" },
+        "bbox": { "$ref": "#/$defs/bbox" },
+        "part_count": { "type": "integer" }
+      },
+      "additionalProperties": true
+    },
+    "vcad_eval_result": {
+      "type": "object",
+      "title": "vcad_eval success",
+      "required": ["success", "obj_path"],
+      "properties": {
+        "success": { "const": true },
+        "obj_path": {
+          "type": "string",
+          "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
+        },
+        "volume": { "type": "number" },
+        "surface_area": { "type": "number" },
+        "bbox": { "$ref": "#/$defs/bbox" }
+      },
+      "additionalProperties": true
+    },
+    "bbox": {
+      "type": "object",
+      "required": ["min", "max"],
+      "properties": {
+        "min": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "max": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    }
+  }
+}

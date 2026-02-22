@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supex/contracts/v1/error-envelope",
+  "title": "Error Envelope",
+  "description": "Stable error shape for MCP tool error responses.",
+  "type": "object",
+  "required": ["success", "error"],
+  "properties": {
+    "success": {
+      "const": false
+    },
+    "error": {
+      "type": "string",
+      "description": "Human-friendly error message."
+    },
+    "error_code": {
+      "type": "string",
+      "description": "Machine-readable error code (e.g. PROTOCOL_MISMATCH, NO_GEOMETRY)."
+    },
+    "error_type": {
+      "type": "string",
+      "enum": ["connection", "protocol", "remote", "capability", "timeout", "viewer_not_connected", "viewer_error", "unexpected"],
+      "description": "Error category."
+    },
+    "details": {
+      "type": ["object", "string", "null"],
+      "description": "Additional structured error details (conditionally present).",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "if": {
+    "properties": {
+      "error_code": { "const": "SCHEMA_VALIDATION_FAILED" }
+    },
+    "required": ["error_code"]
+  },
+  "then": {
+    "properties": {
+      "details": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "JSON path to the invalid field." },
+          "expected": { "type": "string", "description": "Expected type or constraint." }
+        }
+      }
+    }
+  }
+}

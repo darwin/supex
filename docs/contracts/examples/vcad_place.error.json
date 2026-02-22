@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "error": "No geometry produced from evaluation",
+  "error_code": "NO_GEOMETRY",
+  "details": {
+    "source_file": "/project/empty.skp.oo"
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supex/contracts/v1/viewer-relay",
+  "title": "Viewer Relay Messages",
+  "description": "WebSocket relay messages between driver and viewer.",
+  "oneOf": [
+    { "$ref": "#/$defs/viewer_ready" },
+    { "$ref": "#/$defs/mesh_update" },
+    { "$ref": "#/$defs/mesh_remove" },
+    { "$ref": "#/$defs/scene_reset" },
+    { "$ref": "#/$defs/scene_snapshot" },
+    { "$ref": "#/$defs/screenshot_request" },
+    { "$ref": "#/$defs/screenshot_response" },
+    { "$ref": "#/$defs/viewer_focus" },
+    { "$ref": "#/$defs/viewer_state" }
+  ],
+  "$defs": {
+    "viewer_ready": {
+      "type": "object",
+      "title": "viewer.ready",
+      "description": "Viewer sends this on connection for protocol/feature negotiation.",
+      "required": ["type", "protocol_version", "features"],
+      "properties": {
+        "type": { "const": "viewer.ready" },
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "mesh_update": {
+      "type": "object",
+      "title": "mesh.update",
+      "description": "Push mesh data to viewer.",
+      "required": ["type", "node_id", "revision", "positions", "indices"],
+      "properties": {
+        "type": { "const": "mesh.update" },
+        "node_id": { "type": "string" },
+        "revision": { "type": "integer" },
+        "positions": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "indices": {
+          "type": "array",
+          "items": { "type": "integer" }
+        },
+        "normals": {
+          "type": ["array", "null"],
+          "items": { "type": "number" }
+        },
+        "material": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "bbox": {
+          "type": ["object", "null"],
+          "properties": {
+            "min": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "max": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "mesh_remove": {
+      "type": "object",
+      "title": "mesh.remove",
+      "description": "Remove a mesh from viewer.",
+      "required": ["type", "node_id"],
+      "properties": {
+        "type": { "const": "mesh.remove" },
+        "node_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "scene_reset": {
+      "type": "object",
+      "title": "scene.reset",
+      "description": "Clear all meshes in viewer.",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "scene.reset" }
+      },
+      "additionalProperties": true
+    },
+    "scene_snapshot": {
+      "type": "object",
+      "title": "scene.snapshot",
+      "description": "Replay applied meshes on viewer reconnect.",
+      "required": ["type", "nodes"],
+      "properties": {
+        "type": { "const": "scene.snapshot" },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["node_id", "revision", "positions", "indices"],
+            "properties": {
+              "node_id": { "type": "string" },
+              "revision": { "type": "integer" },
+              "positions": {
+                "type": "array",
+                "items": { "type": "number" }
+              },
+              "indices": {
+                "type": "array",
+                "items": { "type": "integer" }
+              },
+              "normals": {
+                "type": ["array", "null"],
+                "items": { "type": "number" }
+              },
+              "material": {
+                "type": ["object", "null"],
+                "additionalProperties": true
+              },
+              "bbox": {
+                "type": ["object", "null"]
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "screenshot_request": {
+      "type": "object",
+      "title": "screenshot.request",
+      "description": "Request a screenshot from viewer.",
+      "required": ["type", "request_id"],
+      "properties": {
+        "type": { "const": "screenshot.request" },
+        "request_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "screenshot_response": {
+      "type": "object",
+      "title": "screenshot.response",
+      "description": "Viewer responds with screenshot data.",
+      "required": ["type", "request_id", "data", "width", "height"],
+      "properties": {
+        "type": { "const": "screenshot.response" },
+        "request_id": { "type": "string" },
+        "data": {
+          "type": "string",
+          "description": "Base64-encoded PNG image data."
+        },
+        "width": { "type": "integer", "minimum": 0 },
+        "height": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "viewer_focus": {
+      "type": "object",
+      "title": "viewer.focus",
+      "description": "Focus camera on a specific node.",
+      "required": ["type", "node_id"],
+      "properties": {
+        "type": { "const": "viewer.focus" },
+        "node_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "viewer_state": {
+      "type": "object",
+      "title": "viewer.state",
+      "description": "Viewer pushes its current state (camera, selection).",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "viewer.state" },
+        "camera": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "selection": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

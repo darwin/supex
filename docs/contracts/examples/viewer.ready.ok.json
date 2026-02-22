@@ -1,0 +1,5 @@
+{
+  "type": "viewer.ready",
+  "protocol_version": "1.0",
+  "features": ["mesh", "screenshot", "state", "focus"]
+}

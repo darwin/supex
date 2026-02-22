@@ -1,0 +1,16 @@
+{
+  "status": "applied",
+  "source_hash": "sha256:abc123def456",
+  "obj_path": "/tmp/vcad-sidecar/bracket.dae",
+  "finished_at": "2026-02-22T10:30:00Z",
+  "node_id": "bracket",
+  "source_file": "/project/bracket.skp.oo",
+  "revision": 5,
+  "bbox": {
+    "min": [0.0, 0.0, 0.0],
+    "max": [50.0, 30.0, 10.0]
+  },
+  "volume": 15000.0,
+  "surface_area": 3800.0,
+  "eval_duration_ms": 245.3
+}

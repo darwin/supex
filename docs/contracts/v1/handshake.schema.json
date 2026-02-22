@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supex/contracts/v1/handshake",
+  "title": "VCAD Sidecar Handshake",
+  "description": "Hello request/response for protocol version negotiation between driver and sidecar.",
+  "oneOf": [
+    { "$ref": "#/$defs/hello_request" },
+    { "$ref": "#/$defs/hello_response" }
+  ],
+  "$defs": {
+    "hello_request": {
+      "type": "object",
+      "title": "Hello Request",
+      "description": "Driver sends this to sidecar on connection.",
+      "required": ["name", "version", "protocol_version", "pid"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Client identifier (e.g. 'supex-driver')."
+        },
+        "version": {
+          "type": "string",
+          "description": "Client version string."
+        },
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Protocol version (major.minor)."
+        },
+        "pid": {
+          "type": "integer",
+          "description": "Client process ID."
+        },
+        "agent": {
+          "type": ["string", "null"],
+          "description": "Agent identifier (optional)."
+        },
+        "token": {
+          "type": ["string", "null"],
+          "description": "Authentication token (optional)."
+        },
+        "workspace": {
+          "type": ["string", "null"],
+          "description": "Workspace directory path (optional)."
+        }
+      },
+      "additionalProperties": true
+    },
+    "hello_response": {
+      "type": "object",
+      "title": "Hello Response",
+      "description": "Sidecar responds with negotiated protocol version and capabilities.",
+      "required": ["protocol_version", "capabilities"],
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Negotiated protocol version (major.minor)."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of supported capabilities (e.g. 'eval', 'inspect')."
+        },
+        "limits": {
+          "type": "object",
+          "description": "Optional limits (key-value pairs).",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "supex/contracts/v1/artifact-manifest",
+  "title": "Artifact Manifest",
+  "description": "Deterministic artifact manifest shape for VCAD evaluation results.",
+  "type": "object",
+  "required": ["status", "source_hash", "obj_path", "finished_at"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["applied", "stale_dropped", "superseded"],
+      "description": "Artifact outcome status."
+    },
+    "source_hash": {
+      "type": "string",
+      "description": "Hash of the source file content."
+    },
+    "obj_path": {
+      "type": "string",
+      "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 timestamp when the artifact was finalized."
+    },
+    "node_id": {
+      "type": "string",
+      "description": "Node identifier."
+    },
+    "source_file": {
+      "type": "string",
+      "description": "Path to the source .skp.oo file."
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonic revision counter (required when status=applied)."
+    },
+    "bbox": {
+      "$ref": "#/$defs/bbox",
+      "description": "Bounding box (required when status=applied)."
+    },
+    "volume": {
+      "type": "number",
+      "description": "Solid volume in cubic mm (required when status=applied)."
+    },
+    "surface_area": {
+      "type": "number",
+      "description": "Solid surface area in sq mm (required when status=applied)."
+    },
+    "eval_duration_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Evaluation duration in milliseconds."
+    },
+    "drop_reason": {
+      "type": "string",
+      "description": "Reason for drop (required when status=stale_dropped)."
+    },
+    "supersede_reason": {
+      "type": "string",
+      "description": "Reason for supersede (required when status=superseded)."
+    },
+    "superseded_by_revision": {
+      "type": "integer",
+      "description": "Revision that superseded this artifact."
+    }
+  },
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "applied" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["revision", "bbox", "volume", "surface_area"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "stale_dropped" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["drop_reason"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "superseded" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["supersede_reason"]
+      }
+    }
+  ],
+  "$defs": {
+    "bbox": {
+      "type": "object",
+      "required": ["min", "max"],
+      "properties": {
+        "min": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "max": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    }
+  }
+}

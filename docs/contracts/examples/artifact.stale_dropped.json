@@ -1,0 +1,10 @@
+{
+  "status": "stale_dropped",
+  "source_hash": "sha256:old789hash",
+  "obj_path": "/tmp/vcad-sidecar/bracket.dae",
+  "finished_at": "2026-02-22T10:30:05Z",
+  "node_id": "bracket",
+  "source_file": "/project/bracket.skp.oo",
+  "drop_reason": "revision 3 superseded by current revision 5",
+  "eval_duration_ms": 180.0
+}

@@ -1,0 +1,14 @@
+{
+  "type": "scene.snapshot",
+  "nodes": [
+    {
+      "node_id": "bracket",
+      "revision": 3,
+      "positions": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0],
+      "indices": [0, 1, 2],
+      "normals": [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+      "material": {"name": "default", "r": 0.8, "g": 0.8, "b": 0.8},
+      "bbox": {"min": [0.0, 0.0, 0.0], "max": [1.0, 1.0, 0.0]}
+    }
+  ]
+}

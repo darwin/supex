@@ -1,0 +1,8 @@
+{
+  "protocol_version": "1.0",
+  "capabilities": ["eval", "inspect", "extract_imports", "eval_with_imports", "eval_with_solid_imports", "module_tracking"],
+  "limits": {
+    "max_source_bytes": 1048576,
+    "max_eval_timeout_ms": 30000
+  }
+}
