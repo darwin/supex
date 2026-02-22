@@ -549,6 +549,14 @@ class MockModel
   def abort_operation
     true
   end
+
+  def add_observer(_observer)
+    true
+  end
+
+  def remove_observer(_observer)
+    true
+  end
 end
 
 # Mock Sketchup module singleton methods
@@ -583,6 +591,10 @@ module Sketchup
       @mock_model = nil
       @force_no_model = false
     end
+  end
+
+  # Sketchup::ModelObserver base class for vcad_observer tests
+  class ModelObserver
   end
 
   # Sketchup::Camera class for batch_screenshot tests
