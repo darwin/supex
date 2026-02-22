@@ -76,10 +76,6 @@ pub enum EvalRequest {
         id: serde_json::Value,
         code_or_path: String,
     },
-    EvalRepl {
-        id: serde_json::Value,
-        code: String,
-    },
     EvalWithImports {
         id: serde_json::Value,
         transformed_source: String,
@@ -104,7 +100,6 @@ impl EvalRequest {
             EvalRequest::EvalFile { id, .. } => id,
             EvalRequest::EvalFileTracked { id, .. } => id,
             EvalRequest::Inspect { id, .. } => id,
-            EvalRequest::EvalRepl { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
             EvalRequest::EvalReplWithImports { id, .. } => id,
         }
@@ -531,21 +526,6 @@ fn dispatch_tools_call(
                 code_or_path: code_or_path.to_string(),
             }
         }
-        "vcad.eval_repl" => {
-            let code = arguments.get("code").and_then(|v| v.as_str()).unwrap_or("");
-            if code.is_empty() {
-                return make_error_response(
-                    request.id.clone(),
-                    JSONRPC_INVALID_REQUEST,
-                    "vcad.eval_repl requires non-empty 'code' argument",
-                    None,
-                );
-            }
-            EvalRequest::EvalRepl {
-                id: request.id.clone(),
-                code: code.to_string(),
-            }
-        }
         "vcad.extract_imports" => {
             // Fast-path: parse-only, no eval queue needed.
             let source = arguments
@@ -931,12 +911,6 @@ fn dispatch_eval(
         }
         EvalRequest::Inspect { id, code_or_path } => match evaluator.inspect(code_or_path) {
             Ok(result) => eval_result_response(id.clone(), &result),
-            Err(e) => eval_error_response(id.clone(), &e),
-        },
-        EvalRequest::EvalRepl { id, code } => match evaluator.eval_repl(code) {
-            Ok(display) => {
-                make_success_response(id.clone(), serde_json::json!({ "display": display }))
-            }
             Err(e) => eval_error_response(id.clone(), &e),
         },
         EvalRequest::EvalWithImports {
@@ -1358,8 +1332,8 @@ mod tests {
             &mut stream,
             &tools_call_request(
                 2,
-                "vcad.eval_repl",
-                serde_json::json!({ "code": "[+ 1 2]" }),
+                "vcad.eval_repl_with_imports",
+                serde_json::json!({ "transformed_source": "42" }),
             ),
         );
         assert!(

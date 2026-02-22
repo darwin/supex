@@ -278,12 +278,6 @@ impl Evaluator {
         Ok((result, loaded_paths))
     }
 
-    /// Evaluate Loon code and return display string (REPL mode, no mesh).
-    pub fn eval_repl(&self, code: &str) -> Result<String, EvalError> {
-        let value = eval_vcad_to_value(code, None).map_err(EvalError::Loon)?;
-        Ok(format!("{}", value))
-    }
-
     /// Inspect: evaluate and return only geometry metadata (no OBJ export).
     pub fn inspect(&self, code_or_path: &str) -> Result<EvalResult, EvalError> {
         let doc = if code_or_path.ends_with(".skp.oo")
