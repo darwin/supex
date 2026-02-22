@@ -203,10 +203,10 @@ def _vcad_update_single(
     """
     agent = get_agent_name(ctx)
 
-    # Re-evaluate via sidecar
+    # Re-evaluate via sidecar (with module tracking)
     try:
         vcad = get_vcad_connection(agent=agent)
-        eval_result = vcad.eval_file(source_file)
+        eval_result = vcad.eval_file(source_file, node_id=node_id)
     except Exception as e:
         return {"success": False, "node_id": node_id, "error": str(e)}
 
@@ -281,10 +281,10 @@ def vcad_place(
     """
     agent = get_agent_name(ctx)
 
-    # Step 1: Evaluate source file via VCAD sidecar
+    # Step 1: Evaluate source file via VCAD sidecar (with module tracking)
     try:
         vcad = get_vcad_connection(agent=agent)
-        eval_result = vcad.eval_file(source_file)
+        eval_result = vcad.eval_file(source_file, node_id=node_id)
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -393,10 +393,10 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
         except Exception as e:
             return _handle_sketchup_error(e, "vcad_update:lookup")
 
-    # Re-evaluate via sidecar
+    # Re-evaluate via sidecar (with module tracking)
     try:
         vcad = get_vcad_connection(agent=agent)
-        eval_result = vcad.eval_file(source_file)
+        eval_result = vcad.eval_file(source_file, node_id=node_id)
     except (
         VCADCapabilityError,
         VCADProtocolError,

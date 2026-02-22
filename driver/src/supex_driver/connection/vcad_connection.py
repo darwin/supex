@@ -446,16 +446,26 @@ class VCADConnection:
         """
         return self.send_command("vcad.eval_code", {"code": code})
 
-    def eval_file(self, path: str) -> dict[str, Any]:
+    def eval_file(
+        self, path: str, node_id: str | None = None
+    ) -> dict[str, Any]:
         """Evaluate a Loon file and return the result.
+
+        When node_id is provided, the sidecar uses module-tracking evaluation
+        and records which .loon library files were loaded via [use ...].
+        The response includes 'loaded_module_paths' (list of absolute paths).
 
         Args:
             path: Path to the .skp.oo file.
+            node_id: Optional node ID for module dependency tracking.
 
         Returns:
             Evaluation result from sidecar.
         """
-        return self.send_command("vcad.eval_file", {"path": path})
+        params: dict[str, Any] = {"path": path}
+        if node_id is not None:
+            params["node_id"] = node_id
+        return self.send_command("vcad.eval_file", params)
 
     def inspect(self, code_or_path: str) -> dict[str, Any]:
         """Inspect Loon code or file without full evaluation.
@@ -504,6 +514,18 @@ class VCADConnection:
         if imports is not None:
             params["imports"] = imports
         return self.send_command("vcad.eval_with_imports", params)
+
+    def get_affected_nodes(self, path: str) -> list[str]:
+        """Query the module tracker for nodes affected by a file change.
+
+        Args:
+            path: Absolute path to the changed .loon file.
+
+        Returns:
+            List of node_ids that depend on the changed file.
+        """
+        result = self.send_command("vcad.get_affected_nodes", {"path": path})
+        return result.get("node_ids", [])
 
     def watch_start(self, dir: str) -> dict[str, Any]:
         """Start watching a project directory for file changes.

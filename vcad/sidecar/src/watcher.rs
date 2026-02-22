@@ -47,8 +47,7 @@ impl FileWatcher {
             move |res| {
                 let _ = tx.send(res);
             },
-            notify::Config::default()
-                .with_poll_interval(Duration::from_millis(500)),
+            notify::Config::default().with_poll_interval(Duration::from_millis(500)),
         )
         .map_err(|e| format!("Failed to create watcher: {}", e))?;
 
@@ -108,9 +107,7 @@ impl FileWatcher {
 
             // Only care about create/modify/remove events
             match event.kind {
-                EventKind::Create(_)
-                | EventKind::Modify(_)
-                | EventKind::Remove(_) => {}
+                EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {}
                 _ => continue,
             }
 

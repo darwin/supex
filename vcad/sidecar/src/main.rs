@@ -3,6 +3,7 @@ mod config;
 mod dae_export;
 mod evaluator;
 mod imports;
+mod module_tracker;
 mod server;
 mod watcher;
 

@@ -3,7 +3,9 @@ use crate::dae_export::{brep_to_dae, mesh_to_dae};
 use crate::imports::{
     build_data_preamble, build_import_preamble, ResolvedDataImport, ResolvedImport,
 };
-use loon_lang::interp::{eval_program_with_env_and_base_dir, Env};
+use loon_lang::interp::{
+    eval_program_with_env_and_base_dir, eval_program_with_module_tracking, Env,
+};
 use loon_lang::parser::parse;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -247,6 +249,35 @@ impl Evaluator {
             .and_then(|s| s.to_str())
             .unwrap_or("file");
         self.evaluate_and_export(&doc, stem)
+    }
+
+    /// Evaluate .skp.oo file with module tracking.
+    ///
+    /// Uses `eval_program_with_module_tracking` to capture all `.loon` module
+    /// paths loaded via `[use ...]` during evaluation. Returns both the
+    /// evaluation result and the list of loaded module paths.
+    pub fn eval_file_tracked(
+        &mut self,
+        path: &str,
+    ) -> Result<(EvalResult, Vec<std::path::PathBuf>), EvalError> {
+        let file_path = Path::new(path);
+        let base_dir = file_path.parent();
+        let source = std::fs::read_to_string(file_path)
+            .map_err(|e| EvalError::Loon(format!("cannot read {}: {e}", file_path.display())))?;
+        let full_source = format!("{}\n\n{}", VCAD_LIB_SOURCE, source.trim());
+        let exprs = parse(&full_source)
+            .map_err(|e| EvalError::Loon(format!("Parse error: {}", e.message)))?;
+
+        let (adt_value, loaded_paths) = eval_program_with_module_tracking(&exprs, base_dir)
+            .map_err(|e| EvalError::Loon(format!("{e}")))?;
+
+        let doc = value_to_document(&adt_value).map_err(EvalError::Loon)?;
+        let stem = file_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("file");
+        let result = self.evaluate_and_export(&doc, stem)?;
+        Ok((result, loaded_paths))
     }
 
     /// Evaluate Loon code and return display string (REPL mode, no mesh).

@@ -89,7 +89,7 @@ class TestVCADPlace:
 
         assert result["success"] is True
         assert result["node_id"] == "bracket"
-        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo")
+        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo", node_id="bracket")
         call_args = mock_sketchup.send_command.call_args
         assert call_args.kwargs["method"] == "place_vcad_node"
         params = call_args.kwargs["params"]
@@ -176,7 +176,7 @@ class TestVCADUpdate:
 
         assert result["success"] is True
         assert result["version"] == 2
-        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo")
+        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo", node_id="bracket")
 
     def test_update_lookup_source(self, mock_ctx, mock_vcad, mock_sketchup):
         """Update without source_file looks it up from SketchUp."""
@@ -193,7 +193,7 @@ class TestVCADUpdate:
         # Verify lookup was done
         first_call = mock_sketchup.send_command.call_args_list[0]
         assert first_call.kwargs["method"] == "get_vcad_node"
-        mock_vcad.eval_file.assert_called_once_with("/project/plate.skp.oo")
+        mock_vcad.eval_file.assert_called_once_with("/project/plate.skp.oo", node_id="plate")
 
     def test_update_node_not_found(self, mock_ctx, mock_sketchup):
         """Node not found in SketchUp returns error."""

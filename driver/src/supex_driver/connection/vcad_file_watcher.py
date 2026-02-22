@@ -103,6 +103,9 @@ class VcadFileWatcher:
     ) -> list[str]:
         """Find DAG node IDs whose source_file matches changed paths.
 
+        Only matches vcad_loon changes (.skp.oo files), not loon library
+        changes. For .loon library changes, use find_nodes_for_loon_changes().
+
         Args:
             changes: List of change dicts from poll().
             dag: VcadDag instance.
@@ -124,6 +127,39 @@ class VcadFileWatcher:
                 if node_abs == changed_abs:
                     changed_node_ids.append(node_id)
         return changed_node_ids
+
+    def find_nodes_for_loon_changes(
+        self,
+        changes: list[dict[str, Any]],
+        vcad_connection: Any,
+    ) -> list[str]:
+        """Find DAG node IDs affected by .loon library file changes.
+
+        Queries the sidecar's module tracker for each changed .loon file
+        to find nodes that depend on it via [use ...].
+
+        Args:
+            changes: List of change dicts from poll().
+            vcad_connection: VCADConnection instance.
+
+        Returns:
+            Deduplicated list of node_ids affected by .loon changes.
+        """
+        affected_node_ids: set[str] = set()
+        for change in changes:
+            if change.get("kind") != "loon":
+                continue
+            changed_path = change.get("path", "")
+            if not changed_path:
+                continue
+            try:
+                node_ids = vcad_connection.get_affected_nodes(changed_path)
+                affected_node_ids.update(node_ids)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to query affected nodes for {changed_path}: {e}"
+                )
+        return list(affected_node_ids)
 
 
 def _detect_project_root(source_file: str) -> str | None:

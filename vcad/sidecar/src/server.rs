@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::evaluator::{EvalError, EvalResult, Evaluator};
 use crate::imports::{self, ResolvedDataImport, ResolvedImport};
+use crate::module_tracker::ModuleTracker;
 use crate::watcher::FileWatcher;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -65,6 +66,12 @@ pub enum EvalRequest {
         id: serde_json::Value,
         path: String,
     },
+    /// Evaluate .skp.oo file with module tracking (when node_id is provided).
+    EvalFileTracked {
+        id: serde_json::Value,
+        path: String,
+        node_id: String,
+    },
     Inspect {
         id: serde_json::Value,
         code_or_path: String,
@@ -95,6 +102,7 @@ impl EvalRequest {
         match self {
             EvalRequest::EvalCode { id, .. } => id,
             EvalRequest::EvalFile { id, .. } => id,
+            EvalRequest::EvalFileTracked { id, .. } => id,
             EvalRequest::Inspect { id, .. } => id,
             EvalRequest::EvalRepl { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
@@ -155,24 +163,28 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
     // Eval worker channel with bounded queue
     let (job_tx, job_rx) = mpsc::sync_channel::<EvalJob>(config.max_queue);
 
+    // Shared filesystem watcher (thread-safe, one per server)
+    let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
+
+    // Shared module tracker (thread-safe, used by eval worker and connection handlers)
+    let module_tracker = Arc::new(Mutex::new(ModuleTracker::new()));
+
     // Single eval worker thread
     let eval_handle = std::thread::spawn({
         let temp_dir = config.temp_dir.clone();
         let temp_ttl_sec = config.temp_ttl_sec;
         let temp_max_files = config.temp_max_files;
         let adt_cache_max = config.adt_cache_max;
+        let module_tracker = module_tracker.clone();
         move || {
             let mut evaluator =
                 Evaluator::new(temp_dir, temp_ttl_sec, temp_max_files, adt_cache_max);
             while let Ok(job) = job_rx.recv() {
-                let result = dispatch_eval(&job.request, &mut evaluator);
+                let result = dispatch_eval(&job.request, &mut evaluator, &module_tracker);
                 let _ = job.reply_tx.send(result);
             }
         }
     });
-
-    // Shared filesystem watcher (thread-safe, one per server)
-    let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
 
     // Non-blocking accept loop
     listener.set_nonblocking(true)?;
@@ -187,6 +199,7 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
                 let job_tx = job_tx.clone();
                 let auth_token = auth_token.clone();
                 let file_watcher = file_watcher.clone();
+                let module_tracker = module_tracker.clone();
                 std::thread::spawn(move || {
                     handle_connection(
                         stream,
@@ -195,6 +208,7 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
                         max_queue,
                         auth_token.as_deref(),
                         file_watcher,
+                        module_tracker,
                     );
                 });
             }
@@ -222,6 +236,7 @@ fn handle_connection(
     max_queue: usize,
     auth_token: Option<&str>,
     file_watcher: Arc<Mutex<FileWatcher>>,
+    module_tracker: Arc<Mutex<ModuleTracker>>,
 ) {
     let reader = BufReader::new(&stream);
     let mut writer = BufWriter::new(&stream);
@@ -283,7 +298,14 @@ fn handle_connection(
                         "hello handshake required before other methods",
                     )
                 } else {
-                    dispatch_tools_call(&request, &ctx, &job_tx, eval_timeout_ms, &file_watcher)
+                    dispatch_tools_call(
+                        &request,
+                        &ctx,
+                        &job_tx,
+                        eval_timeout_ms,
+                        &file_watcher,
+                        &module_tracker,
+                    )
                 }
             }
             _ => make_error_response(
@@ -387,7 +409,8 @@ fn dispatch_hello(
             "capabilities": [
                 "imports.data_extracts",
                 "imports.solid_adt",
-                "fs_watch"
+                "fs_watch",
+                "module_tracking"
             ],
             "limits": {
                 "max_queue": max_queue,
@@ -423,6 +446,7 @@ fn dispatch_tools_call(
     job_tx: &mpsc::SyncSender<EvalJob>,
     eval_timeout_ms: u64,
     file_watcher: &Arc<Mutex<FileWatcher>>,
+    module_tracker: &Arc<Mutex<ModuleTracker>>,
 ) -> JsonRpcResponse {
     let params = request.params.as_ref();
     let tool_name = params
@@ -464,9 +488,22 @@ fn dispatch_tools_call(
             if let Err(resp) = validate_path_policy(path, ctx, &request.id) {
                 return resp;
             }
-            EvalRequest::EvalFile {
-                id: request.id.clone(),
-                path: path.to_string(),
+            // When node_id is provided, use module-tracking eval
+            let node_id = arguments
+                .get("node_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            if let Some(nid) = node_id {
+                EvalRequest::EvalFileTracked {
+                    id: request.id.clone(),
+                    path: path.to_string(),
+                    node_id: nid,
+                }
+            } else {
+                EvalRequest::EvalFile {
+                    id: request.id.clone(),
+                    path: path.to_string(),
+                }
             }
         }
         "vcad.inspect" => {
@@ -526,10 +563,7 @@ fn dispatch_tools_call(
         }
         "vcad.watch_start" => {
             // Fast-path: filesystem watcher control, no eval queue needed.
-            let dir = arguments
-                .get("dir")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let dir = arguments.get("dir").and_then(|v| v.as_str()).unwrap_or("");
             if dir.is_empty() {
                 return make_error_response(
                     request.id.clone(),
@@ -547,6 +581,19 @@ fn dispatch_tools_call(
         "vcad.watch_poll" => {
             // Fast-path: poll for changed files.
             return dispatch_watch_poll(&request.id, file_watcher);
+        }
+        "vcad.get_affected_nodes" => {
+            // Fast-path: query module tracker for nodes affected by a file change.
+            let path = arguments.get("path").and_then(|v| v.as_str()).unwrap_or("");
+            if path.is_empty() {
+                return make_error_response(
+                    request.id.clone(),
+                    JSONRPC_INVALID_REQUEST,
+                    "vcad.get_affected_nodes requires non-empty 'path' argument",
+                    None,
+                );
+            }
+            return dispatch_get_affected_nodes(&request.id, path, module_tracker);
         }
         "vcad.eval_with_imports" => {
             let transformed_source = arguments
@@ -744,11 +791,7 @@ fn dispatch_watch_start(
                     "dir": dir,
                 }),
             ),
-            Err(e) => make_app_error_response(
-                request_id.clone(),
-                "WATCH_START_FAILED",
-                &e,
-            ),
+            Err(e) => make_app_error_response(request_id.clone(), "WATCH_START_FAILED", &e),
         },
         Err(e) => make_error_response(
             request_id.clone(),
@@ -820,8 +863,37 @@ fn dispatch_watch_poll(
     }
 }
 
+/// Fast-path handler for vcad.get_affected_nodes — query module tracker.
+fn dispatch_get_affected_nodes(
+    request_id: &serde_json::Value,
+    path: &str,
+    module_tracker: &Arc<Mutex<ModuleTracker>>,
+) -> JsonRpcResponse {
+    match module_tracker.lock() {
+        Ok(tracker) => {
+            let affected = tracker.get_affected_nodes(Path::new(path));
+            make_success_response(
+                request_id.clone(),
+                serde_json::json!({
+                    "node_ids": affected,
+                }),
+            )
+        }
+        Err(e) => make_error_response(
+            request_id.clone(),
+            JSONRPC_INTERNAL_ERROR,
+            &format!("Failed to acquire module tracker lock: {}", e),
+            None,
+        ),
+    }
+}
+
 /// Dispatch an eval request to the evaluator (runs on eval worker thread).
-fn dispatch_eval(request: &EvalRequest, evaluator: &mut Evaluator) -> JsonRpcResponse {
+fn dispatch_eval(
+    request: &EvalRequest,
+    evaluator: &mut Evaluator,
+    module_tracker: &Arc<Mutex<ModuleTracker>>,
+) -> JsonRpcResponse {
     match request {
         EvalRequest::EvalCode { id, code } => match evaluator.eval_code(code) {
             Ok(result) => eval_result_response(id.clone(), &result),
@@ -831,6 +903,31 @@ fn dispatch_eval(request: &EvalRequest, evaluator: &mut Evaluator) -> JsonRpcRes
             Ok(result) => eval_result_response(id.clone(), &result),
             Err(e) => eval_error_response(id.clone(), &e),
         },
+        EvalRequest::EvalFileTracked { id, path, node_id } => {
+            match evaluator.eval_file_tracked(path) {
+                Ok((result, loaded_paths)) => {
+                    // Record module dependencies in the tracker
+                    if let Ok(mut tracker) = module_tracker.lock() {
+                        tracker.record_evaluation(node_id, loaded_paths.clone());
+                    }
+                    // Include loaded_module_paths in response
+                    let path_strings: Vec<String> = loaded_paths
+                        .iter()
+                        .map(|p| p.to_string_lossy().into_owned())
+                        .collect();
+                    let mut value =
+                        serde_json::to_value(&result).unwrap_or(serde_json::Value::Null);
+                    if let Some(obj) = value.as_object_mut() {
+                        obj.insert(
+                            "loaded_module_paths".to_string(),
+                            serde_json::json!(path_strings),
+                        );
+                    }
+                    make_success_response(id.clone(), value)
+                }
+                Err(e) => eval_error_response(id.clone(), &e),
+            }
+        }
         EvalRequest::Inspect { id, code_or_path } => match evaluator.inspect(code_or_path) {
             Ok(result) => eval_result_response(id.clone(), &result),
             Err(e) => eval_error_response(id.clone(), &e),
@@ -946,20 +1043,22 @@ mod tests {
 
         let (job_tx, job_rx) = mpsc::sync_channel::<EvalJob>(max_queue);
 
+        // Shared watcher and module tracker for test server
+        let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
+        let module_tracker = Arc::new(Mutex::new(ModuleTracker::new()));
+
         // Eval worker
         std::thread::spawn({
             let temp_path = temp_path.clone();
+            let module_tracker = module_tracker.clone();
             move || {
                 let mut evaluator = Evaluator::new(temp_path, 3600, 500, 256);
                 while let Ok(job) = job_rx.recv() {
-                    let result = dispatch_eval(&job.request, &mut evaluator);
+                    let result = dispatch_eval(&job.request, &mut evaluator, &module_tracker);
                     let _ = job.reply_tx.send(result);
                 }
             }
         });
-
-        // Shared watcher for test server
-        let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
 
         // Accept loop
         std::thread::spawn(move || {
@@ -972,6 +1071,7 @@ mod tests {
                         let job_tx = job_tx.clone();
                         let auth = auth.clone();
                         let file_watcher = file_watcher.clone();
+                        let module_tracker = module_tracker.clone();
                         std::thread::spawn(move || {
                             handle_connection(
                                 stream,
@@ -980,6 +1080,7 @@ mod tests {
                                 max_queue,
                                 auth.as_deref(),
                                 file_watcher,
+                                module_tracker,
                             );
                         });
                     }
