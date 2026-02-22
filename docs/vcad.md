@@ -1,6 +1,6 @@
 # VCAD Integration
 
-VCAD is a BRep (Boundary Representation) kernel integrated into SketchUp via supex. The agent writes parametric CAD code in Loon (a Lisp with algebraic data types), the VCAD Rust sidecar evaluates the code to produce BRep geometry, exports the mesh as DAE, and SketchUp natively imports it as a component.
+VCAD is a BRep (Boundary Representation) kernel integrated into SketchUp via supex. The agent writes parametric CAD code in Loon (a Lisp-like language with algebraic data types), the VCAD Rust sidecar evaluates the code to produce BRep geometry, exports the mesh as DAE, and SketchUp natively imports it as a component.
 
 ## Architecture
 
@@ -40,7 +40,7 @@ TriangleMesh
 | Component | Location | Language | Role |
 |-----------|----------|----------|------|
 | MCP Driver | `driver/src/supex_driver/` | Python | Exposes MCP tools, mediates sidecar and SketchUp |
-| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates Loon code, produces BRep geometry + DAE |
+| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates `.oo` source, produces BRep geometry + DAE |
 | Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports DAE into SketchUp, manages VCAD nodes |
 | Viewer | `vcad/viewer/` | Rust/TypeScript | Standalone Tauri BRep preview |
 | Viewer Relay | `driver/src/supex_driver/connection/vcad_viewer_relay.py` | Python | WebSocket bridge (:9878) between MCP driver and viewer |
@@ -84,10 +84,14 @@ One `.skp.oo` file = one SketchUp ComponentDefinition. For multi-part assemblies
 
 ```
 project/
-  src/
-    build.oo           # Shared parametric functions
-  base-plate.skp.oo   # One solid output
-  bracket.skp.oo      # One solid output
+  AGENTS.md
+  README.md
+  skp/
+    shared/
+      params.oo          # Shared parameters and dimensions
+      lib.oo             # Shared helper functions
+    base-plate.skp.oo   # One solid output
+    bracket.skp.oo      # One solid output
 ```
 
 ### Example
@@ -100,9 +104,9 @@ project/
   [translate 0.0 0.0 10.0]]
 ```
 
-## Loon Language Quick Reference
+## Language Quick Reference
 
-Loon is a Lisp with algebraic data types, Hindley-Milner type inference, and square-bracket syntax.
+The `.oo` language is a Lisp with algebraic data types, Hindley-Milner type inference, and square-bracket syntax.
 
 ### Basics
 
@@ -129,8 +133,10 @@ Thread-last macro for chaining:
 ### Module system
 
 ```loon
-[use build]                 ; Import module from build.oo
-[build.make-plate]          ; Call exported function
+[use shared/params :as p]   ; Import module, alias as p
+[use shared/lib]             ; Import module from shared/lib.oo
+[p.width]                    ; Access exported binding
+[lib.make-plate]             ; Call exported function
 ```
 
 ### Algebraic Data Types
@@ -198,7 +204,7 @@ All geometry constructors produce ADT values (pure data, no BRep objects):
 [sweep-line sx sy sz ex ey ez sk]
 [sweep-helix radius pitch height turns sk]
 [loft sketches]
-[loot-closed sketches]
+[loft-closed sketches]
 ```
 
 ### Scene and Material
@@ -241,7 +247,7 @@ Electronic CAD types for schematic and PCB design. Not supported by the supex si
 
 ## Import System
 
-VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver resolves these references before evaluation.
+VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver resolves these references before evaluation. Imports are only available in `.skp.oo` files placed via `vcad_place_with_imports` — they do not work in `vcad_eval` or `vcad_inspect`.
 
 ### Import syntax
 
@@ -314,7 +320,7 @@ Calling `vcad_update_cascade("base-plate")` re-evaluates base-plate first, then 
 
 ## File Watching
 
-The driver watches `.skp.oo` source files and `.loon` library modules for changes.
+The driver watches `.skp.oo` source files and `.oo` library modules for changes.
 
 ### Source file watching
 
@@ -324,7 +330,7 @@ The driver watches `.skp.oo` source files and `.loon` library modules for change
 
 ### Module tracking
 
-- When a `.skp.oo` file uses `[use module-name]`, the sidecar tracks which `.loon` files are loaded
+- When a `.skp.oo` file uses `[use module-name]`, the sidecar tracks which `.oo` files are loaded
 - Changes to library modules trigger re-evaluation of all nodes that depend on them
 
 ### Batch editing
