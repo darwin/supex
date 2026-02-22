@@ -29,6 +29,13 @@ supex/
 │   └── src/
 │       ├── supex_runtime.rb   # Extension entry point
 │       └── supex_runtime/     # Extension modules
+├── vcad/                      # VCAD integration
+│   ├── sidecar/               # Rust VCAD evaluator (BRep pipeline)
+│   ├── viewer/                # Standalone Tauri geometry viewer
+│   └── vendor/                # Git submodules (vcad, loon, phyz)
+│       ├── vcad/              # BRep CAD kernel
+│       ├── loon/              # Loon language
+│       └── phyz/              # Physics engine
 ├── docs/                      # Documentation
 │   └── agents/                # Agent prompts (guide/ symlinked as supex-guide/)
 ├── docgen/                    # SketchUp API doc generator
@@ -89,7 +96,19 @@ cd runtime && bundle exec rake build
 
 ## VCAD Sidecar
 
-Rust binary at `vcad/sidecar/`. After any code change that affects the sidecar:
+Rust binary at `vcad/sidecar/`. Dependencies (vcad, loon, phyz) are vendored as git submodules in `vcad/vendor/`. After cloning, run `git submodule update --init --recursive` if you didn't use `--recurse-submodules`.
+
+The vcad submodule requires `npm install` in `vcad/vendor/vcad/` for font assets used at compile time. This modifies the tracked `package-lock.json` — tell git to ignore the change:
+
+```bash
+cd vcad/vendor/vcad
+npm install
+git update-index --assume-unchanged package-lock.json
+# local-only ignore for node_modules (not committed to vcad repo)
+echo "node_modules/" >> $(git rev-parse --git-dir)/info/exclude
+```
+
+After any code change that affects the sidecar:
 
 1. **Rebuild release binary** (SketchUp uses release, not debug):
    ```bash

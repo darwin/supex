@@ -4,17 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# vcad evaluation pipeline (path deps to supex-ws siblings)
-loon-lang = { path = "../../../loon/crates/loon-lang" }
-vcad-loon = { path = "../../../vcad/crates/vcad-loon" }
-vcad-eval = { path = "../../../vcad/crates/vcad-eval" }
-vcad-kernel = { path = "../../../vcad/crates/vcad-kernel" }
-vcad-ir = { path = "../../../vcad/crates/vcad-ir" }
-vcad-kernel-primitives = { path = "../../../vcad/crates/vcad-kernel-primitives" }
-vcad-kernel-topo = { path = "../../../vcad/crates/vcad-kernel-topo" }
-vcad-kernel-geom = { path = "../../../vcad/crates/vcad-kernel-geom" }
-vcad-kernel-math = { path = "../../../vcad/crates/vcad-kernel-math" }
-vcad-kernel-tessellate = { path = "../../../vcad/crates/vcad-kernel-tessellate" }
+# vcad evaluation pipeline (vendored git submodules)
+loon-lang = { path = "../vendor/loon/crates/loon-lang" }
+vcad-loon = { path = "../vendor/vcad/crates/vcad-loon" }
+vcad-eval = { path = "../vendor/vcad/crates/vcad-eval" }
+vcad-kernel = { path = "../vendor/vcad/crates/vcad-kernel" }
+vcad-ir = { path = "../vendor/vcad/crates/vcad-ir" }
+vcad-kernel-primitives = { path = "../vendor/vcad/crates/vcad-kernel-primitives" }
+vcad-kernel-topo = { path = "../vendor/vcad/crates/vcad-kernel-topo" }
+vcad-kernel-geom = { path = "../vendor/vcad/crates/vcad-kernel-geom" }
+vcad-kernel-math = { path = "../vendor/vcad/crates/vcad-kernel-math" }
+vcad-kernel-tessellate = { path = "../vendor/vcad/crates/vcad-kernel-tessellate" }
 
 # JSON-RPC + serialization
 serde = { version = "1", features = ["derive"] }

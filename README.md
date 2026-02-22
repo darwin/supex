@@ -181,8 +181,14 @@ This workflow is ideal for Claude Code:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/darwin/supex.git
+git clone --recurse-submodules https://github.com/darwin/supex.git
 cd supex
+```
+
+Supex uses git submodules for vendored VCAD dependencies (`vcad/vendor/`). If you cloned without `--recurse-submodules`, run:
+
+```bash
+git submodule update --init --recursive
 ```
 
 ### 2. Launch SketchUp with Extension
