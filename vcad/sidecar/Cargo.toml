@@ -25,6 +25,9 @@ blake3 = "1"
 # Temp files
 tempfile = "3"
 
+# Filesystem watching
+notify = { version = "7", features = ["macos_fsevent"] }
+
 # Signal handling
 ctrlc = "3"
 

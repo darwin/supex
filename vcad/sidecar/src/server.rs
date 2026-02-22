@@ -1,13 +1,14 @@
 use crate::config::Config;
 use crate::evaluator::{EvalError, EvalResult, Evaluator};
 use crate::imports::{self, ResolvedDataImport, ResolvedImport};
+use crate::watcher::FileWatcher;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 
 const PROTOCOL_VERSION: u32 = 1;
 const SIDECAR_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -170,6 +171,9 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // Shared filesystem watcher (thread-safe, one per server)
+    let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
+
     // Non-blocking accept loop
     listener.set_nonblocking(true)?;
     let auth_token = config.auth_token.clone();
@@ -182,6 +186,7 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
                 stream.set_nonblocking(false).ok();
                 let job_tx = job_tx.clone();
                 let auth_token = auth_token.clone();
+                let file_watcher = file_watcher.clone();
                 std::thread::spawn(move || {
                     handle_connection(
                         stream,
@@ -189,6 +194,7 @@ pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
                         eval_timeout_ms,
                         max_queue,
                         auth_token.as_deref(),
+                        file_watcher,
                     );
                 });
             }
@@ -215,6 +221,7 @@ fn handle_connection(
     eval_timeout_ms: u64,
     max_queue: usize,
     auth_token: Option<&str>,
+    file_watcher: Arc<Mutex<FileWatcher>>,
 ) {
     let reader = BufReader::new(&stream);
     let mut writer = BufWriter::new(&stream);
@@ -276,7 +283,7 @@ fn handle_connection(
                         "hello handshake required before other methods",
                     )
                 } else {
-                    dispatch_tools_call(&request, &ctx, &job_tx, eval_timeout_ms)
+                    dispatch_tools_call(&request, &ctx, &job_tx, eval_timeout_ms, &file_watcher)
                 }
             }
             _ => make_error_response(
@@ -379,7 +386,8 @@ fn dispatch_hello(
             "protocol_version": PROTOCOL_VERSION,
             "capabilities": [
                 "imports.data_extracts",
-                "imports.solid_adt"
+                "imports.solid_adt",
+                "fs_watch"
             ],
             "limits": {
                 "max_queue": max_queue,
@@ -414,6 +422,7 @@ fn dispatch_tools_call(
     ctx: &ConnectionContext,
     job_tx: &mpsc::SyncSender<EvalJob>,
     eval_timeout_ms: u64,
+    file_watcher: &Arc<Mutex<FileWatcher>>,
 ) -> JsonRpcResponse {
     let params = request.params.as_ref();
     let tool_name = params
@@ -514,6 +523,30 @@ fn dispatch_tools_call(
                 );
             }
             return dispatch_extract_imports(&request.id, source);
+        }
+        "vcad.watch_start" => {
+            // Fast-path: filesystem watcher control, no eval queue needed.
+            let dir = arguments
+                .get("dir")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if dir.is_empty() {
+                return make_error_response(
+                    request.id.clone(),
+                    JSONRPC_INVALID_REQUEST,
+                    "vcad.watch_start requires non-empty 'dir' argument",
+                    None,
+                );
+            }
+            return dispatch_watch_start(&request.id, dir, file_watcher);
+        }
+        "vcad.watch_stop" => {
+            // Fast-path: stop filesystem watcher.
+            return dispatch_watch_stop(&request.id, file_watcher);
+        }
+        "vcad.watch_poll" => {
+            // Fast-path: poll for changed files.
+            return dispatch_watch_poll(&request.id, file_watcher);
         }
         "vcad.eval_with_imports" => {
             let transformed_source = arguments
@@ -687,6 +720,106 @@ fn dispatch_extract_imports(request_id: &serde_json::Value, source: &str) -> Jso
     }
 }
 
+/// Fast-path handler for vcad.watch_start — start watching a project directory.
+fn dispatch_watch_start(
+    request_id: &serde_json::Value,
+    dir: &str,
+    file_watcher: &Arc<Mutex<FileWatcher>>,
+) -> JsonRpcResponse {
+    let path = std::path::Path::new(dir);
+    if !path.is_dir() {
+        return make_app_error_response(
+            request_id.clone(),
+            "WATCH_DIR_NOT_FOUND",
+            &format!("Directory does not exist: {}", dir),
+        );
+    }
+
+    match file_watcher.lock() {
+        Ok(mut watcher) => match watcher.watch(path) {
+            Ok(()) => make_success_response(
+                request_id.clone(),
+                serde_json::json!({
+                    "status": "watching",
+                    "dir": dir,
+                }),
+            ),
+            Err(e) => make_app_error_response(
+                request_id.clone(),
+                "WATCH_START_FAILED",
+                &e,
+            ),
+        },
+        Err(e) => make_error_response(
+            request_id.clone(),
+            JSONRPC_INTERNAL_ERROR,
+            &format!("Failed to acquire watcher lock: {}", e),
+            None,
+        ),
+    }
+}
+
+/// Fast-path handler for vcad.watch_stop — stop filesystem watcher.
+fn dispatch_watch_stop(
+    request_id: &serde_json::Value,
+    file_watcher: &Arc<Mutex<FileWatcher>>,
+) -> JsonRpcResponse {
+    match file_watcher.lock() {
+        Ok(mut watcher) => {
+            watcher.stop();
+            make_success_response(
+                request_id.clone(),
+                serde_json::json!({
+                    "status": "stopped",
+                }),
+            )
+        }
+        Err(e) => make_error_response(
+            request_id.clone(),
+            JSONRPC_INTERNAL_ERROR,
+            &format!("Failed to acquire watcher lock: {}", e),
+            None,
+        ),
+    }
+}
+
+/// Fast-path handler for vcad.watch_poll — poll for changed files since last poll.
+fn dispatch_watch_poll(
+    request_id: &serde_json::Value,
+    file_watcher: &Arc<Mutex<FileWatcher>>,
+) -> JsonRpcResponse {
+    match file_watcher.lock() {
+        Ok(watcher) => {
+            let changes = watcher.poll_changes();
+            let change_list: Vec<serde_json::Value> = changes
+                .iter()
+                .map(|c| {
+                    serde_json::json!({
+                        "path": c.path.to_string_lossy(),
+                        "kind": match c.kind {
+                            crate::watcher::FileChangeKind::VcadLoon => "vcad_loon",
+                            crate::watcher::FileChangeKind::Loon => "loon",
+                        },
+                    })
+                })
+                .collect();
+
+            make_success_response(
+                request_id.clone(),
+                serde_json::json!({
+                    "changes": change_list,
+                }),
+            )
+        }
+        Err(e) => make_error_response(
+            request_id.clone(),
+            JSONRPC_INTERNAL_ERROR,
+            &format!("Failed to acquire watcher lock: {}", e),
+            None,
+        ),
+    }
+}
+
 /// Dispatch an eval request to the evaluator (runs on eval worker thread).
 fn dispatch_eval(request: &EvalRequest, evaluator: &mut Evaluator) -> JsonRpcResponse {
     match request {
@@ -825,6 +958,9 @@ mod tests {
             }
         });
 
+        // Shared watcher for test server
+        let file_watcher = Arc::new(Mutex::new(FileWatcher::new()));
+
         // Accept loop
         std::thread::spawn(move || {
             listener.set_nonblocking(true).unwrap();
@@ -835,6 +971,7 @@ mod tests {
                         stream.set_nonblocking(false).ok();
                         let job_tx = job_tx.clone();
                         let auth = auth.clone();
+                        let file_watcher = file_watcher.clone();
                         std::thread::spawn(move || {
                             handle_connection(
                                 stream,
@@ -842,6 +979,7 @@ mod tests {
                                 eval_timeout_ms,
                                 max_queue,
                                 auth.as_deref(),
+                                file_watcher,
                             );
                         });
                     }

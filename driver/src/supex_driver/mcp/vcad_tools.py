@@ -10,6 +10,11 @@ from supex_driver.connection import (
     get_vcad_connection,
 )
 from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
+from supex_driver.connection.vcad_file_watcher import (
+    VcadFileWatcher,
+    get_vcad_file_watcher,
+    _reset_vcad_file_watcher,
+)
 from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
@@ -329,6 +334,10 @@ def vcad_place(
         )
         dag.add_node(dag_node)
         dag.persist_state()
+
+        # Auto-start file watcher on first place
+        watcher = get_vcad_file_watcher()
+        watcher.auto_start_if_needed(source_file, vcad)
 
         return json.dumps(result)
     except (
@@ -704,6 +713,10 @@ def vcad_place_with_imports(
         )
         dag.add_node(dag_node)
         dag.persist_state()
+
+        # Auto-start file watcher on first place
+        watcher = get_vcad_file_watcher()
+        watcher.auto_start_if_needed(source_file, vcad)
 
         return json.dumps(result)
     except (

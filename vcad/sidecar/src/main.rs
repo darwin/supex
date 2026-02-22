@@ -4,6 +4,7 @@ mod dae_export;
 mod evaluator;
 mod imports;
 mod server;
+mod watcher;
 
 fn main() {
     tracing_subscriber::fmt::init();

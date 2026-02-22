@@ -505,6 +505,33 @@ class VCADConnection:
             params["imports"] = imports
         return self.send_command("vcad.eval_with_imports", params)
 
+    def watch_start(self, dir: str) -> dict[str, Any]:
+        """Start watching a project directory for file changes.
+
+        Args:
+            dir: Absolute path to the project directory.
+
+        Returns:
+            Dict with 'status' and 'dir'.
+        """
+        return self.send_command("vcad.watch_start", {"dir": dir})
+
+    def watch_stop(self) -> dict[str, Any]:
+        """Stop the filesystem watcher.
+
+        Returns:
+            Dict with 'status'.
+        """
+        return self.send_command("vcad.watch_stop", {})
+
+    def watch_poll(self) -> dict[str, Any]:
+        """Poll for changed files since last poll.
+
+        Returns:
+            Dict with 'changes' list of {'path': str, 'kind': str}.
+        """
+        return self.send_command("vcad.watch_poll", {})
+
     def eval_with_solid_imports(
         self,
         transformed_source: str,
