@@ -683,7 +683,11 @@ def get_artifact_store(artifact_root: str | None = None) -> ArtifactStore:
     with _store_lock:
         if _store is None:
             if artifact_root is None:
-                artifact_root = os.path.join(".supex", "artifacts")
+                workspace = os.environ.get("SUPEX_WORKSPACE")
+                if workspace:
+                    artifact_root = os.path.join(workspace, ".supex", "artifacts")
+                else:
+                    artifact_root = os.path.join(".supex", "artifacts")
             _store = ArtifactStore(artifact_root)
         return _store
 

@@ -470,10 +470,12 @@ class VCADPersistentState:
             self.state_path = state_path
         elif os.environ.get(VCAD_STATE_PATH_ENV):
             self.state_path = os.environ[VCAD_STATE_PATH_ENV]
-        elif workspace:
-            self.state_path = os.path.join(workspace, ".supex", "vcad-state.json")
         else:
-            self.state_path = os.path.join(".supex", "vcad-state.json")
+            ws = workspace or os.environ.get("SUPEX_WORKSPACE")
+            if ws:
+                self.state_path = os.path.join(ws, ".supex", "vcad-state.json")
+            else:
+                self.state_path = os.path.join(".supex", "vcad-state.json")
 
         self._nodes: dict[str, NodeState] = {}
         self._lock = threading.Lock()
