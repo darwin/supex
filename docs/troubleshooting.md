@@ -16,7 +16,7 @@ Common issues and solutions when using Supex.
 **Solutions**:
 1. Launch SketchUp with `./scripts/launch-sketchup.sh`
 2. Check Ruby Console in SketchUp for extension errors
-3. Verify server started: look for "Bridge server started on port 9876" in SketchUp console
+3. Verify server started: look for "Bridge server started and listening" in SketchUp console
 4. Check if `SUPEX_NO_AUTOSTART=1` is set (disables automatic server start)
 
 ### Port Already in Use
@@ -65,9 +65,9 @@ Common issues and solutions when using Supex.
 
 ## Path Access Errors
 
-### Path Access Denied (-32002)
+### Path Access Denied
 
-**Symptom**: Error code -32002, "Path access denied"
+**Symptom**: Message containing "Path access denied" or structured `PATH_NOT_ALLOWED`
 
 **Causes**:
 1. Trying to access a file outside allowed roots
@@ -110,19 +110,41 @@ Common issues and solutions when using Supex.
 
 ## Finding Logs
 
-Log files are stored in `~/.supex/logs/` by default. You can change this with `SUPEX_LOG_DIR`.
+Log files are written under `$SUPEX_LOG_DIR`.
 
-**Driver logs**:
-- Located at `$SUPEX_LOG_DIR/cli.log` (CLI) and `$SUPEX_LOG_DIR/stderr.log` (MCP server)
-- Contains connection attempts, requests, and errors
+When using repository wrappers, the default is `$SUPEX_WORKSPACE/.tmp/logs`.
+
+**Wrapper logs**:
+- `$SUPEX_LOG_DIR/supex-cli-stdout.log`
+- `$SUPEX_LOG_DIR/supex-cli-stderr.log`
+- `$SUPEX_LOG_DIR/supex-mcp-protocol.jsonl`
+- `$SUPEX_LOG_DIR/supex-mcp-stderr.log`
+- `$SUPEX_LOG_DIR/vcad-sidecar-stderr.log`
+
+**Driver internal log**:
+- `$SUPEX_LOG_DIR/supex-cli.log`
 
 **Runtime logs**:
-- Visible in SketchUp's Ruby Console
-- Check Window > Ruby Console in SketchUp
+- SketchUp Ruby Console
+- `./.tmp/sketchup_console.log` (console capture)
 
 **Request tracing**:
-- Each request has a unique ID in logs: `[req:123]`
-- Search for this ID to trace a request through driver and runtime
+- Each request includes an ID like `[req:123]`
+- Search this ID across CLI/MCP/runtime logs
+
+## Export Issues
+
+### `export dae` fails
+
+`dae` is not supported by the SketchUp runtime export tool.
+
+Use one of:
+- `skp`
+- `obj`
+- `stl`
+- `png`
+- `jpg`
+- `jpeg`
 
 ## Common Ruby Errors
 

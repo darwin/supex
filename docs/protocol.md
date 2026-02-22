@@ -1,60 +1,28 @@
 # Communication Protocol
 
-Supex uses JSON-RPC 2.0 over TCP sockets for communication between the Python driver and Ruby runtime.
+Supex uses newline-delimited JSON-RPC 2.0 over local sockets.
 
-## Transport
+## Transports and Ports
 
-- **Protocol**: TCP sockets
-- **Default port**: 9876 (Bridge), 4433 (REPL)
-- **Host**: `localhost` by default
-- **Framing**: Newline-delimited JSON (each message ends with `\n`)
+| Port | Transport | Channel | Purpose |
+|------|-----------|---------|---------|
+| `9876` | TCP | Driver/CLI <-> SketchUp runtime | Bridge tools (`tools/call`) |
+| `4433` | TCP | REPL client <-> REPL server | Interactive Ruby `eval` |
+| `9877` | TCP | Driver <-> VCAD sidecar | VCAD evaluation/import tooling |
+| `9878` | WebSocket | Driver <-> VCAD viewer | Viewer relay/state/screenshot |
 
-## Message Format
+## Message Framing
 
-All messages follow the JSON-RPC 2.0 specification.
+- JSON-RPC 2.0 envelope
+- UTF-8 encoded JSON
+- One message per line (`\n`-delimited)
 
-### Request
+## Bridge Runtime (`:9876`)
 
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "method_name",
-  "params": { ... },
-  "id": 1
-}
-```
+### Hello Handshake
 
-### Success Response
+Clients identify first using `hello`.
 
-```json
-{
-  "jsonrpc": "2.0",
-  "result": { ... },
-  "id": 1
-}
-```
-
-### Error Response
-
-```json
-{
-  "jsonrpc": "2.0",
-  "error": {
-    "code": -32000,
-    "message": "Error description",
-    "data": { ... }
-  },
-  "id": 1
-}
-```
-
-## Methods
-
-### hello
-
-Handshake to establish connection and authenticate.
-
-**Request**:
 ```json
 {
   "jsonrpc": "2.0",
@@ -62,141 +30,70 @@ Handshake to establish connection and authenticate.
   "params": {
     "name": "supex-driver",
     "version": "0.2.0",
-    "agent": "claude-code",
+    "agent": "mcp",
     "pid": 12345,
-    "token": "optional-auth-token"
+    "token": "optional",
+    "workspace": "/abs/workspace/path"
   },
-  "id": 1
+  "id": "hello"
 }
 ```
 
-**Response**:
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "success": true,
-    "message": "Client identified",
-    "server": {
-      "name": "supex-runtime",
-      "version": "0.2.0"
-    }
-  },
-  "id": 1
-}
-```
+Required params: `name`, `version`, `agent`, `pid`.
 
-The `token` parameter is required when `SUPEX_AUTH_TOKEN` is set on the server.
+### Methods
 
-### tools/call
+- `hello`
+- `ping`
+- `resources/list`
+- `tools/call`
 
-Execute a tool with arguments.
+`tools/call` payload:
 
-**Request**:
 ```json
 {
   "jsonrpc": "2.0",
   "method": "tools/call",
   "params": {
     "name": "eval_ruby",
-    "arguments": {
-      "code": "1 + 1"
-    }
+    "arguments": {"code": "Sketchup.version"}
   },
   "id": 2
 }
 ```
 
-**Response**:
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "success": true,
-    "result": "2"
-  },
-  "id": 2
-}
-```
+### Connection Lifecycle
 
-### ping
+The driver exposes a logically persistent connection and auto-reconnects on failure/idle timeout. The runtime may close a socket after non-`hello` request handling, so reconnect behavior is expected.
 
-Health check (Bridge and REPL servers).
+## REPL Server (`:4433`)
 
-**Request**:
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "ping",
-  "params": {},
-  "id": 3
-}
-```
+Methods are intentionally minimal:
 
-**Response**:
-```json
-{
-  "jsonrpc": "2.0",
-  "result": {
-    "status": "ok"
-  },
-  "id": 3
-}
-```
+- `hello`
+- `eval`
 
-## Error Codes
+REPL uses its own JSON-RPC loop and session snippet directory under `.tmp/repl/`.
 
-### Standard JSON-RPC Errors
+## VCAD Sidecar (`:9877`)
 
-| Code | Name | Description |
-|------|------|-------------|
-| -32700 | Parse error | Invalid JSON received |
-| -32600 | Invalid request | Missing required fields |
-| -32601 | Method not found | Unknown method name |
-| -32602 | Invalid params | Invalid method parameters |
-| -32603 | Internal error | Server-side error |
+Uses JSON-RPC with direct methods (`hello`, `ping`, `resources/list`) and `tools/call` for VCAD operations.
 
-### Supex-Specific Errors
+Handshake response includes negotiated protocol/capability metadata (for example: data imports, solid imports, fs watch, module tracking).
 
-| Code | Name | Description |
-|------|------|-------------|
-| -32001 | Authentication failed | Invalid or missing token |
-| -32002 | Path access denied | File path outside allowed roots |
-| -32000 | Ruby error | Error executing Ruby code |
+For schema contracts see:
 
-## Connection Lifecycle
+- `docs/contracts/v1/handshake.schema.json`
+- `docs/contracts/v1/tools-call.schema.json`
+- `docs/contracts/v1/error-envelope.schema.json`
 
-1. **Connect**: Client opens TCP socket to server
-2. **Handshake**: Client sends `hello` with agent name and optional token
-3. **Operations**: Client sends `tools/call` requests
-4. **Disconnect**: Client closes socket
+## Errors
 
-The driver maintains a persistent connection and reuses it for multiple requests. Connection is re-established automatically after idle timeout (default 300 seconds) or on error.
+Standard JSON-RPC errors apply (`-32700`, `-32600`, `-32601`, `-32602`, `-32603`).
 
-## Example Session
+Supex-specific conventions:
 
-```
-Client connects to localhost:9876
+- `-32001` for authentication failures
+- VCAD flows frequently return structured envelopes with `error_code` strings (for example `PATH_NOT_ALLOWED`, `PROTOCOL_MISMATCH`, `CAPABILITY_UNAVAILABLE`)
 
-Client -> Server:
-{"jsonrpc":"2.0","method":"hello","params":{"name":"supex-driver","version":"0.2.0","agent":"claude-code","pid":12345},"id":1}
-
-Server -> Client:
-{"jsonrpc":"2.0","result":{"success":true,"message":"Client identified","server":{"name":"supex-runtime","version":"0.2.0"}},"id":1}
-
-Client -> Server:
-{"jsonrpc":"2.0","method":"tools/call","params":{"name":"eval_ruby","arguments":{"code":"Sketchup.version"}},"id":2}
-
-Server -> Client:
-{"jsonrpc":"2.0","result":{"success":true,"result":"26.0.0"},"id":2}
-
-Client closes connection
-```
-
-## Configuration
-
-See [Configuration](configuration.md) for environment variables that affect protocol behavior:
-
-- `SUPEX_HOST` / `SUPEX_PORT` - Server address
-- `SUPEX_TIMEOUT` - Socket timeout
-- `SUPEX_AUTH_TOKEN` - Authentication token
+Do not rely on a single numeric code for all path-policy failures across every flow.

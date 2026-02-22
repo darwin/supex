@@ -40,7 +40,7 @@ TriangleMesh
 | Component | Location | Language | Role |
 |-----------|----------|----------|------|
 | MCP Driver | `driver/src/supex_driver/` | Python | Exposes MCP tools, mediates sidecar and SketchUp |
-| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates `.oo` source, produces BRep geometry + DAE |
+| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates `.skp.oo` source (tracks `.oo` modules), produces BRep geometry + DAE |
 | Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports DAE into SketchUp, manages VCAD nodes |
 | Viewer | `vcad/viewer/` | Rust/TypeScript | Standalone Tauri BRep preview |
 | Viewer Relay | `driver/src/supex_driver/connection/vcad_viewer_relay.py` | Python | WebSocket bridge (:9878) between MCP driver and viewer |
@@ -106,7 +106,7 @@ project/
 
 ## Language Quick Reference
 
-The `.oo` language is a Lisp with algebraic data types, Hindley-Milner type inference, and square-bracket syntax.
+Loon is a Lisp with algebraic data types, Hindley-Milner type inference, and square-bracket syntax.
 
 ### Basics
 
@@ -249,7 +249,7 @@ Electronic CAD types for schematic and PCB design. Not supported by the supex si
 
 VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver resolves these references before evaluation. Imports are only available in `.skp.oo` files placed via `vcad_place_with_imports` — they do not work in `vcad_eval` or `vcad_inspect`.
 
-**Why imports cannot appear in `.oo` library modules:** The driver preprocesses `[import ...]` declarations by extracting them from the source, resolving them via SketchUp, and injecting the results before evaluation. Library modules loaded via `[use ...]` bypass this pipeline entirely — the Loon interpreter evaluates them directly. A raw `[import ...]` in a `.oo` file will fail at evaluation time because `import` is not a Loon built-in. Additionally, the module resolver maps `[use foo]` → `foo.oo` and `[use foo.bar]` → `foo/bar.oo`, so there is no module path that resolves to a `.skp.oo` file — the double extension acts as a natural boundary between geometry sources and reusable libraries.
+**Why imports cannot appear in library modules:** The driver preprocesses `[import ...]` declarations by extracting them from the source, resolving them via SketchUp, and injecting the results before evaluation. Library modules loaded via `[use ...]` bypass this pipeline entirely — the Loon interpreter evaluates them directly. A raw `[import ...]` in a library file will fail at evaluation time because `import` is not a Loon built-in.
 
 ### Import syntax
 
@@ -322,18 +322,18 @@ Calling `vcad_update_cascade("base-plate")` re-evaluates base-plate first, then 
 
 ## File Watching
 
-The driver watches `.skp.oo` source files and `.oo` library modules for changes.
+The sidecar watcher classifies changes in `.skp.oo` source files and `.oo` library modules.
 
 ### Source file watching
 
 - Auto-starts on first `vcad_place` or `vcad_place_with_imports`
 - Detects file modifications via the sidecar's filesystem watcher
-- Triggers re-evaluation of affected nodes
+- Provides change events consumed by driver-side update flows
 
 ### Module tracking
 
 - When a `.skp.oo` file uses `[use module-name]`, the sidecar tracks which `.oo` files are loaded
-- Changes to library modules trigger re-evaluation of all nodes that depend on them
+- Library change events can be used to re-evaluate all dependent nodes
 
 ### Batch editing
 
@@ -400,12 +400,14 @@ Returns: volume, surface_area, bounding_box.
 
 ### vcad_export
 
-Export geometry to OBJ or STEP format.
+Export geometry via sidecar export API.
+
+Note: this MCP surface exists in the driver. Treat end-to-end export behavior as experimental unless verified in your current setup.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `source` | string | File path or inline Loon code |
-| `format` | string | "obj" or "step" (default "obj") |
+| `format` | string | Export format requested by sidecar |
 | `output_path` | string | Optional output path |
 
 ### vcad_eval
@@ -445,6 +447,18 @@ Focus viewer camera on a specific VCAD node.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `node_id` | string | The VCAD node identifier to focus on |
+
+### vcad_health
+
+Return sidecar/viewer liveness and negotiated capability summary.
+
+### vcad_metrics
+
+Return operational telemetry snapshot (counters, gauges, optional artifact metadata).
+
+### vcad_reconcile_status
+
+Return status of last reconciliation run (drift buckets, pending nodes, outcome).
 
 ## Known Limitations
 

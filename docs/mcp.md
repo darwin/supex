@@ -1,89 +1,82 @@
 # MCP Reference
 
-MCP tools available for AI agents (via Claude Code).
+Canonical MCP tool inventory for Supex.
+
+Source of truth in code:
+
+- `driver/src/supex_driver/mcp/mcp_server.py`
+- `driver/src/supex_driver/mcp/vcad_tools.py`
+- `driver/src/supex_driver/mcp/vcad_diagnostics.py`
+
+## Core Status
+
+| Tool | Description |
+|------|-------------|
+| `check_sketchup_status` | Check SketchUp bridge connectivity and version |
+| `console_capture_status` | Show runtime console capture status/log path |
 
 ## Ruby Execution
 
 | Tool | Description |
 |------|-------------|
-| `eval_ruby` | Execute Ruby code directly |
-| `eval_ruby_file` | Execute Ruby script from file (recommended) |
+| `eval_ruby` | Execute inline Ruby code |
+| `eval_ruby_file` | Execute Ruby from file path |
 
 ## Model Introspection
 
 | Tool | Description |
 |------|-------------|
-| `get_model_info` | Get entity counts, units, modified state |
-| `list_entities` | List entities with filtering by type |
-| `get_selection` | Get currently selected entities |
-| `get_layers` | List all layers/tags with visibility |
-| `get_materials` | List all materials with colors |
-| `get_camera_info` | Get camera position and settings |
+| `get_model_info` | Model title, units, entity counts, modified state |
+| `list_entities` | List entities with optional type filter |
+| `get_selection` | List selected entities |
+| `get_layers` | List layers/tags |
+| `get_materials` | List materials |
+| `get_camera_info` | Current camera info |
 
 ## Visualization
 
 | Tool | Description |
 |------|-------------|
-| `take_screenshot` | Capture view to PNG (returns file path) |
-| `take_batch_screenshots` | Take multiple screenshots with different camera positions |
-
-### take_batch_screenshots
-
-Take multiple screenshots with different camera positions in a single batch. Zero visual flicker - renders offscreen while preserving user's view.
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `shots` | list | required | List of shot specifications (see below) |
-| `output_dir` | string | auto | Output directory (defaults to `.tmp/batch_screenshots/timestamp/`) |
-| `base_name` | string | `"screenshot"` | Base filename for screenshots |
-| `width` | int | 1920 | Default width for all shots |
-| `height` | int | 1080 | Default height for all shots |
-| `transparent` | bool | false | Use transparent background |
-| `restore_camera` | bool | true | Restore original camera after batch |
-
-**Shot specification:**
-
-Each shot in the `shots` array is a dict with:
-- `camera`: Camera specification (see camera types below)
-- `name`: Optional custom name for the shot (used in filename)
-- `width`/`height`: Optional per-shot size override
-- `isolate`: Optional entity_id to isolate (shows only that subtree)
-
-**Camera types:**
-
-| Type | Parameters | Description |
-|------|------------|-------------|
-| `standard_view` | `view`: top/front/right/left/back/bottom/iso | Standard orthographic views |
-| `custom` | `eye`, `target`, optional `up`/`fov`/`perspective` | Custom camera position |
-| `zoom_entity` | `entity_ids`, optional `padding` | Zoom to fit specific entities |
-
-All camera types support `zoom_extents` boolean (default true) - when true, auto-adjusts camera to fit visible content.
-
-**Example:**
-```json
-{
-  "shots": [
-    {"camera": {"type": "standard_view", "view": "front"}, "name": "front"},
-    {"camera": {"type": "standard_view", "view": "iso"}, "name": "overview"},
-    {"camera": {"type": "custom", "eye": [100,100,100], "target": [0,0,0], "zoom_extents": false}},
-    {"camera": {"type": "standard_view", "view": "top"}, "isolate": 12345, "name": "detail"}
-  ]
-}
-```
+| `take_screenshot` | Capture SketchUp view to PNG (returns file path) |
+| `take_batch_screenshots` | Capture multiple camera shots in one batch |
 
 ## Model Management
 
 | Tool | Description |
 |------|-------------|
-| `open_model` | Open .skp file by path |
-| `save_model` | Save current model |
-| `export_scene` | Export to skp/obj/stl/png/jpg |
+| `open_model` | Open `.skp` model by absolute path |
+| `save_model` | Save current model (optionally to path) |
+| `export_scene` | Export scene (`skp`, `obj`, `stl`, `png`, `jpg`, `jpeg`) |
 
-## Status
+## VCAD Authoring
+
+For full workflow and semantics, see [VCAD Integration](vcad.md).
 
 | Tool | Description |
 |------|-------------|
-| `check_sketchup_status` | Verify connection health |
-| `console_capture_status` | Get Ruby console logging info |
+| `vcad_place` | Evaluate `.skp.oo` and place/update node in SketchUp |
+| `vcad_place_with_imports` | Place node with `[import ...]` resolution |
+| `vcad_update` | Re-evaluate a single node |
+| `vcad_update_cascade` | Re-evaluate node and downstream dependents in DAG order |
+| `vcad_inspect` | Evaluate and return geometry metadata |
+| `vcad_eval` | REPL-like Loon evaluation |
+| `vcad_list_nodes` | List VCAD nodes present in the model |
+| `vcad_watch_pause` | Pause reactive watch processing |
+| `vcad_watch_resume` | Resume and flush accumulated watch events |
+| `vcad_export` | Sidecar export API surface (treat as experimental until fully wired end-to-end) |
+
+## VCAD Viewer Relay
+
+| Tool | Description |
+|------|-------------|
+| `vcad_viewer_state` | Get viewer state snapshot |
+| `vcad_viewer_screenshot` | Save viewer screenshot to `.tmp/vcad-viewer/` |
+| `vcad_viewer_focus` | Focus viewer camera on a node |
+
+## VCAD Diagnostics
+
+| Tool | Description |
+|------|-------------|
+| `vcad_health` | Liveness/readiness and negotiated capability summary |
+| `vcad_metrics` | Operational telemetry snapshot |
+| `vcad_reconcile_status` | Last reconciliation run state |

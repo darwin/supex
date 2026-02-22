@@ -70,9 +70,9 @@ Note: `SUPEX_WORKSPACE` is set in your MCP client's environment configuration an
 The path policy:
 1. Resolves symlinks to prevent symlink escape attacks
 2. Checks that the resolved path starts with an allowed root
-3. Rejects paths containing `..` traversal attempts
+3. Enforces workspace-rooted default paths for guarded operations
 
-**Error handling**: Attempts to access paths outside allowed roots result in error code `-32002`.
+**Error handling**: Path denials are surfaced as `Path access denied...` messages and, in some VCAD flows, as structured `PATH_NOT_ALLOWED` envelopes.
 
 ### Disabling Restrictions
 

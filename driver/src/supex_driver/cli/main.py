@@ -443,7 +443,7 @@ def save(
 
 @app.command()
 def export(
-    format: Annotated[str, typer.Argument(help="Export format: skp, obj, dae, stl, png, jpg")] = "skp",
+    format: Annotated[str, typer.Argument(help="Export format: skp, obj, stl, png, jpg, jpeg")] = "skp",
     host: HostOption = "localhost",
     port: PortOption = 9876,
 ):

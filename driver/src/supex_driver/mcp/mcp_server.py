@@ -216,7 +216,7 @@ def export_scene(ctx: McpContext, format: str = "skp") -> str:
     """Export the current SketchUp scene
 
     Args:
-        format: Export format (skp, obj, dae, stl, png, jpg)
+        format: Export format (skp, obj, stl, png, jpg, jpeg)
     """
     return call_tool(ctx, "export_scene", {"format": format}, "export_scene")
 

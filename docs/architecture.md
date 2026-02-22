@@ -2,6 +2,13 @@
 
 ## System Design
 
+For authoritative command/tool/env lists, use:
+
+- [CLI Reference](cli.md)
+- [MCP Reference](mcp.md)
+- [Configuration](configuration.md)
+- [Protocol](protocol.md)
+
 Supex implements a multi-process architecture for robust SketchUp automation:
 
 ```
@@ -65,39 +72,16 @@ supex/
 The driver serves two roles: as an MCP server for AI agents, and as a CLI (`./supex`) for direct human use. Both share the same connection layer and tool implementations.
 
 **Key Components**:
-- `src/supex_driver/mcp/server.py` - MCP server with tool definitions
+- `src/supex_driver/mcp/mcp_server.py` - MCP server with tool definitions
 - `src/supex_driver/cli/main.py` - Typer CLI application
 - `src/supex_driver/__main__.py` - Entry point and startup configuration
 - Complete type annotations and mypy validation
 
-**Tools Provided**:
-- **Ruby Execution**: `eval_ruby`, `eval_ruby_file` (recommended)
-- **Model Introspection**: `get_model_info`, `list_entities`, `get_selection`, `get_layers`, `get_materials`, `get_camera_info`
-- **Visualization**: `take_screenshot`, `take_batch_screenshots` (multiple shots with camera control)
-- **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
-- **Connection Health**: `check_sketchup_status`, `console_capture_status`
-- **VCAD**: `vcad_place`, `vcad_update`, `vcad_inspect`, `vcad_eval`, `vcad_export`, and more (see VCAD Subsystem below)
+Tool catalogs are maintained in dedicated reference docs:
 
-**CLI** (`./supex`):
-
-| Command | Description |
-|---------|-------------|
-| `supex status` | Connection and system status |
-| `supex eval <code>` | Evaluate Ruby code in SketchUp |
-| `supex eval-file <path>` | Evaluate Ruby file |
-| `supex info` | Model information |
-| `supex entities [type]` | List entities |
-| `supex selection` | Current selection |
-| `supex layers` | List layers/tags |
-| `supex materials` | List materials |
-| `supex camera` | Camera position |
-| `supex screenshot` | Take screenshot |
-| `supex open <path>` | Open .skp file |
-| `supex save [path]` | Save model |
-| `supex export <format>` | Export scene |
-| `supex reload` | Reload extension without restart |
-
-All commands accept `--host`/`--port` for non-default connections and `--raw` for JSON output.
+- [CLI Reference](cli.md)
+- [MCP Reference](mcp.md)
+- [VCAD Integration](vcad.md)
 
 #### Connection Layer (`connection/`)
 
@@ -119,19 +103,7 @@ The connection module provides reliable communication with the SketchUp runtime:
 - Hello handshake for connection identification
 - Chunked response handling for large payloads
 
-**Configuration** (environment variables):
-
-| Variable             | Default     | Description                         |
-|----------------------|-------------|-------------------------------------|
-| `SUPEX_HOST`         | `localhost` | SketchUp runtime host               |
-| `SUPEX_PORT`         | `9876`      | SketchUp runtime port               |
-| `SUPEX_TIMEOUT`      | `15`        | Socket timeout in seconds           |
-| `SUPEX_RETRIES`      | `2`         | Reconnection attempts               |
-| `SUPEX_REPL_PORT`    | `4433`      | Ruby REPL server port               |
-| `VCAD_HOST`          | `127.0.0.1` | VCAD sidecar host                  |
-| `VCAD_PORT`          | `9877`      | VCAD sidecar port                  |
-| `VCAD_AUTH_TOKEN`    | —           | Auth token (required for remote)    |
-| `VCAD_ALLOW_REMOTE`  | —           | Set `1` to allow non-loopback bind  |
+For environment variables and defaults, see [Configuration](configuration.md).
 
 ### Ruby SketchUp Extension (`runtime/`)
 
@@ -189,15 +161,10 @@ VCAD extends supex with a parametric modeling pipeline. The agent writes `.skp.o
 - Import resolution: data extraction (dimensions, bbox, transform) and native solid mesh triangulation
 - Entity lifecycle observer for node tracking
 
-**Tools Provided**:
-- **Placement**: `vcad_place`, `vcad_place_with_imports`
-- **Updates**: `vcad_update`, `vcad_update_cascade`
-- **Inspection**: `vcad_inspect`, `vcad_eval`, `vcad_list_nodes`
-- **Export**: `vcad_export` (OBJ, STEP)
-- **Batch editing**: `vcad_watch_pause`, `vcad_watch_resume`
-- **Viewer**: `vcad_viewer_state`, `vcad_viewer_screenshot`, `vcad_viewer_focus`
+For the complete VCAD tool inventory (including diagnostics/viewer tools), see:
 
-See [VCAD Integration](vcad.md) for detailed documentation.
+- [MCP Reference](mcp.md)
+- [VCAD Integration](vcad.md)
 
 ## Communication Protocol
 
@@ -262,7 +229,7 @@ Response (Ruby to Python):
 **Python**: UV package management, Python 3.14+
 **Ruby**: mise isolation, Ruby 3.2.2, Bundler dependency management
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
-**Testing**: pytest (Python), Test::Unit (Ruby)
+**Testing**: pytest (Python), Minitest (Ruby)
 
 ## Testing Architecture
 
@@ -321,7 +288,7 @@ cd driver && uv run pytest tests/
 - Code quality with ruff linting and formatting
 
 **Ruby Components**:
-- Unit tests with Test::Unit framework
+- Unit tests with Minitest framework
 - Code style with RuboCop and SketchUp-specific rules
 
 ## Security Considerations

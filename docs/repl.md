@@ -132,8 +132,11 @@ The REPL can be configured via environment variables:
 | `SUPEX_REPL_HOST` | `127.0.0.1` | REPL client default host |
 | `SUPEX_REPL_DISABLED` | (unset) | Disable REPL server (set to `1`) |
 | `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
+| `SUPEX_REPL_RETRIES` | `10` | REPL client reconnect attempts |
 
 See [Configuration](configuration.md) for all environment variables.
+
+Note: `SUPEX_REPL_HOST` configures the REPL client default host (`./repl`), not the runtime server bind host.
 
 ## REPL vs eval_ruby
 

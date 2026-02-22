@@ -69,14 +69,16 @@ VCAD is a BRep (Boundary Representation) kernel that brings parametric CAD model
 - **Live preview**: Standalone Tauri viewer with BRep rendering
 - **Idempotent updates**: Atomic definition swap preserves instance placements
 - **Revision tracking**: Stale result detection and supersede-aware eval queue
+- **Import-aware authoring**: Data/solid imports from existing SketchUp entities via `vcad_place_with_imports`
+- **Dependency graph**: DAG-based topological cascade updates (`vcad_update_cascade`)
+- **Watch controls**: Pause/resume reactive updates for batch editing (`vcad_watch_pause`, `vcad_watch_resume`)
+- **Diagnostics**: Health, metrics, and reconcile status tools (`vcad_health`, `vcad_metrics`, `vcad_reconcile_status`)
 
-### Planned
+### Current Status
 
-- Filesystem watcher for automatic re-evaluation on `.skp.oo` file changes
-- DAG-based dependency graph with topological cascade updates
-- Module tracking for shared Loon library watching
-- SketchUp model observer for bidirectional sync
-- Cross-node ADT composition (shared parametric geometry between files)
+- Filesystem and module change tracking are implemented in the VCAD pipeline.
+- Cascade updates are implemented and exposed via explicit MCP tools.
+- Some reactive update behaviors are still intentionally explicit/operator-driven.
 
 For full documentation, see [VCAD Integration](docs/vcad.md).
 
@@ -257,6 +259,7 @@ mise run lint       # All linters
 
 ## Reference
 
+- **[Documentation Index](docs/README.md)** - Start here for docs navigation
 - **[CLI Reference](docs/cli.md)** - Command-line interface for direct SketchUp interaction
 - **[Interactive REPL](docs/repl.md)** - Interactive Ruby development in SketchUp
 - **[MCP Reference](docs/mcp.md)** - Tools available for AI agents (Claude Code)

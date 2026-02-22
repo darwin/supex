@@ -85,6 +85,7 @@ cd runtime && bundle exec rake build
 
 - **VCAD** is an acronym — always write "VCAD" in prose (docs, comments, docstrings, log messages), never "vcad"
 - Lowercase `vcad` is correct in identifiers (`vcad_place`, `vcad_connection`), file paths (`vcad/sidecar/`), logger names (`supex.vcad`), and Rust crate names (`vcad-eval`, `vcad-kernel`)
+- For library source files, prefer `.oo` extension (not `.loon`) in docs, examples, and generated project conventions
 
 ## VCAD Sidecar
 

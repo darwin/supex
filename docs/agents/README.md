@@ -1,4 +1,6 @@
-## Agent Prompts
+# Agent Prompts
+
+See also: [Documentation Index](../README.md)
 
 This directory contains documentation and prompts for AI agents that interact with SketchUp via Supex MCP tools.
 

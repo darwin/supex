@@ -1,117 +1,92 @@
 # Configuration
 
-Supex can be configured via environment variables:
+Supex behavior is controlled primarily through environment variables.
 
-## Security
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SUPEX_AUTH_TOKEN` | (unset) | Shared authentication token for Bridge and REPL servers |
-| `SUPEX_ALLOW_REMOTE` | (unset) | Allow binding to non-loopback addresses (set to `1`) |
-| `SUPEX_ALLOWED_ROOTS` | (unset) | Colon-separated list of allowed file path roots |
-| `SUPEX_WORKSPACE` | (unset) | User project directory (passed to runtime via hello handshake) |
-
-**Authentication**: When `SUPEX_AUTH_TOKEN` is set, clients must provide this token in the `hello` handshake to connect. Without a valid token, the server returns error code `-32001`.
-
-**Remote binding**: By default, servers only bind to loopback addresses (`127.0.0.1`, `localhost`, `::1`). To allow binding to non-loopback addresses, set `SUPEX_ALLOW_REMOTE=1`. When binding remotely without a token, a security warning is logged.
-
-**Path restrictions**: File operations (`eval_ruby_file`, `open_model`, `save_model`, `take_screenshot`) are restricted to:
-- Paths within `SUPEX_WORKSPACE` (passed from MCP client via hello handshake)
-- Additional paths specified in `SUPEX_ALLOWED_ROOTS` (colon-separated)
-
-Note: Path restrictions are a guardrail to prevent accidental writes to wrong directories, not a security boundary (arbitrary Ruby execution bypasses them).
-
-**Workspace configuration**: Set `SUPEX_WORKSPACE` in your MCP client's environment configuration. Default screenshot paths (when `output_path` is not specified) will be saved to `$SUPEX_WORKSPACE/.tmp/screenshots/`.
-
-Example MCP client configuration:
-```json
-{
-  "mcpServers": {
-    "supex": {
-      "command": "/path/to/supex/mcp",
-      "env": {
-        "SUPEX_WORKSPACE": "/path/to/your-project"
-      }
-    }
-  }
-}
-```
-
-To disable path restrictions, set `SUPEX_ALLOWED_ROOTS=*`.
-
-## Bridge Server (MCP)
+## Security and Path Policy
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SUPEX_HOST` | `localhost` | SketchUp runtime host (driver/CLI connects to this) |
-| `SUPEX_PORT` | `9876` | SketchUp runtime port (driver/CLI connects to this) |
+| `SUPEX_AUTH_TOKEN` | (unset) | Shared token for Bridge + REPL authentication |
+| `SUPEX_ALLOW_REMOTE` | `0` | Allow non-loopback bind when set to `1` |
+| `SUPEX_ALLOWED_ROOTS` | (unset) | Colon-separated path allowlist for guarded file operations |
+| `SUPEX_WORKSPACE` | wrapper-dependent | Workspace root passed to runtime in `hello` handshake |
+
+Path policy is a guardrail, not a sandbox. Arbitrary Ruby execution can bypass it.
+
+## Wrapper Defaults
+
+Workspace defaults differ by entrypoint script:
+
+- `./supex`: `SUPEX_WORKSPACE=${SUPEX_WORKSPACE:-$HOME/.supex/tmp-workspace}`
+- `./mcp`: `SUPEX_WORKSPACE=${SUPEX_WORKSPACE:-$(pwd)}`
+- `./vcad-sidecar`: `SUPEX_WORKSPACE=${SUPEX_WORKSPACE:-$(pwd)}`
+
+## Bridge / Driver (MCP + CLI)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_HOST` | `localhost` | SketchUp runtime host |
+| `SUPEX_PORT` | `9876` | SketchUp runtime port |
 | `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
-| `SUPEX_RETRIES` | `2` | Max retry attempts |
-| `SUPEX_IDLE_TIMEOUT` | `300` | Connection idle timeout in seconds (driver reconnects after this) |
-| `SUPEX_LOG_DIR` | `~/.supex/logs` | Driver log directory |
-| `SUPEX_VERBOSE` | (unset) | Enable runtime verbose logging (set to `1`) |
-| `SUPEX_AGENT` | (auto) | Agent identifier for logging |
-| `SUPEX_NO_AUTOSTART` | (unset) | Disable automatic server start on extension load (set to `1`) |
-| `SUPEX_CHECK_INTERVAL` | `0.25` | Request check interval in seconds |
-| `SUPEX_RESPONSE_DELAY` | `0` | Response delay in seconds (for debugging) |
+| `SUPEX_RETRIES` | `2` | Retry count on connection failure |
+| `SUPEX_IDLE_TIMEOUT` | `300` | Reconnect after idle seconds |
+| `SUPEX_MAX_RESPONSE` | `10485760` | Max response payload bytes |
+| `SUPEX_LOG_DIR` | `$SUPEX_WORKSPACE/.tmp/logs` | CLI/MCP log directory |
+| `SUPEX_AGENT` | auto | Agent identifier for logs/handshake |
+| `SUPEX_VERBOSE` | (unset) | Verbose runtime logging when set to `1` |
+| `SUPEX_NO_AUTOSTART` | (unset) | Disable extension autostart when set to `1` |
+| `SUPEX_CHECK_INTERVAL` | `0.25` | Runtime request poll interval (seconds) |
+| `SUPEX_RESPONSE_DELAY` | `0` | Artificial response delay (seconds) |
 
-## Standard Library
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SUPEX_STDLIB_PATH` | (auto) | Custom path to stdlib directory |
-
-## REPL Server
+## REPL
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SUPEX_REPL_PORT` | `4433` | REPL server port |
 | `SUPEX_REPL_HOST` | `127.0.0.1` | REPL client default host |
-| `SUPEX_REPL_DISABLED` | (unset) | Disable REPL server (set to `1`) |
-| `SUPEX_REPL_BUFFER_MS` | `50` | Input buffer timeout for IDE paste detection |
+| `SUPEX_REPL_DISABLED` | (unset) | Disable runtime REPL server when set to `1` |
+| `SUPEX_REPL_BUFFER_MS` | `50` | Pry input coalescing window |
+| `SUPEX_REPL_RETRIES` | `10` | REPL client reconnect attempts |
 
-See [Interactive REPL](repl.md) for usage details.
-
-## VCAD Sidecar
-
-The VCAD Rust sidecar evaluates Loon CAD code and produces BRep geometry. See [VCAD Integration](vcad.md) for full documentation.
-
-### Connection
+## VCAD Driver Connection
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VCAD_HOST` | `127.0.0.1` | Sidecar bind/connect host |
-| `VCAD_PORT` | `9877` | Sidecar TCP port |
-| `VCAD_TIMEOUT` | `30` | Request timeout in seconds |
-| `VCAD_SIDECAR_PATH` | (auto) | Path to sidecar binary (auto-detected from repo) |
+| `VCAD_HOST` | `localhost` | VCAD sidecar host used by driver |
+| `VCAD_PORT` | `9877` | VCAD sidecar port used by driver |
+| `VCAD_TIMEOUT` | `30.0` | Driver-side VCAD timeout (seconds) |
+| `VCAD_RETRIES` | `2` | Driver-side VCAD reconnect attempts |
+| `VCAD_IDLE_TIMEOUT` | `300` | VCAD reconnect after idle seconds |
+| `VCAD_MAX_RESPONSE` | `10485760` | Max VCAD response payload bytes |
+| `VCAD_SIDECAR_PATH` | auto-detected | Sidecar binary path override |
 
-### Security
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VCAD_AUTH_TOKEN` | (unset) | Authentication token (required when `VCAD_ALLOW_REMOTE=1`) |
-| `VCAD_ALLOW_REMOTE` | `0` | Allow non-loopback bind (requires `VCAD_AUTH_TOKEN`) |
-
-**Non-loopback binding**: The sidecar refuses to bind to non-loopback addresses unless both `VCAD_ALLOW_REMOTE=1` and `VCAD_AUTH_TOKEN` are set. This prevents unauthenticated remote access to the evaluation engine.
-
-### Evaluation
+## VCAD Sidecar Runtime
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VCAD_MAX_QUEUE` | `64` | Maximum queued eval jobs |
-| `VCAD_EVAL_TIMEOUT_MS` | `120000` | Max wait per queued eval request in milliseconds |
-| `VCAD_ADT_CACHE_MAX` | `256` | Max entries in ADT cache (LRU eviction) |
+| `VCAD_HOST` | `127.0.0.1` | Sidecar bind host |
+| `VCAD_PORT` | `9877` | Sidecar bind port |
+| `VCAD_ALLOW_REMOTE` | `0` | Allow non-loopback bind (requires auth token) |
+| `VCAD_AUTH_TOKEN` | (unset) | Required for remote bind/authenticated usage |
+| `VCAD_TEMP_DIR` | `$SUPEX_WORKSPACE/.tmp/vcad-sidecar` | Artifact directory |
+| `VCAD_TEMP_TTL_SEC` | `3600` | Artifact TTL (seconds) |
+| `VCAD_TEMP_MAX_FILES` | `500` | Max retained artifacts |
+| `VCAD_MAX_QUEUE` | `64` | Eval queue capacity |
+| `VCAD_EVAL_TIMEOUT_MS` | `120000` | Eval timeout per request |
+| `VCAD_ADT_CACHE_MAX` | `256` | ADT cache capacity |
+| `VCAD_STATE_PATH` | `<workspace>/.supex/vcad-state.json` | Driver state persistence path |
 
-### Temp Files
+If neither `VCAD_TEMP_DIR` nor `SUPEX_WORKSPACE` is set, sidecar startup fails.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VCAD_TEMP_DIR` | (system temp) | Directory for OBJ and manifest files |
-| `VCAD_TEMP_TTL_SEC` | `3600` | Max age of temp artifact files in seconds |
-| `VCAD_TEMP_MAX_FILES` | `500` | Max number of retained artifact sets (OBJ + manifest) |
+## Log Files
 
-### Driver State
+Common outputs in `$SUPEX_LOG_DIR`:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VCAD_STATE_PATH` | `<workspace>/.supex/vcad-state.json` | Persisted driver state file |
+- `supex-cli-stdout.log`
+- `supex-cli-stderr.log`
+- `supex-cli.log`
+- `supex-mcp-protocol.jsonl`
+- `supex-mcp-stderr.log`
+- `vcad-sidecar-stderr.log`
+
+Runtime console capture is written to `./.tmp/sketchup_console.log`.
