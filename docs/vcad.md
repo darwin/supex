@@ -63,6 +63,23 @@ cargo build --release --manifest-path vcad/sidecar/Cargo.toml
 ./scripts/launch-vcad-sidecar.sh
 ```
 
+### Viewer Debugging
+
+The VCAD viewer is a Tauri app (WKWebView on macOS). JavaScript in the Tauri webview cannot be debugged via Chrome DevTools — WKWebView uses WebKit, not Chromium. Use `--dev` to run the viewer frontend as a standalone Vite dev server in the browser instead.
+
+```bash
+# Browser debug mode — Vite only, no Tauri window
+./scripts/launch-vcad-viewer.sh --dev
+```
+
+Open Chrome and navigate to `http://localhost:1420`. Full debugging is available:
+
+- **Chrome DevTools** — Cmd+Option+I (or F12) for JS console, network inspector, DOM inspection
+- **Claude Chrome extension** — browser automation and interaction with the viewer page
+- **Remote debugging** — launch Chrome with `--remote-debugging-port=9222` to connect external DevTools instances
+
+Note: The Vite dev server serves the same React frontend that Tauri uses. All viewer functionality works identically in the browser, except for Tauri-specific native APIs (which are stubbed or unavailable).
+
 ### E2E test flow
 
 1. Start sidecar: `./vcad-sidecar`
