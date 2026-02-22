@@ -144,6 +144,9 @@ class VCADViewerRelay:
         # Screenshot coordination
         self._screenshot_futures: dict[str, asyncio.Future[dict[str, Any]]] = {}
 
+        # Reconnect counter (for metrics)
+        self.viewer_reconnect_total: int = 0
+
     @property
     def is_viewer_connected(self) -> bool:
         """Check if a viewer is currently connected and negotiated."""
@@ -310,6 +313,15 @@ class VCADViewerRelay:
             self._session.protocol_version = viewer_version
             self._session.features = negotiated
             self._session.negotiated = True
+            self.viewer_reconnect_total += 1
+
+        # Emit to centralized metrics
+        try:
+            from supex_driver.connection.vcad_metrics import get_vcad_metrics
+
+            get_vcad_metrics().increment("viewer_reconnect_total")
+        except Exception:
+            pass
 
         logger.info(
             f"Viewer negotiated: version={viewer_version}, features={negotiated}"

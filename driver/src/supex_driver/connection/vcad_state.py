@@ -46,6 +46,18 @@ class RevisionTracker:
         self._revisions: dict[str, int] = {}
         self._lock = threading.Lock()
         self.stale_dropped: int = 0
+        self._metrics_callback: Callable[[str, str | None], None] | None = None
+
+    def set_metrics_callback(
+        self,
+        callback: Callable[[str, str | None], None],
+    ) -> None:
+        """Set callback for metrics emission on stale drops.
+
+        Args:
+            callback: Called with (event_name, node_id) on each stale drop.
+        """
+        self._metrics_callback = callback
 
     def current_revision(self, node_id: str) -> int:
         """Get the current revision for a node."""
@@ -74,6 +86,15 @@ class RevisionTracker:
                 f"Stale result dropped for {node_id}: "
                 f"result_rev={revision}, current_rev={current}"
             )
+            if self._metrics_callback:
+                self._metrics_callback("stale_dropped", node_id)
+            # Emit to centralized metrics
+            try:
+                from supex_driver.connection.vcad_metrics import get_vcad_metrics
+
+                get_vcad_metrics().increment("stale_dropped_total")
+            except Exception:
+                pass
             return False
 
     def set_revision(self, node_id: str, revision: int) -> None:
@@ -114,6 +135,17 @@ class EvalQueue:
         self._lock = threading.Lock()
         self.superseded_dropped_total: int = 0
         self.superseded_skipped_before_eval_total: int = 0
+        self.queue_rejected_total: int = 0
+
+    @staticmethod
+    def _emit_metric(name: str) -> None:
+        """Emit a metric increment to the centralized registry."""
+        try:
+            from supex_driver.connection.vcad_metrics import get_vcad_metrics
+
+            get_vcad_metrics().increment(name)
+        except Exception:
+            pass
 
     def enqueue(self, job: EvalJob) -> bool:
         """Add an eval job to the queue.
@@ -128,12 +160,15 @@ class EvalQueue:
         """
         with self._lock:
             if len(self._queue) >= self.max_size:
+                self.queue_rejected_total += 1
+                self._emit_metric("queue_rejected_total")
                 return False
             # Mark older pending jobs for same node as superseded
             for existing in self._queue:
                 if existing.node_id == job.node_id and not existing.superseded:
                     existing.superseded = True
                     self.superseded_dropped_total += 1
+                    self._emit_metric("superseded_dropped_total")
             self._queue.append(job)
             return True
 
@@ -150,6 +185,7 @@ class EvalQueue:
                 job = self._queue.pop(0)
                 if job.superseded:
                     self.superseded_skipped_before_eval_total += 1
+                    self._emit_metric("superseded_skipped_before_eval_total")
                     continue
                 return job
             return None
@@ -191,6 +227,17 @@ class TriggerCoalescer:
         self._cascade_active: bool = False
         self._deferred: set[str] = set()
         self.cascade_count: int = 0
+        self.merged_events_total: int = 0
+
+    @staticmethod
+    def _emit_coalesce_metric(name: str) -> None:
+        """Emit a metric increment to the centralized registry."""
+        try:
+            from supex_driver.connection.vcad_metrics import get_vcad_metrics
+
+            get_vcad_metrics().increment(name)
+        except Exception:
+            pass
 
     def trigger(self, node_id: str, source: str = "") -> None:
         """Register a change event for a node.
@@ -203,6 +250,8 @@ class TriggerCoalescer:
             source: Event source (fs-watch, mod-track, su-observer, manual).
         """
         with self._lock:
+            self.merged_events_total += 1
+            self._emit_coalesce_metric("coalesce_merged_events_total")
             if self._cascade_active:
                 self._deferred.add(node_id)
                 return
@@ -233,6 +282,7 @@ class TriggerCoalescer:
         with self._lock:
             self._cascade_active = False
             self.cascade_count += 1
+            self._emit_coalesce_metric("coalesce_batches_total")
             if self._deferred:
                 self._pending.update(self._deferred)
                 self._deferred.clear()

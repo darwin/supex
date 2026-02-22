@@ -174,9 +174,18 @@ class VcadDag:
         - revision_gap: applied_revision behind revision
         - source_missing: source file not found on disk
         """
+        from supex_driver.connection.vcad_metrics import get_vcad_metrics
+        from supex_driver.connection.vcad_reconcile_state import get_reconcile_state
+
+        metrics = get_vcad_metrics()
+        metrics.increment("reconcile_runs_total")
+
         persisted = self.state.all_nodes()
         drift = VCADReconciler.classify_drift(persisted, sketchup_nodes)
         VCADReconciler.reconcile(self.state, drift)
+
+        # Track total drift items
+        metrics.increment("reconcile_drift_total", len(drift))
 
         # Update in-memory DAG from reconciled state
         for ns in self.state.all_nodes().values():
@@ -215,6 +224,24 @@ class VcadDag:
             buckets.setdefault(d.drift_type, []).append(d.node_id)
 
         self.persist_state()
+
+        # Update degraded_nodes_current gauge
+        degraded_count = sum(
+            1 for n in self.nodes.values() if n.status == "degraded"
+        )
+        metrics.set_gauge("degraded_nodes_current", float(degraded_count))
+
+        # Record reconcile result for diagnostics
+        pending_nodes = buckets.get("revision_gap", [])
+        outcome = "degraded" if buckets.get("source_missing") else "ok"
+        if any(v for v in buckets.values()):
+            outcome = "reconciled" if outcome == "ok" else outcome
+        reconcile_state = get_reconcile_state()
+        reconcile_state.record_run(
+            drift=buckets,
+            pending_nodes=pending_nodes,
+            outcome=outcome,
+        )
 
         return buckets
 
