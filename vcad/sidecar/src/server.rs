@@ -58,10 +58,6 @@ pub(crate) struct EvalJob {
 
 /// Parsed eval request ready for the worker.
 pub enum EvalRequest {
-    EvalCode {
-        id: serde_json::Value,
-        code: String,
-    },
     EvalFile {
         id: serde_json::Value,
         path: String,
@@ -93,7 +89,6 @@ impl EvalRequest {
     #[allow(dead_code)]
     fn id(&self) -> &serde_json::Value {
         match self {
-            EvalRequest::EvalCode { id, .. } => id,
             EvalRequest::EvalFile { id, .. } => id,
             EvalRequest::EvalFileTracked { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
@@ -450,21 +445,6 @@ fn dispatch_tools_call(
         .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
 
     let eval_request = match tool_name {
-        "vcad.eval_code" => {
-            let code = arguments.get("code").and_then(|v| v.as_str()).unwrap_or("");
-            if code.is_empty() {
-                return make_error_response(
-                    request.id.clone(),
-                    JSONRPC_INVALID_REQUEST,
-                    "vcad.eval_code requires non-empty 'code' argument",
-                    None,
-                );
-            }
-            EvalRequest::EvalCode {
-                id: request.id.clone(),
-                code: code.to_string(),
-            }
-        }
         "vcad.eval_file" => {
             let path = arguments.get("path").and_then(|v| v.as_str()).unwrap_or("");
             if path.is_empty() {
@@ -852,10 +832,6 @@ fn dispatch_eval(
     module_tracker: &Arc<Mutex<ModuleTracker>>,
 ) -> JsonRpcResponse {
     match request {
-        EvalRequest::EvalCode { id, code } => match evaluator.eval_code(code) {
-            Ok(result) => eval_result_response(id.clone(), &result),
-            Err(e) => eval_error_response(id.clone(), &e),
-        },
         EvalRequest::EvalFile { id, path } => match evaluator.eval_file(path) {
             Ok(result) => eval_result_response(id.clone(), &result),
             Err(e) => eval_error_response(id.clone(), &e),
@@ -1277,13 +1253,13 @@ mod tests {
         // Hello
         send_request(&mut stream, &hello_request(1));
 
-        // Eval a simple cube
+        // Eval a simple cube via eval_with_imports (no imports)
         let resp = send_request(
             &mut stream,
             &tools_call_request(
                 2,
-                "vcad.eval_code",
-                serde_json::json!({ "code": "[cube 10.0 10.0 10.0]" }),
+                "vcad.eval_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]" }),
             ),
         );
         assert!(
@@ -1293,7 +1269,6 @@ mod tests {
         );
         let result = resp.get("result").unwrap();
         assert!(result.get("obj_path").is_some());
-        assert!(result.get("manifest_path").is_some());
         assert!(result.get("volume").unwrap().as_f64().unwrap() > 0.0);
         assert!(!result.get("is_empty").unwrap().as_bool().unwrap());
 
@@ -1345,8 +1320,8 @@ mod tests {
             let mut s = stream2_clone;
             let req = tools_call_request(
                 10,
-                "vcad.eval_code",
-                serde_json::json!({ "code": "[cube 10.0 10.0 10.0]" }),
+                "vcad.eval_repl_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]" }),
             );
             let mut msg = serde_json::to_string(&req).unwrap();
             msg.push('\n');
@@ -1363,8 +1338,8 @@ mod tests {
         for i in 0..5 {
             let req = tools_call_request(
                 100 + i,
-                "vcad.eval_code",
-                serde_json::json!({ "code": "[cube 1.0 1.0 1.0]" }),
+                "vcad.eval_repl_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 1.0 1.0 1.0]" }),
             );
             let resp = send_request(&mut stream1, &req);
             if let Some(error) = resp.get("error") {
@@ -1397,8 +1372,8 @@ mod tests {
             &mut stream,
             &tools_call_request(
                 2,
-                "vcad.eval_code",
-                serde_json::json!({ "code": "[cube 10.0 10.0 10.0]" }),
+                "vcad.eval_repl_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]" }),
             ),
         );
         // Either result or timeout error is acceptable

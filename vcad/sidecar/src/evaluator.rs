@@ -12,7 +12,7 @@ use vcad_eval::{evaluate_document, EvalOptions};
 use vcad_ir::Document;
 use vcad_kernel_tessellate::TessellationParams;
 use vcad_loon::{
-    eval_vcad, eval_vcad_file, eval_vcad_to_value, value_to_document, VCAD_LIB_SOURCE,
+    eval_vcad_file, eval_vcad_to_value, value_to_document, VCAD_LIB_SOURCE,
 };
 
 struct TempRetention {
@@ -192,27 +192,6 @@ impl Evaluator {
                 }
             })
             .collect()
-    }
-
-    /// Evaluate inline Loon code (no module resolution).
-    ///
-    /// Caches the result ADT value for future solid imports.
-    pub fn eval_code(&mut self, code: &str) -> Result<EvalResult, EvalError> {
-        let doc = eval_vcad(code, None).map_err(EvalError::Loon)?;
-        self.evaluate_and_export(&doc, "eval")
-    }
-
-    /// Evaluate inline Loon code and cache its ADT under `node_id`.
-    #[allow(dead_code)]
-    pub fn eval_code_with_cache(
-        &mut self,
-        code: &str,
-        node_id: &str,
-    ) -> Result<EvalResult, EvalError> {
-        let adt_value = eval_vcad_to_value(code, None).map_err(EvalError::Loon)?;
-        self.adt_cache.set(node_id, adt_value.clone());
-        let doc = value_to_document(&adt_value).map_err(EvalError::Loon)?;
-        self.evaluate_and_export(&doc, "eval")
     }
 
     /// Evaluate .skp.oo file (with module resolution via base_dir).
@@ -916,7 +895,8 @@ mod tests {
         let source = r#"[let cutout [import :solid "entity:12345"]]
 [cube 10.0 10.0 10.0]"#;
 
-        let result = evaluator.eval_code(source);
+        let imports = std::collections::HashMap::new();
+        let result = evaluator.eval_with_imports(source, None, &imports, None, false);
         assert!(result.is_err(), "raw [import ...] must fail during evaluation");
     }
 

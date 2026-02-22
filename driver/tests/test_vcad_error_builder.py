@@ -255,7 +255,7 @@ class TestNoBoundaryPathMessageOnly:
 
     def test_vcad_protocol_error_has_structured_details(self, mock_ctx, mock_vcad) -> None:
         """VCADProtocolError produces error_code + details."""
-        mock_vcad.eval_code.side_effect = VCADProtocolError(
+        mock_vcad.eval_repl_with_imports.side_effect = VCADProtocolError(
             "Protocol mismatch",
             error_code=PROTOCOL_MISMATCH,
             details={"expected_protocol": "1.0", "actual_protocol": "2.0"},
@@ -266,7 +266,7 @@ class TestNoBoundaryPathMessageOnly:
 
     def test_vcad_remote_error_has_structured_details(self, mock_ctx, mock_vcad) -> None:
         """VCADRemoteError produces error_code + details."""
-        mock_vcad.eval_code.side_effect = VCADRemoteError(
+        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="NO_GEOMETRY", data={"node_id": "empty"}
         )
         result = json.loads(vcad_eval(mock_ctx, code="test"))
@@ -275,7 +275,7 @@ class TestNoBoundaryPathMessageOnly:
 
     def test_vcad_connection_error_has_structured_details(self, mock_ctx, mock_vcad) -> None:
         """VCADConnectionError produces error_code + details (not just error_type)."""
-        mock_vcad.eval_code.side_effect = VCADConnectionError("Connection refused")
+        mock_vcad.eval_repl_with_imports.side_effect = VCADConnectionError("Connection refused")
         result = json.loads(vcad_eval(mock_ctx, code="test"))
         assert result["error_code"] == "CONNECTION_ERROR"
         assert "details" in result
@@ -283,14 +283,14 @@ class TestNoBoundaryPathMessageOnly:
 
     def test_vcad_timeout_error_has_structured_details(self, mock_ctx, mock_vcad) -> None:
         """VCADTimeoutError produces error_code + details."""
-        mock_vcad.eval_code.side_effect = VCADTimeoutError("Timeout")
+        mock_vcad.eval_repl_with_imports.side_effect = VCADTimeoutError("Timeout")
         result = json.loads(vcad_eval(mock_ctx, code="test"))
         assert result["error_code"] == "CONNECTION_ERROR"
         assert "details" in result
 
     def test_unexpected_error_has_structured_details(self, mock_ctx, mock_vcad) -> None:
         """Unexpected exception produces error_code + details."""
-        mock_vcad.eval_code.side_effect = RuntimeError("Something broke")
+        mock_vcad.eval_repl_with_imports.side_effect = RuntimeError("Something broke")
         result = json.loads(vcad_eval(mock_ctx, code="test"))
         assert result["error_code"] == "INTERNAL_ERROR"
         assert "details" in result
@@ -482,7 +482,7 @@ class TestSnapshotEnvelopeShape:
 
     def test_remote_error_shape_through_handler(self, mock_ctx, mock_vcad) -> None:
         """VCADRemoteError through _handle_vcad_error has stable shape."""
-        mock_vcad.eval_code.side_effect = VCADRemoteError(
+        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="Loon evaluation error: syntax error", data={"error_code": "LOON_ERROR"}
         )
         result = json.loads(vcad_eval(mock_ctx, code="[bad"))

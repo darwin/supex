@@ -321,7 +321,7 @@ class TestVCADEval:
 
     def test_eval_success(self, mock_ctx, mock_vcad):
         """Eval returns result."""
-        mock_vcad.eval_code.return_value = {"display": "Cube(10.0, 10.0, 10.0)"}
+        mock_vcad.eval_repl_with_imports.return_value = {"display": "Cube(10.0, 10.0, 10.0)"}
 
         result = json.loads(vcad_eval(mock_ctx, code="[cube 10.0 10.0 10.0]"))
 
@@ -330,7 +330,7 @@ class TestVCADEval:
 
     def test_eval_parse_error(self, mock_ctx, mock_vcad):
         """Eval with parse error."""
-        mock_vcad.eval_code.side_effect = VCADRemoteError(
+        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="Unexpected token"
         )
 
@@ -399,7 +399,7 @@ class TestVCADToolsErrorPropagation:
 
     def test_protocol_mismatch_surfaces_in_mcp(self, mock_ctx, mock_vcad):
         """Sidecar major version mismatch surfaces as PROTOCOL_MISMATCH in tool response."""
-        mock_vcad.eval_code.side_effect = VCADProtocolError(
+        mock_vcad.eval_repl_with_imports.side_effect = VCADProtocolError(
             "Protocol version mismatch: driver=1.0, sidecar=2.0",
             error_code=PROTOCOL_MISMATCH,
             details={
@@ -464,12 +464,12 @@ class TestVCADToolsErrorPropagation:
         assert result["success"] is False
         assert result["error_code"] == CAPABILITY_UNAVAILABLE
         # No fallback attempted
-        mock_vcad.eval_code.assert_not_called()
+        mock_vcad.eval_repl_with_imports.assert_not_called()
         mock_vcad.eval_file.assert_not_called()
 
     def test_remote_error_code_preserved(self, mock_ctx, mock_vcad):
         """Upstream error_code from sidecar is preserved unchanged."""
-        mock_vcad.eval_code.side_effect = VCADRemoteError(
+        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
             code=-32001, message="NO_GEOMETRY", data={"node_id": "empty"}
         )
 

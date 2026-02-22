@@ -435,17 +435,6 @@ class VCADConnection:
 
     # Convenience methods for VCAD operations
 
-    def eval_code(self, code: str) -> dict[str, Any]:
-        """Evaluate Loon code and return the result.
-
-        Args:
-            code: Loon source code to evaluate.
-
-        Returns:
-            Evaluation result from sidecar.
-        """
-        return self.send_command("vcad.eval_code", {"code": code})
-
     def eval_file(
         self, path: str, node_id: str | None = None
     ) -> dict[str, Any]:

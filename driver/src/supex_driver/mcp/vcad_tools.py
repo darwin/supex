@@ -747,15 +747,13 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
         has_imports, details = _resolve_imports(ctx, code)
 
         vcad = get_vcad_connection(agent=get_agent_name(ctx))
-        if has_imports:
-            result = vcad.eval_repl_with_imports(
-                transformed_source=details["transformed_source"],
-                imports=details["resolved_imports"],
-            )
-            return json.dumps({"success": True, **result})
-        else:
-            result = vcad.eval_code(code)
-            return json.dumps({"success": True, **result})
+        if not has_imports:
+            details = {"transformed_source": code, "resolved_imports": {}}
+        result = vcad.eval_repl_with_imports(
+            transformed_source=details["transformed_source"],
+            imports=details.get("resolved_imports"),
+        )
+        return json.dumps({"success": True, **result})
     except (
         VCADCapabilityError,
         VCADProtocolError,

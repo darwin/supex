@@ -4,7 +4,7 @@ Tests are named with 'vcad_e2e_mock' to match the verification filter:
     uv run pytest tests/ -v -k vcad_e2e_mock
 
 Coverage:
-    - Sidecar eval_code / eval_file via MockVCADSidecar
+    - Sidecar eval_repl_with_imports / eval_file via MockVCADSidecar
     - Full pipeline: eval -> OBJ -> SketchUp import via su-mock
     - Security: auth token, path traversal
     - State reconciliation and recovery
@@ -97,33 +97,27 @@ def tmp_state_path(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Sidecar eval_code / eval_file (via mock sidecar TCP)
+# Sidecar eval_repl_with_imports / eval_file (via mock sidecar TCP)
 # ---------------------------------------------------------------------------
 
 
 class TestVCADE2EMockSidecarEval:
     """Test sidecar evaluation via MockVCADSidecar over real TCP."""
 
-    def test_vcad_e2e_mock_eval_code(self, mock_sidecar, obj_dir):
-        """eval_code returns obj_path and volume."""
-        obj_path = os.path.join(obj_dir, "mesh.obj")
+    def test_vcad_e2e_mock_eval_repl(self, mock_sidecar):
+        """eval_repl_with_imports returns display string."""
         mock_sidecar.set_response(
             "tools/call",
-            result={
-                "obj_path": obj_path,
-                "volume": 1000.0,
-                "surface_area": 600.0,
-                "is_empty": False,
-                "bbox": {"min": [0, 0, 0], "max": [10, 10, 10]},
-            },
+            result={"display": "Cube(10.0, 10.0, 10.0)"},
         )
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
-        result = conn.eval_code("[cube 10.0 10.0 10.0]")
+        result = conn.eval_repl_with_imports(
+            transformed_source="[cube 10.0 10.0 10.0]",
+            imports={},
+        )
 
-        assert "obj_path" in result
-        assert os.path.exists(result["obj_path"])
-        assert result["volume"] > 0
+        assert "display" in result
         conn.disconnect()
 
     def test_vcad_e2e_mock_eval_file(self, mock_sidecar, tmp_path):
@@ -149,8 +143,8 @@ class TestVCADE2EMockSidecarEval:
         assert os.path.exists(result["obj_path"])
         conn.disconnect()
 
-    def test_vcad_e2e_mock_eval_code_error(self, mock_sidecar):
-        """eval_code with parse error returns standardized error_code."""
+    def test_vcad_e2e_mock_eval_repl_error(self, mock_sidecar):
+        """eval_repl_with_imports with parse error returns standardized error_code."""
         mock_sidecar.set_response(
             "tools/call",
             error={
@@ -162,7 +156,10 @@ class TestVCADE2EMockSidecarEval:
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         with pytest.raises(VCADRemoteError) as exc_info:
-            conn.eval_code("[invalid ]")
+            conn.eval_repl_with_imports(
+                transformed_source="[invalid ]",
+                imports={},
+            )
 
         assert exc_info.value.code == -32000
         assert "parse error" in exc_info.value.message.lower()
@@ -247,7 +244,10 @@ class TestVCADE2EMockSecurity:
             mock_sidecar.set_response("tools/call", error=scenario)
 
             with pytest.raises(VCADRemoteError) as exc_info:
-                conn.eval_code("[cube 1.0 1.0 1.0]")
+                conn.eval_repl_with_imports(
+                    transformed_source="[cube 1.0 1.0 1.0]",
+                    imports={},
+                )
 
             assert exc_info.value.code == scenario["code"]
             assert (
@@ -625,7 +625,7 @@ class TestVCADE2EMockProtocol:
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
 
         for _ in range(5):
-            conn.send_command("vcad.eval_code", {"code": "[cube 1.0 1.0 1.0]"})
+            conn.send_command("vcad.eval_repl_with_imports", {"transformed_source": "[cube 1.0 1.0 1.0]"})
 
         hello_count = sum(
             1 for r in mock_sidecar.requests if r.get("method") == "hello"

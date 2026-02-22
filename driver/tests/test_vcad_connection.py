@@ -257,7 +257,7 @@ class TestVCADConnectionProtocol:
         assert conn._capabilities == capabilities
         assert conn._limits == limits
         # Should not raise for available capability
-        conn.require_capability("eval", "eval_code")
+        conn.require_capability("eval", "eval_repl_with_imports")
 
     def test_hello_includes_protocol_version(self, mock_sidecar: MockVCADSidecar) -> None:
         """Hello handshake includes protocol_version."""
@@ -294,21 +294,24 @@ class TestVCADConnectionProtocol:
 class TestVCADConnectionIntegration:
     """Integration tests with mock vcad sidecar."""
 
-    def test_eval_code(self, mock_sidecar: MockVCADSidecar) -> None:
+    def test_eval_repl_with_imports(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response(
             "tools/call",
-            result={"mesh": {"vertices": [], "indices": []}},
+            result={"display": "Cube(10.0, 10.0, 10.0)"},
         )
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
-        result = conn.eval_code("[cube 10.0 10.0 10.0]")
+        result = conn.eval_repl_with_imports(
+            transformed_source="[cube 10.0 10.0 10.0]",
+            imports={},
+        )
 
-        assert "mesh" in result
+        assert "display" in result
         # Verify the request was wrapped as tools/call
         tool_call = mock_sidecar.requests[-1]
         assert tool_call["method"] == "tools/call"
-        assert tool_call["params"]["name"] == "vcad.eval_code"
-        assert tool_call["params"]["arguments"]["code"] == "[cube 10.0 10.0 10.0]"
+        assert tool_call["params"]["name"] == "vcad.eval_repl_with_imports"
+        assert tool_call["params"]["arguments"]["transformed_source"] == "[cube 10.0 10.0 10.0]"
         conn.disconnect()
 
     def test_eval_file(self, mock_sidecar: MockVCADSidecar) -> None:
@@ -335,7 +338,10 @@ class TestVCADConnectionIntegration:
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
 
         with pytest.raises(VCADRemoteError) as exc_info:
-            conn.eval_code("invalid code")
+            conn.eval_repl_with_imports(
+                transformed_source="invalid code",
+                imports={},
+            )
 
         assert exc_info.value.code == -32000
         assert "parse error" in exc_info.value.message
@@ -347,7 +353,7 @@ class TestVCADConnectionIntegration:
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
 
         for _ in range(5):
-            conn.send_command("vcad.eval_code", {"code": "test"})
+            conn.send_command("vcad.eval_repl_with_imports", {"transformed_source": "test"})
 
         hello_count = sum(
             1 for r in mock_sidecar.requests if r.get("method") == "hello"
