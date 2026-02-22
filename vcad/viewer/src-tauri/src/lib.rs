@@ -19,6 +19,9 @@ pub struct MeshMaterial {
     pub roughness: f32,
 }
 
+/// Parsed mesh: (positions, indices, normals) as flat arrays.
+type ObjResult = (Vec<f32>, Vec<u32>, Vec<f32>);
+
 /// Parse a Wavefront OBJ file into flat arrays.
 ///
 /// Supports:
@@ -27,7 +30,6 @@ pub struct MeshMaterial {
 /// - `f v1 v2 v3` — face with position indices only
 /// - `f v1//n1 v2//n2 v3//n3` — face with position and normal indices
 /// - `f v1/t1/n1 v2/t2/n2 v3/t3/n3` — face with position, texcoord, and normal indices
-type ObjResult = (Vec<f32>, Vec<u32>, Vec<f32>);
 
 pub fn parse_obj(content: &str) -> Result<ObjResult, String> {
     let mut positions: Vec<[f32; 3]> = Vec::new();
@@ -136,12 +138,163 @@ fn parse_floats(s: &str, count: usize) -> Result<Vec<f32>, String> {
     Ok(vals)
 }
 
+/// Parse a COLLADA DAE file (as produced by the VCAD sidecar) into flat arrays.
+///
+/// The sidecar emits a predictable DAE structure with fixed IDs:
+/// - `mesh0-positions-array` float_array with vertex positions
+/// - `<polylist>` with `<vcount>` and `<p>` elements
+///
+/// Polygons are triangulated using fan method (same as OBJ parser).
+/// No XML library needed — simple string search on the predictable format.
+pub fn parse_dae(content: &str) -> Result<ObjResult, String> {
+    // Extract positions from float_array
+    let positions = extract_dae_float_array(content, "mesh0-positions-array")?;
+
+    // Extract vcount and p from polylist
+    let vcount = extract_dae_int_array(content, "vcount")?;
+    let p_indices = extract_dae_int_array(content, "p")?;
+
+    // Handle empty mesh
+    if positions.is_empty() || vcount.is_empty() {
+        return Ok((Vec::new(), Vec::new(), Vec::new()));
+    }
+
+    let num_vertices = positions.len() / 3;
+
+    // Validate: sum of vcount == len of p
+    let expected_indices: usize = vcount.iter().sum();
+    if expected_indices != p_indices.len() {
+        return Err(format!(
+            "DAE polylist mismatch: sum(vcount)={} but p has {} indices",
+            expected_indices,
+            p_indices.len()
+        ));
+    }
+
+    // Triangulate polygons and build output arrays
+    let mut out_positions: Vec<f32> = Vec::new();
+    let mut out_indices: Vec<u32> = Vec::new();
+    let mut vertex_map: std::collections::HashMap<usize, u32> = std::collections::HashMap::new();
+
+    let mut p_offset = 0usize;
+    for &vc in &vcount {
+        if vc < 3 {
+            return Err(format!("DAE polygon with fewer than 3 vertices: {vc}"));
+        }
+
+        // Collect vertex indices for this polygon
+        let face_indices: Vec<usize> = p_indices[p_offset..p_offset + vc].to_vec();
+        p_offset += vc;
+
+        // Fan triangulation from first vertex
+        let first = face_indices[0];
+        for i in 1..face_indices.len() - 1 {
+            let tri = [first, face_indices[i], face_indices[i + 1]];
+            for vi in tri {
+                let idx = if let Some(&existing) = vertex_map.get(&vi) {
+                    existing
+                } else {
+                    if vi >= num_vertices {
+                        return Err(format!(
+                            "DAE vertex index {} out of range (have {})",
+                            vi, num_vertices
+                        ));
+                    }
+                    let idx = (out_positions.len() / 3) as u32;
+                    out_positions.push(positions[vi * 3]);
+                    out_positions.push(positions[vi * 3 + 1]);
+                    out_positions.push(positions[vi * 3 + 2]);
+                    vertex_map.insert(vi, idx);
+                    idx
+                };
+                out_indices.push(idx);
+            }
+        }
+    }
+
+    // DAE from sidecar has no per-vertex normals — return empty
+    Ok((out_positions, out_indices, Vec::new()))
+}
+
+/// Extract float values from a `<float_array id="ID" count="N">...</float_array>` element.
+fn extract_dae_float_array(content: &str, id: &str) -> Result<Vec<f32>, String> {
+    let tag_start = format!("<float_array id=\"{id}\"");
+    let start = match content.find(&tag_start) {
+        Some(pos) => pos,
+        None => return Err(format!("DAE: <float_array id=\"{id}\"> not found")),
+    };
+
+    // Find the closing > of the opening tag
+    let data_start = match content[start..].find('>') {
+        Some(pos) => start + pos + 1,
+        None => return Err("DAE: malformed float_array opening tag".to_string()),
+    };
+
+    // Find closing </float_array>
+    let data_end = match content[data_start..].find("</float_array>") {
+        Some(pos) => data_start + pos,
+        None => return Err("DAE: missing </float_array>".to_string()),
+    };
+
+    let text = content[data_start..data_end].trim();
+    if text.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    text.split_whitespace()
+        .map(|t| {
+            t.parse::<f32>()
+                .map_err(|e| format!("DAE: bad float '{t}': {e}"))
+        })
+        .collect()
+}
+
+/// Extract integer values from a `<TAG>...</TAG>` element inside `<polylist>`.
+fn extract_dae_int_array(content: &str, tag: &str) -> Result<Vec<usize>, String> {
+    // Find within polylist context
+    let polylist_start = match content.find("<polylist") {
+        Some(pos) => pos,
+        None => return Err("DAE: <polylist> not found".to_string()),
+    };
+    let polylist_content = &content[polylist_start..];
+
+    let open_tag = format!("<{tag}>");
+    let close_tag = format!("</{tag}>");
+
+    let start = match polylist_content.find(&open_tag) {
+        Some(pos) => pos + open_tag.len(),
+        None => return Err(format!("DAE: <{tag}> not found in polylist")),
+    };
+
+    let end = match polylist_content[start..].find(&close_tag) {
+        Some(pos) => start + pos,
+        None => return Err(format!("DAE: </{tag}> not found")),
+    };
+
+    let text = polylist_content[start..end].trim();
+    if text.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    text.split_whitespace()
+        .map(|t| {
+            t.parse::<usize>()
+                .map_err(|e| format!("DAE: bad integer '{t}': {e}"))
+        })
+        .collect()
+}
+
 #[tauri::command]
 fn load_mesh(path: String) -> Result<MeshData, String> {
     let content = std::fs::read_to_string(&path)
         .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
 
-    let (positions, indices, normals) = parse_obj(&content)?;
+    let is_dae = path.ends_with(".dae");
+    let (positions, indices, normals) = if is_dae {
+        parse_dae(&content)?
+    } else {
+        parse_obj(&content)?
+    };
 
     let file_name = std::path::Path::new(&path)
         .file_stem()
@@ -173,7 +326,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_obj, MeshData, MeshMaterial};
+    use crate::{parse_dae, parse_obj, MeshData, MeshMaterial};
 
     #[test]
     fn test_parse_obj_simple_triangle() {
@@ -246,5 +399,128 @@ mod tests {
         assert_eq!(mesh.id, "test");
         assert_eq!(mesh.positions.len(), 9);
         assert_eq!(mesh.indices.len(), 3);
+    }
+
+    // --- DAE parser tests ---
+
+    const DAE_TRIANGLE: &str = r##"<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>
+  <library_geometries>
+    <geometry id="mesh0" name="mesh">
+      <mesh>
+        <source id="mesh0-positions">
+          <float_array id="mesh0-positions-array" count="9">0 0 0 1 0 0 0 1 0</float_array>
+          <technique_common>
+            <accessor source="#mesh0-positions-array" count="3" stride="3">
+              <param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="mesh0-vertices">
+          <input semantic="POSITION" source="#mesh0-positions"/>
+        </vertices>
+        <polylist count="1">
+          <input semantic="VERTEX" source="#mesh0-vertices" offset="0"/>
+          <vcount>3</vcount>
+          <p>0 1 2</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Node" type="NODE"><instance_geometry url="#mesh0"/></node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene><instance_visual_scene url="#Scene"/></scene>
+</COLLADA>"##;
+
+    #[test]
+    fn test_parse_dae_triangle() {
+        let (positions, indices, normals) = parse_dae(DAE_TRIANGLE).unwrap();
+        assert_eq!(positions, vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
+        assert_eq!(indices, vec![0, 1, 2]);
+        assert!(normals.is_empty());
+    }
+
+    #[test]
+    fn test_parse_dae_quad_triangulation() {
+        let dae = r##"<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>
+  <library_geometries>
+    <geometry id="mesh0" name="mesh">
+      <mesh>
+        <source id="mesh0-positions">
+          <float_array id="mesh0-positions-array" count="12">0 0 0 1 0 0 1 1 0 0 1 0</float_array>
+          <technique_common>
+            <accessor source="#mesh0-positions-array" count="4" stride="3">
+              <param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="mesh0-vertices">
+          <input semantic="POSITION" source="#mesh0-positions"/>
+        </vertices>
+        <polylist count="1">
+          <input semantic="VERTEX" source="#mesh0-vertices" offset="0"/>
+          <vcount>4</vcount>
+          <p>0 1 2 3</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Node" type="NODE"><instance_geometry url="#mesh0"/></node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene><instance_visual_scene url="#Scene"/></scene>
+</COLLADA>"##;
+        let (positions, indices, _) = parse_dae(dae).unwrap();
+        // Quad → 2 triangles = 6 indices
+        assert_eq!(indices.len(), 6);
+        assert_eq!(positions.len(), 12); // 4 vertices × 3
+    }
+
+    #[test]
+    fn test_parse_dae_empty() {
+        let dae = r##"<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><unit name="millimeter" meter="0.001"/><up_axis>Z_UP</up_axis></asset>
+  <library_geometries>
+    <geometry id="mesh0" name="mesh">
+      <mesh>
+        <source id="mesh0-positions">
+          <float_array id="mesh0-positions-array" count="0"></float_array>
+          <technique_common>
+            <accessor source="#mesh0-positions-array" count="0" stride="3">
+              <param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="mesh0-vertices">
+          <input semantic="POSITION" source="#mesh0-positions"/>
+        </vertices>
+        <polylist count="0">
+          <input semantic="VERTEX" source="#mesh0-vertices" offset="0"/>
+          <vcount></vcount>
+          <p></p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Node" type="NODE"><instance_geometry url="#mesh0"/></node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene><instance_visual_scene url="#Scene"/></scene>
+</COLLADA>"##;
+        let (positions, indices, normals) = parse_dae(dae).unwrap();
+        assert!(positions.is_empty());
+        assert!(indices.is_empty());
+        assert!(normals.is_empty());
     }
 }
