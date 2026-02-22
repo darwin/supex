@@ -11,31 +11,35 @@
       "enum": ["applied", "stale_dropped", "superseded"],
       "description": "Artifact outcome status."
     },
-    "source_hash": {
-      "type": "string",
-      "description": "Hash of the source file content."
-    },
-    "obj_path": {
-      "type": "string",
-      "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
-    },
-    "finished_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "RFC3339 timestamp when the artifact was finalized."
-    },
     "node_id": {
       "type": "string",
       "description": "Node identifier."
-    },
-    "source_file": {
-      "type": "string",
-      "description": "Path to the source .skp.oo file."
     },
     "revision": {
       "type": "integer",
       "minimum": 0,
       "description": "Monotonic revision counter (required when status=applied)."
+    },
+    "request_id": {
+      "type": ["string", "null"],
+      "description": "Correlation request ID."
+    },
+    "source_file": {
+      "type": "string",
+      "description": "Path to the source .skp.oo file."
+    },
+    "source_hash": {
+      "type": "string",
+      "description": "Hash of the canonicalized source/document input."
+    },
+    "imports": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/import_entry" },
+      "description": "Import metadata snapshot (references/types only)."
+    },
+    "obj_path": {
+      "type": "string",
+      "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
     },
     "bbox": {
       "$ref": "#/$defs/bbox",
@@ -48,6 +52,21 @@
     "surface_area": {
       "type": "number",
       "description": "Solid surface area in sq mm (required when status=applied)."
+    },
+    "queued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 UTC timestamp when the eval was queued."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 UTC timestamp when the eval started."
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 UTC timestamp when the artifact was finalized."
     },
     "eval_duration_ms": {
       "type": "number",
@@ -113,6 +132,32 @@
           "items": { "type": "number" },
           "minItems": 3,
           "maxItems": 3
+        }
+      }
+    },
+    "import_entry": {
+      "type": "object",
+      "required": ["binding_name", "entity_ref", "extract"],
+      "properties": {
+        "binding_name": {
+          "type": "string",
+          "description": "Loon variable name."
+        },
+        "entity_ref": {
+          "type": "string",
+          "description": "Entity reference string."
+        },
+        "extract": {
+          "type": "string",
+          "description": "Extract type (dimensions, bbox, transform, solid)."
+        },
+        "resolved_type": {
+          "type": "string",
+          "description": "Resolution type (native, vcad, native_mesh)."
+        },
+        "source_node_id": {
+          "type": ["string", "null"],
+          "description": "Source node ID for vcad-type imports."
         }
       }
     }

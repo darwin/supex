@@ -84,9 +84,31 @@ def vcad_metrics(ctx: McpContext) -> str:
     All metric names and units are part of the public contract.
     Counters are monotonic for one driver process lifetime.
     Gauges represent current state.
+
+    Includes optional last_artifact_manifest when available, and
+    manifest_read_errors for any manifests that failed to read.
     """
     metrics = get_vcad_metrics()
     snapshot = metrics.snapshot()
+
+    # Attach last artifact manifest if available
+    try:
+        from supex_driver.connection.vcad_artifact_manifest import (
+            get_artifact_store,
+        )
+
+        store = get_artifact_store()
+        last_manifest = store.get_last_artifact_manifest()
+        if last_manifest is not None:
+            snapshot["last_artifact_manifest"] = last_manifest
+
+        # Include any manifest read errors
+        _manifests, read_errors = store.read_manifests_for_diagnostics()
+        if read_errors:
+            snapshot["manifest_read_errors"] = read_errors
+    except Exception:
+        pass
+
     return json.dumps(snapshot)
 
 
