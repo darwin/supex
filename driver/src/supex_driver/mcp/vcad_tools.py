@@ -33,7 +33,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADRemoteError,
     VCADTimeoutError,
 )
-from supex_driver.connection.vcad_schema import normalize_error_response
+from supex_driver.connection.vcad_schema import build_error
 from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
 
 logger = logging.getLogger("supex.mcp.vcad")
@@ -67,101 +67,56 @@ def _reset_vcad_dag() -> None:
 def _handle_vcad_error(e: Exception, operation: str) -> str:
     """Standardized error handling for VCAD sidecar errors.
 
-    Preserves upstream error_code and details unchanged.
-    Driver must not rewrite upstream error_code; it may only enrich
-    missing details.operation.
-
-    At the MCP boundary, normalizes error responses to ensure all
-    required details keys are present for known error_code values.
+    Uses build_error() to produce validated error envelopes at the MCP
+    boundary.  Preserves upstream error_code and details unchanged;
+    driver may only enrich missing details.operation.
     """
     if isinstance(e, VCADCapabilityError):
         logger.error(f"Capability error during {operation}: {e}")
-        response: dict[str, Any] = {
-            "success": False,
-            "error": str(e),
-            "error_code": e.error_code,
-            "details": e.details,
-        }
-        return json.dumps(normalize_error_response(response, operation))
+        return json.dumps(build_error(e.error_code, str(e), e.details, operation))
     if isinstance(e, VCADProtocolError):
         logger.error(f"Protocol error during {operation}: {e}")
-        response = {
-            "success": False,
-            "error": str(e),
-            "error_code": e.error_code,
-        }
-        if e.details:
-            response["details"] = e.details
-        return json.dumps(normalize_error_response(response, operation))
+        return json.dumps(
+            build_error(e.error_code or "PROTOCOL_ERROR", str(e), e.details, operation)
+        )
     if isinstance(e, VCADRemoteError):
         logger.error(f"Remote error during {operation}: {e}")
-        response = {
-            "success": False,
-            "error": e.message,
-            "error_code": e.code,
-        }
-        if e.data:
-            response["details"] = e.data
-        return json.dumps(normalize_error_response(response, operation))
+        return json.dumps(build_error(e.code, e.message, e.data or None, operation))
     if isinstance(e, (VCADConnectionError, VCADTimeoutError)):
         logger.error(f"Connection error during {operation}: {e}")
         return json.dumps(
-            {
-                "success": False,
-                "error": str(e),
-                "error_type": "connection",
-            }
+            build_error("CONNECTION_ERROR", str(e), {"error_type": "connection"}, operation)
         )
     logger.exception(f"Unexpected error during {operation}: {e}")
     return json.dumps(
-        {
-            "success": False,
-            "error": str(e),
-            "error_type": "unexpected",
-        }
+        build_error("INTERNAL_ERROR", str(e), {"error_type": "unexpected"}, operation)
     )
 
 
 def _handle_sketchup_error(e: Exception, operation: str) -> str:
     """Standardized error handling for SketchUp bridge errors.
 
-    Normalizes error responses at the MCP boundary to ensure required
-    details keys are present for known error_code values.
+    Uses build_error() to produce validated error envelopes at the MCP
+    boundary.
     """
     if isinstance(e, SketchUpRemoteError):
         logger.error(f"Remote error during {operation}: {e}")
-        response: dict[str, Any] = {
-            "success": False,
-            "error": e.message,
-            "error_type": "remote",
-            "error_code": e.code,
-        }
-        return json.dumps(normalize_error_response(response, operation))
+        return json.dumps(
+            build_error(e.code, e.message, {"error_type": "remote"}, operation)
+        )
     if isinstance(e, (SketchUpConnectionError, SketchUpTimeoutError)):
         logger.error(f"Connection error during {operation}: {e}")
         return json.dumps(
-            {
-                "success": False,
-                "error": str(e),
-                "error_type": "connection",
-            }
+            build_error("CONNECTION_ERROR", str(e), {"error_type": "connection"}, operation)
         )
     if isinstance(e, SketchUpProtocolError):
         logger.error(f"Protocol error during {operation}: {e}")
         return json.dumps(
-            {
-                "success": False,
-                "error": str(e),
-                "error_type": "protocol",
-            }
+            build_error("PROTOCOL_ERROR", str(e), {"error_type": "protocol"}, operation)
         )
     logger.exception(f"Unexpected error during {operation}: {e}")
     return json.dumps(
-        {
-            "success": False,
-            "error": str(e),
-            "error_type": "unexpected",
-        }
+        build_error("INTERNAL_ERROR", str(e), {"error_type": "unexpected"}, operation)
     )
 
 
@@ -219,25 +174,20 @@ def _vcad_update_single(
         vcad = get_vcad_connection(agent=agent)
         eval_result = vcad.eval_file(source_file, node_id=node_id)
     except Exception as e:
-        return {"success": False, "node_id": node_id, "error": str(e)}
+        return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
 
     obj_path = eval_result.get("obj_path")
     if not obj_path:
-        return {
-            "success": False,
-            "node_id": node_id,
-            "error": "Sidecar did not return obj_path",
-        }
+        return build_error(
+            "UNEXPECTED_ERROR", "Sidecar did not return obj_path", {"node_id": node_id}
+        )
 
     # Check revision freshness before applying
     if not dag.should_apply(node_id, revision):
-        return {
-            "success": False,
-            "node_id": node_id,
-            "error": "Stale revision dropped",
-            "error_type": "stale",
-            "revision": revision,
-        }
+        return build_error(
+            "STALE_REVISION", "Stale revision dropped",
+            {"node_id": node_id, "revision": revision},
+        )
 
     # Apply in SketchUp
     try:
@@ -252,7 +202,7 @@ def _vcad_update_single(
             request_id=ctx.request_id,
         )
     except Exception as e:
-        return {"success": False, "node_id": node_id, "error": str(e)}
+        return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
 
     # Mark applied and persist
     dag.mark_applied(node_id, revision)
@@ -310,11 +260,7 @@ def vcad_place(
     obj_path = eval_result.get("obj_path")
     if not obj_path:
         return json.dumps(
-            {
-                "success": False,
-                "error": "Sidecar did not return obj_path",
-                "error_type": "unexpected",
-            }
+            build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_place:eval")
         )
 
     # Step 2: Place in SketchUp via Ruby bridge
@@ -388,11 +334,12 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
             source_file = node_info.get("source_file")
             if not source_file:
                 return json.dumps(
-                    {
-                        "success": False,
-                        "error": f"No source_file found for node {node_id}",
-                        "error_type": "remote",
-                    }
+                    build_error(
+                        "UNEXPECTED_ERROR",
+                        f"No source_file found for node {node_id}",
+                        {"node_id": node_id},
+                        operation="vcad_update:lookup",
+                    )
                 )
         except (
             SketchUpRemoteError,
@@ -422,11 +369,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
     obj_path = eval_result.get("obj_path")
     if not obj_path:
         return json.dumps(
-            {
-                "success": False,
-                "error": "Sidecar did not return obj_path",
-                "error_type": "unexpected",
-            }
+            build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_update:eval")
         )
 
     # Update in SketchUp via Ruby bridge
@@ -585,11 +528,7 @@ def vcad_place_with_imports(
             source = f.read()
     except OSError as e:
         return json.dumps(
-            {
-                "success": False,
-                "error": f"Cannot read source file: {e}",
-                "error_type": "io",
-            }
+            build_error("IO_ERROR", f"Cannot read source file: {e}", operation="vcad_place_with_imports:read")
         )
 
     # Step 2: Extract imports via sidecar (parse-only, fast-path)
@@ -700,11 +639,7 @@ def vcad_place_with_imports(
     obj_path = eval_result.get("obj_path")
     if not obj_path:
         return json.dumps(
-            {
-                "success": False,
-                "error": "Sidecar did not return obj_path",
-                "error_type": "unexpected",
-            }
+            build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_place_with_imports:eval")
         )
 
     # Step 5: Place in SketchUp via Ruby bridge
@@ -794,11 +729,9 @@ def vcad_update_cascade(ctx: McpContext, node_id: str) -> str:
 
     root_node = dag.get_node(node_id)
     if not root_node:
-        return json.dumps({
-            "success": False,
-            "error": f"Node {node_id} not found in DAG",
-            "error_type": "not_found",
-        })
+        return json.dumps(
+            build_error("NODE_NOT_FOUND", f"Node {node_id} not found in DAG", {"node_id": node_id})
+        )
 
     # Build affected set: root + all downstream
     downstream = dag.get_downstream(node_id)
@@ -809,20 +742,18 @@ def vcad_update_cascade(ctx: McpContext, node_id: str) -> str:
     for nid in order:
         node = dag.get_node(nid)
         if not node:
-            results.append({
-                "success": False,
-                "node_id": nid,
-                "error": "Node not found in DAG",
-            })
+            results.append(
+                build_error("NODE_NOT_FOUND", "Node not found in DAG", {"node_id": nid})
+            )
             continue
 
         if node.status == "degraded":
-            results.append({
-                "success": False,
-                "node_id": nid,
-                "error": "Node is degraded",
-                "error_code": "SOURCE_FILE_MISSING",
-            })
+            results.append(
+                build_error("SOURCE_FILE_MISSING", "Node is degraded", {
+                    "node_id": nid,
+                    "source_file": node.source_file,
+                }, operation="vcad_update_cascade")
+            )
             continue
 
         revision = dag.bump_revision(nid)

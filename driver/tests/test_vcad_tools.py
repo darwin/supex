@@ -145,7 +145,8 @@ class TestVCADPlace:
         )
 
         assert result["success"] is False
-        assert result["error_type"] == "connection"
+        assert result["error_code"] == "CONNECTION_ERROR"
+        assert result["details"]["error_type"] == "connection"
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +214,8 @@ class TestVCADUpdate:
         )
 
         assert result["success"] is False
-        assert result["error_type"] == "connection"
+        assert result["error_code"] == "CONNECTION_ERROR"
+        assert result["details"]["error_type"] == "connection"
 
 
 # ---------------------------------------------------------------------------
@@ -299,7 +301,8 @@ class TestVCADExport:
         result = json.loads(vcad_export(mock_ctx, source="[cube 1.0 1.0 1.0]"))
 
         assert result["success"] is False
-        assert result["error_type"] == "connection"
+        assert result["error_code"] == "CONNECTION_ERROR"
+        assert result["details"]["error_type"] == "connection"
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +372,8 @@ class TestVCADListNodes:
         result = json.loads(vcad_list_nodes(mock_ctx))
 
         assert result["success"] is False
-        assert result["error_type"] == "connection"
+        assert result["error_code"] == "CONNECTION_ERROR"
+        assert result["details"]["error_type"] == "connection"
 
 
 # ---------------------------------------------------------------------------

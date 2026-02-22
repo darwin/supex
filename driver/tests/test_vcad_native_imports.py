@@ -357,7 +357,8 @@ class TestNativeMeshImportErrors:
         )
 
         assert result["success"] is False
-        assert result["error_type"] == "remote"
+        assert result["error_code"] == -32603
+        assert result["details"]["error_type"] == "remote"
 
 
 # ---------------------------------------------------------------------------

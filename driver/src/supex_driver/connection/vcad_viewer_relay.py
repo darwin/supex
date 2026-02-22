@@ -91,6 +91,46 @@ class VCADViewerCapabilityError(VCADViewerError):
         )
 
 
+def build_viewer_error(
+    code: str,
+    message: str,
+    details: dict[str, Any] | None = None,
+    operation: str | None = None,
+) -> dict[str, Any]:
+    """Build a viewer relay error message.
+
+    Canonical error builder for WebSocket error messages sent to the viewer.
+    Produces a consistent error shape with code, message, and details.
+
+    Args:
+        code: Machine-readable error code (e.g. "PROTOCOL_MISMATCH").
+        message: Human-readable error message.
+        details: Structured error details dict.
+        operation: Current operation name (auto-fills details.operation).
+
+    Returns:
+        Error message dict for WebSocket transmission.
+    """
+    error_msg: dict[str, Any] = {
+        "type": "error",
+        "code": code,
+        "message": message,
+    }
+
+    if details is not None:
+        error_details = dict(details)
+    else:
+        error_details = {}
+
+    if operation and "operation" not in error_details:
+        error_details["operation"] = operation
+
+    if error_details:
+        error_msg["details"] = error_details
+
+    return error_msg
+
+
 # --- Relay server ---
 
 
@@ -289,18 +329,16 @@ class VCADViewerRelay:
             )
             await ws.send(
                 json.dumps(
-                    {
-                        "type": "error",
-                        "code": "PROTOCOL_MISMATCH",
-                        "message": (
-                            f"Protocol version mismatch: "
-                            f"driver={RELAY_PROTOCOL_VERSION}, viewer={viewer_version}"
-                        ),
-                        "details": {
-                            "driver_version": RELAY_PROTOCOL_VERSION,
-                            "viewer_version": viewer_version,
+                    build_viewer_error(
+                        "PROTOCOL_MISMATCH",
+                        f"Protocol version mismatch: "
+                        f"driver={RELAY_PROTOCOL_VERSION}, viewer={viewer_version}",
+                        details={
+                            "expected_protocol": RELAY_PROTOCOL_VERSION,
+                            "actual_protocol": viewer_version,
                         },
-                    }
+                        operation="viewer_handshake",
+                    )
                 )
             )
             await ws.close()

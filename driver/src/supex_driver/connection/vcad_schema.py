@@ -190,6 +190,77 @@ def validate_error_envelope(payload: dict[str, Any]) -> list[dict[str, str]]:
     return validate_payload(payload, "v1", "error-envelope")
 
 
+def build_error(
+    code: str | int,
+    message: str,
+    details: dict[str, Any] | None = None,
+    operation: str | None = None,
+) -> dict[str, Any]:
+    """Build a validated error envelope.
+
+    Canonical error builder for all boundary layers. Ensures consistent
+    error envelope shape with validated details for mapped error codes.
+
+    Builder behavior:
+    - Validates required details keys for mapped error codes
+    - Auto-fills missing details.operation from operation context
+    - Preserves upstream error_code when forwarding across boundaries
+    - If required details are missing, converts to SCHEMA_VALIDATION_FAILED
+
+    Args:
+        code: Machine-readable error code (string or int for JSON-RPC codes).
+        message: Human-readable error message.
+        details: Structured error details dict.
+        operation: Current operation name (auto-fills details.operation).
+
+    Returns:
+        Validated error envelope dict matching error-envelope.schema.json.
+    """
+    envelope: dict[str, Any] = {
+        "success": False,
+        "error": message,
+        "error_code": code,
+    }
+
+    # Build details (copy to avoid mutating caller's dict)
+    if details is not None:
+        envelope_details = dict(details)
+    else:
+        envelope_details = {}
+
+    # Auto-fill operation from context
+    if operation and "operation" not in envelope_details:
+        envelope_details["operation"] = operation
+
+    # Always include details when non-empty
+    if envelope_details:
+        envelope["details"] = envelope_details
+
+    # Validate required details for mapped error codes
+    code_str = str(code)
+    if code_str in REQUIRED_ERROR_DETAILS:
+        required_keys = REQUIRED_ERROR_DETAILS[code_str]
+        actual_details = envelope.get("details", {})
+        missing = [k for k in required_keys if k not in actual_details]
+        if missing:
+            return {
+                "success": False,
+                "error": (
+                    f"Error response for {code_str} missing required details: "
+                    + ", ".join(missing)
+                ),
+                "error_code": SCHEMA_VALIDATION_FAILED,
+                "details": {
+                    "path": "$.details",
+                    "expected": f"required keys for {code_str}: {required_keys}",
+                    "missing_keys": missing,
+                    "original_error_code": code_str,
+                },
+            }
+
+    return envelope
+
+
 def normalize_error_response(
     response: dict[str, Any],
     operation: str,

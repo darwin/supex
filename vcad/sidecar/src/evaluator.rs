@@ -669,6 +669,16 @@ impl EvalError {
         }
     }
 
+    /// Structured error details, if available for this error variant.
+    pub fn details(&self) -> Option<serde_json::Value> {
+        match self {
+            EvalError::MultiPart(n) => Some(serde_json::json!({
+                "part_count": *n,
+            })),
+            _ => None,
+        }
+    }
+
     /// Human-readable error message.
     pub fn message(&self) -> String {
         match self {

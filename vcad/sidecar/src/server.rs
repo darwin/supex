@@ -975,7 +975,8 @@ fn eval_result_response(id: serde_json::Value, result: &EvalResult) -> JsonRpcRe
 }
 
 fn eval_error_response(id: serde_json::Value, error: &EvalError) -> JsonRpcResponse {
-    make_app_error_response(id, error.error_code(), &error.message())
+    let data = build_error_data(error.error_code(), &error.message(), error.details());
+    make_error_response(id, JSONRPC_APP_ERROR, &error.message(), Some(data))
 }
 
 fn make_success_response(id: serde_json::Value, result: serde_json::Value) -> JsonRpcResponse {
@@ -1010,14 +1011,27 @@ fn make_app_error_response(
     error_code: &str,
     message: &str,
 ) -> JsonRpcResponse {
-    make_error_response(
-        id,
-        JSONRPC_APP_ERROR,
-        message,
-        Some(serde_json::json!({
-            "error_code": error_code
-        })),
-    )
+    let data = build_error_data(error_code, message, None);
+    make_error_response(id, JSONRPC_APP_ERROR, message, Some(data))
+}
+
+/// Build structured error data for JSON-RPC error responses.
+///
+/// Canonical error builder for sidecar boundary. Produces a consistent
+/// `data` payload with `error_code`, `message`, and optional `details`.
+fn build_error_data(
+    error_code: &str,
+    message: &str,
+    details: Option<serde_json::Value>,
+) -> serde_json::Value {
+    let mut data = serde_json::json!({
+        "error_code": error_code,
+        "message": message,
+    });
+    if let Some(details) = details {
+        data["details"] = details;
+    }
+    data
 }
 
 #[cfg(test)]

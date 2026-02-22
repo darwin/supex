@@ -257,7 +257,7 @@ class TestVCADPlaceWithImportsErrors:
             )
         )
         assert result["success"] is False
-        assert result["error_type"] == "io"
+        assert result["error_code"] == "IO_ERROR"
 
     def test_extract_imports_error(self, mock_ctx, mock_vcad, source_file):
         """Sidecar extract_imports failure propagated."""
@@ -301,7 +301,8 @@ class TestVCADPlaceWithImportsErrors:
             )
         )
         assert result["success"] is False
-        assert result["error_type"] == "remote"
+        assert result["error_code"] == -32603
+        assert result["details"]["error_type"] == "remote"
 
     def test_eval_with_imports_error(
         self, mock_ctx, mock_vcad, mock_sketchup, source_file
@@ -362,7 +363,8 @@ class TestVCADPlaceWithImportsErrors:
             )
         )
         assert result["success"] is False
-        assert result["error_type"] == "connection"
+        assert result["error_code"] == "CONNECTION_ERROR"
+        assert result["details"]["error_type"] == "connection"
 
     def test_vcad_connection_error_during_extract(
         self, mock_ctx, mock_vcad, source_file
@@ -378,7 +380,8 @@ class TestVCADPlaceWithImportsErrors:
             )
         )
         assert result["success"] is False
-        assert result["error_type"] == "connection"
+        assert result["error_code"] == "CONNECTION_ERROR"
+        assert result["details"]["error_type"] == "connection"
 
 
 # ---------------------------------------------------------------------------

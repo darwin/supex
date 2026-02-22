@@ -315,7 +315,8 @@ class TestSolidImportErrors:
         )
 
         assert result["success"] is False
-        assert result["error_type"] == "remote"
+        assert result["error_code"] == -32603
+        assert result["details"]["error_type"] == "remote"
 
     def test_solid_import_adt_cache_miss(
         self, mock_ctx, mock_vcad, mock_sketchup, solid_source_file
