@@ -55,7 +55,10 @@ def mock_vcad():
     conn.watch_stop.return_value = {"status": "stopped"}
     conn.watch_poll.return_value = {"changes": []}
     conn.get_affected_nodes.return_value = []
-    conn.eval_file.return_value = {"obj_path": "/tmp/out.dae"}
+    conn.eval_with_imports.return_value = {
+        "obj_path": "/tmp/out.dae",
+        "loaded_module_paths": [],
+    }
     return conn
 
 
@@ -68,15 +71,15 @@ def reset_singleton():
 
 
 # ---------------------------------------------------------------------------
-# VCADConnection.eval_file with node_id
+# VCADConnection.eval_with_imports
 # ---------------------------------------------------------------------------
 
 
-class TestEvalFileWithNodeId:
-    """Test VCADConnection.eval_file passes node_id to sidecar."""
+class TestEvalWithImports:
+    """Test VCADConnection.eval_with_imports passes correct params to sidecar."""
 
-    def test_eval_file_without_node_id(self):
-        """eval_file without node_id sends only path."""
+    def test_eval_with_imports_defaults(self):
+        """eval_with_imports with defaults sends transformed_source and export_mesh."""
         from supex_driver.connection.vcad_connection import VCADConnection
 
         conn = VCADConnection.__new__(VCADConnection)
@@ -84,15 +87,16 @@ class TestEvalFileWithNodeId:
             return_value={"obj_path": "/tmp/out.dae", "volume": 1000.0}
         )
 
-        result = conn.eval_file("/project/test.skp.oo")
+        result = conn.eval_with_imports("[cube 10.0 10.0 10.0]")
 
         conn.send_command.assert_called_once_with(
-            "vcad.eval_file", {"path": "/project/test.skp.oo"}
+            "vcad.eval_with_imports",
+            {"transformed_source": "[cube 10.0 10.0 10.0]"},
         )
         assert result["obj_path"] == "/tmp/out.dae"
 
-    def test_eval_file_with_node_id(self):
-        """eval_file with node_id sends both path and node_id."""
+    def test_eval_with_imports_with_node_id(self):
+        """eval_with_imports with node_id includes it in params."""
         from supex_driver.connection.vcad_connection import VCADConnection
 
         conn = VCADConnection.__new__(VCADConnection)
@@ -104,16 +108,26 @@ class TestEvalFileWithNodeId:
             }
         )
 
-        result = conn.eval_file("/project/test.skp.oo", node_id="bracket")
+        result = conn.eval_with_imports(
+            "[cube 10.0 10.0 10.0]",
+            node_id="bracket",
+            cache_adt=True,
+            track_modules=True,
+        )
 
         conn.send_command.assert_called_once_with(
-            "vcad.eval_file",
-            {"path": "/project/test.skp.oo", "node_id": "bracket"},
+            "vcad.eval_with_imports",
+            {
+                "transformed_source": "[cube 10.0 10.0 10.0]",
+                "node_id": "bracket",
+                "cache_adt": True,
+                "track_modules": True,
+            },
         )
         assert result["loaded_module_paths"] == ["/project/src/dims.oo"]
 
-    def test_eval_file_node_id_none_omitted(self):
-        """eval_file with node_id=None does not include it in params."""
+    def test_eval_with_imports_node_id_none_omitted(self):
+        """eval_with_imports with node_id=None does not include it in params."""
         from supex_driver.connection.vcad_connection import VCADConnection
 
         conn = VCADConnection.__new__(VCADConnection)
@@ -121,11 +135,47 @@ class TestEvalFileWithNodeId:
             return_value={"obj_path": "/tmp/out.dae"}
         )
 
-        conn.eval_file("/project/test.skp.oo", node_id=None)
+        conn.eval_with_imports("[cube 10.0 10.0 10.0]", node_id=None)
 
         args = conn.send_command.call_args
         params = args[0][1]
         assert "node_id" not in params
+
+    def test_eval_with_imports_all_flags(self):
+        """eval_with_imports with all flags set includes them in params."""
+        from supex_driver.connection.vcad_connection import VCADConnection
+
+        conn = VCADConnection.__new__(VCADConnection)
+        conn.send_command = MagicMock(
+            return_value={"obj_path": "/tmp/out.dae"}
+        )
+
+        conn.eval_with_imports(
+            "[cube 10.0 10.0 10.0]",
+            base_dir="/project",
+            imports={"imp_1": {"data": "test"}},
+            node_id="bracket",
+            display=True,
+            cache_adt=True,
+            track_modules=True,
+            inspect=True,
+            export_mesh=False,
+        )
+
+        conn.send_command.assert_called_once_with(
+            "vcad.eval_with_imports",
+            {
+                "transformed_source": "[cube 10.0 10.0 10.0]",
+                "base_dir": "/project",
+                "imports": {"imp_1": {"data": "test"}},
+                "node_id": "bracket",
+                "display": True,
+                "cache_adt": True,
+                "track_modules": True,
+                "inspect": True,
+                "export_mesh": False,
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +324,7 @@ class TestFindNodesForLoonChanges:
 
 
 # ---------------------------------------------------------------------------
-# Integration: vcad_place passes node_id to eval_file
+# Integration: vcad_place passes node_id to eval_with_imports
 # ---------------------------------------------------------------------------
 
 
@@ -282,7 +332,7 @@ class TestVCADPlaceModuleTracking:
     """Test that vcad_place passes node_id for module tracking."""
 
     def test_vcad_place_passes_node_id(self, tmp_path):
-        """vcad_place passes node_id to eval_file for module tracking."""
+        """vcad_place passes node_id to eval_with_imports for module tracking."""
         from supex_driver.mcp.vcad_tools import (
             vcad_place,
             _reset_vcad_dag,
@@ -302,7 +352,7 @@ class TestVCADPlaceModuleTracking:
              patch("supex_driver.mcp.vcad_tools.get_vcad_file_watcher") as mock_get_watcher:
 
             mock_vcad = MagicMock()
-            mock_vcad.eval_file.return_value = {
+            mock_vcad.eval_with_imports.return_value = {
                 "obj_path": "/tmp/out.dae",
                 "loaded_module_paths": ["/project/src/dims.oo"],
             }
@@ -323,10 +373,13 @@ class TestVCADPlaceModuleTracking:
             result = json.loads(result_str)
 
             assert result["success"]
-            # Verify eval_file was called with node_id
-            mock_vcad.eval_file.assert_called_once_with(
-                source_file, node_id="test-node"
-            )
+            # Verify eval_with_imports was called with node_id and correct flags
+            mock_vcad.eval_with_imports.assert_called_once()
+            call_kwargs = mock_vcad.eval_with_imports.call_args
+            assert call_kwargs.kwargs["node_id"] == "test-node"
+            assert call_kwargs.kwargs["cache_adt"] is True
+            assert call_kwargs.kwargs["track_modules"] is True
+            assert call_kwargs.kwargs["export_mesh"] is True
 
         _reset_vcad_dag()
 
@@ -340,7 +393,7 @@ class TestVCADUpdateSingleModuleTracking:
     """Test that _vcad_update_single passes node_id for module tracking."""
 
     def test_update_single_passes_node_id(self, dag, tmp_path):
-        """_vcad_update_single passes node_id to eval_file."""
+        """_vcad_update_single passes node_id to eval_with_imports."""
         from supex_driver.mcp.vcad_tools import _vcad_update_single
 
         source_file = str(tmp_path / "bracket.skp.oo")
@@ -358,7 +411,7 @@ class TestVCADUpdateSingleModuleTracking:
              patch("supex_driver.mcp.vcad_tools.get_sketchup_connection") as mock_get_su:
 
             mock_vcad = MagicMock()
-            mock_vcad.eval_file.return_value = {
+            mock_vcad.eval_with_imports.return_value = {
                 "obj_path": "/tmp/out.dae",
                 "loaded_module_paths": [],
             }
@@ -377,9 +430,12 @@ class TestVCADUpdateSingleModuleTracking:
             )
 
             assert result["success"]
-            mock_vcad.eval_file.assert_called_once_with(
-                source_file, node_id="bracket"
-            )
+            mock_vcad.eval_with_imports.assert_called_once()
+            call_kwargs = mock_vcad.eval_with_imports.call_args
+            assert call_kwargs.kwargs["node_id"] == "bracket"
+            assert call_kwargs.kwargs["cache_adt"] is True
+            assert call_kwargs.kwargs["track_modules"] is True
+            assert call_kwargs.kwargs["export_mesh"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -391,7 +447,7 @@ class TestVCADUpdateModuleTracking:
     """Test that vcad_update passes node_id for module tracking."""
 
     def test_vcad_update_passes_node_id(self, tmp_path):
-        """vcad_update passes node_id to eval_file."""
+        """vcad_update passes node_id to eval_with_imports."""
         from supex_driver.mcp.vcad_tools import (
             vcad_update,
             _reset_vcad_dag,
@@ -412,7 +468,7 @@ class TestVCADUpdateModuleTracking:
              patch("supex_driver.mcp.vcad_tools.get_sketchup_connection") as mock_get_su:
 
             mock_vcad = MagicMock()
-            mock_vcad.eval_file.return_value = {
+            mock_vcad.eval_with_imports.return_value = {
                 "obj_path": "/tmp/out.dae",
                 "loaded_module_paths": ["/project/src/dims.oo"],
             }
@@ -431,9 +487,12 @@ class TestVCADUpdateModuleTracking:
             result = json.loads(result_str)
 
             assert result["success"]
-            mock_vcad.eval_file.assert_called_once_with(
-                source_file, node_id="bracket"
-            )
+            mock_vcad.eval_with_imports.assert_called_once()
+            call_kwargs = mock_vcad.eval_with_imports.call_args
+            assert call_kwargs.kwargs["node_id"] == "bracket"
+            assert call_kwargs.kwargs["cache_adt"] is True
+            assert call_kwargs.kwargs["track_modules"] is True
+            assert call_kwargs.kwargs["export_mesh"] is True
 
         _reset_vcad_dag()
 

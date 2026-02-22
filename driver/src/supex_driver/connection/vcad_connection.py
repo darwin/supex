@@ -435,27 +435,6 @@ class VCADConnection:
 
     # Convenience methods for VCAD operations
 
-    def eval_file(
-        self, path: str, node_id: str | None = None
-    ) -> dict[str, Any]:
-        """Evaluate a Loon file and return the result.
-
-        When node_id is provided, the sidecar uses module-tracking evaluation
-        and records which .oo library files were loaded via [use ...].
-        The response includes 'loaded_module_paths' (list of absolute paths).
-
-        Args:
-            path: Path to the .skp.oo file.
-            node_id: Optional node ID for module dependency tracking.
-
-        Returns:
-            Evaluation result from sidecar.
-        """
-        params: dict[str, Any] = {"path": path}
-        if node_id is not None:
-            params["node_id"] = node_id
-        return self.send_command("vcad.eval_file", params)
-
     def extract_imports(self, source: str) -> dict[str, Any]:
         """Parse source and extract import declarations.
 
@@ -513,19 +492,24 @@ class VCADConnection:
         base_dir: str | None = None,
         imports: dict[str, Any] | None = None,
         node_id: str | None = None,
-        inspect_only: bool = False,
+        display: bool = False,
+        cache_adt: bool = False,
+        track_modules: bool = False,
+        inspect: bool = False,
+        export_mesh: bool = True,
     ) -> dict[str, Any]:
-        """Evaluate transformed source with resolved imports (data and solid).
-
-        Data imports are injected as source-level let-bindings.
-        Solid imports reference cached ADT values in the sidecar's ADT cache.
+        """Unified evaluation with bool flags controlling pipeline steps.
 
         Args:
             transformed_source: Source with import expressions replaced by symbols.
             base_dir: Optional base directory for module resolution.
             imports: Dict of import_id -> resolved import data (ResolvedImport format).
-            node_id: Optional node ID to cache the result ADT under.
-            inspect_only: If True, skip mesh export and return metadata only.
+            node_id: Optional node ID for ADT caching and module tracking.
+            display: Format result value as display string.
+            cache_adt: Cache result ADT in sidecar's ADT cache.
+            track_modules: Track [use ...] module paths.
+            inspect: Compute volume/bbox/surface_area (no mesh export).
+            export_mesh: Tessellate + DAE export to disk.
 
         Returns:
             Evaluation result from sidecar.
@@ -539,32 +523,17 @@ class VCADConnection:
             params["imports"] = imports
         if node_id is not None:
             params["node_id"] = node_id
-        if inspect_only:
-            params["inspect_only"] = True
+        if display:
+            params["display"] = True
+        if cache_adt:
+            params["cache_adt"] = True
+        if track_modules:
+            params["track_modules"] = True
+        if inspect:
+            params["inspect"] = True
+        if not export_mesh:
+            params["export_mesh"] = False
         return self.send_command("vcad.eval_with_imports", params)
-
-    def eval_repl_with_imports(
-        self,
-        transformed_source: str,
-        base_dir: str | None = None,
-        imports: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """REPL eval with resolved data+solid imports. Returns display string.
-
-        Args:
-            transformed_source: Source with import expressions replaced by symbols.
-            base_dir: Optional base directory for module resolution.
-            imports: Dict of import_id -> resolved import data (ResolvedImport format).
-
-        Returns:
-            Dict with 'display' string from sidecar.
-        """
-        params: dict[str, Any] = {"transformed_source": transformed_source}
-        if base_dir is not None:
-            params["base_dir"] = base_dir
-        if imports is not None:
-            params["imports"] = imports
-        return self.send_command("vcad.eval_repl_with_imports", params)
 
 
 # Global connection management with thread safety

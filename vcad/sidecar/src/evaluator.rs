@@ -2,7 +2,7 @@ use crate::adt_cache::AdtCache;
 use crate::dae_export::{brep_to_dae, mesh_to_dae};
 use crate::imports::{build_import_preamble, ResolvedImport};
 use loon_lang::interp::{
-    eval_program_with_env_and_base_dir, eval_program_with_module_tracking, Env, Value,
+    eval_program_with_env_and_base_dir, Env, Value,
 };
 use loon_lang::parser::parse;
 use serde::Serialize;
@@ -11,9 +11,7 @@ use std::path::{Path, PathBuf};
 use vcad_eval::{evaluate_document, EvalOptions};
 use vcad_ir::Document;
 use vcad_kernel_tessellate::TessellationParams;
-use vcad_loon::{
-    eval_vcad_file, eval_vcad_to_value, value_to_document, VCAD_LIB_SOURCE,
-};
+use vcad_loon::{value_to_document, VCAD_LIB_SOURCE};
 
 struct TempRetention {
     ttl_sec: u64,
@@ -35,6 +33,10 @@ pub struct EvalResult {
     pub surface_area: f64,
     pub bbox: BBox,
     pub is_empty: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loaded_module_paths: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -54,7 +56,7 @@ pub struct ArtifactManifest {
     pub finished_at: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct BBox {
     pub min: [f64; 3],
     pub max: [f64; 3],
@@ -194,72 +196,9 @@ impl Evaluator {
             .collect()
     }
 
-    /// Evaluate .skp.oo file (with module resolution via base_dir).
-    ///
-    /// Caches the result ADT value for future solid imports.
-    pub fn eval_file(&mut self, path: &str) -> Result<EvalResult, EvalError> {
-        let file_path = Path::new(path);
-        let doc = eval_vcad_file(file_path).map_err(EvalError::Loon)?;
-        let stem = file_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("file");
-        self.evaluate_and_export(&doc, stem)
-    }
-
-    /// Evaluate .skp.oo file and cache its ADT under `node_id`.
-    #[allow(dead_code)]
-    pub fn eval_file_with_cache(
-        &mut self,
-        path: &str,
-        node_id: &str,
-    ) -> Result<EvalResult, EvalError> {
-        let file_path = Path::new(path);
-        let base_dir = file_path.parent();
-        let source = std::fs::read_to_string(file_path)
-            .map_err(|e| EvalError::Loon(format!("cannot read {}: {e}", file_path.display())))?;
-        let adt_value = eval_vcad_to_value(source.trim(), base_dir).map_err(EvalError::Loon)?;
-        self.adt_cache.set(node_id, adt_value.clone());
-        let doc = value_to_document(&adt_value).map_err(EvalError::Loon)?;
-        let stem = file_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("file");
-        self.evaluate_and_export(&doc, stem)
-    }
-
-    /// Evaluate .skp.oo file with module tracking.
-    ///
-    /// Uses `eval_program_with_module_tracking` to capture all `.oo` module
-    /// paths loaded via `[use ...]` during evaluation. Returns both the
-    /// evaluation result and the list of loaded module paths.
-    pub fn eval_file_tracked(
-        &mut self,
-        path: &str,
-    ) -> Result<(EvalResult, Vec<std::path::PathBuf>), EvalError> {
-        let file_path = Path::new(path);
-        let base_dir = file_path.parent();
-        let source = std::fs::read_to_string(file_path)
-            .map_err(|e| EvalError::Loon(format!("cannot read {}: {e}", file_path.display())))?;
-        let full_source = format!("{}\n\n{}", VCAD_LIB_SOURCE, source.trim());
-        let exprs = parse(&full_source)
-            .map_err(|e| EvalError::Loon(format!("Parse error: {}", e.message)))?;
-
-        let (adt_value, loaded_paths) = eval_program_with_module_tracking(&exprs, base_dir)
-            .map_err(|e| EvalError::Loon(format!("{e}")))?;
-
-        let doc = value_to_document(&adt_value).map_err(EvalError::Loon)?;
-        let stem = file_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("file");
-        let result = self.evaluate_and_export(&doc, stem)?;
-        Ok((result, loaded_paths))
-    }
-
     /// Evaluate a Document and return only geometry metadata (no mesh export).
     ///
-    /// Used by `eval_with_imports(inspect_only=true)` to skip tessellation,
+    /// Used by `eval_with_imports(inspect=true)` to skip tessellation,
     /// DAE export, and disk I/O when only volume/bbox/surface_area are needed.
     fn evaluate_metadata_only(&self, doc: &Document) -> Result<EvalResult, EvalError> {
         let options = EvalOptions {
@@ -285,27 +224,32 @@ impl Evaluator {
                 max: bb_max,
             },
             is_empty: solid.is_empty(),
+            display: None,
+            loaded_module_paths: None,
         })
     }
 
-    /// Evaluate transformed source with both data and solid imports.
+    /// Unified evaluation entry point with bool flags controlling pipeline steps.
     ///
-    /// Data imports (dimensions, bbox, transform) are injected as source-level
-    /// let-bindings. Solid imports are injected directly into the Loon environment
-    /// as cached ADT values retrieved from the ADT cache.
+    /// Pipeline after Loon eval:
+    /// - `display`: format result value as display string
+    /// - `cache_adt`: cache result ADT in adt_cache (requires node_id)
+    /// - `track_modules`: track [use ...] module paths
+    /// - `inspect`: compute volume/bbox/surface_area (BRep, no mesh export)
+    /// - `export_mesh`: tessellate + DAE export to disk
     ///
-    /// The combined ADT tree flows through `value_to_document()` -> `evaluate_document()`
-    /// so the kernel optimizes the full CSG tree in one pass.
-    ///
-    /// When `inspect_only` is true, skips tessellation, DAE export, and disk I/O,
-    /// returning only geometry metadata (volume, surface_area, bbox).
+    /// BRep conversion is skipped when `!inspect && !export_mesh` (REPL/display path).
     pub fn eval_with_imports(
         &mut self,
         transformed_source: &str,
         base_dir: Option<&Path>,
         imports: &HashMap<String, ResolvedImport>,
         node_id: Option<&str>,
-        inspect_only: bool,
+        display: bool,
+        cache_adt: bool,
+        track_modules: bool,
+        inspect: bool,
+        export_mesh: bool,
     ) -> Result<EvalResult, EvalError> {
         // 1. Build Loon preamble for data imports only (solid skipped)
         let preamble = build_import_preamble(imports);
@@ -355,88 +299,58 @@ impl Evaluator {
             }
         }
 
-        // 4. Evaluate Loon with pre-populated environment
-        let result_value = eval_program_with_env_and_base_dir(&exprs, &mut env, base_dir)
-            .map_err(|e| EvalError::Loon(format!("{e}")))?;
+        // 4. Evaluate Loon
+        let (result_value, loaded_paths) =
+            eval_program_with_env_and_base_dir(&exprs, &mut env, base_dir, track_modules)
+                .map_err(|e| EvalError::Loon(format!("{e}")))?;
 
-        // 5. Cache the result ADT for future imports
-        if let Some(nid) = node_id {
-            self.adt_cache.set(nid, result_value.clone());
-        }
-
-        // 6. Convert to Document and evaluate
-        let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
-        if inspect_only {
-            self.evaluate_metadata_only(&doc)
+        // A. Format display string
+        let display_str = if display {
+            Some(format!("{}", result_value))
         } else {
-            self.evaluate_and_export(&doc, "import-eval")
-        }
-    }
+            None
+        };
 
-    /// Evaluate transformed source with imports in REPL mode (display string, no mesh).
-    ///
-    /// Same import resolution as `eval_with_imports` (data preamble + solid ADT
-    /// injection), but returns the display string instead of converting to
-    /// Document + mesh.
-    pub fn eval_repl_with_imports(
-        &mut self,
-        transformed_source: &str,
-        base_dir: Option<&Path>,
-        imports: &HashMap<String, ResolvedImport>,
-    ) -> Result<String, EvalError> {
-        // 1. Build Loon preamble for data imports only (solid skipped)
-        let preamble = build_import_preamble(imports);
-        let augmented_source = format!("{}{}\n{}", VCAD_LIB_SOURCE, preamble, transformed_source);
-
-        // 2. Parse the augmented source
-        let exprs = parse(&augmented_source)
-            .map_err(|e| EvalError::Loon(format!("Parse error: {}", e.message)))?;
-
-        // 3. Set up Loon environment with solid ADT bindings
-        let mut env = Env::new();
-        for import in imports.values() {
-            if import.extract == "solid" {
-                if let Some(ref mesh_data) = import.native_mesh {
-                    let positions = Value::Vec(
-                        mesh_data.positions.iter().map(|&v| Value::Float(v)).collect(),
-                    );
-                    let indices = Value::Vec(
-                        mesh_data.indices.iter().map(|&v| Value::Int(v as i64)).collect(),
-                    );
-                    let normals = Value::Vec(
-                        mesh_data.normals.iter().map(|&v| Value::Float(v)).collect(),
-                    );
-                    let mesh_value = Value::Adt(
-                        "ImportedMesh".to_string(),
-                        vec![positions, indices, normals],
-                    );
-                    env.set(import.injected_symbol.clone(), mesh_value);
-                } else if let Some(ref vcad_nid) = import.vcad_node_id {
-                    if let Some(cached_adt) = self.adt_cache.get(vcad_nid) {
-                        env.set(import.injected_symbol.clone(), cached_adt.clone());
-                    } else {
-                        return Err(EvalError::Loon(format!(
-                            "ADT_CACHE_MISS: no cached ADT for node '{}' — \
-                             the source node must be evaluated before it can be imported",
-                            vcad_nid
-                        )));
-                    }
-                } else {
-                    return Err(EvalError::Loon(
-                        "SOLID_IMPORT_UNAVAILABLE: :solid import requires a \
-                         vcad-backed entity with a vcad_node_id or native mesh data"
-                            .to_string(),
-                    ));
-                }
+        // B. Cache ADT
+        if cache_adt {
+            if let Some(nid) = node_id {
+                self.adt_cache.set(nid, result_value.clone());
             }
         }
 
-        // 4. Evaluate Loon with pre-populated environment
-        let result_value = eval_program_with_env_and_base_dir(&exprs, &mut env, base_dir)
-            .map_err(|e| EvalError::Loon(format!("{e}")))?;
+        // C. Module tracking paths
+        let module_paths = if track_modules {
+            Some(loaded_paths.iter().map(|p| p.to_string_lossy().into_owned()).collect())
+        } else {
+            None
+        };
 
-        // 5. Return display string (no mesh conversion)
-        Ok(format!("{}", result_value))
+        // D-F. BRep conversion path
+        if export_mesh {
+            let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
+            let mut result = self.evaluate_and_export(&doc, "import-eval")?;
+            result.display = display_str;
+            result.loaded_module_paths = module_paths;
+            Ok(result)
+        } else if inspect {
+            let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
+            let mut result = self.evaluate_metadata_only(&doc)?;
+            result.display = display_str;
+            result.loaded_module_paths = module_paths;
+            Ok(result)
+        } else {
+            // Display-only / REPL path — no BRep conversion
+            Ok(EvalResult {
+                obj_path: String::new(),
+                manifest_path: String::new(),
+                volume: 0.0,
+                surface_area: 0.0,
+                bbox: BBox::default(),
+                is_empty: true,
+                display: display_str,
+                loaded_module_paths: module_paths,
+            })
+        }
     }
 
     /// Provide read access to the ADT cache (for server-level queries).
@@ -520,6 +434,8 @@ impl Evaluator {
             surface_area,
             bbox,
             is_empty,
+            display: None,
+            loaded_module_paths: None,
         })
     }
 
@@ -896,7 +812,7 @@ mod tests {
 [cube 10.0 10.0 10.0]"#;
 
         let imports = std::collections::HashMap::new();
-        let result = evaluator.eval_with_imports(source, None, &imports, None, false);
+        let result = evaluator.eval_with_imports(source, None, &imports, None, false, false, false, false, true);
         assert!(result.is_err(), "raw [import ...] must fail during evaluation");
     }
 

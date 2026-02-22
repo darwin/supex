@@ -70,7 +70,7 @@ class TestVCADPlace:
 
     def test_place_success(self, mock_ctx, mock_vcad, mock_sketchup):
         """Place evaluates file, imports OBJ, returns result."""
-        mock_vcad.eval_file.return_value = {"obj_path": "/tmp/out.obj"}
+        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {
             "success": True,
             "node_id": "bracket",
@@ -90,7 +90,9 @@ class TestVCADPlace:
 
         assert result["success"] is True
         assert result["node_id"] == "bracket"
-        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo", node_id="bracket")
+        mock_vcad.eval_with_imports.assert_called_once()
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
+        assert call_kwargs["node_id"] == "bracket"
         call_args = mock_sketchup.send_command.call_args
         assert call_args.kwargs["method"] == "place_vcad_node"
         params = call_args.kwargs["params"]
@@ -101,7 +103,7 @@ class TestVCADPlace:
 
     def test_place_default_position(self, mock_ctx, mock_vcad, mock_sketchup):
         """Place without position omits it from params."""
-        mock_vcad.eval_file.return_value = {"obj_path": "/tmp/out.obj"}
+        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {"success": True, "node_id": "n1"}
 
         vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
@@ -111,7 +113,7 @@ class TestVCADPlace:
 
     def test_place_eval_error_returns_vcad_error(self, mock_ctx, mock_vcad):
         """Sidecar eval failure returns error without calling SketchUp."""
-        mock_vcad.eval_file.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="Parse error in Loon code"
         )
 
@@ -125,7 +127,7 @@ class TestVCADPlace:
 
     def test_place_no_obj_path(self, mock_ctx, mock_vcad):
         """Sidecar returns result without obj_path."""
-        mock_vcad.eval_file.return_value = {"result": "no mesh"}
+        mock_vcad.eval_with_imports.return_value = {"result": "no mesh"}
 
         result = json.loads(
             vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
@@ -136,7 +138,7 @@ class TestVCADPlace:
 
     def test_place_sketchup_error(self, mock_ctx, mock_vcad, mock_sketchup):
         """SketchUp import failure propagated."""
-        mock_vcad.eval_file.return_value = {"obj_path": "/tmp/out.obj"}
+        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/out.obj"}
         mock_sketchup.send_command.side_effect = SketchUpConnectionError(
             "Connection refused"
         )
@@ -160,7 +162,7 @@ class TestVCADUpdate:
 
     def test_update_with_source(self, mock_ctx, mock_vcad, mock_sketchup):
         """Update with explicit source_file."""
-        mock_vcad.eval_file.return_value = {"obj_path": "/tmp/updated.obj"}
+        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/updated.obj"}
         mock_sketchup.send_command.return_value = {
             "success": True,
             "node_id": "bracket",
@@ -178,7 +180,7 @@ class TestVCADUpdate:
 
         assert result["success"] is True
         assert result["version"] == 2
-        mock_vcad.eval_file.assert_called_once_with("/project/bracket.skp.oo", node_id="bracket")
+        mock_vcad.eval_with_imports.assert_called_once()
 
     def test_update_lookup_source(self, mock_ctx, mock_vcad, mock_sketchup):
         """Update without source_file looks it up from SketchUp."""
@@ -187,7 +189,7 @@ class TestVCADUpdate:
             {"source_file": "/project/plate.skp.oo", "node_id": "plate"},
             {"success": True, "node_id": "plate", "version": 4},
         ]
-        mock_vcad.eval_file.return_value = {"obj_path": "/tmp/plate.obj"}
+        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/plate.obj"}
 
         result = json.loads(vcad_update(mock_ctx, node_id="plate"))
 
@@ -195,7 +197,7 @@ class TestVCADUpdate:
         # Verify lookup was done
         first_call = mock_sketchup.send_command.call_args_list[0]
         assert first_call.kwargs["method"] == "get_vcad_node"
-        mock_vcad.eval_file.assert_called_once_with("/project/plate.skp.oo", node_id="plate")
+        mock_vcad.eval_with_imports.assert_called_once()
 
     def test_update_node_not_found(self, mock_ctx, mock_sketchup):
         """Node not found in SketchUp returns error."""
@@ -208,7 +210,7 @@ class TestVCADUpdate:
 
     def test_update_eval_error(self, mock_ctx, mock_vcad, mock_sketchup):
         """Sidecar eval error during update."""
-        mock_vcad.eval_file.side_effect = VCADTimeoutError("Eval timed out")
+        mock_vcad.eval_with_imports.side_effect = VCADTimeoutError("Eval timed out")
 
         result = json.loads(
             vcad_update(mock_ctx, node_id="n1", source_file="/f.skp.oo")
@@ -228,7 +230,7 @@ class TestVCADInspect:
     """Test vcad_inspect tool."""
 
     def test_inspect_success(self, mock_ctx, mock_vcad):
-        """Inspect returns geometry properties via eval_with_imports(inspect_only=True)."""
+        """Inspect returns geometry properties via eval_with_imports(inspect=True, export_mesh=False)."""
         mock_vcad.eval_with_imports.return_value = {
             "volume": 1000.0,
             "surface_area": 600.0,
@@ -241,10 +243,11 @@ class TestVCADInspect:
         assert result["success"] is True
         assert result["volume"] == 1000.0
         assert result["surface_area"] == 600.0
-        # Verify it used eval_with_imports with inspect_only=True
+        # Verify it used eval_with_imports with inspect=True, export_mesh=False
         mock_vcad.eval_with_imports.assert_called_once()
         call_kwargs = mock_vcad.eval_with_imports.call_args
-        assert call_kwargs.kwargs.get("inspect_only") is True
+        assert call_kwargs.kwargs.get("inspect") is True
+        assert call_kwargs.kwargs.get("export_mesh") is False
 
     def test_inspect_error(self, mock_ctx, mock_vcad):
         """Inspect with invalid code returns error."""
@@ -321,7 +324,7 @@ class TestVCADEval:
 
     def test_eval_success(self, mock_ctx, mock_vcad):
         """Eval returns result."""
-        mock_vcad.eval_repl_with_imports.return_value = {"display": "Cube(10.0, 10.0, 10.0)"}
+        mock_vcad.eval_with_imports.return_value = {"display": "Cube(10.0, 10.0, 10.0)"}
 
         result = json.loads(vcad_eval(mock_ctx, code="[cube 10.0 10.0 10.0]"))
 
@@ -330,7 +333,7 @@ class TestVCADEval:
 
     def test_eval_parse_error(self, mock_ctx, mock_vcad):
         """Eval with parse error."""
-        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="Unexpected token"
         )
 
@@ -399,7 +402,7 @@ class TestVCADToolsErrorPropagation:
 
     def test_protocol_mismatch_surfaces_in_mcp(self, mock_ctx, mock_vcad):
         """Sidecar major version mismatch surfaces as PROTOCOL_MISMATCH in tool response."""
-        mock_vcad.eval_repl_with_imports.side_effect = VCADProtocolError(
+        mock_vcad.eval_with_imports.side_effect = VCADProtocolError(
             "Protocol version mismatch: driver=1.0, sidecar=2.0",
             error_code=PROTOCOL_MISMATCH,
             details={
@@ -418,7 +421,7 @@ class TestVCADToolsErrorPropagation:
 
     def test_capability_unavailable_surfaces_in_mcp(self, mock_ctx, mock_vcad):
         """Missing capability surfaces as CAPABILITY_UNAVAILABLE with full details."""
-        mock_vcad.eval_file.side_effect = VCADCapabilityError(
+        mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="adt_cache",
             negotiated_capabilities=["eval", "inspect"],
             operation="vcad_place",
@@ -436,7 +439,7 @@ class TestVCADToolsErrorPropagation:
 
     def test_protocol_mismatch_no_fallback(self, mock_ctx, mock_vcad, mock_sketchup):
         """Tool returns error directly on protocol mismatch (no retry/fallback)."""
-        mock_vcad.eval_file.side_effect = VCADProtocolError(
+        mock_vcad.eval_with_imports.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
             details={"expected_protocol": "1.0", "actual_protocol": "3.0"},
@@ -463,13 +466,10 @@ class TestVCADToolsErrorPropagation:
 
         assert result["success"] is False
         assert result["error_code"] == CAPABILITY_UNAVAILABLE
-        # No fallback attempted
-        mock_vcad.eval_repl_with_imports.assert_not_called()
-        mock_vcad.eval_file.assert_not_called()
 
     def test_remote_error_code_preserved(self, mock_ctx, mock_vcad):
         """Upstream error_code from sidecar is preserved unchanged."""
-        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32001, message="NO_GEOMETRY", data={"node_id": "empty"}
         )
 
@@ -495,7 +495,7 @@ class TestVCADToolsErrorPropagation:
 
     def test_capability_unavailable_in_update(self, mock_ctx, mock_vcad):
         """Capability error propagates through vcad_update."""
-        mock_vcad.eval_file.side_effect = VCADCapabilityError(
+        mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="eval",
             negotiated_capabilities=[],
             operation="vcad_update",

@@ -58,38 +58,18 @@ pub(crate) struct EvalJob {
 
 /// Parsed eval request ready for the worker.
 pub enum EvalRequest {
-    EvalFile {
+    Eval {
         id: serde_json::Value,
-        path: String,
+        transformed_source: String,
+        base_dir: Option<String>,
+        imports: HashMap<String, ResolvedImport>,
         node_id: Option<String>,
+        display: bool,
+        cache_adt: bool,
         track_modules: bool,
+        inspect: bool,
+        export_mesh: bool,
     },
-    EvalWithImports {
-        id: serde_json::Value,
-        transformed_source: String,
-        base_dir: Option<String>,
-        imports: HashMap<String, ResolvedImport>,
-        node_id: Option<String>,
-        inspect_only: bool,
-    },
-    /// REPL eval with data and solid imports (display string, no mesh).
-    EvalReplWithImports {
-        id: serde_json::Value,
-        transformed_source: String,
-        base_dir: Option<String>,
-        imports: HashMap<String, ResolvedImport>,
-    },
-}
-
-impl EvalRequest {
-    #[allow(dead_code)]
-    fn id(&self) -> &serde_json::Value {
-        match self {
-            EvalRequest::EvalFile { id, .. } => id,
-            EvalRequest::EvalWithImports { id, .. } => id,
-            EvalRequest::EvalReplWithImports { id, .. } => id,
-        }
-    }
 }
 
 /// Per-connection state tracking hello handshake.
@@ -423,7 +403,7 @@ fn dispatch_resources_list(request: &JsonRpcRequest) -> JsonRpcResponse {
 
 fn dispatch_tools_call(
     request: &JsonRpcRequest,
-    ctx: &ConnectionContext,
+    _ctx: &ConnectionContext,
     job_tx: &mpsc::SyncSender<EvalJob>,
     eval_timeout_ms: u64,
     file_watcher: &Arc<Mutex<FileWatcher>>,
@@ -440,32 +420,6 @@ fn dispatch_tools_call(
         .unwrap_or(serde_json::Value::Object(serde_json::Map::new()));
 
     let eval_request = match tool_name {
-        "vcad.eval_file" => {
-            let path = arguments.get("path").and_then(|v| v.as_str()).unwrap_or("");
-            if path.is_empty() {
-                return make_error_response(
-                    request.id.clone(),
-                    JSONRPC_INVALID_REQUEST,
-                    "vcad.eval_file requires non-empty 'path' argument",
-                    None,
-                );
-            }
-            // Path policy: validate against workspace
-            if let Err(resp) = validate_path_policy(path, ctx, &request.id) {
-                return resp;
-            }
-            let node_id = arguments
-                .get("node_id")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-            let track_modules = node_id.is_some();
-            EvalRequest::EvalFile {
-                id: request.id.clone(),
-                path: path.to_string(),
-                node_id,
-                track_modules,
-            }
-        }
         "vcad.extract_imports" => {
             // Fast-path: parse-only, no eval queue needed.
             let source = arguments
@@ -540,17 +494,36 @@ fn dispatch_tools_call(
             let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
             let resolved_imports: HashMap<String, ResolvedImport> =
                 serde_json::from_value(raw_imports).unwrap_or_default();
-            let inspect_only = arguments
-                .get("inspect_only")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false);
-            EvalRequest::EvalWithImports {
+
+            // Parse bool flags with defaults for eval_with_imports
+            let display = arguments.get("display").and_then(|v| v.as_bool()).unwrap_or(false);
+            let cache_adt = arguments.get("cache_adt").and_then(|v| v.as_bool()).unwrap_or(false);
+            let track_modules = arguments.get("track_modules").and_then(|v| v.as_bool()).unwrap_or(false);
+            let export_mesh = arguments.get("export_mesh").and_then(|v| v.as_bool()).unwrap_or(true);
+
+            // Backwards compatibility: inspect_only=true → inspect=true, export_mesh=false
+            let inspect = if arguments.get("inspect_only").and_then(|v| v.as_bool()).unwrap_or(false) {
+                true
+            } else {
+                arguments.get("inspect").and_then(|v| v.as_bool()).unwrap_or(false)
+            };
+            let export_mesh = if arguments.get("inspect_only").and_then(|v| v.as_bool()).unwrap_or(false) {
+                false
+            } else {
+                export_mesh
+            };
+
+            EvalRequest::Eval {
                 id: request.id.clone(),
                 transformed_source: transformed_source.to_string(),
                 base_dir,
                 imports: resolved_imports,
                 node_id,
-                inspect_only,
+                display,
+                cache_adt,
+                track_modules,
+                inspect,
+                export_mesh,
             }
         }
         "vcad.eval_repl_with_imports" => {
@@ -573,11 +546,17 @@ fn dispatch_tools_call(
             let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
             let resolved_imports: HashMap<String, ResolvedImport> =
                 serde_json::from_value(raw_imports).unwrap_or_default();
-            EvalRequest::EvalReplWithImports {
+            EvalRequest::Eval {
                 id: request.id.clone(),
                 transformed_source: transformed_source.to_string(),
                 base_dir,
                 imports: resolved_imports,
+                node_id: None,
+                display: true,
+                cache_adt: false,
+                track_modules: false,
+                inspect: false,
+                export_mesh: false,
             }
         }
         _ => {
@@ -628,7 +607,7 @@ fn dispatch_tools_call(
 }
 
 /// Validate that a file path is within the connection's workspace.
-#[allow(clippy::result_large_err)]
+#[allow(dead_code, clippy::result_large_err)]
 fn validate_path_policy(
     path: &str,
     ctx: &ConnectionContext,
@@ -821,47 +800,17 @@ fn dispatch_eval(
     module_tracker: &Arc<Mutex<ModuleTracker>>,
 ) -> JsonRpcResponse {
     match request {
-        EvalRequest::EvalFile { id, path, node_id, track_modules } => {
-            if *track_modules {
-                match evaluator.eval_file_tracked(path) {
-                    Ok((result, loaded_paths)) => {
-                        // Record module dependencies in the tracker
-                        if let Some(nid) = node_id.as_deref() {
-                            if let Ok(mut tracker) = module_tracker.lock() {
-                                tracker.record_evaluation(nid, loaded_paths.clone());
-                            }
-                        }
-                        // Include loaded_module_paths in response
-                        let path_strings: Vec<String> = loaded_paths
-                            .iter()
-                            .map(|p| p.to_string_lossy().into_owned())
-                            .collect();
-                        let mut value =
-                            serde_json::to_value(&result).unwrap_or(serde_json::Value::Null);
-                        if let Some(obj) = value.as_object_mut() {
-                            obj.insert(
-                                "loaded_module_paths".to_string(),
-                                serde_json::json!(path_strings),
-                            );
-                        }
-                        make_success_response(id.clone(), value)
-                    }
-                    Err(e) => eval_error_response(id.clone(), &e),
-                }
-            } else {
-                match evaluator.eval_file(path) {
-                    Ok(result) => eval_result_response(id.clone(), &result),
-                    Err(e) => eval_error_response(id.clone(), &e),
-                }
-            }
-        }
-        EvalRequest::EvalWithImports {
+        EvalRequest::Eval {
             id,
             transformed_source,
             base_dir,
             imports,
             node_id,
-            inspect_only,
+            display,
+            cache_adt,
+            track_modules,
+            inspect,
+            export_mesh,
         } => {
             let base = base_dir.as_deref().map(std::path::Path::new);
             match evaluator.eval_with_imports(
@@ -869,22 +818,28 @@ fn dispatch_eval(
                 base,
                 imports,
                 node_id.as_deref(),
-                *inspect_only,
+                *display,
+                *cache_adt,
+                *track_modules,
+                *inspect,
+                *export_mesh,
             ) {
-                Ok(result) => eval_result_response(id.clone(), &result),
-                Err(e) => eval_error_response(id.clone(), &e),
-            }
-        }
-        EvalRequest::EvalReplWithImports {
-            id,
-            transformed_source,
-            base_dir,
-            imports,
-        } => {
-            let base = base_dir.as_deref().map(std::path::Path::new);
-            match evaluator.eval_repl_with_imports(transformed_source, base, imports) {
-                Ok(display) => {
-                    make_success_response(id.clone(), serde_json::json!({ "display": display }))
+                Ok(result) => {
+                    // Record module dependencies in the tracker
+                    if *track_modules {
+                        if let Some(nid) = node_id.as_deref() {
+                            if let Some(ref paths) = result.loaded_module_paths {
+                                let path_bufs: Vec<std::path::PathBuf> = paths
+                                    .iter()
+                                    .map(std::path::PathBuf::from)
+                                    .collect();
+                                if let Ok(mut tracker) = module_tracker.lock() {
+                                    tracker.record_evaluation(nid, path_bufs);
+                                }
+                            }
+                        }
+                    }
+                    eval_result_response(id.clone(), &result)
                 }
                 Err(e) => eval_error_response(id.clone(), &e),
             }
@@ -1389,31 +1344,21 @@ mod tests {
     }
 
     #[test]
-    fn test_path_traversal_rejected() {
+    fn test_eval_file_tool_removed() {
+        // vcad.eval_file was removed — driver now sends source via eval_with_imports
         let (port, shutdown) = start_test_server(64, 120_000, None);
         let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+        send_request(&mut stream, &hello_request(1));
 
-        let workspace = tempfile::tempdir().unwrap();
-        send_request(
-            &mut stream,
-            &hello_request_with_workspace(1, workspace.path().to_str().unwrap()),
-        );
-
-        // Try path traversal
         let resp = send_request(
             &mut stream,
             &tools_call_request(
                 2,
                 "vcad.eval_file",
-                serde_json::json!({ "path": "../../../etc/passwd" }),
+                serde_json::json!({ "path": "/some/file.skp.oo" }),
             ),
         );
-        assert!(resp.get("error").is_some());
-        let data = resp.get("error").unwrap().get("data").unwrap();
-        assert_eq!(
-            data.get("error_code").unwrap().as_str().unwrap(),
-            "PATH_NOT_ALLOWED"
-        );
+        assert!(resp.get("error").is_some(), "vcad.eval_file should be unknown");
 
         shutdown.store(true, Ordering::SeqCst);
     }

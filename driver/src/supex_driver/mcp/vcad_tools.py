@@ -240,7 +240,11 @@ def _eval_with_imports(
     details: dict[str, Any],
     base_dir: str | None = None,
     node_id: str | None = None,
-    inspect_only: bool = False,
+    display: bool = False,
+    cache_adt: bool = False,
+    track_modules: bool = False,
+    inspect: bool = False,
+    export_mesh: bool = True,
 ) -> dict[str, Any]:
     """Evaluate transformed source with resolved imports via sidecar."""
     agent = get_agent_name(ctx)
@@ -249,9 +253,13 @@ def _eval_with_imports(
     return vcad.eval_with_imports(
         transformed_source=details["transformed_source"],
         base_dir=base_dir,
-        imports=details["resolved_imports"],
+        imports=details.get("resolved_imports", {}),
         node_id=node_id,
-        inspect_only=inspect_only,
+        display=display,
+        cache_adt=cache_adt,
+        track_modules=track_modules,
+        inspect=inspect,
+        export_mesh=export_mesh,
     )
 
 
@@ -283,12 +291,13 @@ def _vcad_update_single(
 
     # Re-evaluate via sidecar
     try:
-        if has_imports:
-            base_dir = os.path.dirname(os.path.abspath(source_file))
-            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, node_id=node_id)
-        else:
-            vcad = get_vcad_connection(agent=agent)
-            eval_result = vcad.eval_file(source_file, node_id=node_id)
+        if not has_imports:
+            details = {"transformed_source": source_text, "resolved_imports": {}}
+        base_dir = os.path.dirname(os.path.abspath(source_file))
+        eval_result = _eval_with_imports(
+            ctx, details, base_dir=base_dir, node_id=node_id,
+            cache_adt=True, track_modules=True, export_mesh=True,
+        )
     except Exception as e:
         return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
 
@@ -397,12 +406,13 @@ def vcad_place(
 
     # Step 2: Evaluate via sidecar
     try:
-        vcad = get_vcad_connection(agent=agent)
-        if has_imports:
-            base_dir = os.path.dirname(os.path.abspath(source_file))
-            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, node_id=node_id)
-        else:
-            eval_result = vcad.eval_file(source_file, node_id=node_id)
+        if not has_imports:
+            details = {"transformed_source": source_text, "resolved_imports": {}}
+        base_dir = os.path.dirname(os.path.abspath(source_file))
+        eval_result = _eval_with_imports(
+            ctx, details, base_dir=base_dir, node_id=node_id,
+            cache_adt=True, track_modules=True, export_mesh=True,
+        )
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -456,7 +466,8 @@ def vcad_place(
 
         # Auto-start file watcher on first place
         watcher = get_vcad_file_watcher()
-        watcher.auto_start_if_needed(source_file, vcad)
+        vcad_conn = get_vcad_connection(agent=agent)
+        watcher.auto_start_if_needed(source_file, vcad_conn)
 
         return json.dumps(result)
     except (
@@ -544,12 +555,13 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
 
     # Re-evaluate via sidecar
     try:
-        if has_imports:
-            base_dir = os.path.dirname(os.path.abspath(source_file))
-            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, node_id=node_id)
-        else:
-            vcad = get_vcad_connection(agent=agent)
-            eval_result = vcad.eval_file(source_file, node_id=node_id)
+        if not has_imports:
+            details = {"transformed_source": source_text, "resolved_imports": {}}
+        base_dir = os.path.dirname(os.path.abspath(source_file))
+        eval_result = _eval_with_imports(
+            ctx, details, base_dir=base_dir, node_id=node_id,
+            cache_adt=True, track_modules=True, export_mesh=True,
+        )
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -642,7 +654,7 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
         if not has_imports:
             details = {"transformed_source": source_text, "resolved_imports": {}}
         base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
-        eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, inspect_only=True)
+        eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, inspect=True, export_mesh=False)
         return json.dumps({
             "success": True,
             "volume": eval_result.get("volume", 0.0),
@@ -746,13 +758,9 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
     try:
         has_imports, details = _resolve_imports(ctx, code)
 
-        vcad = get_vcad_connection(agent=get_agent_name(ctx))
         if not has_imports:
             details = {"transformed_source": code, "resolved_imports": {}}
-        result = vcad.eval_repl_with_imports(
-            transformed_source=details["transformed_source"],
-            imports=details.get("resolved_imports"),
-        )
+        result = _eval_with_imports(ctx, details, display=True, export_mesh=False)
         return json.dumps({"success": True, **result})
     except (
         VCADCapabilityError,

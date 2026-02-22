@@ -280,7 +280,7 @@ class TestPassthrough:
 
     def test_upstream_error_code_preserved(self, mock_ctx, mock_vcad) -> None:
         """Sidecar error_code passes through unchanged in MCP tool response."""
-        mock_vcad.eval_repl_with_imports.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="NO_GEOMETRY", data={"node_id": "empty"}
         )
 
@@ -293,7 +293,7 @@ class TestPassthrough:
 
     def test_protocol_mismatch_code_preserved(self, mock_ctx, mock_vcad) -> None:
         """PROTOCOL_MISMATCH error_code preserved through eval tool."""
-        mock_vcad.eval_repl_with_imports.side_effect = VCADProtocolError(
+        mock_vcad.eval_with_imports.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
             details={
@@ -308,7 +308,7 @@ class TestPassthrough:
 
     def test_capability_code_preserved(self, mock_ctx, mock_vcad) -> None:
         """CAPABILITY_UNAVAILABLE error_code preserved through place tool."""
-        mock_vcad.eval_file.side_effect = VCADCapabilityError(
+        mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="adt_cache",
             negotiated_capabilities=["eval"],
             operation="vcad_place",
@@ -388,7 +388,7 @@ class TestDriverEnrichment:
 
     def test_enrichment_via_handle_vcad_error(self, mock_ctx, mock_vcad) -> None:
         """_handle_vcad_error fills operation from the tool operation string."""
-        mock_vcad.eval_repl_with_imports.side_effect = VCADProtocolError(
+        mock_vcad.eval_with_imports.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
             details={

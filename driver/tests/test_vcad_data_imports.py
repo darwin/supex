@@ -304,15 +304,15 @@ class TestVCADPlaceImportsErrors:
         assert result["error_code"] == -32603
         assert result["details"]["error_type"] == "remote"
 
-    def test_eval_file_error(
+    def test_eval_with_imports_error(
         self, mock_ctx, mock_vcad, mock_sketchup, source_file
     ):
-        """Sidecar eval_file failure propagated (no imports path)."""
+        """Sidecar eval_with_imports failure propagated (no imports path)."""
         mock_vcad.extract_imports.return_value = {
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
-        mock_vcad.eval_file.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="LOON_ERROR: undefined binding"
         )
 
@@ -332,7 +332,7 @@ class TestVCADPlaceImportsErrors:
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
-        mock_vcad.eval_file.return_value = {"volume": 100.0}
+        mock_vcad.eval_with_imports.return_value = {"volume": 100.0}
 
         result = json.loads(
             vcad_place(
@@ -350,7 +350,7 @@ class TestVCADPlaceImportsErrors:
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
-        mock_vcad.eval_file.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/out.dae",
         }
         mock_sketchup.send_command.side_effect = SketchUpConnectionError(
