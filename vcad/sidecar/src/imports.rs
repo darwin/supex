@@ -47,11 +47,23 @@ pub struct ResolvedDataImport {
     pub data: serde_json::Value,
 }
 
+/// Native mesh data from a SketchUp solid (manifold group/component).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NativeMeshData {
+    /// Flat vertex positions [x0,y0,z0, x1,y1,z1, ...] in mm.
+    pub positions: Vec<f64>,
+    /// Triangle indices [i0,i1,i2, ...].
+    pub indices: Vec<u32>,
+    /// Vertex normals [nx0,ny0,nz0, ...].
+    pub normals: Vec<f64>,
+}
+
 /// Resolved import with support for both data and solid extracts.
 ///
 /// Data imports (dimensions, bbox, transform) carry JSON data that is
 /// converted to Loon let-bindings. Solid imports carry a vcad_node_id
 /// whose cached ADT tree is injected into the Loon environment directly.
+/// Native mesh imports carry triangulated mesh data from SketchUp solids.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedImport {
     /// The extract type (dimensions, bbox, transform, solid).
@@ -64,6 +76,9 @@ pub struct ResolvedImport {
     /// VCAD node ID for solid imports (ADT retrieved from cache).
     #[serde(default)]
     pub vcad_node_id: Option<String>,
+    /// Native mesh data for solid imports from SketchUp solids.
+    #[serde(default)]
+    pub native_mesh: Option<NativeMeshData>,
 }
 
 /// Parse source, extract supported import forms, and rewrite them.
@@ -526,6 +541,7 @@ mod tests {
                 injected_symbol: "__vcad_import_0".to_string(),
                 data: serde_json::json!({"width": 50.0}),
                 vcad_node_id: None,
+                native_mesh: None,
             },
         );
         imports.insert(
@@ -535,6 +551,7 @@ mod tests {
                 injected_symbol: "__vcad_import_1".to_string(),
                 data: serde_json::Value::Null,
                 vcad_node_id: Some("bracket-node".to_string()),
+                native_mesh: None,
             },
         );
         let preamble = build_data_preamble(&imports);

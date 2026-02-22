@@ -4,7 +4,7 @@ use crate::imports::{
     build_data_preamble, build_import_preamble, ResolvedDataImport, ResolvedImport,
 };
 use loon_lang::interp::{
-    eval_program_with_env_and_base_dir, eval_program_with_module_tracking, Env,
+    eval_program_with_env_and_base_dir, eval_program_with_module_tracking, Env, Value,
 };
 use loon_lang::parser::parse;
 use serde::Serialize;
@@ -368,7 +368,23 @@ impl Evaluator {
         let mut env = Env::new();
         for import in imports.values() {
             if import.extract == "solid" {
-                if let Some(ref vcad_nid) = import.vcad_node_id {
+                if let Some(ref mesh_data) = import.native_mesh {
+                    // Native SketchUp solid: build ImportedMesh ADT from mesh data
+                    let positions = Value::Vec(
+                        mesh_data.positions.iter().map(|&v| Value::Float(v)).collect(),
+                    );
+                    let indices = Value::Vec(
+                        mesh_data.indices.iter().map(|&v| Value::Int(v as i64)).collect(),
+                    );
+                    let normals = Value::Vec(
+                        mesh_data.normals.iter().map(|&v| Value::Float(v)).collect(),
+                    );
+                    let mesh_value = Value::Adt(
+                        "ImportedMesh".to_string(),
+                        vec![positions, indices, normals],
+                    );
+                    env.set(import.injected_symbol.clone(), mesh_value);
+                } else if let Some(ref vcad_nid) = import.vcad_node_id {
                     if let Some(cached_adt) = self.adt_cache.get(vcad_nid) {
                         env.set(import.injected_symbol.clone(), cached_adt.clone());
                     } else {
@@ -381,7 +397,7 @@ impl Evaluator {
                 } else {
                     return Err(EvalError::Loon(
                         "SOLID_IMPORT_UNAVAILABLE: :solid import requires a \
-                         vcad-backed entity with a vcad_node_id"
+                         vcad-backed entity with a vcad_node_id or native mesh data"
                             .to_string(),
                     ));
                 }

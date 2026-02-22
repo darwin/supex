@@ -199,7 +199,7 @@ module SupexRuntime
       when 'solid'
         if vcad_node_id
           { extract: 'solid', source: 'vcad', vcad_node_id: vcad_node_id }
-        elsif defn && defn.entities.manifold?
+        elsif defn && defn.entities.grep(Sketchup::Face).any?
           mesh_data = extract_solid_mesh(defn)
           { extract: 'solid', source: 'native_mesh', mesh: mesh_data }
         else
