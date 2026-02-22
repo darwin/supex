@@ -1,13 +1,19 @@
 use crate::adt_cache::AdtCache;
 use crate::dae_export::{brep_to_dae, mesh_to_dae};
-use crate::imports::{build_import_preamble, ResolvedDataImport};
+use crate::imports::{
+    build_data_preamble, build_import_preamble, ResolvedDataImport, ResolvedImport,
+};
+use loon_lang::interp::{eval_program_with_env_and_base_dir, Env};
+use loon_lang::parser::parse;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use vcad_eval::{evaluate_document, EvalOptions};
 use vcad_ir::Document;
 use vcad_kernel_tessellate::TessellationParams;
-use vcad_loon::{eval_vcad, eval_vcad_file, eval_vcad_to_value};
+use vcad_loon::{
+    eval_vcad, eval_vcad_file, eval_vcad_to_value, value_to_document, VCAD_LIB_SOURCE,
+};
 
 struct TempRetention {
     ttl_sec: u64,
@@ -17,7 +23,6 @@ struct TempRetention {
 
 pub struct Evaluator {
     temp_dir: PathBuf,
-    #[allow(dead_code)]
     adt_cache: AdtCache,
     retention: TempRetention,
 }
@@ -190,15 +195,53 @@ impl Evaluator {
     }
 
     /// Evaluate inline Loon code (no module resolution).
+    ///
+    /// Caches the result ADT value for future solid imports.
     pub fn eval_code(&mut self, code: &str) -> Result<EvalResult, EvalError> {
         let doc = eval_vcad(code, None).map_err(EvalError::Loon)?;
         self.evaluate_and_export(&doc, "eval")
     }
 
+    /// Evaluate inline Loon code and cache its ADT under `node_id`.
+    #[allow(dead_code)]
+    pub fn eval_code_with_cache(
+        &mut self,
+        code: &str,
+        node_id: &str,
+    ) -> Result<EvalResult, EvalError> {
+        let adt_value = eval_vcad_to_value(code, None).map_err(EvalError::Loon)?;
+        self.adt_cache.set(node_id, adt_value.clone());
+        let doc = value_to_document(&adt_value).map_err(EvalError::Loon)?;
+        self.evaluate_and_export(&doc, "eval")
+    }
+
     /// Evaluate .skp.oo file (with module resolution via base_dir).
+    ///
+    /// Caches the result ADT value for future solid imports.
     pub fn eval_file(&mut self, path: &str) -> Result<EvalResult, EvalError> {
         let file_path = Path::new(path);
         let doc = eval_vcad_file(file_path).map_err(EvalError::Loon)?;
+        let stem = file_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("file");
+        self.evaluate_and_export(&doc, stem)
+    }
+
+    /// Evaluate .skp.oo file and cache its ADT under `node_id`.
+    #[allow(dead_code)]
+    pub fn eval_file_with_cache(
+        &mut self,
+        path: &str,
+        node_id: &str,
+    ) -> Result<EvalResult, EvalError> {
+        let file_path = Path::new(path);
+        let base_dir = file_path.parent();
+        let source = std::fs::read_to_string(file_path)
+            .map_err(|e| EvalError::Loon(format!("cannot read {}: {e}", file_path.display())))?;
+        let adt_value = eval_vcad_to_value(source.trim(), base_dir).map_err(EvalError::Loon)?;
+        self.adt_cache.set(node_id, adt_value.clone());
+        let doc = value_to_document(&adt_value).map_err(EvalError::Loon)?;
         let stem = file_path
             .file_stem()
             .and_then(|s| s.to_str())
@@ -265,6 +308,73 @@ impl Evaluator {
 
         let doc = eval_vcad(&augmented_source, base_dir).map_err(EvalError::Loon)?;
         self.evaluate_and_export(&doc, "import-eval")
+    }
+
+    /// Evaluate transformed source with both data and solid imports.
+    ///
+    /// Data imports (dimensions, bbox, transform) are injected as source-level
+    /// let-bindings. Solid imports are injected directly into the Loon environment
+    /// as cached ADT values retrieved from the ADT cache.
+    ///
+    /// The combined ADT tree flows through `value_to_document()` -> `evaluate_document()`
+    /// so the kernel optimizes the full CSG tree in one pass.
+    pub fn eval_with_imports(
+        &mut self,
+        transformed_source: &str,
+        base_dir: Option<&Path>,
+        imports: &HashMap<String, ResolvedImport>,
+        node_id: Option<&str>,
+    ) -> Result<EvalResult, EvalError> {
+        // 1. Build Loon preamble for data imports only (solid skipped)
+        let preamble = build_data_preamble(imports);
+        let augmented_source = format!("{}{}\n{}", VCAD_LIB_SOURCE, preamble, transformed_source);
+
+        // 2. Parse the augmented source
+        let exprs = parse(&augmented_source)
+            .map_err(|e| EvalError::Loon(format!("Parse error: {}", e.message)))?;
+
+        // 3. Set up Loon environment with solid ADT bindings
+        let mut env = Env::new();
+        for import in imports.values() {
+            if import.extract == "solid" {
+                if let Some(ref vcad_nid) = import.vcad_node_id {
+                    if let Some(cached_adt) = self.adt_cache.get(vcad_nid) {
+                        env.set(import.injected_symbol.clone(), cached_adt.clone());
+                    } else {
+                        return Err(EvalError::Loon(format!(
+                            "ADT_CACHE_MISS: no cached ADT for node '{}' — \
+                             the source node must be evaluated before it can be imported",
+                            vcad_nid
+                        )));
+                    }
+                } else {
+                    return Err(EvalError::Loon(
+                        "SOLID_IMPORT_UNAVAILABLE: :solid import requires a \
+                         vcad-backed entity with a vcad_node_id"
+                            .to_string(),
+                    ));
+                }
+            }
+        }
+
+        // 4. Evaluate Loon with pre-populated environment
+        let result_value = eval_program_with_env_and_base_dir(&exprs, &mut env, base_dir)
+            .map_err(|e| EvalError::Loon(format!("{e}")))?;
+
+        // 5. Cache the result ADT for future imports
+        if let Some(nid) = node_id {
+            self.adt_cache.set(nid, result_value.clone());
+        }
+
+        // 6. Convert to Document and evaluate to mesh
+        let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
+        self.evaluate_and_export(&doc, "import-eval")
+    }
+
+    /// Provide read access to the ADT cache (for server-level queries).
+    #[allow(dead_code)]
+    pub fn adt_cache(&mut self) -> &mut AdtCache {
+        &mut self.adt_cache
     }
 
     fn evaluate_and_export(&mut self, doc: &Document, name: &str) -> Result<EvalResult, EvalError> {

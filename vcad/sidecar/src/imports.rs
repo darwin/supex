@@ -9,8 +9,8 @@ use loon_lang::parser::parse;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Valid extract types for data imports.
-const VALID_EXTRACTS: &[&str] = &["dimensions", "bbox", "transform"];
+/// Valid extract types for imports (data + solid).
+const VALID_EXTRACTS: &[&str] = &["dimensions", "bbox", "transform", "solid"];
 
 /// A single import declaration extracted from source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +45,25 @@ pub struct ResolvedDataImport {
     pub injected_symbol: String,
     /// Resolved data as JSON value (will be converted to Loon literal).
     pub data: serde_json::Value,
+}
+
+/// Resolved import with support for both data and solid extracts.
+///
+/// Data imports (dimensions, bbox, transform) carry JSON data that is
+/// converted to Loon let-bindings. Solid imports carry a vcad_node_id
+/// whose cached ADT tree is injected into the Loon environment directly.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResolvedImport {
+    /// The extract type (dimensions, bbox, transform, solid).
+    pub extract: String,
+    /// The injected symbol name (__vcad_import_N).
+    pub injected_symbol: String,
+    /// Resolved data as JSON value (for data imports).
+    #[serde(default)]
+    pub data: serde_json::Value,
+    /// VCAD node ID for solid imports (ADT retrieved from cache).
+    #[serde(default)]
+    pub vcad_node_id: Option<String>,
 }
 
 /// Parse source, extract supported import forms, and rewrite them.
@@ -306,6 +325,20 @@ pub fn build_import_preamble(imports: &HashMap<String, ResolvedDataImport>) -> S
     preamble
 }
 
+/// Build the preamble of let-bindings for data imports only (skipping solid).
+///
+/// Solid imports are injected directly into the Loon environment, not as
+/// source-level let-bindings.
+pub fn build_data_preamble(imports: &HashMap<String, ResolvedImport>) -> String {
+    let mut preamble = String::new();
+    for import in imports.values() {
+        if import.extract != "solid" {
+            preamble.push_str(&format_data_binding(&import.injected_symbol, &import.data));
+        }
+    }
+    preamble
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -453,5 +486,59 @@ mod tests {
         assert_eq!(result.imports.len(), 1);
         assert_eq!(result.imports[0].extract, "transform");
         assert_eq!(result.imports[0].entity_ref, "entity:42");
+    }
+
+    #[test]
+    fn test_solid_extract() {
+        let source = r#"[let bracket [import :solid "entity:67890"]]
+[difference bracket [cube 10.0 10.0 10.0]]"#;
+
+        let result = extract_and_rewrite_imports(source).unwrap();
+
+        assert_eq!(result.imports.len(), 1);
+        assert_eq!(result.imports[0].extract, "solid");
+        assert_eq!(result.imports[0].entity_ref, "entity:67890");
+        assert_eq!(result.imports[0].injected_symbol, "__vcad_import_0");
+        assert!(result.transformed_source.contains("__vcad_import_0"));
+        assert!(!result.transformed_source.contains("[import"));
+    }
+
+    #[test]
+    fn test_mixed_data_and_solid_imports() {
+        let source = r#"[let dims [import :dimensions "entity:100"]]
+[let bracket [import :solid "entity:200"]]
+[cube 1.0 1.0 1.0]"#;
+
+        let result = extract_and_rewrite_imports(source).unwrap();
+
+        assert_eq!(result.imports.len(), 2);
+        assert_eq!(result.imports[0].extract, "dimensions");
+        assert_eq!(result.imports[1].extract, "solid");
+    }
+
+    #[test]
+    fn test_build_data_preamble_skips_solid() {
+        let mut imports = HashMap::new();
+        imports.insert(
+            "import_0".to_string(),
+            ResolvedImport {
+                extract: "dimensions".to_string(),
+                injected_symbol: "__vcad_import_0".to_string(),
+                data: serde_json::json!({"width": 50.0}),
+                vcad_node_id: None,
+            },
+        );
+        imports.insert(
+            "import_1".to_string(),
+            ResolvedImport {
+                extract: "solid".to_string(),
+                injected_symbol: "__vcad_import_1".to_string(),
+                data: serde_json::Value::Null,
+                vcad_node_id: Some("bracket-node".to_string()),
+            },
+        );
+        let preamble = build_data_preamble(&imports);
+        assert!(preamble.contains("__vcad_import_0"));
+        assert!(!preamble.contains("__vcad_import_1"));
     }
 }

@@ -197,7 +197,11 @@ module SupexRuntime
         { extract: 'transform', vcad_node_id: vcad_node_id,
           data: { matrix: entity.transformation.to_a } }
       when 'solid'
-        raise "Solid import not supported in this phase"
+        if vcad_node_id
+          { extract: 'solid', source: 'vcad', vcad_node_id: vcad_node_id }
+        else
+          raise "Entity #{entity_id} is not vcad-backed — :solid import unavailable (native mesh support in Phase native-mesh)"
+        end
       else
         raise "Unsupported extract type: #{extract_type}"
       end

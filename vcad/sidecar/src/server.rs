@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::evaluator::{EvalError, EvalResult, Evaluator};
-use crate::imports::{self, ResolvedDataImport};
+use crate::imports::{self, ResolvedDataImport, ResolvedImport};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, BufWriter, Write};
@@ -78,6 +78,14 @@ pub enum EvalRequest {
         base_dir: Option<String>,
         imports: HashMap<String, ResolvedDataImport>,
     },
+    /// Evaluate with both data and solid imports (ADT composition).
+    EvalWithSolidImports {
+        id: serde_json::Value,
+        transformed_source: String,
+        base_dir: Option<String>,
+        imports: HashMap<String, ResolvedImport>,
+        node_id: Option<String>,
+    },
 }
 
 impl EvalRequest {
@@ -89,6 +97,7 @@ impl EvalRequest {
             EvalRequest::Inspect { id, .. } => id,
             EvalRequest::EvalRepl { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
+            EvalRequest::EvalWithSolidImports { id, .. } => id,
         }
     }
 }
@@ -533,6 +542,38 @@ fn dispatch_tools_call(
                 imports: resolved_imports,
             }
         }
+        "vcad.eval_with_solid_imports" => {
+            let transformed_source = arguments
+                .get("transformed_source")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if transformed_source.is_empty() {
+                return make_error_response(
+                    request.id.clone(),
+                    JSONRPC_INVALID_REQUEST,
+                    "vcad.eval_with_solid_imports requires non-empty 'transformed_source' argument",
+                    None,
+                );
+            }
+            let base_dir = arguments
+                .get("base_dir")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let node_id = arguments
+                .get("node_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
+            let resolved_imports: HashMap<String, ResolvedImport> =
+                serde_json::from_value(raw_imports).unwrap_or_default();
+            EvalRequest::EvalWithSolidImports {
+                id: request.id.clone(),
+                transformed_source: transformed_source.to_string(),
+                base_dir,
+                imports: resolved_imports,
+                node_id,
+            }
+        }
         _ => {
             return make_error_response(
                 request.id.clone(),
@@ -675,6 +716,20 @@ fn dispatch_eval(request: &EvalRequest, evaluator: &mut Evaluator) -> JsonRpcRes
         } => {
             let base = base_dir.as_deref().map(std::path::Path::new);
             match evaluator.eval_with_data_imports(transformed_source, base, imports) {
+                Ok(result) => eval_result_response(id.clone(), &result),
+                Err(e) => eval_error_response(id.clone(), &e),
+            }
+        }
+        EvalRequest::EvalWithSolidImports {
+            id,
+            transformed_source,
+            base_dir,
+            imports,
+            node_id,
+        } => {
+            let base = base_dir.as_deref().map(std::path::Path::new);
+            match evaluator.eval_with_imports(transformed_source, base, imports, node_id.as_deref())
+            {
                 Ok(result) => eval_result_response(id.clone(), &result),
                 Err(e) => eval_error_response(id.clone(), &e),
             }

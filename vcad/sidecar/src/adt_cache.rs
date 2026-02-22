@@ -1,20 +1,17 @@
 use loon_lang::interp::Value;
 use std::collections::HashMap;
 
-#[allow(dead_code)]
 pub struct AdtCache {
     cache: HashMap<String, CacheEntry>,
     max_entries: usize,
     access_seq: u64,
 }
 
-#[allow(dead_code)]
 struct CacheEntry {
     value: Value,
     last_access: u64,
 }
 
-#[allow(dead_code)]
 impl AdtCache {
     pub fn new(max_entries: usize) -> Self {
         Self {
@@ -50,14 +47,17 @@ impl AdtCache {
         self.cache.contains_key(node_id)
     }
 
+    #[allow(dead_code)]
     pub fn invalidate(&mut self, node_id: &str) {
         self.cache.remove(node_id);
     }
 
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.cache.clear();
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.cache.len()
     }

@@ -505,6 +505,38 @@ class VCADConnection:
             params["imports"] = imports
         return self.send_command("vcad.eval_with_imports", params)
 
+    def eval_with_solid_imports(
+        self,
+        transformed_source: str,
+        base_dir: str | None = None,
+        imports: dict[str, Any] | None = None,
+        node_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Evaluate transformed source with data and solid imports.
+
+        Solid imports reference cached ADT values in the sidecar's ADT cache.
+        Data imports are injected as source-level let-bindings.
+
+        Args:
+            transformed_source: Source with import expressions replaced by symbols.
+            base_dir: Optional base directory for module resolution.
+            imports: Dict of import_id -> resolved import data (ResolvedImport format).
+            node_id: Optional node ID to cache the result ADT under.
+
+        Returns:
+            Evaluation result from sidecar.
+        """
+        params: dict[str, Any] = {
+            "transformed_source": transformed_source,
+        }
+        if base_dir is not None:
+            params["base_dir"] = base_dir
+        if imports is not None:
+            params["imports"] = imports
+        if node_id is not None:
+            params["node_id"] = node_id
+        return self.send_command("vcad.eval_with_solid_imports", params)
+
 
 # Global connection management with thread safety
 _vcad_connection_lock = threading.Lock()

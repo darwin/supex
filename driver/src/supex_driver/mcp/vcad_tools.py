@@ -163,13 +163,22 @@ def _build_import_refs(
     for imp in import_decls:
         import_id = imp.get("import_id", "")
         resolved = resolved_imports.get(import_id, {})
-        resolved_type = resolved.get("resolved_type", "native")
-        source_node_id = resolved.get("source_node_id")
+
+        # Determine resolved type: solid imports from vcad-backed entities
+        # carry vcad_node_id; data imports may have resolved_type set directly.
+        extract = imp.get("extract", "")
+        vcad_node_id = resolved.get("vcad_node_id")
+        if extract == "solid" and vcad_node_id:
+            resolved_type = "vcad"
+            source_node_id = vcad_node_id
+        else:
+            resolved_type = resolved.get("resolved_type", "native")
+            source_node_id = resolved.get("source_node_id")
 
         refs.append(ImportRef(
             binding_name=imp.get("injected_symbol", imp.get("binding_name", "")),
             entity_ref=imp.get("entity_ref", ""),
-            extract=imp.get("extract", ""),
+            extract=extract,
             resolved_type=resolved_type,
             source_node_id=source_node_id,
         ))
@@ -583,6 +592,7 @@ def vcad_place_with_imports(
 
     # Step 3: Resolve each import via SketchUp bridge
     resolved_imports: dict[str, Any] = {}
+    has_solid_imports = False
     if import_decls:
         try:
             sketchup = get_sketchup_connection(agent=agent)
@@ -599,11 +609,22 @@ def vcad_place_with_imports(
                     request_id=ctx.request_id,
                 )
 
-                resolved_imports[imp["import_id"]] = {
-                    "extract": imp["extract"],
-                    "injected_symbol": imp["injected_symbol"],
-                    "data": resolve_result.get("data", {}),
-                }
+                if imp["extract"] == "solid":
+                    # Solid import: ADT retrieved from sidecar cache by vcad_node_id
+                    has_solid_imports = True
+                    resolved_imports[imp["import_id"]] = {
+                        "extract": "solid",
+                        "injected_symbol": imp["injected_symbol"],
+                        "data": None,
+                        "vcad_node_id": resolve_result.get("vcad_node_id"),
+                    }
+                else:
+                    # Data import: resolved data injected as Loon let-binding
+                    resolved_imports[imp["import_id"]] = {
+                        "extract": imp["extract"],
+                        "injected_symbol": imp["injected_symbol"],
+                        "data": resolve_result.get("data", {}),
+                    }
         except (
             SketchUpRemoteError,
             SketchUpConnectionError,
@@ -618,11 +639,20 @@ def vcad_place_with_imports(
     try:
         vcad = get_vcad_connection(agent=agent)
         base_dir = os.path.dirname(os.path.abspath(source_file))
-        eval_result = vcad.eval_with_imports(
-            transformed_source=transformed_source,
-            base_dir=base_dir,
-            imports=resolved_imports,
-        )
+        if has_solid_imports:
+            # Use solid-aware eval path (ADT composition)
+            eval_result = vcad.eval_with_solid_imports(
+                transformed_source=transformed_source,
+                base_dir=base_dir,
+                imports=resolved_imports,
+                node_id=node_id,
+            )
+        else:
+            eval_result = vcad.eval_with_imports(
+                transformed_source=transformed_source,
+                base_dir=base_dir,
+                imports=resolved_imports,
+            )
     except (
         VCADCapabilityError,
         VCADProtocolError,
