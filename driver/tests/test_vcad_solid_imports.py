@@ -86,10 +86,10 @@ def mixed_source_file(tmp_path):
 class TestSolidImportSuccess:
     """Test solid import flow through vcad_place."""
 
-    def test_solid_import_uses_eval_with_solid_imports(
+    def test_solid_import_uses_eval_with_imports(
         self, mock_ctx, mock_vcad, mock_sketchup, solid_source_file
     ):
-        """Solid import triggers eval_with_solid_imports sidecar path."""
+        """Solid import triggers eval_with_imports sidecar path."""
         # Sidecar extract_imports
         mock_vcad.extract_imports.return_value = {
             "imports": [
@@ -119,8 +119,8 @@ class TestSolidImportSuccess:
             },
         ]
 
-        # Sidecar eval_with_solid_imports
-        mock_vcad.eval_with_solid_imports.return_value = {
+        # Sidecar eval_with_imports
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/import-eval-001.dae",
             "volume": 500.0,
             "surface_area": 300.0,
@@ -137,12 +137,11 @@ class TestSolidImportSuccess:
         assert result["success"] is True
         assert result["node_id"] == "consumer"
 
-        # Verify eval_with_solid_imports was called (not eval_with_imports)
-        mock_vcad.eval_with_solid_imports.assert_called_once()
-        mock_vcad.eval_with_imports.assert_not_called()
+        # Verify eval_with_imports was called
+        mock_vcad.eval_with_imports.assert_called_once()
 
         # Verify the imports dict contains vcad_node_id
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         import_0 = call_kwargs["imports"]["import_0"]
         assert import_0["extract"] == "solid"
         assert import_0["vcad_node_id"] == "bracket-node"
@@ -154,7 +153,7 @@ class TestSolidImportSuccess:
     def test_mixed_data_and_solid_imports(
         self, mock_ctx, mock_vcad, mock_sketchup, mixed_source_file
     ):
-        """Mixed data + solid imports use eval_with_solid_imports path."""
+        """Mixed data + solid imports use eval_with_imports path."""
         mock_vcad.extract_imports.return_value = {
             "imports": [
                 {
@@ -194,7 +193,7 @@ class TestSolidImportSuccess:
             },
         ]
 
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/mixed.dae",
             "volume": 800.0,
         }
@@ -209,12 +208,11 @@ class TestSolidImportSuccess:
 
         assert result["success"] is True
 
-        # eval_with_solid_imports used (has solid imports)
-        mock_vcad.eval_with_solid_imports.assert_called_once()
-        mock_vcad.eval_with_imports.assert_not_called()
+        # eval_with_imports used (has solid imports)
+        mock_vcad.eval_with_imports.assert_called_once()
 
         # Both imports present in the call
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         imports = call_kwargs["imports"]
         assert imports["import_0"]["extract"] == "dimensions"
         assert imports["import_0"]["data"]["width"] == 100.0
@@ -272,7 +270,6 @@ class TestSolidImportSuccess:
         assert result["success"] is True
         # eval_with_imports used (no solid imports)
         mock_vcad.eval_with_imports.assert_called_once()
-        mock_vcad.eval_with_solid_imports.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -342,7 +339,7 @@ class TestSolidImportErrors:
         }
 
         # Sidecar returns cache miss error
-        mock_vcad.eval_with_solid_imports.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000,
             message="ADT_CACHE_MISS: no cached ADT for node 'missing-node'",
             data={"error_code": "LOON_ERROR"},
@@ -444,23 +441,23 @@ class TestBuildImportRefsWithSolid:
 
 
 class TestVCADConnectionSolidImports:
-    """Test VCADConnection.eval_with_solid_imports method."""
+    """Test VCADConnection.eval_with_imports method."""
 
-    def test_eval_with_solid_imports_exists(self):
-        """eval_with_solid_imports is a callable method on VCADConnection."""
+    def test_eval_with_imports_exists(self):
+        """eval_with_imports is a callable method on VCADConnection."""
         from supex_driver.connection.vcad_connection import VCADConnection
 
-        assert hasattr(VCADConnection, "eval_with_solid_imports")
-        assert callable(getattr(VCADConnection, "eval_with_solid_imports"))
+        assert hasattr(VCADConnection, "eval_with_imports")
+        assert callable(getattr(VCADConnection, "eval_with_imports"))
 
-    def test_eval_with_solid_imports_params(self):
-        """eval_with_solid_imports builds correct params."""
+    def test_eval_with_imports_params(self):
+        """eval_with_imports builds correct params."""
         from supex_driver.connection.vcad_connection import VCADConnection
 
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(return_value={"obj_path": "/tmp/out.dae"})
 
-        conn.eval_with_solid_imports(
+        conn.eval_with_imports(
             transformed_source="[cube 10.0 10.0 10.0]",
             base_dir="/tmp/project",
             imports={"import_0": {"extract": "solid", "vcad_node_id": "node-a"}},
@@ -468,7 +465,7 @@ class TestVCADConnectionSolidImports:
         )
 
         call_args = conn.send_command.call_args
-        assert call_args[0][0] == "vcad.eval_with_solid_imports"
+        assert call_args[0][0] == "vcad.eval_with_imports"
         params = call_args[0][1]
         assert params["transformed_source"] == "[cube 10.0 10.0 10.0]"
         assert params["base_dir"] == "/tmp/project"

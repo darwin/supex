@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::evaluator::{EvalError, EvalResult, Evaluator};
-use crate::imports::{self, ResolvedDataImport, ResolvedImport};
+use crate::imports::{self, ResolvedImport};
 use crate::module_tracker::ModuleTracker;
 use crate::watcher::FileWatcher;
 use serde::{Deserialize, Serialize};
@@ -84,13 +84,6 @@ pub enum EvalRequest {
         id: serde_json::Value,
         transformed_source: String,
         base_dir: Option<String>,
-        imports: HashMap<String, ResolvedDataImport>,
-    },
-    /// Evaluate with both data and solid imports (ADT composition).
-    EvalWithSolidImports {
-        id: serde_json::Value,
-        transformed_source: String,
-        base_dir: Option<String>,
         imports: HashMap<String, ResolvedImport>,
         node_id: Option<String>,
     },
@@ -113,7 +106,6 @@ impl EvalRequest {
             EvalRequest::Inspect { id, .. } => id,
             EvalRequest::EvalRepl { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
-            EvalRequest::EvalWithSolidImports { id, .. } => id,
             EvalRequest::EvalReplWithImports { id, .. } => id,
         }
     }
@@ -621,33 +613,6 @@ fn dispatch_tools_call(
                 .get("base_dir")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
-            let resolved_imports: HashMap<String, ResolvedDataImport> =
-                serde_json::from_value(raw_imports).unwrap_or_default();
-            EvalRequest::EvalWithImports {
-                id: request.id.clone(),
-                transformed_source: transformed_source.to_string(),
-                base_dir,
-                imports: resolved_imports,
-            }
-        }
-        "vcad.eval_with_solid_imports" => {
-            let transformed_source = arguments
-                .get("transformed_source")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            if transformed_source.is_empty() {
-                return make_error_response(
-                    request.id.clone(),
-                    JSONRPC_INVALID_REQUEST,
-                    "vcad.eval_with_solid_imports requires non-empty 'transformed_source' argument",
-                    None,
-                );
-            }
-            let base_dir = arguments
-                .get("base_dir")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
             let node_id = arguments
                 .get("node_id")
                 .and_then(|v| v.as_str())
@@ -655,7 +620,7 @@ fn dispatch_tools_call(
             let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
             let resolved_imports: HashMap<String, ResolvedImport> =
                 serde_json::from_value(raw_imports).unwrap_or_default();
-            EvalRequest::EvalWithSolidImports {
+            EvalRequest::EvalWithImports {
                 id: request.id.clone(),
                 transformed_source: transformed_source.to_string(),
                 base_dir,
@@ -975,18 +940,6 @@ fn dispatch_eval(
             Err(e) => eval_error_response(id.clone(), &e),
         },
         EvalRequest::EvalWithImports {
-            id,
-            transformed_source,
-            base_dir,
-            imports,
-        } => {
-            let base = base_dir.as_deref().map(std::path::Path::new);
-            match evaluator.eval_with_data_imports(transformed_source, base, imports) {
-                Ok(result) => eval_result_response(id.clone(), &result),
-                Err(e) => eval_error_response(id.clone(), &e),
-            }
-        }
-        EvalRequest::EvalWithSolidImports {
             id,
             transformed_source,
             base_dir,

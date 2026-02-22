@@ -1,8 +1,6 @@
 use crate::adt_cache::AdtCache;
 use crate::dae_export::{brep_to_dae, mesh_to_dae};
-use crate::imports::{
-    build_data_preamble, build_import_preamble, ResolvedDataImport, ResolvedImport,
-};
+use crate::imports::{build_import_preamble, ResolvedImport};
 use loon_lang::interp::{
     eval_program_with_env_and_base_dir, eval_program_with_module_tracking, Env, Value,
 };
@@ -324,24 +322,6 @@ impl Evaluator {
         })
     }
 
-    /// Evaluate transformed source with resolved data imports injected as let-bindings.
-    ///
-    /// Raw `[import ...]` calls never reach the Loon interpreter — they are
-    /// rewritten to injected symbols by `extract_and_rewrite_imports()`, and
-    /// resolved data is prepended as `[let __vcad_import_N ...]` bindings.
-    pub fn eval_with_data_imports(
-        &mut self,
-        transformed_source: &str,
-        base_dir: Option<&Path>,
-        imports: &HashMap<String, ResolvedDataImport>,
-    ) -> Result<EvalResult, EvalError> {
-        let preamble = build_import_preamble(imports);
-        let augmented_source = format!("{}{}", preamble, transformed_source);
-
-        let doc = eval_vcad(&augmented_source, base_dir).map_err(EvalError::Loon)?;
-        self.evaluate_and_export(&doc, "import-eval")
-    }
-
     /// Evaluate transformed source with both data and solid imports.
     ///
     /// Data imports (dimensions, bbox, transform) are injected as source-level
@@ -358,7 +338,7 @@ impl Evaluator {
         node_id: Option<&str>,
     ) -> Result<EvalResult, EvalError> {
         // 1. Build Loon preamble for data imports only (solid skipped)
-        let preamble = build_data_preamble(imports);
+        let preamble = build_import_preamble(imports);
         let augmented_source = format!("{}{}\n{}", VCAD_LIB_SOURCE, preamble, transformed_source);
 
         // 2. Parse the augmented source
@@ -431,7 +411,7 @@ impl Evaluator {
         imports: &HashMap<String, ResolvedImport>,
     ) -> Result<String, EvalError> {
         // 1. Build Loon preamble for data imports only (solid skipped)
-        let preamble = build_data_preamble(imports);
+        let preamble = build_import_preamble(imports);
         let augmented_source = format!("{}{}\n{}", VCAD_LIB_SOURCE, preamble, transformed_source);
 
         // 2. Parse the augmented source

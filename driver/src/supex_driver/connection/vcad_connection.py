@@ -490,31 +490,6 @@ class VCADConnection:
         """
         return self.send_command("vcad.extract_imports", {"source": source})
 
-    def eval_with_imports(
-        self,
-        transformed_source: str,
-        base_dir: str | None = None,
-        imports: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        """Evaluate transformed source with resolved import data.
-
-        Args:
-            transformed_source: Source with import expressions replaced by symbols.
-            base_dir: Optional base directory for module resolution.
-            imports: Dict of import_id -> resolved import data.
-
-        Returns:
-            Evaluation result from sidecar.
-        """
-        params: dict[str, Any] = {
-            "transformed_source": transformed_source,
-        }
-        if base_dir is not None:
-            params["base_dir"] = base_dir
-        if imports is not None:
-            params["imports"] = imports
-        return self.send_command("vcad.eval_with_imports", params)
-
     def get_affected_nodes(self, path: str) -> list[str]:
         """Query the module tracker for nodes affected by a file change.
 
@@ -554,17 +529,17 @@ class VCADConnection:
         """
         return self.send_command("vcad.watch_poll", {})
 
-    def eval_with_solid_imports(
+    def eval_with_imports(
         self,
         transformed_source: str,
         base_dir: str | None = None,
         imports: dict[str, Any] | None = None,
         node_id: str | None = None,
     ) -> dict[str, Any]:
-        """Evaluate transformed source with data and solid imports.
+        """Evaluate transformed source with resolved imports (data and solid).
 
-        Solid imports reference cached ADT values in the sidecar's ADT cache.
         Data imports are injected as source-level let-bindings.
+        Solid imports reference cached ADT values in the sidecar's ADT cache.
 
         Args:
             transformed_source: Source with import expressions replaced by symbols.
@@ -584,7 +559,7 @@ class VCADConnection:
             params["imports"] = imports
         if node_id is not None:
             params["node_id"] = node_id
-        return self.send_command("vcad.eval_with_solid_imports", params)
+        return self.send_command("vcad.eval_with_imports", params)
 
     def eval_repl_with_imports(
         self,

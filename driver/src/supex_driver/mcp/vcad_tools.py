@@ -241,30 +241,16 @@ def _eval_with_imports(
     base_dir: str | None = None,
     node_id: str | None = None,
 ) -> dict[str, Any]:
-    """Evaluate transformed source with resolved imports via appropriate sidecar endpoint.
-
-    Chooses eval_with_solid_imports or eval_with_imports based on has_solid_imports.
-    """
+    """Evaluate transformed source with resolved imports via sidecar."""
     agent = get_agent_name(ctx)
     vcad = get_vcad_connection(agent=agent)
 
-    transformed_source = details["transformed_source"]
-    resolved_imports = details["resolved_imports"]
-    has_solid_imports = details["has_solid_imports"]
-
-    if has_solid_imports:
-        return vcad.eval_with_solid_imports(
-            transformed_source=transformed_source,
-            base_dir=base_dir,
-            imports=resolved_imports,
-            node_id=node_id,
-        )
-    else:
-        return vcad.eval_with_imports(
-            transformed_source=transformed_source,
-            base_dir=base_dir,
-            imports=resolved_imports,
-        )
+    return vcad.eval_with_imports(
+        transformed_source=details["transformed_source"],
+        base_dir=base_dir,
+        imports=details["resolved_imports"],
+        node_id=node_id,
+    )
 
 
 def _vcad_update_single(

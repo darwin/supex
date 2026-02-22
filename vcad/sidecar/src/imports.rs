@@ -36,17 +36,6 @@ pub struct ExtractedImports {
     pub transformed_source: String,
 }
 
-/// Resolved data for a single import (passed back from driver).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResolvedDataImport {
-    /// The extract type.
-    pub extract: String,
-    /// The injected symbol name.
-    pub injected_symbol: String,
-    /// Resolved data as JSON value (will be converted to Loon literal).
-    pub data: serde_json::Value,
-}
-
 /// Native mesh data from a SketchUp solid (manifold group/component).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NativeMeshData {
@@ -331,20 +320,11 @@ fn json_to_loon(value: &serde_json::Value) -> String {
     }
 }
 
-/// Build the preamble of let-bindings for all resolved imports.
-pub fn build_import_preamble(imports: &HashMap<String, ResolvedDataImport>) -> String {
-    let mut preamble = String::new();
-    for import in imports.values() {
-        preamble.push_str(&format_data_binding(&import.injected_symbol, &import.data));
-    }
-    preamble
-}
-
 /// Build the preamble of let-bindings for data imports only (skipping solid).
 ///
 /// Solid imports are injected directly into the Loon environment, not as
 /// source-level let-bindings.
-pub fn build_data_preamble(imports: &HashMap<String, ResolvedImport>) -> String {
+pub fn build_import_preamble(imports: &HashMap<String, ResolvedImport>) -> String {
     let mut preamble = String::new();
     for import in imports.values() {
         if import.extract != "solid" {
@@ -480,10 +460,12 @@ mod tests {
         let mut imports = HashMap::new();
         imports.insert(
             "import_0".to_string(),
-            ResolvedDataImport {
+            ResolvedImport {
                 extract: "dimensions".to_string(),
                 injected_symbol: "__vcad_import_0".to_string(),
                 data: serde_json::json!({"width": 50.0}),
+                vcad_node_id: None,
+                native_mesh: None,
             },
         );
         let preamble = build_import_preamble(&imports);
@@ -558,7 +540,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_data_preamble_skips_solid() {
+    fn test_build_import_preamble_skips_solid() {
         let mut imports = HashMap::new();
         imports.insert(
             "import_0".to_string(),
@@ -580,7 +562,7 @@ mod tests {
                 native_mesh: None,
             },
         );
-        let preamble = build_data_preamble(&imports);
+        let preamble = build_import_preamble(&imports);
         assert!(preamble.contains("__vcad_import_0"));
         assert!(!preamble.contains("__vcad_import_1"));
     }
