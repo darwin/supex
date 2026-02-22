@@ -82,6 +82,15 @@ module Sketchup
   end
 end
 
+# Stub for Sketchup::ModelObserver (used by vcad_observer.rb)
+module Sketchup
+  class ModelObserver
+    def onTransactionCommit(_model); end
+    def onTransactionUndo(_model); end
+    def onTransactionRedo(_model); end
+  end
+end
+
 # Stub for SketchupExtension (used by supex_runtime.rb entry point, not loaded in mock)
 class SketchupExtension
   attr_accessor :name, :version, :description, :creator, :copyright

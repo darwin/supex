@@ -55,6 +55,14 @@ module SketchupMock
       true
     end
 
+    def add_observer(_observer)
+      true
+    end
+
+    def remove_observer(_observer)
+      true
+    end
+
     def reset
       @entities = MockEntities.new(self)
       @definitions = MockDefinitionList.new

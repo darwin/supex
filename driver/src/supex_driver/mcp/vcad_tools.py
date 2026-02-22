@@ -15,6 +15,11 @@ from supex_driver.connection.vcad_file_watcher import (
     get_vcad_file_watcher,
     _reset_vcad_file_watcher,
 )
+from supex_driver.connection.vcad_observer import (
+    VcadReactiveWatcher,
+    get_vcad_reactive_watcher,
+    _reset_vcad_reactive_watcher,
+)
 from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
@@ -824,3 +829,27 @@ def vcad_update_cascade(ctx: McpContext, node_id: str) -> str:
         "failed": [r["node_id"] for r in results if not r.get("success")],
         "results": results,
     })
+
+
+@mcp.tool()
+def vcad_watch_pause(ctx: McpContext) -> str:
+    """Pause reactive watching. Changes accumulate but don't trigger re-evaluation.
+
+    Use this before editing multiple .skp.oo files in sequence, then call
+    vcad_watch_resume to flush all changes as a single cascade.
+    """
+    watcher = get_vcad_reactive_watcher()
+    result = watcher.pause()
+    return json.dumps(result)
+
+
+@mcp.tool()
+def vcad_watch_resume(ctx: McpContext) -> str:
+    """Resume watching and flush: re-evaluate all nodes affected by accumulated changes.
+
+    All changes collected while paused are merged, deduplicated, topologically
+    sorted, and executed as a single cascade.
+    """
+    watcher = get_vcad_reactive_watcher()
+    result = watcher.resume()
+    return json.dumps(result)

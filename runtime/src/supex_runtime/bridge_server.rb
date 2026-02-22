@@ -9,6 +9,7 @@ require_relative 'export'
 require_relative 'console_capture'
 require_relative 'tools'
 require_relative 'vcad_tools'
+require_relative 'vcad_observer'
 require_relative 'path_policy'
 
 module SupexRuntime
@@ -580,6 +581,12 @@ module SupexRuntime
                  VCADTools.get_vcad_node(args, workspace: workspace)
                when 'resolve_vcad_import'
                  VCADTools.resolve_vcad_import(args, workspace: workspace)
+               when 'vcad.observer_start'
+                 VcadObserverManager.start
+               when 'vcad.observer_stop'
+                 VcadObserverManager.stop
+               when 'vcad.observer_poll'
+                 VcadObserverManager.poll
                end
       result
     rescue PathPolicy::PathAccessDenied => e
