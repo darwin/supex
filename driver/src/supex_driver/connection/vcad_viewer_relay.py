@@ -412,35 +412,29 @@ class VCADViewerRelay:
 
     # --- Public API (called from MCP tools / eval pipeline, thread-safe) ---
 
-    def push_mesh_update(
+    def push_file_update(
         self,
         node_id: str,
         revision: int,
-        positions: list[float],
-        indices: list[int],
-        normals: list[float],
-        material: dict[str, Any],
+        dae_path: str,
         bbox: dict[str, Any] | None = None,
     ) -> None:
-        """Push a mesh update to the viewer.
+        """Push a file-based mesh update to the viewer.
 
-        Stores the mesh for snapshot replay and sends to connected viewer.
-        Only publishes if revision is current (latest for this node).
+        Instead of sending raw positions/indices, sends the DAE file path
+        so the viewer can load and parse the file locally via Tauri.
         """
         with self._lock:
             current_rev = self._applied_revisions.get(node_id, 0)
             if revision < current_rev:
                 logger.debug(
-                    f"Skipping stale mesh push for {node_id}: "
+                    f"Skipping stale file push for {node_id}: "
                     f"rev={revision} < current={current_rev}"
                 )
                 return
 
             mesh_data: dict[str, Any] = {
-                "positions": positions,
-                "indices": indices,
-                "normals": normals,
-                "material": material,
+                "dae_path": dae_path,
                 "bbox": bbox,
             }
             self._applied_meshes[node_id] = mesh_data

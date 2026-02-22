@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MockWebSocket } from "./mock-websocket";
-import { DriverRelayClient } from "../DriverRelayClient";
+import { DriverRelayClient, _setTauriInvokeForTest } from "../DriverRelayClient";
 import { useViewerStore } from "../store";
+import type { TauriMeshData } from "./tauri-mock";
+import { installTauriMock, uninstallTauriMock, meshPayload } from "./tauri-mock";
 
 describe("DriverRelayClient", () => {
   beforeEach(() => {
     MockWebSocket.install();
+    installTauriMock();
     useViewerStore.setState({
       meshes: new Map(),
       selectedId: null,
@@ -16,6 +19,7 @@ describe("DriverRelayClient", () => {
 
   afterEach(() => {
     MockWebSocket.uninstall();
+    uninstallTauriMock();
     vi.useRealTimers();
   });
 
@@ -47,21 +51,17 @@ describe("DriverRelayClient", () => {
     client.dispose();
   });
 
-  it("handles mesh.update and adds mesh to store", () => {
+  it("handles mesh.update and adds mesh to store", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws = MockWebSocket.latest!;
     ws.simulateOpen();
 
-    ws.simulateMessage({
-      type: "mesh.update",
-      node_id: "node-1",
-      revision: 1,
-      positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
-      indices: [0, 1, 2],
-      normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
+    ws.simulateMessage(meshPayload("node-1", 1, {
       material: { color: [1, 0, 0], metallic: 0.5, roughness: 0.3 },
-    });
+    }));
+
+    await vi.advanceTimersByTimeAsync(0);
 
     const state = useViewerStore.getState();
     expect(state.meshes.size).toBe(1);
@@ -74,21 +74,14 @@ describe("DriverRelayClient", () => {
     client.dispose();
   });
 
-  it("handles mesh.remove and removes mesh from store", () => {
+  it("handles mesh.remove and removes mesh from store", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws = MockWebSocket.latest!;
     ws.simulateOpen();
 
-    // Add then remove
-    ws.simulateMessage({
-      type: "mesh.update",
-      node_id: "node-1",
-      revision: 1,
-      positions: [0, 0, 0],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws.simulateMessage(meshPayload("node-1", 1));
+    await vi.advanceTimersByTimeAsync(0);
     expect(useViewerStore.getState().meshes.size).toBe(1);
 
     ws.simulateMessage({
@@ -100,43 +93,27 @@ describe("DriverRelayClient", () => {
     client.dispose();
   });
 
-  it("handles scene.snapshot and rebuilds store", () => {
+  it("handles scene.snapshot and rebuilds store", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws = MockWebSocket.latest!;
     ws.simulateOpen();
 
     // Pre-existing mesh
-    ws.simulateMessage({
-      type: "mesh.update",
-      node_id: "old",
-      revision: 1,
-      positions: [0, 0, 0],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws.simulateMessage(meshPayload("old", 1));
+    await vi.advanceTimersByTimeAsync(0);
 
     // Snapshot replaces everything
     ws.simulateMessage({
       type: "scene.snapshot",
       nodes: [
-        {
-          node_id: "snap-a",
-          revision: 5,
-          positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
-          indices: [0, 1, 2],
-          normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
+        meshPayload("snap-a", 5, {
           material: { color: [0.5, 0.5, 0.5], metallic: 0, roughness: 0.7 },
-        },
-        {
-          node_id: "snap-b",
-          revision: 3,
-          positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
-          indices: [0, 1, 2],
-          normals: [0, 0, 1, 0, 0, 1, 0, 0, 1],
-        },
+        }),
+        meshPayload("snap-b", 3),
       ],
     });
+    await vi.advanceTimersByTimeAsync(0);
 
     const state = useViewerStore.getState();
     expect(state.meshes.size).toBe(2);
@@ -148,20 +125,14 @@ describe("DriverRelayClient", () => {
     client.dispose();
   });
 
-  it("handles scene.reset and clears store", () => {
+  it("handles scene.reset and clears store", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws = MockWebSocket.latest!;
     ws.simulateOpen();
 
-    ws.simulateMessage({
-      type: "mesh.update",
-      node_id: "node-1",
-      revision: 1,
-      positions: [0, 0, 0],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws.simulateMessage(meshPayload("node-1", 1));
+    await vi.advanceTimersByTimeAsync(0);
     expect(useViewerStore.getState().meshes.size).toBe(1);
 
     ws.simulateMessage({ type: "scene.reset" });
@@ -229,20 +200,14 @@ describe("DriverRelayClient", () => {
     client.dispose();
   });
 
-  it("applies default material when none provided", () => {
+  it("applies default material when none provided", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws = MockWebSocket.latest!;
     ws.simulateOpen();
 
-    ws.simulateMessage({
-      type: "mesh.update",
-      node_id: "no-mat",
-      revision: 1,
-      positions: [0, 0, 0],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws.simulateMessage(meshPayload("no-mat", 1));
+    await vi.advanceTimersByTimeAsync(0);
 
     const mesh = useViewerStore.getState().meshes.get("no-mat")!;
     expect(mesh.material.color).toEqual([0.55, 0.55, 0.55]);

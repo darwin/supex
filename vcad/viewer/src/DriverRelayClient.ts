@@ -28,15 +28,26 @@ interface RelayMessage {
 interface MeshUpdatePayload {
   node_id: string;
   revision: number;
-  positions: number[];
-  indices: number[];
-  normals: number[];
+  dae_path: string;
   material?: {
     color?: [number, number, number];
     metallic?: number;
     roughness?: number;
   };
   bbox?: unknown;
+}
+
+/** Shape returned by Tauri `load_mesh` command. */
+interface TauriMeshData {
+  id: string;
+  positions: number[];
+  indices: number[];
+  normals: number[];
+  material: {
+    color: [number, number, number];
+    metallic: number;
+    roughness: number;
+  };
 }
 
 export class DriverRelayClient {
@@ -114,15 +125,40 @@ export class DriverRelayClient {
     if (revision < currentRev) return;
     this.latestRevisionByNode.set(node_id, revision);
 
-    const store = useViewerStore.getState();
-    store.addMesh({
-      id: node_id,
-      revision,
-      positions: new Float32Array(payload.positions),
-      indices: new Uint32Array(payload.indices),
-      normals: new Float32Array(payload.normals),
-      material: this.parseMaterial(payload.material),
-    });
+    this.loadMeshFromFile(node_id, revision, payload.dae_path, payload.material);
+  }
+
+  private async loadMeshFromFile(
+    nodeId: string,
+    revision: number,
+    path: string,
+    material?: MeshUpdatePayload["material"],
+  ): Promise<void> {
+    try {
+      const tauriInvoke = await getTauriInvoke();
+      if (!tauriInvoke) {
+        console.warn("[DriverRelay] Tauri not available, cannot load mesh files");
+        return;
+      }
+
+      const data = await tauriInvoke<TauriMeshData>("load_mesh", { path });
+
+      // Re-check freshness after async gap
+      const currentRev = this.latestRevisionByNode.get(nodeId) ?? -1;
+      if (revision < currentRev) return;
+
+      const store = useViewerStore.getState();
+      store.addMesh({
+        id: nodeId,
+        revision,
+        positions: new Float32Array(data.positions),
+        indices: new Uint32Array(data.indices),
+        normals: new Float32Array(data.normals),
+        material: this.parseMaterial(material),
+      });
+    } catch (err) {
+      console.error(`[DriverRelay] Failed to load mesh from ${path}:`, err);
+    }
   }
 
   private handleMeshRemove(nodeId: string): void {
@@ -139,14 +175,7 @@ export class DriverRelayClient {
 
     for (const node of nodes) {
       this.latestRevisionByNode.set(node.node_id, node.revision);
-      store.addMesh({
-        id: node.node_id,
-        revision: node.revision,
-        positions: new Float32Array(node.positions),
-        indices: new Uint32Array(node.indices),
-        normals: new Float32Array(node.normals),
-        material: this.parseMaterial(node.material),
-      });
+      this.loadMeshFromFile(node.node_id, node.revision, node.dae_path, node.material);
     }
   }
 
@@ -244,3 +273,30 @@ export class DriverRelayClient {
     return new Map(this.latestRevisionByNode);
   }
 }
+
+// --- Tauri IPC detection ---
+
+type InvokeFn = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
+let _tauriInvoke: InvokeFn | null | undefined; // undefined = not checked yet
+
+async function getTauriInvoke(): Promise<InvokeFn | null> {
+  if (_tauriInvoke !== undefined) return _tauriInvoke;
+  try {
+    // Dynamic import — only resolves inside Tauri runtime
+    const mod = await import("@tauri-apps/api/core");
+    if (typeof mod.invoke === "function" && (window as any).__TAURI_INTERNALS__) {
+      _tauriInvoke = mod.invoke as InvokeFn;
+    } else {
+      _tauriInvoke = null;
+    }
+  } catch {
+    _tauriInvoke = null;
+  }
+  return _tauriInvoke;
+}
+
+/** @internal Test-only: inject a mock Tauri invoke function. */
+export function _setTauriInvokeForTest(fn: InvokeFn | null): void {
+  _tauriInvoke = fn;
+}
+

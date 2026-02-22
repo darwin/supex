@@ -2,10 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MockWebSocket } from "./mock-websocket";
 import { DriverRelayClient } from "../DriverRelayClient";
 import { useViewerStore } from "../store";
+import { installTauriMock, uninstallTauriMock, meshPayload } from "./tauri-mock";
 
 describe("relay reconnect", () => {
   beforeEach(() => {
     MockWebSocket.install();
+    installTauriMock();
     useViewerStore.setState({
       meshes: new Map(),
       selectedId: null,
@@ -16,6 +18,7 @@ describe("relay reconnect", () => {
 
   afterEach(() => {
     MockWebSocket.uninstall();
+    uninstallTauriMock();
     vi.useRealTimers();
   });
 
@@ -60,30 +63,18 @@ describe("relay reconnect", () => {
     client.dispose();
   });
 
-  it("scene.snapshot on reconnect rebuilds store from latest state", () => {
+  it("scene.snapshot on reconnect rebuilds store from latest state", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws1 = MockWebSocket.latest!;
     ws1.simulateOpen();
 
     // Initial updates
-    ws1.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 3,
-      positions: [1, 2, 3],
-      indices: [0],
-      normals: [0, 0, 1],
+    ws1.simulateMessage(meshPayload("n1", 3, {
       material: { color: [1, 0, 0], metallic: 0, roughness: 0.5 },
-    });
-    ws1.simulateMessage({
-      type: "mesh.update",
-      node_id: "n2",
-      revision: 7,
-      positions: [4, 5, 6],
-      indices: [0],
-      normals: [0, 1, 0],
-    });
+    }));
+    ws1.simulateMessage(meshPayload("n2", 7));
+    await vi.advanceTimersByTimeAsync(0);
 
     expect(useViewerStore.getState().meshes.size).toBe(2);
 
@@ -98,23 +89,13 @@ describe("relay reconnect", () => {
     ws2.simulateMessage({
       type: "scene.snapshot",
       nodes: [
-        {
-          node_id: "n1",
-          revision: 3,
-          positions: [1, 2, 3],
-          indices: [0],
-          normals: [0, 0, 1],
+        meshPayload("n1", 3, {
           material: { color: [1, 0, 0], metallic: 0, roughness: 0.5 },
-        },
-        {
-          node_id: "n2",
-          revision: 7,
-          positions: [4, 5, 6],
-          indices: [0],
-          normals: [0, 1, 0],
-        },
+        }),
+        meshPayload("n2", 7),
       ],
     });
+    await vi.advanceTimersByTimeAsync(0);
 
     const state = useViewerStore.getState();
     expect(state.meshes.size).toBe(2);
@@ -124,37 +105,17 @@ describe("relay reconnect", () => {
     client.dispose();
   });
 
-  it("scene.snapshot contains no historical duplicates", () => {
+  it("scene.snapshot contains no historical duplicates", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws1 = MockWebSocket.latest!;
     ws1.simulateOpen();
 
     // Multiple updates to same node
-    ws1.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 1,
-      positions: [0, 0, 0],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
-    ws1.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 2,
-      positions: [1, 1, 1],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
-    ws1.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 3,
-      positions: [2, 2, 2],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws1.simulateMessage(meshPayload("n1", 1));
+    ws1.simulateMessage(meshPayload("n1", 2));
+    ws1.simulateMessage(meshPayload("n1", 3));
+    await vi.advanceTimersByTimeAsync(0);
 
     // Disconnect and reconnect
     ws1.simulateClose();
@@ -162,42 +123,28 @@ describe("relay reconnect", () => {
     const ws2 = MockWebSocket.latest!;
     ws2.simulateOpen();
 
-    // Snapshot should only have the latest revision, not historical duplicates
+    // Snapshot should only have the latest revision
     ws2.simulateMessage({
       type: "scene.snapshot",
-      nodes: [
-        {
-          node_id: "n1",
-          revision: 3,
-          positions: [2, 2, 2],
-          indices: [0],
-          normals: [0, 0, 1],
-        },
-      ],
+      nodes: [meshPayload("n1", 3)],
     });
+    await vi.advanceTimersByTimeAsync(0);
 
     const state = useViewerStore.getState();
     expect(state.meshes.size).toBe(1);
     expect(state.meshes.get("n1")!.revision).toBe(3);
-    expect(state.meshes.get("n1")!.positions[0]).toBe(2);
 
     client.dispose();
   });
 
-  it("revision tracking resets after snapshot", () => {
+  it("revision tracking resets after snapshot", async () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws1 = MockWebSocket.latest!;
     ws1.simulateOpen();
 
-    ws1.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 10,
-      positions: [0, 0, 0],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws1.simulateMessage(meshPayload("n1", 10));
+    await vi.advanceTimersByTimeAsync(0);
 
     // Disconnect + reconnect
     ws1.simulateClose();
@@ -209,41 +156,22 @@ describe("relay reconnect", () => {
     // This is valid because snapshot resets tracking
     ws2.simulateMessage({
       type: "scene.snapshot",
-      nodes: [
-        {
-          node_id: "n1",
-          revision: 5,
-          positions: [5, 5, 5],
-          indices: [0],
-          normals: [0, 0, 1],
-        },
-      ],
+      nodes: [meshPayload("n1", 5)],
     });
+    await vi.advanceTimersByTimeAsync(0);
 
     const mesh = useViewerStore.getState().meshes.get("n1")!;
     expect(mesh.revision).toBe(5);
 
     // Now a revision 6 update should be accepted
-    ws2.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 6,
-      positions: [6, 6, 6],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws2.simulateMessage(meshPayload("n1", 6));
+    await vi.advanceTimersByTimeAsync(0);
 
     expect(useViewerStore.getState().meshes.get("n1")!.revision).toBe(6);
 
     // But revision 4 (lower than snapshot's 5) should be rejected
-    ws2.simulateMessage({
-      type: "mesh.update",
-      node_id: "n1",
-      revision: 4,
-      positions: [4, 4, 4],
-      indices: [0],
-      normals: [0, 0, 1],
-    });
+    ws2.simulateMessage(meshPayload("n1", 4));
+    await vi.advanceTimersByTimeAsync(0);
 
     expect(useViewerStore.getState().meshes.get("n1")!.revision).toBe(6);
 
