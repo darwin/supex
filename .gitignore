@@ -1,7 +1,7 @@
 .tmp/
 /.idea/
 .gemini/
-supex-docs
+supex-guide
 supex
 *.iml
 .DS_Store
