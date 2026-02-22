@@ -57,15 +57,17 @@ supex/
 
 ## Component Architecture
 
-### Python MCP Server (`driver/`)
+### Python Driver (`driver/`)
 
-**Framework**: FastMCP with async lifecycle management
-**Purpose**: MCP protocol handling and tool interface provision
+**Framework**: FastMCP (MCP server) + Typer (CLI)
+**Purpose**: MCP protocol handling, tool interface, and standalone CLI
+
+The driver serves two roles: as an MCP server for AI agents, and as a CLI (`./supex`) for direct human use. Both share the same connection layer and tool implementations.
 
 **Key Components**:
-- `src/supex_driver/mcp/server.py` - Main MCP server implementation with tool definitions
+- `src/supex_driver/mcp/server.py` - MCP server with tool definitions
+- `src/supex_driver/cli/main.py` - Typer CLI application
 - `src/supex_driver/__main__.py` - Entry point and startup configuration
-- Modern async patterns with proper error handling
 - Complete type annotations and mypy validation
 
 **Tools Provided**:
@@ -75,6 +77,27 @@ supex/
 - **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
 - **Connection Health**: `check_sketchup_status`, `console_capture_status`
 - **VCAD**: `vcad_place`, `vcad_update`, `vcad_inspect`, `vcad_eval`, `vcad_export`, and more (see VCAD Subsystem below)
+
+**CLI** (`./supex`):
+
+| Command | Description |
+|---------|-------------|
+| `supex status` | Connection and system status |
+| `supex eval <code>` | Evaluate Ruby code in SketchUp |
+| `supex eval-file <path>` | Evaluate Ruby file |
+| `supex info` | Model information |
+| `supex entities [type]` | List entities |
+| `supex selection` | Current selection |
+| `supex layers` | List layers/tags |
+| `supex materials` | List materials |
+| `supex camera` | Camera position |
+| `supex screenshot` | Take screenshot |
+| `supex open <path>` | Open .skp file |
+| `supex save [path]` | Save model |
+| `supex export <format>` | Export scene |
+| `supex reload` | Reload extension without restart |
+
+All commands accept `--host`/`--port` for non-default connections and `--raw` for JSON output.
 
 #### Connection Layer (`connection/`)
 
