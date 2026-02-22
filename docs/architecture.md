@@ -2,39 +2,56 @@
 
 ## System Design
 
-Supex implements a dual-process architecture for robust SketchUp automation:
+Supex implements a multi-process architecture for robust SketchUp automation:
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │   Claude Code   │────▶│   Python MCP     │────▶│   SketchUp      │
-│   AI Client     │     │   Server         │     │   Extension     │
+│   AI Client     │     │   Driver         │     │   Ruby Runtime  │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
-                               │                          │
-                               │    TCP Socket            │
-                               │    JSON-RPC 2.0          │
-                               │    localhost:9876        │
-                               └──────────────────────────┘
+                          │    :9876 TCP JSON-RPC         │
+                          │                               │
+                          ├──────────────────────────────-┘
+                          │
+                          │    :9877 TCP JSON-RPC
+                          ▼
+                  ┌──────────────────┐     ┌─────────────────┐
+                  │   VCAD Rust      │     │   VCAD Viewer   │
+                  │   Sidecar        │     │   (Tauri app)   │
+                  └──────────────────┘     └─────────────────┘
+                          │    :9878 WebSocket     │
+                          └────────────────────────┘
 ```
 
 ## Project Structure
 
 ```
 supex/
-├── driver/                    # Python MCP Server + CLI
+├── driver/                    # Python MCP Driver + CLI
 │   ├── src/supex_driver/
 │   │   ├── cli/               # CLI interface (status, eval)
 │   │   ├── connection/        # Socket communication layer
-│   │   └── mcp/               # MCP server
+│   │   │   ├── sketchup_*.py  # SketchUp TCP connection
+│   │   │   ├── vcad_*.py      # VCAD sidecar connection, DAG, state, watcher
+│   │   │   └── vcad_viewer_relay.py  # WebSocket bridge to viewer
+│   │   └── mcp/               # MCP server and tool definitions
 │   └── tests/                 # Unit tests
 ├── runtime/                   # Ruby SketchUp Extension
-│   └── src/supex_runtime/     # Extension modules
+│   └── src/supex_runtime/
+│       ├── bridge_server.rb   # TCP server (port 9876)
+│       ├── tools.rb           # Core tool implementations
+│       ├── vcad_tools.rb      # VCAD import resolution, mesh extraction
+│       └── vcad_observer.rb   # VCAD node lifecycle observer
+├── vcad/                      # VCAD parametric CAD subsystem
+│   ├── sidecar/               # Rust sidecar (Loon eval + BRep kernel)
+│   └── viewer/                # Tauri BRep viewer app
 ├── stdlib/                    # Ruby standard library helpers
 ├── scripts/                   # Development automation
 ├── tests/                     # E2E and integration tests
 │   ├── e2e/                   # End-to-end tests
 │   ├── snippets/              # Ruby test snippets
 │   └── helpers/               # Test utilities
-└── docgen/                    # API documentation generation
+└── docs/                      # Documentation
 ```
 
 ## Component Architecture
@@ -56,6 +73,7 @@ supex/
 - **Visualization**: `take_screenshot`, `take_batch_screenshots` (multiple shots with camera control)
 - **Model Management**: `open_model`, `save_model`, `export_scene` (SKP, OBJ, STL, PNG, JPG)
 - **Connection Health**: `check_sketchup_status`, `console_capture_status`
+- **VCAD**: `vcad_place`, `vcad_update`, `vcad_inspect`, `vcad_eval`, `vcad_export`, and more (see VCAD Subsystem below)
 
 #### Connection Layer (`connection/`)
 
@@ -79,12 +97,16 @@ The connection module provides reliable communication with the SketchUp runtime:
 
 **Configuration** (environment variables):
 
-| Variable        | Default     | Description                |
-|-----------------|-------------|----------------------------|
-| `SUPEX_HOST`    | `localhost` | SketchUp runtime host      |
-| `SUPEX_PORT`    | `9876`      | SketchUp runtime port      |
-| `SUPEX_TIMEOUT` | `15`        | Socket timeout in seconds  |
-| `SUPEX_RETRIES` | `2`         | Reconnection attempts      |
+| Variable             | Default     | Description                         |
+|----------------------|-------------|-------------------------------------|
+| `SUPEX_HOST`         | `localhost` | SketchUp runtime host               |
+| `SUPEX_PORT`         | `9876`      | SketchUp runtime port               |
+| `SUPEX_TIMEOUT`      | `15`        | Socket timeout in seconds           |
+| `SUPEX_RETRIES`      | `2`         | Reconnection attempts               |
+| `VCAD_HOST`          | `127.0.0.1` | VCAD sidecar host                  |
+| `VCAD_PORT`          | `9877`      | VCAD sidecar port                  |
+| `VCAD_AUTH_TOKEN`    | —           | Auth token (required for remote)    |
+| `VCAD_ALLOW_REMOTE`  | —           | Set `1` to allow non-loopback bind  |
 
 ### Ruby SketchUp Extension (`runtime/`)
 
@@ -108,11 +130,61 @@ supex_runtime/
 
 **Note**: Geometry and material operations are handled through direct Ruby code evaluation via `eval_ruby` and `eval_ruby_file` tools, providing unlimited flexibility for modeling operations.
 
+### VCAD Subsystem (`vcad/`)
+
+**Purpose**: Parametric BRep CAD engine for declarative geometry authoring in Loon
+
+VCAD extends supex with a parametric modeling pipeline. The agent writes `.skp.oo` source files in Loon (a Lisp with algebraic data types), and the sidecar evaluates them to produce BRep geometry that is imported into SketchUp as components.
+
+**Evaluation Pipeline**:
+```
+.skp.oo source → Loon parse → Value::Adt tree → vcad_ir::Document
+    → vcad_kernel::Solid (BRep) → TriangleMesh → DAE → SketchUp import
+```
+
+**Sidecar** (`vcad/sidecar/`, Rust):
+- TCP JSON-RPC server on port 9877
+- Loon interpreter with VCAD standard library
+- BRep kernel (primitives, booleans, transforms, fillets, patterns)
+- DAE mesh export
+- Filesystem watcher for `.skp.oo` and `.oo` module changes
+- ADT cache for solid import composition
+- Auth token support for non-loopback binds
+
+**Driver Integration** (`connection/vcad_*.py`):
+- `vcad_connection.py` — TCP client to sidecar with retry and auth
+- `vcad_dag.py` — Dependency DAG for cascade updates
+- `vcad_state.py` — Persistent node state (`.supex/vcad-state.json`)
+- `vcad_file_watcher.py` — Reactive file change coordination
+- `vcad_viewer_relay.py` — WebSocket bridge (:9878) to Tauri viewer
+
+**Ruby Runtime** (`vcad_tools.rb`, `vcad_observer.rb`):
+- DAE import into SketchUp as ComponentDefinition
+- VCAD node attribute management (node_id, source_file, version)
+- Import resolution: data extraction (dimensions, bbox, transform) and native solid mesh triangulation
+- Entity lifecycle observer for node tracking
+
+**Tools Provided**:
+- **Placement**: `vcad_place`, `vcad_place_with_imports`
+- **Updates**: `vcad_update`, `vcad_update_cascade`
+- **Inspection**: `vcad_inspect`, `vcad_eval`, `vcad_list_nodes`
+- **Export**: `vcad_export` (OBJ, STEP)
+- **Batch editing**: `vcad_watch_pause`, `vcad_watch_resume`
+- **Viewer**: `vcad_viewer_state`, `vcad_viewer_screenshot`, `vcad_viewer_focus`
+
+See [VCAD Integration](vcad.md) for detailed documentation.
+
 ## Communication Protocol
 
-**Transport**: TCP Sockets (localhost:9876)
+**Transport**: TCP Sockets and WebSocket
 **Protocol**: JSON-RPC 2.0
 **Serialization**: JSON with UTF-8 encoding
+
+| Port | Transport | Direction | Purpose |
+|------|-----------|-----------|---------|
+| 9876 | TCP | Driver ↔ SketchUp | Ruby bridge (eval, introspection, import) |
+| 9877 | TCP | Driver ↔ Sidecar | VCAD evaluation, import extraction |
+| 9878 | WebSocket | Driver ↔ Viewer | BRep preview relay |
 
 **Message Format**:
 
@@ -230,12 +302,14 @@ cd driver && uv run pytest tests/
 
 **Network Security**:
 - Localhost-only binding by default (no external network exposure)
-- Optional authentication via `SUPEX_AUTH_TOKEN`
+- Optional authentication via `SUPEX_AUTH_TOKEN` (SketchUp bridge)
+- VCAD sidecar requires `VCAD_AUTH_TOKEN` for non-loopback binds (`VCAD_ALLOW_REMOTE=1`)
 - JSON-RPC 2.0 with structured message validation
 
 **Code Execution**:
 - Ruby code execution confined to SketchUp context
 - File path restrictions via `SUPEX_WORKSPACE` and `SUPEX_ALLOWED_ROOTS`
+- VCAD sidecar enforces workspace path containment for source files
 - Eval binding isolation between calls
 
 See [Security](security.md) for detailed documentation.
