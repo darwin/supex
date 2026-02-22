@@ -10,14 +10,14 @@ Choose the workflow that matches the user's goal, state that choice briefly, the
 
 ## Documentation Structure
 
-This directory (`supex-docs/`) contains symlinks to shared documentation. When reading files referenced here, use paths relative to this directory:
+This directory (`supex-guide/`) contains symlinks to shared documentation. When reading files referenced here, use paths relative to this directory:
 
 - `api/` → SketchUp Ruby API docs (symlink)
 - `stdlib/` → Standard library reference (symlink)
 
-**Important**: To read `stdlib/README.md`, use the path `supex-docs/stdlib/README.md` (not a glob search). Symlinks may point outside the project directory.
+**Important**: To read `stdlib/README.md`, use the path `supex-guide/stdlib/README.md` (not a glob search). Symlinks may point outside the project directory.
 
-This prompt, `supex-docs/workflow.md`, and `supex-docs/best_practices.md` are intentionally self-contained for symlinked project usage.
+This prompt, `supex-guide/workflow.md`, and `supex-guide/best_practices.md` are intentionally self-contained for symlinked project usage.
 
 ## Workflow Selection
 
@@ -357,7 +357,7 @@ take_batch_screenshots(
 
 ### Common Pitfalls
 
-For detailed geometry troubleshooting (coplanar faces, tiny edges, reversed faces, stray edges), see `supex-docs/best_practices.md`.
+For detailed geometry troubleshooting (coplanar faces, tiny edges, reversed faces, stray edges), see `supex-guide/best_practices.md`.
 
 ## Tools Reference
 
@@ -402,12 +402,12 @@ Detailed SketchUp Ruby API documentation: `api/`
 - **Classes**: `api/Sketchup/<Class>.md` (Face, Edge, Group, Model...)
 - **Geometry**: `api/Geom/<Class>.md` (Point3d, Vector3d, Transformation...)
 
-Detailed VCAD guidance is included directly in this prompt and `supex-docs/workflow.md`.
+Detailed VCAD guidance is included directly in this prompt and `supex-guide/workflow.md`.
 
 ## Extended Reference
 
 For deeper information:
-- `supex-docs/workflow.md` - Extended Ruby and VCAD workflow examples
-- `supex-docs/best_practices.md` - Cross-workflow troubleshooting guide
-- `supex-docs/stdlib/README.md` - Ruby standard library helper reference
-- `supex-docs/api/INDEX.md` - SketchUp API entry point
+- `supex-guide/workflow.md` - Extended Ruby and VCAD workflow examples
+- `supex-guide/best_practices.md` - Cross-workflow troubleshooting guide
+- `supex-guide/stdlib/README.md` - Ruby standard library helper reference
+- `supex-guide/api/INDEX.md` - SketchUp API entry point

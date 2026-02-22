@@ -2,7 +2,7 @@
 
 Practical playbook for both authoring workflows.
 
-For strict rules and constraints, see `supex-docs/prompt.md`.
+For strict rules and constraints, see `supex-guide/README.md`.
 
 ## Workflow Chooser
 

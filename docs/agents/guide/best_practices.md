@@ -2,7 +2,7 @@
 
 Operational guardrails from real SketchUp + VCAD projects.
 
-For source-of-truth behavior, see `supex-docs/prompt.md`.
+For source-of-truth behavior, see `supex-guide/README.md`.
 
 ## Choose the Right Workflow First
 

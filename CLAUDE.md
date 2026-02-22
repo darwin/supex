@@ -30,7 +30,7 @@ supex/
 │       ├── supex_runtime.rb   # Extension entry point
 │       └── supex_runtime/     # Extension modules
 ├── docs/                      # Documentation
-│   └── agents/                # Agent prompts (symlinked as supex-docs/)
+│   └── agents/                # Agent prompts (guide/ symlinked as supex-guide/)
 ├── docgen/                    # SketchUp API doc generator
 ├── stdlib/                    # Standard library (Ruby helpers)
 ├── scripts/                   # Development scripts
@@ -108,7 +108,7 @@ Temp directory is resolved as: `VCAD_TEMP_DIR` (explicit) > `SUPEX_WORKSPACE/.tm
 
 ## Agent Prompts Convention
 
-User projects symlink `docs/agents/` as `supex-docs/` in their project root. Therefore:
+User projects symlink `docs/agents/guide/` as `supex-guide/` in their project root. Therefore:
 
-- Files in `docs/agents/` (prompt.md, workflow.md, etc.) should reference paths as `supex-docs/...`
-- The exception is `README.md` which uses `docs/agents/` because it describes this repository's structure for human readers, not agent consumption
+- Files in `docs/agents/guide/` (README.md, workflow.md, etc.) should reference paths as `supex-guide/...`
+- The exception is `docs/agents/README.md` which uses repository-relative paths because it describes this repository's structure for human readers, not agent consumption

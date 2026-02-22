@@ -103,14 +103,14 @@ Create a symlink to Supex agent documentation:
 
 ```bash
 # In your project root:
-ln -s /path/to/supex/docs/agents supex-docs
+ln -s /path/to/supex/docs/agents/guide supex-guide
 ```
 
 This gives your AI agents access to:
-- `supex-docs/README.md` - Overview and conventions
-- `supex-docs/workflow.md` - Complete workflow guide
-- `supex-docs/best_practices.md` - Geometry lessons and pitfalls
-- `supex-docs/api/` - SketchUp API documentation
+- `supex-guide/README.md` - Main agent prompt and conventions
+- `supex-guide/workflow.md` - Complete workflow guide
+- `supex-guide/best_practices.md` - Geometry lessons and pitfalls
+- `supex-guide/api/` - SketchUp API documentation
 
 ### Creating CLAUDE.md
 
@@ -118,7 +118,7 @@ Include the symlinked documentation in your CLAUDE.md:
 
 ```markdown
 # In your CLAUDE.md:
-@supex-docs/README.md
+@supex-guide/README.md
 
 ## Project-Specific Instructions
 <!-- Add your custom instructions here -->
@@ -126,7 +126,7 @@ Include the symlinked documentation in your CLAUDE.md:
 
 This keeps your project in sync with Supex documentation updates.
 
-Add `supex-docs` to your `.gitignore` since the symlink path varies per developer.
+Add `supex-guide` to your `.gitignore` since the symlink path varies per developer.
 
 ### MCP Configuration
 
