@@ -1,6 +1,6 @@
 # VCAD Integration
 
-VCAD is a BRep (Boundary Representation) kernel integrated into SketchUp via supex. The agent writes parametric CAD code in Loon (a Lisp with algebraic data types), the VCAD Rust sidecar evaluates the code to produce BRep geometry, exports the mesh as OBJ, and SketchUp natively imports it as a component.
+VCAD is a BRep (Boundary Representation) kernel integrated into SketchUp via supex. The agent writes parametric CAD code in Loon (a Lisp with algebraic data types), the VCAD Rust sidecar evaluates the code to produce BRep geometry, exports the mesh as DAE, and SketchUp natively imports it as a component.
 
 ## Architecture
 
@@ -31,8 +31,8 @@ vcad_ir::Document (DAG of CsgOp nodes)
 vcad_kernel::Solid (BRep geometry)
     | (Solid::to_mesh)
 TriangleMesh
-    | (OBJ export)
-.obj file -> SketchUp definitions.import
+    | (DAE export)
+.dae file -> SketchUp definitions.import
 ```
 
 ### Components
@@ -40,8 +40,8 @@ TriangleMesh
 | Component | Location | Language | Role |
 |-----------|----------|----------|------|
 | MCP Driver | `driver/src/supex_driver/` | Python | Exposes MCP tools, mediates sidecar and SketchUp |
-| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates Loon code, produces BRep geometry + OBJ |
-| Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports OBJ into SketchUp, manages VCAD nodes |
+| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates Loon code, produces BRep geometry + DAE |
+| Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports DAE into SketchUp, manages VCAD nodes |
 | Viewer | `vcad/viewer/` | Rust/TypeScript | Standalone Tauri BRep preview |
 | Viewer Relay | `driver/src/supex_driver/connection/vcad_viewer_relay.py` | Python | WebSocket bridge (:9878) between MCP driver and viewer |
 
@@ -198,7 +198,7 @@ All geometry constructors produce ADT values (pure data, no BRep objects):
 [sweep-line sx sy sz ex ey ez sk]
 [sweep-helix radius pitch height turns sk]
 [loft sketches]
-[loft-closed sketches]
+[loot-closed sketches]
 ```
 
 ### Scene and Material
@@ -239,11 +239,120 @@ Electronic CAD types for schematic and PCB design. Not supported by the supex si
 [ecad-footprint "ref" "value" "footprint" x y rotation front]
 ```
 
+## Import System
+
+VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver resolves these references before evaluation.
+
+### Import syntax
+
+```loon
+[let <binding> [import <extract-type> "entity:<id>"]]
+```
+
+### Data imports
+
+Extract numeric data from SketchUp entities and bind to Loon variables:
+
+| Extract | Binding type | Fields |
+|---------|-------------|--------|
+| `:dimensions` | map | `:width`, `:height`, `:depth` (mm) |
+| `:bbox` | map | `:min [x,y,z]`, `:max [x,y,z]` (mm) |
+| `:transform` | map | `:matrix` (16-element array) |
+
+```loon
+; Parametric part that adapts to a host entity
+[let host [import :dimensions "entity:12345"]]
+[cube [get host :width] 10.0 [get host :height]]
+```
+
+### Solid imports
+
+Import a solid for CSG composition. Works with both VCAD-backed nodes and native SketchUp solids.
+
+```loon
+; Import another VCAD node's geometry for boolean operations
+[let bracket [import :solid "entity:67890"]]
+[pipe [cube 100.0 50.0 20.0]
+  [difference bracket]]
+```
+
+**VCAD-backed entities**: The cached ADT tree is injected directly from the sidecar's ADT cache. The source node must be evaluated first.
+
+**Native SketchUp solids**: Groups and ComponentInstances with face geometry are triangulated in SketchUp and forwarded to the sidecar as `ImportedMesh` ADT values. Requires `vcad_place_with_imports` (not plain `vcad_place`).
+
+### Import resolution flow
+
+```
+.skp.oo source with [import ...] declarations
+    | (sidecar: extract_and_rewrite_imports)
+Import declarations + transformed source (imports replaced by __vcad_import_N symbols)
+    | (driver: resolve each import via SketchUp Ruby bridge)
+Resolved data (dimensions/bbox/transform JSON, or solid mesh/ADT)
+    | (sidecar: inject into Loon environment + evaluate)
+Result solid
+```
+
+## Dependency DAG and Cascade Updates
+
+When VCAD nodes import from other entities, the driver maintains a dependency DAG to enable cascade updates.
+
+### How it works
+
+- Each `vcad_place_with_imports` call registers the node and its import dependencies in the DAG
+- DAG state is persisted to `.supex/vcad-state.json`
+- `vcad_update_cascade` re-evaluates a node and all downstream dependents in topological order
+- ADT composition: each node's result is cached in the sidecar, so downstream nodes importing `:solid` get the fresh ADT directly
+
+### Example
+
+```
+base-plate.skp.oo  →  bracket.skp.oo (imports :solid from base-plate)
+                   →  mount.skp.oo (imports :dimensions from base-plate)
+```
+
+Calling `vcad_update_cascade("base-plate")` re-evaluates base-plate first, then bracket and mount in dependency order.
+
+## File Watching
+
+The driver watches `.skp.oo` source files and `.loon` library modules for changes.
+
+### Source file watching
+
+- Auto-starts on first `vcad_place` or `vcad_place_with_imports`
+- Detects file modifications via the sidecar's filesystem watcher
+- Triggers re-evaluation of affected nodes
+
+### Module tracking
+
+- When a `.skp.oo` file uses `[use module-name]`, the sidecar tracks which `.loon` files are loaded
+- Changes to library modules trigger re-evaluation of all nodes that depend on them
+
+### Batch editing
+
+Use `vcad_watch_pause` / `vcad_watch_resume` to batch multiple file edits into a single cascade:
+
+```
+vcad_watch_pause()
+# Edit multiple .skp.oo files...
+vcad_watch_resume()  # Flushes all accumulated changes as one cascade
+```
+
 ## MCP Tools Reference
 
 ### vcad_place
 
 Evaluate a `.skp.oo` file and place the resulting mesh in SketchUp.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `node_id` | string | Unique identifier for this VCAD node |
+| `source_file` | string | Path to the `.skp.oo` file |
+| `position` | [x,y,z] | Position in mm (default [0,0,0]) |
+| `component_name` | string | Optional SketchUp component name |
+
+### vcad_place_with_imports
+
+Place a VCAD node that references SketchUp entities via `[import ...]` declarations. The driver resolves imports (data extracts, solid ADTs, native meshes) before evaluation.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -260,6 +369,16 @@ Re-evaluate a VCAD node and update SketchUp geometry. Atomic definition swap pre
 |-----------|------|-------------|
 | `node_id` | string | The VCAD node to update |
 | `source_file` | string | Optional new source file (uses existing if omitted) |
+
+### vcad_update_cascade
+
+Re-evaluate a node and all downstream dependents in topological order. The driver walks the dependency DAG and updates each node sequentially.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `node_id` | string | The root VCAD node to re-evaluate |
+
+Returns `{success, updated: [node_ids], failed: [node_ids], results: [...]}`.
 
 ### vcad_inspect
 
@@ -295,6 +414,14 @@ List all VCAD nodes in the current SketchUp model. No parameters.
 
 Returns array of `{node_id, source_file, version, name, instances}`.
 
+### vcad_watch_pause
+
+Pause reactive file watching. File changes accumulate but don't trigger re-evaluation. Use before editing multiple `.skp.oo` files in sequence. No parameters.
+
+### vcad_watch_resume
+
+Resume file watching and flush all accumulated changes. Merges, deduplicates, and topologically sorts pending changes, then executes as a single cascade. No parameters.
+
 ### vcad_viewer_state
 
 Get current VCAD viewer state: camera position, selection, visible nodes. No parameters.
@@ -310,6 +437,36 @@ Focus viewer camera on a specific VCAD node.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `node_id` | string | The VCAD node identifier to focus on |
+
+## Known Limitations
+
+### Mesh CSG booleans (Phase 1)
+
+Boolean operations (union, difference, intersection) between BRep and mesh-based solids are not fully supported. When one operand is BRep and the other is mesh (e.g. a native SketchUp solid imported via `:solid`), the kernel falls back to mesh concatenation instead of true CSG:
+
+```rust
+// vcad-kernel: boolean() for mixed BRep/Mesh cases
+// "Phase 1 limitation — proper mesh CSG comes in Phase 2"
+let mut combined = mesh_a;
+combined.merge(&mesh_b);  // concatenation, not boolean
+```
+
+**Affected operations:**
+- `[difference imported-mesh brep-solid]` — does not subtract, just merges meshes
+- `[union imported-mesh brep-solid]` — merge behaves like union visually, but no intersection removal
+- `[intersection imported-mesh brep-solid]` — returns merged mesh, not true intersection
+
+**Workaround:** Use BRep primitives (cube, cylinder, sphere, cone) as boolean tools instead of imported meshes. BRep-on-BRep booleans work correctly.
+
+**What works:** Native mesh imports are useful for visualization, positioning, and as base geometry. They participate correctly in transforms (translate, rotate, scale).
+
+### Features on mesh solids
+
+Fillet, chamfer, and shell operations only work on BRep solids. They return the solid unchanged for mesh-only solids.
+
+### SketchUp manifold detection
+
+The `Entities#manifold?` API is not available in all SketchUp versions. The runtime falls back to checking for the presence of faces (`entities.grep(Sketchup::Face).any?`) instead.
 
 ## Troubleshooting
 
@@ -350,9 +507,9 @@ Token mismatch between driver and sidecar. Ensure `VCAD_AUTH_TOKEN` is set consi
 
 The sidecar requires both `VCAD_ALLOW_REMOTE=1` and `VCAD_AUTH_TOKEN` to bind to non-loopback addresses. This is a security measure to prevent unauthenticated remote access.
 
-### OBJ import fails in SketchUp
+### DAE import fails in SketchUp
 
-- Verify the OBJ file exists and is not empty
+- Verify the DAE file exists and is not empty
 - Check that SketchUp 2026 is running (uses `definitions.import` which returns ComponentDefinition directly)
 - Review SketchUp console output for Ruby errors
 
@@ -362,3 +519,15 @@ The driver uses revision tracking to prevent stale results. If geometry appears 
 1. Check `vcad_list_nodes()` for version numbers
 2. Call `vcad_update()` explicitly
 3. Review `.supex/vcad-state.json` for revision gaps
+
+### SOLID_IMPORT_UNAVAILABLE
+
+The `:solid` import requires either:
+- A VCAD-backed entity (has `vcad_node_id` attribute) — ADT retrieved from sidecar cache
+- A native SketchUp solid with face geometry — mesh triangulated and forwarded as `ImportedMesh`
+
+If neither condition is met, the import fails. Verify the target entity is a Group or ComponentInstance with geometry.
+
+### ADT_CACHE_MISS
+
+When importing `:solid` from a VCAD-backed entity, the source node must be evaluated before it can be imported. Call `vcad_update` on the source node first, or use `vcad_update_cascade` to ensure correct evaluation order.
