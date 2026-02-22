@@ -808,7 +808,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
 
-        let source = r#"[let cutout [import :solid "entity:12345"]]
+        let source = r#"[let cutout [import :host "entity:12345" :solid]]
 [cube 10.0 10.0 10.0]"#;
 
         let imports = std::collections::HashMap::new();

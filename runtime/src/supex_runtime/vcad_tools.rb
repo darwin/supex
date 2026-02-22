@@ -183,9 +183,18 @@ module SupexRuntime
       vcad_node_id = defn&.get_attribute(VCAD_DICT, 'node_id')
 
       case extract_type
-      when 'dimensions'
+      when 'all'
         bb = entity.bounds
-        { extract: 'dimensions', vcad_node_id: vcad_node_id,
+        { extract: 'all', vcad_node_id: vcad_node_id,
+          data: {
+            dims: { width: bb.width.to_mm, height: bb.height.to_mm, depth: bb.depth.to_mm },
+            bbox: { min: [bb.min.x.to_mm, bb.min.y.to_mm, bb.min.z.to_mm],
+                    max: [bb.max.x.to_mm, bb.max.y.to_mm, bb.max.z.to_mm] },
+            transform: { matrix: entity.respond_to?(:transformation) ? entity.transformation.to_a : nil }
+          } }
+      when 'dims'
+        bb = entity.bounds
+        { extract: 'dims', vcad_node_id: vcad_node_id,
           data: { width: bb.width.to_mm, height: bb.height.to_mm, depth: bb.depth.to_mm } }
       when 'bbox'
         bb = entity.bounds

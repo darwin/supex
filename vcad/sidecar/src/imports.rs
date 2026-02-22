@@ -10,7 +10,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Valid extract types for imports (data + solid).
-const VALID_EXTRACTS: &[&str] = &["dimensions", "bbox", "transform", "solid"];
+const VALID_EXTRACTS: &[&str] = &["dims", "bbox", "transform", "solid"];
+
+/// Valid source keywords for imports.
+const VALID_SOURCES: &[&str] = &["host"];
 
 /// A single import declaration extracted from source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,10 +22,12 @@ pub struct ImportDecl {
     pub import_id: String,
     /// Name of the let-binding in user code.
     pub binding_name: String,
-    /// Extract type (e.g. "dimensions", "bbox", "transform").
-    pub extract: String,
-    /// Entity reference (e.g. "entity:12345").
-    pub entity_ref: String,
+    /// Source keyword (e.g. "host").
+    pub source: String,
+    /// Source-specific selector (e.g. "entity:12345" for :host).
+    pub selector: String,
+    /// Extract types (empty = all data, ["solid"], ["dims", "bbox"], etc.).
+    pub extracts: Vec<String>,
     /// Internal symbol injected in place of [import ...].
     pub injected_symbol: String,
 }
@@ -49,13 +54,16 @@ pub struct NativeMeshData {
 
 /// Resolved import with support for both data and solid extracts.
 ///
-/// Data imports (dimensions, bbox, transform) carry JSON data that is
+/// Data imports (dims, bbox, transform, all) carry JSON data that is
 /// converted to Loon let-bindings. Solid imports carry a vcad_node_id
 /// whose cached ADT tree is injected into the Loon environment directly.
 /// Native mesh imports carry triangulated mesh data from SketchUp solids.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedImport {
-    /// The extract type (dimensions, bbox, transform, solid).
+    /// The source keyword (e.g. "host").
+    #[serde(default)]
+    pub source: String,
+    /// The extract type ("dims", "bbox", "transform", "solid", "all").
     pub extract: String,
     /// The injected symbol name (__vcad_import_N).
     pub injected_symbol: String,
@@ -155,31 +163,33 @@ fn collect_imports_with_spans(
                     continue;
                 }
 
-                // Validate import form: [import <keyword> <string>]
-                if import_items.len() != 3 {
+                // Validate import form: [import <source> <selector> [<extract>...]]
+                // Min 3 elements (import + source + selector), optional extract keywords
+                let arg_count = import_items.len() - 1;
+                if arg_count < 2 {
                     return Err(format!(
-                        "IMPORT_FORM_INVALID: [import] requires exactly 2 arguments (extract and entity_ref), got {}",
-                        import_items.len() - 1
+                        "IMPORT_FORM_INVALID: [import] requires at least 2 arguments (source, selector), got {}",
+                        arg_count
                     ));
                 }
 
-                // Extract keyword
-                let extract = match &import_items[1].kind {
+                // Source keyword (e.g. :host)
+                let source = match &import_items[1].kind {
                     ExprKind::Keyword(kw) => kw.clone(),
                     _ => {
                         return Err(
-                            "IMPORT_FORM_INVALID: first argument to [import] must be a keyword (:dimensions, :bbox, :transform)"
+                            "IMPORT_FORM_INVALID: first argument to [import] must be a source keyword (:host)"
                                 .to_string(),
                         );
                     }
                 };
 
-                // Validate extract type
-                if !VALID_EXTRACTS.contains(&extract.as_str()) {
+                // Validate source
+                if !VALID_SOURCES.contains(&source.as_str()) {
                     return Err(format!(
-                        "IMPORT_FORM_INVALID: unsupported extract type :{}, must be one of: {}",
-                        extract,
-                        VALID_EXTRACTS
+                        "IMPORT_FORM_INVALID: unsupported source :{}, must be one of: {}",
+                        source,
+                        VALID_SOURCES
                             .iter()
                             .map(|s| format!(":{}", s))
                             .collect::<Vec<_>>()
@@ -187,31 +197,77 @@ fn collect_imports_with_spans(
                     ));
                 }
 
-                // Extract entity ref
-                let entity_ref = match &import_items[2].kind {
+                // Selector string (e.g. "entity:12345" for :host)
+                let selector = match &import_items[2].kind {
                     ExprKind::Str(s) => s.clone(),
                     _ => {
                         return Err(
-                            "IMPORT_FORM_INVALID: second argument to [import] must be a string (\"entity:<id>\")"
+                            "IMPORT_FORM_INVALID: second argument to [import] must be a selector string (\"entity:<id>\")"
                                 .to_string(),
                         );
                     }
                 };
 
-                // Validate entity ref format
-                if !entity_ref.starts_with("entity:") {
-                    return Err(format!(
-                        "IMPORT_FORM_INVALID: entity reference must match \"entity:<integer-id>\", got \"{}\"",
-                        entity_ref
-                    ));
+                // Source-specific selector validation
+                if source == "host" {
+                    if !selector.starts_with("entity:") {
+                        return Err(format!(
+                            "IMPORT_FORM_INVALID: :host selector must match \"entity:<integer-id>\", got \"{}\"",
+                            selector
+                        ));
+                    }
+                    let id_part = &selector["entity:".len()..];
+                    if id_part.parse::<i64>().is_err() {
+                        return Err(format!(
+                            "IMPORT_FORM_INVALID: entity ID must be an integer, got \"{}\"",
+                            id_part
+                        ));
+                    }
                 }
-                let id_part = &entity_ref["entity:".len()..];
-                if id_part.parse::<i64>().is_err() {
-                    return Err(format!(
-                        "IMPORT_FORM_INVALID: entity ID must be an integer, got \"{}\"",
-                        id_part
-                    ));
-                }
+
+                // Optional extract keywords (e.g. :solid, :dims, :bbox, :transform)
+                let extracts: Vec<String> = if arg_count > 2 {
+                    let mut ext_list = Vec::new();
+                    for item in &import_items[3..] {
+                        let kw = match &item.kind {
+                            ExprKind::Keyword(kw) => kw.clone(),
+                            _ => {
+                                return Err(
+                                    "IMPORT_FORM_INVALID: extract arguments must be keywords (:solid, :dims, :bbox, :transform)"
+                                        .to_string(),
+                                );
+                            }
+                        };
+                        if !VALID_EXTRACTS.contains(&kw.as_str()) {
+                            return Err(format!(
+                                "IMPORT_FORM_INVALID: unsupported extract type :{}, must be one of: {}",
+                                kw,
+                                VALID_EXTRACTS
+                                    .iter()
+                                    .map(|s| format!(":{}", s))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            ));
+                        }
+                        if ext_list.contains(&kw) {
+                            return Err(format!(
+                                "IMPORT_FORM_INVALID: duplicate extract type :{}",
+                                kw
+                            ));
+                        }
+                        ext_list.push(kw);
+                    }
+                    // :solid cannot be combined with other extracts
+                    if ext_list.contains(&"solid".to_string()) && ext_list.len() > 1 {
+                        return Err(
+                            "IMPORT_FORM_INVALID: :solid cannot be combined with other extract types"
+                                .to_string(),
+                        );
+                    }
+                    ext_list
+                } else {
+                    Vec::new()
+                };
 
                 // Extract binding name
                 let binding_name = match &items[1].kind {
@@ -230,8 +286,9 @@ fn collect_imports_with_spans(
                 imports.push(ImportDecl {
                     import_id,
                     binding_name,
-                    extract,
-                    entity_ref,
+                    source,
+                    selector,
+                    extracts,
                     injected_symbol,
                 });
 
@@ -323,7 +380,8 @@ fn json_to_loon(value: &serde_json::Value) -> String {
 /// Build the preamble of let-bindings for data imports only (skipping solid).
 ///
 /// Solid imports are injected directly into the Loon environment, not as
-/// source-level let-bindings.
+/// source-level let-bindings. Data imports (dims, bbox, transform, all)
+/// are formatted as Loon let-bindings.
 pub fn build_import_preamble(imports: &HashMap<String, ResolvedImport>) -> String {
     let mut preamble = String::new();
     for import in imports.values() {
@@ -339,8 +397,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_extract_single_import() {
-        let source = r#"[let host-dims [import :dimensions "entity:12345"]]
+    fn test_extract_single_import_with_extract() {
+        let source = r#"[let host-dims [import :host "entity:12345" :dims]]
 [cube 10.0 10.0 10.0]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
@@ -348,25 +406,43 @@ mod tests {
         assert_eq!(result.imports.len(), 1);
         let imp = &result.imports[0];
         assert_eq!(imp.binding_name, "host-dims");
-        assert_eq!(imp.extract, "dimensions");
-        assert_eq!(imp.entity_ref, "entity:12345");
+        assert_eq!(imp.source, "host");
+        assert_eq!(imp.selector, "entity:12345");
+        assert_eq!(imp.extracts, vec!["dims"]);
         assert_eq!(imp.injected_symbol, "__vcad_import_0");
         assert!(result.transformed_source.contains("__vcad_import_0"));
         assert!(!result.transformed_source.contains("[import"));
     }
 
     #[test]
+    fn test_extract_single_import_no_extract() {
+        let source = r#"[let host-data [import :host "entity:12345"]]
+[cube 10.0 10.0 10.0]"#;
+
+        let result = extract_and_rewrite_imports(source).unwrap();
+
+        assert_eq!(result.imports.len(), 1);
+        let imp = &result.imports[0];
+        assert_eq!(imp.binding_name, "host-data");
+        assert_eq!(imp.source, "host");
+        assert_eq!(imp.selector, "entity:12345");
+        assert!(imp.extracts.is_empty());
+        assert_eq!(imp.injected_symbol, "__vcad_import_0");
+        assert!(result.transformed_source.contains("__vcad_import_0"));
+    }
+
+    #[test]
     fn test_extract_multiple_imports() {
-        let source = r#"[let dims [import :dimensions "entity:100"]]
-[let bb [import :bbox "entity:200"]]
+        let source = r#"[let dims [import :host "entity:100" :dims]]
+[let bb [import :host "entity:200" :bbox]]
 [cube 1.0 1.0 1.0]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
 
         assert_eq!(result.imports.len(), 2);
-        assert_eq!(result.imports[0].extract, "dimensions");
+        assert_eq!(result.imports[0].extracts, vec!["dims"]);
         assert_eq!(result.imports[0].injected_symbol, "__vcad_import_0");
-        assert_eq!(result.imports[1].extract, "bbox");
+        assert_eq!(result.imports[1].extracts, vec!["bbox"]);
         assert_eq!(result.imports[1].injected_symbol, "__vcad_import_1");
         assert!(result.transformed_source.contains("__vcad_import_0"));
         assert!(result.transformed_source.contains("__vcad_import_1"));
@@ -382,15 +458,36 @@ mod tests {
 
     #[test]
     fn test_invalid_extract_type() {
-        let source = r#"[let x [import :color "entity:1"]]"#;
+        let source = r#"[let x [import :host "entity:1" :color]]"#;
         let result = extract_and_rewrite_imports(source);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("IMPORT_FORM_INVALID"));
     }
 
     #[test]
-    fn test_invalid_entity_ref() {
-        let source = r#"[let x [import :dimensions "node:abc"]]"#;
+    fn test_invalid_source() {
+        let source = r#"[let x [import :foo "entity:1" :dims]]"#;
+        let result = extract_and_rewrite_imports(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("IMPORT_FORM_INVALID"));
+        assert!(err.contains("unsupported source :foo"));
+    }
+
+    #[test]
+    fn test_old_two_arg_form_rejected() {
+        // Old syntax: [import :dims "entity:1"] — missing source keyword
+        let source = r#"[let x [import :dims "entity:1"]]"#;
+        let result = extract_and_rewrite_imports(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("IMPORT_FORM_INVALID"));
+        assert!(err.contains("unsupported source :dims"));
+    }
+
+    #[test]
+    fn test_invalid_selector() {
+        let source = r#"[let x [import :host "node:abc" :dims]]"#;
         let result = extract_and_rewrite_imports(source);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("IMPORT_FORM_INVALID"));
@@ -398,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_non_integer_entity_id() {
-        let source = r#"[let x [import :dimensions "entity:abc"]]"#;
+        let source = r#"[let x [import :host "entity:abc" :dims]]"#;
         let result = extract_and_rewrite_imports(source);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("IMPORT_FORM_INVALID"));
@@ -406,18 +503,46 @@ mod tests {
 
     #[test]
     fn test_bare_import_rejected() {
-        let source = r#"[import :dimensions "entity:1"]"#;
+        let source = r#"[import :host "entity:1" :dims]"#;
         let result = extract_and_rewrite_imports(source);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("IMPORT_FORM_INVALID"));
     }
 
     #[test]
-    fn test_import_wrong_arg_count() {
-        let source = r#"[let x [import :dimensions]]"#;
+    fn test_import_wrong_arg_count_too_few() {
+        let source = r#"[let x [import :host]]"#;
         let result = extract_and_rewrite_imports(source);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("IMPORT_FORM_INVALID"));
+    }
+
+    #[test]
+    fn test_multiple_extracts() {
+        let source = r#"[let data [import :host "entity:1" :dims :bbox]]"#;
+        let result = extract_and_rewrite_imports(source).unwrap();
+        assert_eq!(result.imports.len(), 1);
+        assert_eq!(result.imports[0].extracts, vec!["dims", "bbox"]);
+    }
+
+    #[test]
+    fn test_solid_cannot_combine() {
+        let source = r#"[let x [import :host "entity:1" :solid :dims]]"#;
+        let result = extract_and_rewrite_imports(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("IMPORT_FORM_INVALID"));
+        assert!(err.contains(":solid cannot be combined"));
+    }
+
+    #[test]
+    fn test_duplicate_extract_rejected() {
+        let source = r#"[let x [import :host "entity:1" :dims :dims]]"#;
+        let result = extract_and_rewrite_imports(source);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("IMPORT_FORM_INVALID"));
+        assert!(err.contains("duplicate extract type :dims"));
     }
 
     #[test]
@@ -461,7 +586,8 @@ mod tests {
         imports.insert(
             "import_0".to_string(),
             ResolvedImport {
-                extract: "dimensions".to_string(),
+                source: "host".to_string(),
+                extract: "dims".to_string(),
                 injected_symbol: "__vcad_import_0".to_string(),
                 data: serde_json::json!({"width": 50.0}),
                 vcad_node_id: None,
@@ -474,27 +600,52 @@ mod tests {
     }
 
     #[test]
+    fn test_build_import_preamble_includes_all() {
+        let mut imports = HashMap::new();
+        imports.insert(
+            "import_0".to_string(),
+            ResolvedImport {
+                source: "host".to_string(),
+                extract: "all".to_string(),
+                injected_symbol: "__vcad_import_0".to_string(),
+                data: serde_json::json!({
+                    "dims": {"width": 100.0, "height": 200.0, "depth": 50.0},
+                    "bbox": {"min": [0.0, 0.0, 0.0], "max": [100.0, 200.0, 50.0]},
+                    "transform": {"matrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}
+                }),
+                vcad_node_id: None,
+                native_mesh: None,
+            },
+        );
+        let preamble = build_import_preamble(&imports);
+        assert!(preamble.contains("__vcad_import_0"));
+        assert!(preamble.contains(":dims"));
+        assert!(preamble.contains(":bbox"));
+        assert!(preamble.contains(":transform"));
+    }
+
+    #[test]
     fn test_transform_extract() {
-        let source = r#"[let tr [import :transform "entity:42"]]
+        let source = r#"[let tr [import :host "entity:42" :transform]]
 [cube 1.0 1.0 1.0]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
 
         assert_eq!(result.imports.len(), 1);
-        assert_eq!(result.imports[0].extract, "transform");
-        assert_eq!(result.imports[0].entity_ref, "entity:42");
+        assert_eq!(result.imports[0].extracts, vec!["transform"]);
+        assert_eq!(result.imports[0].selector, "entity:42");
     }
 
     #[test]
     fn test_solid_extract() {
-        let source = r#"[let bracket [import :solid "entity:67890"]]
+        let source = r#"[let bracket [import :host "entity:67890" :solid]]
 [difference bracket [cube 10.0 10.0 10.0]]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
 
         assert_eq!(result.imports.len(), 1);
-        assert_eq!(result.imports[0].extract, "solid");
-        assert_eq!(result.imports[0].entity_ref, "entity:67890");
+        assert_eq!(result.imports[0].extracts, vec!["solid"]);
+        assert_eq!(result.imports[0].selector, "entity:67890");
         assert_eq!(result.imports[0].injected_symbol, "__vcad_import_0");
         assert!(result.transformed_source.contains("__vcad_import_0"));
         assert!(!result.transformed_source.contains("[import"));
@@ -502,21 +653,21 @@ mod tests {
 
     #[test]
     fn test_mixed_data_and_solid_imports() {
-        let source = r#"[let dims [import :dimensions "entity:100"]]
-[let bracket [import :solid "entity:200"]]
+        let source = r#"[let dims [import :host "entity:100" :dims]]
+[let bracket [import :host "entity:200" :solid]]
 [cube 1.0 1.0 1.0]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
 
         assert_eq!(result.imports.len(), 2);
-        assert_eq!(result.imports[0].extract, "dimensions");
-        assert_eq!(result.imports[1].extract, "solid");
+        assert_eq!(result.imports[0].extracts, vec!["dims"]);
+        assert_eq!(result.imports[1].extracts, vec!["solid"]);
     }
 
     #[test]
     fn test_commented_out_imports_ignored() {
         let source = r#"; commented out import
-;[let cutout [import :solid "entity:37395"]]
+;[let cutout [import :host "entity:37395" :solid]]
 
 [cube 100.0 100.0 20.0]"#;
 
@@ -527,14 +678,14 @@ mod tests {
 
     #[test]
     fn test_commented_import_with_active_import() {
-        let source = r#";[let old [import :solid "entity:111"]]
-[let dims [import :dimensions "entity:222"]]
+        let source = r#";[let old [import :host "entity:111" :solid]]
+[let dims [import :host "entity:222" :dims]]
 [cube 10.0 10.0 10.0]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
         assert_eq!(result.imports.len(), 1, "only the uncommented import is extracted");
-        assert_eq!(result.imports[0].extract, "dimensions");
-        assert_eq!(result.imports[0].entity_ref, "entity:222");
+        assert_eq!(result.imports[0].extracts, vec!["dims"]);
+        assert_eq!(result.imports[0].selector, "entity:222");
         // The commented line stays in source text but is not extracted as an import
         assert!(result.transformed_source.contains(";[let old"));
     }
@@ -545,7 +696,8 @@ mod tests {
         imports.insert(
             "import_0".to_string(),
             ResolvedImport {
-                extract: "dimensions".to_string(),
+                source: "host".to_string(),
+                extract: "dims".to_string(),
                 injected_symbol: "__vcad_import_0".to_string(),
                 data: serde_json::json!({"width": 50.0}),
                 vcad_node_id: None,
@@ -555,6 +707,7 @@ mod tests {
         imports.insert(
             "import_1".to_string(),
             ResolvedImport {
+                source: "host".to_string(),
                 extract: "solid".to_string(),
                 injected_symbol: "__vcad_import_1".to_string(),
                 data: serde_json::Value::Null,

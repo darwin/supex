@@ -57,7 +57,7 @@ def solid_source_file(tmp_path):
     """Create a .skp.oo source file with a :solid import."""
     src = tmp_path / "consumer.skp.oo"
     src.write_text(
-        '[let bracket [import :solid "entity:67890"]]\n'
+        '[let bracket [import :host "entity:67890" :solid]]\n'
         "[pipe [cube 20.0 20.0 50.0]\n"
         "  [difference bracket]\n"
         "  [translate 0.0 0.0 10.0]]"
@@ -70,8 +70,8 @@ def mixed_source_file(tmp_path):
     """Create a source file with both data and solid imports."""
     src = tmp_path / "mixed.skp.oo"
     src.write_text(
-        '[let dims [import :dimensions "entity:100"]]\n'
-        '[let bracket [import :solid "entity:200"]]\n'
+        '[let dims [import :host "entity:100" :dims]]\n'
+        '[let bracket [import :host "entity:200" :solid]]\n'
         "[pipe [cube [get dims :width] 10.0 [get dims :height]]\n"
         "  [difference bracket]]"
     )
@@ -96,8 +96,9 @@ class TestSolidImportSuccess:
                 {
                     "import_id": "import_0",
                     "binding_name": "bracket",
-                    "extract": "solid",
-                    "entity_ref": "entity:67890",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:67890",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -159,15 +160,17 @@ class TestSolidImportSuccess:
                 {
                     "import_id": "import_0",
                     "binding_name": "dims",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:100",
+                    "extracts": ["dims"],
+                    "source": "host",
+                    "selector": "entity:100",
                     "injected_symbol": "__vcad_import_0",
                 },
                 {
                     "import_id": "import_1",
                     "binding_name": "bracket",
-                    "extract": "solid",
-                    "entity_ref": "entity:200",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:200",
                     "injected_symbol": "__vcad_import_1",
                 },
             ],
@@ -177,7 +180,7 @@ class TestSolidImportSuccess:
         # Two resolve calls: first for data, second for solid
         mock_sketchup.send_command.side_effect = [
             {
-                "extract": "dimensions",
+                "extract": "dims",
                 "vcad_node_id": None,
                 "data": {"width": 100.0, "height": 200.0, "depth": 50.0},
             },
@@ -214,7 +217,7 @@ class TestSolidImportSuccess:
         # Both imports present in the call
         call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         imports = call_kwargs["imports"]
-        assert imports["import_0"]["extract"] == "dimensions"
+        assert imports["import_0"]["extract"] == "dims"
         assert imports["import_0"]["data"]["width"] == 100.0
         assert imports["import_1"]["extract"] == "solid"
         assert imports["import_1"]["vcad_node_id"] == "bracket-node"
@@ -225,7 +228,7 @@ class TestSolidImportSuccess:
         """Data-only imports use the original eval_with_imports path."""
         src = tmp_path / "data-only.skp.oo"
         src.write_text(
-            '[let dims [import :dimensions "entity:100"]]\n'
+            '[let dims [import :host "entity:100" :dims]]\n'
             "[cube 1.0 1.0 1.0]"
         )
 
@@ -234,8 +237,9 @@ class TestSolidImportSuccess:
                 {
                     "import_id": "import_0",
                     "binding_name": "dims",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:100",
+                    "extracts": ["dims"],
+                    "source": "host",
+                    "selector": "entity:100",
                     "injected_symbol": "__vcad_import_0",
                 },
             ],
@@ -244,7 +248,7 @@ class TestSolidImportSuccess:
 
         mock_sketchup.send_command.side_effect = [
             {
-                "extract": "dimensions",
+                "extract": "dims",
                 "vcad_node_id": None,
                 "data": {"width": 100.0, "height": 200.0, "depth": 50.0},
             },
@@ -289,8 +293,9 @@ class TestSolidImportErrors:
                 {
                     "import_id": "import_0",
                     "binding_name": "bracket",
-                    "extract": "solid",
-                    "entity_ref": "entity:999",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:999",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -324,8 +329,9 @@ class TestSolidImportErrors:
                 {
                     "import_id": "import_0",
                     "binding_name": "bracket",
-                    "extract": "solid",
-                    "entity_ref": "entity:67890",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:67890",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -371,8 +377,9 @@ class TestBuildImportRefsWithSolid:
             {
                 "import_id": "import_0",
                 "binding_name": "bracket",
-                "extract": "solid",
-                "entity_ref": "entity:200",
+                "extracts": ["solid"],
+                "source": "host",
+                "selector": "entity:200",
                 "injected_symbol": "__vcad_import_0",
             }
         ]
@@ -388,7 +395,7 @@ class TestBuildImportRefsWithSolid:
         refs = _build_import_refs(import_decls, resolved_imports)
 
         assert len(refs) == 1
-        assert refs[0].extract == "solid"
+        assert refs[0].extracts == ["solid"]
         assert refs[0].resolved_type == "vcad"
         assert refs[0].source_node_id == "bracket-node"
 
@@ -398,21 +405,23 @@ class TestBuildImportRefsWithSolid:
             {
                 "import_id": "import_0",
                 "binding_name": "dims",
-                "extract": "dimensions",
-                "entity_ref": "entity:100",
+                "extracts": ["dims"],
+                "source": "host",
+                "selector": "entity:100",
                 "injected_symbol": "__vcad_import_0",
             },
             {
                 "import_id": "import_1",
                 "binding_name": "bracket",
-                "extract": "solid",
-                "entity_ref": "entity:200",
+                "extracts": ["solid"],
+                "source": "host",
+                "selector": "entity:200",
                 "injected_symbol": "__vcad_import_1",
             },
         ]
         resolved_imports = {
             "import_0": {
-                "extract": "dimensions",
+                "extract": "dims",
                 "injected_symbol": "__vcad_import_0",
                 "data": {"width": 100.0},
             },
@@ -427,10 +436,10 @@ class TestBuildImportRefsWithSolid:
         refs = _build_import_refs(import_decls, resolved_imports)
 
         assert len(refs) == 2
-        assert refs[0].extract == "dimensions"
+        assert refs[0].extracts == ["dims"]
         assert refs[0].resolved_type == "native"
         assert refs[0].source_node_id is None
-        assert refs[1].extract == "solid"
+        assert refs[1].extracts == ["solid"]
         assert refs[1].resolved_type == "vcad"
         assert refs[1].source_node_id == "bracket-node"
 

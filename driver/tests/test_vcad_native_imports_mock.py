@@ -102,8 +102,9 @@ def _setup_native_mesh_flow(mock_vcad, mock_sketchup, mesh=None):
             {
                 "import_id": "import_0",
                 "binding_name": "native_solid",
-                "extract": "solid",
-                "entity_ref": "entity:55555",
+                "extracts": ["solid"],
+                "source": "host",
+                "selector": "entity:55555",
                 "injected_symbol": "__vcad_import_0",
             }
         ],
@@ -140,7 +141,7 @@ class TestNativeMeshCSG:
         src = _make_source(
             tmp_path,
             "diff.skp.oo",
-            '[let wall [import :solid "entity:55555"]]\n'
+            '[let wall [import :host "entity:55555" :solid]]\n'
             "[pipe [cube 200.0 200.0 200.0]\n"
             "  [difference wall]]",
         )
@@ -173,7 +174,7 @@ class TestNativeMeshCSG:
         src = _make_source(
             tmp_path,
             "union.skp.oo",
-            '[let wall [import :solid "entity:55555"]]\n'
+            '[let wall [import :host "entity:55555" :solid]]\n'
             "[pipe [cube 200.0 200.0 200.0]\n"
             "  [union wall]]",
         )
@@ -200,7 +201,7 @@ class TestNativeMeshCSG:
         src = _make_source(
             tmp_path,
             "intersect.skp.oo",
-            '[let wall [import :solid "entity:55555"]]\n'
+            '[let wall [import :host "entity:55555" :solid]]\n'
             "[pipe [cube 200.0 200.0 200.0]\n"
             "  [intersection wall]]",
         )
@@ -236,7 +237,7 @@ class TestNativeMeshDataIntegrity:
         src = _make_source(
             tmp_path,
             "preserve.skp.oo",
-            '[let obj [import :solid "entity:55555"]]\n[obj]',
+            '[let obj [import :host "entity:55555" :solid]]\n[obj]',
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
@@ -261,7 +262,7 @@ class TestNativeMeshDataIntegrity:
         src = _make_source(
             tmp_path,
             "no-normals.skp.oo",
-            '[let obj [import :solid "entity:55555"]]\n[obj]',
+            '[let obj [import :host "entity:55555" :solid]]\n[obj]',
         )
 
         mesh_no_normals = {
@@ -298,7 +299,7 @@ class TestNativeMeshErrors:
         src = _make_source(
             tmp_path,
             "non-solid.skp.oo",
-            '[let wall [import :solid "entity:99999"]]\n[wall]',
+            '[let wall [import :host "entity:99999" :solid]]\n[wall]',
         )
 
         mock_vcad.extract_imports.return_value = {
@@ -306,8 +307,9 @@ class TestNativeMeshErrors:
                 {
                     "import_id": "import_0",
                     "binding_name": "wall",
-                    "extract": "solid",
-                    "entity_ref": "entity:99999",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:99999",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -335,7 +337,7 @@ class TestNativeMeshErrors:
         src = _make_source(
             tmp_path,
             "bad-mesh.skp.oo",
-            '[let obj [import :solid "entity:55555"]]\n[obj]',
+            '[let obj [import :host "entity:55555" :solid]]\n[obj]',
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
@@ -361,8 +363,8 @@ class TestNativeMeshErrors:
         src = _make_source(
             tmp_path,
             "multi-native.skp.oo",
-            '[let a [import :solid "entity:11111"]]\n'
-            '[let b [import :solid "entity:22222"]]\n'
+            '[let a [import :host "entity:11111" :solid]]\n'
+            '[let b [import :host "entity:22222" :solid]]\n'
             "[pipe [cube 100.0 100.0 100.0]\n"
             "  [difference a]\n"
             "  [union b]]",
@@ -384,15 +386,17 @@ class TestNativeMeshErrors:
                 {
                     "import_id": "import_0",
                     "binding_name": "a",
-                    "extract": "solid",
-                    "entity_ref": "entity:11111",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:11111",
                     "injected_symbol": "__vcad_import_0",
                 },
                 {
                     "import_id": "import_1",
                     "binding_name": "b",
-                    "extract": "solid",
-                    "entity_ref": "entity:22222",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:22222",
                     "injected_symbol": "__vcad_import_1",
                 },
             ],

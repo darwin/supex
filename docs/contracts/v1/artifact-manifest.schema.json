@@ -137,19 +137,24 @@
     },
     "import_entry": {
       "type": "object",
-      "required": ["binding_name", "entity_ref", "extract"],
+      "required": ["binding_name", "selector", "extracts"],
       "properties": {
         "binding_name": {
           "type": "string",
           "description": "Loon variable name."
         },
-        "entity_ref": {
+        "selector": {
           "type": "string",
-          "description": "Entity reference string."
+          "description": "Source-specific selector string (e.g. entity:12345 for :host)."
         },
-        "extract": {
+        "source": {
           "type": "string",
-          "description": "Extract type (dimensions, bbox, transform, solid)."
+          "description": "Source keyword (e.g. host)."
+        },
+        "extracts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extract types (empty = all, e.g. [\"dims\"], [\"dims\", \"bbox\"], [\"solid\"])."
         },
         "resolved_type": {
           "type": "string",

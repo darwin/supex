@@ -53,8 +53,9 @@ class TestDataImportsExtract:
                     {
                         "import_id": "import_0",
                         "binding_name": "host-dims",
-                        "extract": "dimensions",
-                        "entity_ref": "entity:12345",
+                        "extracts": ["dims"],
+                        "source": "host",
+                        "selector": "entity:12345",
                         "injected_symbol": "__vcad_import_0",
                     }
                 ],
@@ -64,14 +65,14 @@ class TestDataImportsExtract:
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         result = conn.extract_imports(
-            '[let host-dims [import :dimensions "entity:12345"]]\n[cube 10.0 10.0 10.0]'
+            '[let host-dims [import :host "entity:12345" :dims]]\n[cube 10.0 10.0 10.0]'
         )
 
         assert "imports" in result
         assert len(result["imports"]) == 1
         assert result["imports"][0]["binding_name"] == "host-dims"
-        assert result["imports"][0]["extract"] == "dimensions"
-        assert result["imports"][0]["entity_ref"] == "entity:12345"
+        assert result["imports"][0]["extracts"] == ["dims"]
+        assert result["imports"][0]["selector"] == "entity:12345"
         assert "__vcad_import_0" in result["transformed_source"]
         conn.disconnect()
 
@@ -105,7 +106,7 @@ class TestDataImportsExtract:
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         with pytest.raises(VCADRemoteError) as exc_info:
-            conn.extract_imports('[let x [import :color "entity:1"]]')
+            conn.extract_imports('[let x [import :host "entity:1" :color]]')
 
         assert exc_info.value.code == -32000
         assert exc_info.value.data.get("error_code") == "IMPORT_FORM_INVALID"
@@ -120,15 +121,17 @@ class TestDataImportsExtract:
                     {
                         "import_id": "import_0",
                         "binding_name": "dims",
-                        "extract": "dimensions",
-                        "entity_ref": "entity:100",
+                        "extracts": ["dims"],
+                        "source": "host",
+                        "selector": "entity:100",
                         "injected_symbol": "__vcad_import_0",
                     },
                     {
                         "import_id": "import_1",
                         "binding_name": "bb",
-                        "extract": "bbox",
-                        "entity_ref": "entity:200",
+                        "extracts": ["bbox"],
+                        "source": "host",
+                        "selector": "entity:200",
                         "injected_symbol": "__vcad_import_1",
                     },
                 ],
@@ -138,13 +141,13 @@ class TestDataImportsExtract:
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         result = conn.extract_imports(
-            '[let dims [import :dimensions "entity:100"]]\n'
-            '[let bb [import :bbox "entity:200"]]'
+            '[let dims [import :host "entity:100" :dims]]\n'
+            '[let bb [import :host "entity:200" :bbox]]'
         )
 
         assert len(result["imports"]) == 2
-        assert result["imports"][0]["extract"] == "dimensions"
-        assert result["imports"][1]["extract"] == "bbox"
+        assert result["imports"][0]["extracts"] == ["dims"]
+        assert result["imports"][1]["extracts"] == ["bbox"]
         conn.disconnect()
 
 
@@ -176,7 +179,7 @@ class TestDataImportsEval:
             base_dir=str(tmp_path),
             imports={
                 "import_0": {
-                    "extract": "dimensions",
+                    "extract": "dims",
                     "injected_symbol": "__vcad_import_0",
                     "data": {"width": 100.0, "height": 200.0, "depth": 50.0},
                 }
@@ -245,8 +248,9 @@ class TestDataImportsFullFlow:
                 {
                     "import_id": "import_0",
                     "binding_name": "host-dims",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:42",
+                    "extracts": ["dims"],
+                    "source": "host",
+                    "selector": "entity:42",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -289,14 +293,14 @@ class TestDataImportsFullFlow:
 
         # Extract imports
         extraction = conn.extract_imports(
-            '[let host-dims [import :dimensions "entity:42"]]\n[cube 10.0 10.0 10.0]'
+            '[let host-dims [import :host "entity:42" :dims]]\n[cube 10.0 10.0 10.0]'
         )
         assert len(extraction["imports"]) == 1
 
         # Simulate resolve (SketchUp would do this)
         resolved = {
             "import_0": {
-                "extract": "dimensions",
+                "extract": "dims",
                 "injected_symbol": "__vcad_import_0",
                 "data": {"width": 100.0, "height": 200.0, "depth": 50.0},
             }
@@ -321,15 +325,17 @@ class TestDataImportsFullFlow:
                     {
                         "import_id": "import_0",
                         "binding_name": "bb",
-                        "extract": "bbox",
-                        "entity_ref": "entity:10",
+                        "extracts": ["bbox"],
+                        "source": "host",
+                        "selector": "entity:10",
                         "injected_symbol": "__vcad_import_0",
                     },
                     {
                         "import_id": "import_1",
                         "binding_name": "tr",
-                        "extract": "transform",
-                        "entity_ref": "entity:20",
+                        "extracts": ["transform"],
+                        "source": "host",
+                        "selector": "entity:20",
                         "injected_symbol": "__vcad_import_1",
                     },
                 ],
@@ -339,12 +345,14 @@ class TestDataImportsFullFlow:
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")
         result = conn.extract_imports(
-            '[let bb [import :bbox "entity:10"]]\n'
-            '[let tr [import :transform "entity:20"]]'
+            '[let bb [import :host "entity:10" :bbox]]\n'
+            '[let tr [import :host "entity:20" :transform]]'
         )
 
         assert len(result["imports"]) == 2
-        extracts = {imp["extract"] for imp in result["imports"]}
+        extracts = set()
+        for imp in result["imports"]:
+            extracts.update(imp["extracts"])
         assert extracts == {"bbox", "transform"}
         conn.disconnect()
 
@@ -392,7 +400,7 @@ class TestVCADConnectionImportMethods:
             base_dir="/project",
             imports={
                 "import_0": {
-                    "extract": "dimensions",
+                    "extract": "dims",
                     "injected_symbol": "__vcad_import_0",
                     "data": {"width": 10.0},
                 }

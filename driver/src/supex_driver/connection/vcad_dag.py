@@ -24,8 +24,9 @@ class ImportRef:
     """A single import reference from a vcad node."""
 
     binding_name: str  # Loon var name
-    entity_ref: str  # "entity:12345"
-    extract: str  # "dimensions", "bbox", "transform", "solid"
+    selector: str  # "entity:12345" (for :host source)
+    source: str = "host"  # source keyword
+    extracts: list[str] = field(default_factory=list)  # [] = all, ["solid"], ["dims", "bbox"]
     resolved_type: str = "native"  # "native", "vcad", or "native_mesh"
     source_node_id: str | None = None  # set if resolved_type == "vcad"
 
@@ -111,7 +112,7 @@ class VCADDag:
         entity_ref = f"entity:{entity_id}"
         for nid, node in self.nodes.items():
             for imp in node.imports:
-                if imp.entity_ref == entity_ref:
+                if imp.selector == entity_ref:
                     result.append(nid)
                     break
         return result

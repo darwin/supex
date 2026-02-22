@@ -137,9 +137,9 @@ def _build_import_refs(
 
         # Determine resolved type: solid imports from vcad-backed entities
         # carry vcad_node_id; data imports may have resolved_type set directly.
-        extract = imp.get("extract", "")
+        extracts = imp.get("extracts", [])
         vcad_node_id = resolved.get("vcad_node_id")
-        if extract == "solid" and vcad_node_id:
+        if "solid" in extracts and vcad_node_id:
             resolved_type = "vcad"
             source_node_id = vcad_node_id
         else:
@@ -148,8 +148,9 @@ def _build_import_refs(
 
         refs.append(ImportRef(
             binding_name=imp.get("injected_symbol", imp.get("binding_name", "")),
-            entity_ref=imp.get("entity_ref", ""),
-            extract=extract,
+            selector=imp.get("selector", ""),
+            source=imp.get("source", "host"),
+            extracts=extracts,
             resolved_type=resolved_type,
             source_node_id=source_node_id,
         ))
@@ -188,22 +189,24 @@ def _resolve_imports(
     sketchup = get_sketchup_connection(agent=agent)
 
     for imp in import_decls:
-        entity_ref = imp["entity_ref"]
-        entity_id_str = entity_ref.split(":", 1)[1] if ":" in entity_ref else ""
+        selector = imp["selector"]
+        # Extract entity ID from selector (for :host source)
+        entity_id_str = selector.split(":", 1)[1] if ":" in selector else ""
+        extracts = imp.get("extracts", [])
 
-        resolve_result = sketchup.send_command(
-            method="resolve_vcad_import",
-            params={
-                "entity_id": entity_id_str,
-                "extract": imp["extract"],
-            },
-            request_id=ctx.request_id,
-        )
-
-        if imp["extract"] == "solid":
+        if "solid" in extracts:
+            # Solid import — single extract
+            resolve_result = sketchup.send_command(
+                method="resolve_vcad_import",
+                params={
+                    "entity_id": entity_id_str,
+                    "extract": "solid",
+                },
+                request_id=ctx.request_id,
+            )
             has_solid_imports = True
-            source = resolve_result.get("source", "vcad")
-            if source == "native_mesh":
+            resolve_source = resolve_result.get("source", "vcad")
+            if resolve_source == "native_mesh":
                 resolved_imports[imp["import_id"]] = {
                     "extract": "solid",
                     "injected_symbol": imp["injected_symbol"],
@@ -220,12 +223,46 @@ def _resolve_imports(
                     "data": None,
                     "vcad_node_id": resolve_result.get("vcad_node_id"),
                 }
-        else:
+        elif len(extracts) == 1:
+            # Single data extract — request directly
+            resolve_result = sketchup.send_command(
+                method="resolve_vcad_import",
+                params={
+                    "entity_id": entity_id_str,
+                    "extract": extracts[0],
+                },
+                request_id=ctx.request_id,
+            )
             resolved_imports[imp["import_id"]] = {
-                "extract": imp["extract"],
+                "extract": extracts[0],
                 "injected_symbol": imp["injected_symbol"],
                 "data": resolve_result.get("data", {}),
             }
+        else:
+            # No extracts (all) or multiple extracts — request all, then filter
+            resolve_result = sketchup.send_command(
+                method="resolve_vcad_import",
+                params={
+                    "entity_id": entity_id_str,
+                    "extract": "all",
+                },
+                request_id=ctx.request_id,
+            )
+            all_data = resolve_result.get("data", {})
+            if extracts:
+                # Multi-extract: filter to requested keys
+                filtered_data = {k: all_data[k] for k in extracts if k in all_data}
+                resolved_imports[imp["import_id"]] = {
+                    "extract": "all",
+                    "injected_symbol": imp["injected_symbol"],
+                    "data": filtered_data,
+                }
+            else:
+                resolved_imports[imp["import_id"]] = {
+                    "extract": "all",
+                    "injected_symbol": imp["injected_symbol"],
+                    "data": all_data,
+                }
 
     return (True, {
         "transformed_source": transformed_source,

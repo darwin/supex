@@ -225,8 +225,8 @@ class TestTopologicalSafety:
                 imports=[
                     ImportRef(
                         binding_name="a_solid",
-                        entity_ref="entity:A",
-                        extract="solid",
+                        selector="entity:A",
+                        extracts=["solid"],
                         resolved_type="vcad",
                         source_node_id="A",
                     )
@@ -240,8 +240,8 @@ class TestTopologicalSafety:
                 imports=[
                     ImportRef(
                         binding_name="b_solid",
-                        entity_ref="entity:B",
-                        extract="solid",
+                        selector="entity:B",
+                        extracts=["solid"],
                         resolved_type="vcad",
                         source_node_id="B",
                     )

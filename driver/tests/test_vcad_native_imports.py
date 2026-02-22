@@ -75,7 +75,7 @@ def native_solid_source(tmp_path):
     """Create a .skp.oo source file importing a native SketchUp solid."""
     src = tmp_path / "cut-from-native.skp.oo"
     src.write_text(
-        '[let wall [import :solid "entity:11111"]]\n'
+        '[let wall [import :host "entity:11111" :solid]]\n'
         "[pipe [cube 200.0 100.0 300.0]\n"
         "  [difference wall]]"
     )
@@ -87,8 +87,8 @@ def mixed_native_vcad_source(tmp_path):
     """Source with both native mesh and vcad-backed solid imports."""
     src = tmp_path / "mixed-native-vcad.skp.oo"
     src.write_text(
-        '[let wall [import :solid "entity:11111"]]\n'
-        '[let bracket [import :solid "entity:22222"]]\n'
+        '[let wall [import :host "entity:11111" :solid]]\n'
+        '[let bracket [import :host "entity:22222" :solid]]\n'
         "[pipe [cube 200.0 100.0 300.0]\n"
         "  [difference wall]\n"
         "  [union bracket]]"
@@ -113,8 +113,9 @@ class TestNativeMeshImportSuccess:
                 {
                     "import_id": "import_0",
                     "binding_name": "wall",
-                    "extract": "solid",
-                    "entity_ref": "entity:11111",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:11111",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -175,15 +176,17 @@ class TestNativeMeshImportSuccess:
                 {
                     "import_id": "import_0",
                     "binding_name": "wall",
-                    "extract": "solid",
-                    "entity_ref": "entity:11111",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:11111",
                     "injected_symbol": "__vcad_import_0",
                 },
                 {
                     "import_id": "import_1",
                     "binding_name": "bracket",
-                    "extract": "solid",
-                    "entity_ref": "entity:22222",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:22222",
                     "injected_symbol": "__vcad_import_1",
                 },
             ],
@@ -246,8 +249,8 @@ class TestNativeMeshImportSuccess:
         """Native mesh + data imports coexist correctly."""
         src = tmp_path / "native-with-data.skp.oo"
         src.write_text(
-            '[let dims [import :dimensions "entity:100"]]\n'
-            '[let wall [import :solid "entity:11111"]]\n'
+            '[let dims [import :host "entity:100" :dims]]\n'
+            '[let wall [import :host "entity:11111" :solid]]\n'
             "[cube 1.0 1.0 1.0]"
         )
 
@@ -256,15 +259,17 @@ class TestNativeMeshImportSuccess:
                 {
                     "import_id": "import_0",
                     "binding_name": "dims",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:100",
+                    "extracts": ["dims"],
+                    "source": "host",
+                    "selector": "entity:100",
                     "injected_symbol": "__vcad_import_0",
                 },
                 {
                     "import_id": "import_1",
                     "binding_name": "wall",
-                    "extract": "solid",
-                    "entity_ref": "entity:11111",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:11111",
                     "injected_symbol": "__vcad_import_1",
                 },
             ],
@@ -273,7 +278,7 @@ class TestNativeMeshImportSuccess:
 
         mock_sketchup.send_command.side_effect = [
             {
-                "extract": "dimensions",
+                "extract": "dims",
                 "vcad_node_id": None,
                 "data": {"width": 100.0, "height": 200.0, "depth": 50.0},
             },
@@ -307,7 +312,7 @@ class TestNativeMeshImportSuccess:
         imports = call_kwargs["imports"]
 
         # Data import
-        assert imports["import_0"]["extract"] == "dimensions"
+        assert imports["import_0"]["extract"] == "dims"
         assert imports["import_0"]["data"]["width"] == 100.0
 
         # Native mesh import
@@ -333,8 +338,9 @@ class TestNativeMeshImportErrors:
                 {
                     "import_id": "import_0",
                     "binding_name": "wall",
-                    "extract": "solid",
-                    "entity_ref": "entity:11111",
+                    "extracts": ["solid"],
+                    "source": "host",
+                    "selector": "entity:11111",
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -374,8 +380,9 @@ class TestBuildImportRefsWithNativeMesh:
             {
                 "import_id": "import_0",
                 "binding_name": "wall",
-                "extract": "solid",
-                "entity_ref": "entity:11111",
+                "extracts": ["solid"],
+                "source": "host",
+                "selector": "entity:11111",
                 "injected_symbol": "__vcad_import_0",
             }
         ]
@@ -394,7 +401,7 @@ class TestBuildImportRefsWithNativeMesh:
         refs = _build_import_refs(import_decls, resolved_imports)
 
         assert len(refs) == 1
-        assert refs[0].extract == "solid"
+        assert refs[0].extracts == ["solid"]
         assert refs[0].resolved_type == "native_mesh"
         assert refs[0].source_node_id is None
 
@@ -404,15 +411,17 @@ class TestBuildImportRefsWithNativeMesh:
             {
                 "import_id": "import_0",
                 "binding_name": "wall",
-                "extract": "solid",
-                "entity_ref": "entity:11111",
+                "extracts": ["solid"],
+                "source": "host",
+                "selector": "entity:11111",
                 "injected_symbol": "__vcad_import_0",
             },
             {
                 "import_id": "import_1",
                 "binding_name": "bracket",
-                "extract": "solid",
-                "entity_ref": "entity:22222",
+                "extracts": ["solid"],
+                "source": "host",
+                "selector": "entity:22222",
                 "injected_symbol": "__vcad_import_1",
             },
         ]
@@ -438,11 +447,11 @@ class TestBuildImportRefsWithNativeMesh:
 
         assert len(refs) == 2
         # Native mesh: no DAG dependency
-        assert refs[0].extract == "solid"
+        assert refs[0].extracts == ["solid"]
         assert refs[0].resolved_type == "native_mesh"
         assert refs[0].source_node_id is None
         # VCAD-backed: DAG dependency on bracket-node
-        assert refs[1].extract == "solid"
+        assert refs[1].extracts == ["solid"]
         assert refs[1].resolved_type == "vcad"
         assert refs[1].source_node_id == "bracket-node"
 
@@ -461,8 +470,9 @@ class TestBuildImportRefsWithNativeMesh:
             imports=[
                 ImportRef(
                     binding_name="wall",
-                    entity_ref="entity:11111",
-                    extract="solid",
+                    source="host",
+                    selector="entity:11111",
+                    extracts=["solid"],
                     resolved_type="native_mesh",
                     source_node_id=None,
                 )

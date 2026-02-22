@@ -987,8 +987,8 @@ class TestCompatibility:
         imports = [
             {
                 "binding_name": "dims",
-                "entity_ref": "entity:12345",
-                "extract": "dimensions",
+                "selector": "entity:12345",
+                "extracts": ["dims"],
                 "resolved_type": "native",
                 "source_node_id": None,
             }

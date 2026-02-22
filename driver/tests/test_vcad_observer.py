@@ -419,8 +419,8 @@ class TestStormDedup:
             source_file="/project/part-a.skp.oo",
             imports=[ImportRef(
                 binding_name="table_dims",
-                entity_ref="entity:12345",
-                extract="dimensions",
+                selector="entity:12345",
+                extracts=["dims"],
             )],
         )
         dag.add_node(node_a)

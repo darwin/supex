@@ -37,7 +37,7 @@ For strict rules and constraints, see `supex-guide/README.md`.
 ### VCAD Import Example
 
 ```loon
-[let host [import :dimensions "entity:12345"]]
+[let host [import :host "entity:12345" :dims]]
 [cube [get host :width] 10.0 [get host :height]]
 ```
 

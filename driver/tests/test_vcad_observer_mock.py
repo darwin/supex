@@ -89,8 +89,8 @@ class TestObserverDagCascadeFlow:
             source_file="/project/bracket.skp.oo",
             imports=[ImportRef(
                 binding_name="table_dims",
-                entity_ref="entity:100",
-                extract="dimensions",
+                selector="entity:100",
+                extracts=["dims"],
             )],
         ))
         dag.add_node(VCADNode(
@@ -98,8 +98,8 @@ class TestObserverDagCascadeFlow:
             source_file="/project/plate.skp.oo",
             imports=[ImportRef(
                 binding_name="table_bbox",
-                entity_ref="entity:100",
-                extract="bbox",
+                selector="entity:100",
+                extracts=["bbox"],
             )],
         ))
         # This node does NOT import entity:100
@@ -120,8 +120,8 @@ class TestObserverDagCascadeFlow:
             source_file="/project/a.skp.oo",
             imports=[ImportRef(
                 binding_name="dims",
-                entity_ref="entity:42",
-                extract="dimensions",
+                selector="entity:42",
+                extracts=["dims"],
             )],
         ))
 
@@ -160,8 +160,8 @@ class TestObserverDagCascadeFlow:
             source_file="/project/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a_solid",
-                entity_ref="entity:1",
-                extract="solid",
+                selector="entity:1",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="A",
             )],
@@ -171,8 +171,8 @@ class TestObserverDagCascadeFlow:
             source_file="/project/c.skp.oo",
             imports=[ImportRef(
                 binding_name="b_solid",
-                entity_ref="entity:2",
-                extract="solid",
+                selector="entity:2",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="B",
             )],
@@ -212,8 +212,8 @@ class TestMultiSourceCoalescing:
             source_file="/project/obs.skp.oo",
             imports=[ImportRef(
                 binding_name="x",
-                entity_ref="entity:50",
-                extract="dimensions",
+                selector="entity:50",
+                extracts=["dims"],
             )],
         ))
 
@@ -430,8 +430,8 @@ class TestStaleResultRaceIntegration:
             source_file="/project/part-b.skp.oo",
             imports=[ImportRef(
                 binding_name="a_solid",
-                entity_ref="entity:1",
-                extract="solid",
+                selector="entity:1",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="part-a",
             )],
@@ -474,8 +474,8 @@ class TestObserverBatchCombined:
             source_file="/project/panel.skp.oo",
             imports=[ImportRef(
                 binding_name="frame_dims",
-                entity_ref="entity:200",
-                extract="dimensions",
+                selector="entity:200",
+                extracts=["dims"],
             )],
         ))
 
@@ -515,8 +515,8 @@ class TestObserverBatchCombined:
             source_file="/project/bracket.skp.oo",
             imports=[ImportRef(
                 binding_name="plate_dims",
-                entity_ref="entity:300",
-                extract="dimensions",
+                selector="entity:300",
+                extracts=["dims"],
             )],
         ))
         dag.add_node(VCADNode(

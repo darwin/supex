@@ -254,32 +254,52 @@ VCAD nodes can reference data from existing SketchUp entities using inline `[imp
 ### Import syntax
 
 ```loon
-[let <binding> [import <extract-type> "entity:<id>"]]
+[let <binding> [import :host "entity:<id>"]]                    ; all data (default)
+[let <binding> [import :host "entity:<id>" <extract>]]           ; single extract
+[let <binding> [import :host "entity:<id>" <extract> <extract>]] ; multi-extract
+```
+
+The first argument after `import` is the **source** keyword (currently only `:host` for SketchUp entities). The second is a source-specific **selector** string. Optional arguments after the selector are **extract** keywords.
+
+### Default import (no extract)
+
+When no extract is specified, returns a map with all available data:
+
+```loon
+[let host [import :host "entity:12345"]]
+; host => {:dims {:width ... :height ... :depth ...}
+;          :bbox {:min [...] :max [...]}
+;          :transform {:matrix [...]}}
+[cube [get [get host :dims] :width] 10.0 [get [get host :dims] :height]]
 ```
 
 ### Data imports
 
-Extract numeric data from SketchUp entities and bind to Loon variables:
+Extract specific data from SketchUp entities:
 
 | Extract | Binding type | Fields |
 |---------|-------------|--------|
-| `:dimensions` | map | `:width`, `:height`, `:depth` (mm) |
+| `:dims` | map | `:width`, `:height`, `:depth` (mm) |
 | `:bbox` | map | `:min [x,y,z]`, `:max [x,y,z]` (mm) |
 | `:transform` | map | `:matrix` (16-element array) |
 
 ```loon
-; Parametric part that adapts to a host entity
-[let host [import :dimensions "entity:12345"]]
+; Single extract — returns the data directly
+[let host [import :host "entity:12345" :dims]]
 [cube [get host :width] 10.0 [get host :height]]
+
+; Multiple extracts — returns a map with requested keys
+[let host [import :host "entity:12345" :dims :bbox]]
+[cube [get [get host :dims] :width] 10.0 [get [get host :dims] :height]]
 ```
 
 ### Solid imports
 
-Import a solid for CSG composition. Works with both VCAD-backed nodes and native SketchUp solids.
+Import a solid for CSG composition. Works with both VCAD-backed nodes and native SketchUp solids. `:solid` cannot be combined with other extracts.
 
 ```loon
 ; Import another VCAD node's geometry for boolean operations
-[let bracket [import :solid "entity:67890"]]
+[let bracket [import :host "entity:67890" :solid]]
 [pipe [cube 100.0 50.0 20.0]
   [difference bracket]]
 ```
@@ -315,7 +335,7 @@ When VCAD nodes import from other entities, the driver maintains a dependency DA
 
 ```
 base-plate.skp.oo  →  bracket.skp.oo (imports :solid from base-plate)
-                   →  mount.skp.oo (imports :dimensions from base-plate)
+                   →  mount.skp.oo (imports :dims from base-plate)
 ```
 
 Calling `vcad_update_cascade("base-plate")` re-evaluates base-plate first, then bracket and mount in dependency order.

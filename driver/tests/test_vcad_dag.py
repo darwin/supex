@@ -89,8 +89,8 @@ class TestVCADDagDependencies:
             source_file="/test/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a_solid",
-                entity_ref="entity:100",
-                extract="solid",
+                selector="entity:100",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="A",
             )],
@@ -100,8 +100,8 @@ class TestVCADDagDependencies:
             source_file="/test/c.skp.oo",
             imports=[ImportRef(
                 binding_name="b_solid",
-                entity_ref="entity:200",
-                extract="solid",
+                selector="entity:200",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="B",
             )],
@@ -138,8 +138,8 @@ class TestVCADDagDependencies:
             source_file="/test/a.skp.oo",
             imports=[ImportRef(
                 binding_name="dims",
-                entity_ref="entity:42",
-                extract="dimensions",
+                selector="entity:42",
+                extracts=["dims"],
                 resolved_type="native",
             )],
         ))
@@ -148,8 +148,8 @@ class TestVCADDagDependencies:
             source_file="/test/b.skp.oo",
             imports=[ImportRef(
                 binding_name="bbox",
-                entity_ref="entity:42",
-                extract="bbox",
+                selector="entity:42",
+                extracts=["bbox"],
                 resolved_type="native",
             )],
         ))
@@ -158,8 +158,8 @@ class TestVCADDagDependencies:
             source_file="/test/c.skp.oo",
             imports=[ImportRef(
                 binding_name="dims",
-                entity_ref="entity:99",
-                extract="dimensions",
+                selector="entity:99",
+                extracts=["dims"],
                 resolved_type="native",
             )],
         ))
@@ -176,16 +176,16 @@ class TestVCADDagDependencies:
             node_id="B",
             source_file="/test/b.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
         dag.add_node(VCADNode(
             node_id="C",
             source_file="/test/c.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
         dag.add_node(VCADNode(
@@ -193,12 +193,12 @@ class TestVCADDagDependencies:
             source_file="/test/d.skp.oo",
             imports=[
                 ImportRef(
-                    binding_name="b", entity_ref="entity:2",
-                    extract="solid", resolved_type="vcad", source_node_id="B",
+                    binding_name="b", selector="entity:2",
+                    extracts=["solid"], resolved_type="vcad", source_node_id="B",
                 ),
                 ImportRef(
-                    binding_name="c", entity_ref="entity:3",
-                    extract="solid", resolved_type="vcad", source_node_id="C",
+                    binding_name="c", selector="entity:3",
+                    extracts=["solid"], resolved_type="vcad", source_node_id="C",
                 ),
             ],
         ))
@@ -221,15 +221,15 @@ class TestVCADDagTopologicalSort:
         dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
         dag.add_node(VCADNode(
             node_id="C", source_file="/c.skp.oo",
             imports=[ImportRef(
-                binding_name="b", entity_ref="entity:2",
-                extract="solid", resolved_type="vcad", source_node_id="B",
+                binding_name="b", selector="entity:2",
+                extracts=["solid"], resolved_type="vcad", source_node_id="B",
             )],
         ))
 
@@ -242,27 +242,27 @@ class TestVCADDagTopologicalSort:
         dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
         dag.add_node(VCADNode(
             node_id="C", source_file="/c.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
         dag.add_node(VCADNode(
             node_id="D", source_file="/d.skp.oo",
             imports=[
                 ImportRef(
-                    binding_name="b", entity_ref="entity:2",
-                    extract="solid", resolved_type="vcad", source_node_id="B",
+                    binding_name="b", selector="entity:2",
+                    extracts=["solid"], resolved_type="vcad", source_node_id="B",
                 ),
                 ImportRef(
-                    binding_name="c", entity_ref="entity:3",
-                    extract="solid", resolved_type="vcad", source_node_id="C",
+                    binding_name="c", selector="entity:3",
+                    extracts=["solid"], resolved_type="vcad", source_node_id="C",
                 ),
             ],
         ))
@@ -288,8 +288,8 @@ class TestVCADDagTopologicalSort:
         dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
         dag.add_node(VCADNode(node_id="C", source_file="/c.skp.oo"))
@@ -311,8 +311,8 @@ class TestVCADDagCycleDetection:
         dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
 
@@ -323,15 +323,15 @@ class TestVCADDagCycleDetection:
         dag.add_node(VCADNode(
             node_id="A", source_file="/a.skp.oo",
             imports=[ImportRef(
-                binding_name="b", entity_ref="entity:2",
-                extract="solid", resolved_type="vcad", source_node_id="B",
+                binding_name="b", selector="entity:2",
+                extracts=["solid"], resolved_type="vcad", source_node_id="B",
             )],
         ))
         dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
-                binding_name="a", entity_ref="entity:1",
-                extract="solid", resolved_type="vcad", source_node_id="A",
+                binding_name="a", selector="entity:1",
+                extracts=["solid"], resolved_type="vcad", source_node_id="A",
             )],
         ))
 
@@ -655,21 +655,21 @@ class TestImportRef:
     def test_basic_import_ref(self) -> None:
         ref = ImportRef(
             binding_name="plate_dims",
-            entity_ref="entity:12345",
-            extract="dimensions",
+            selector="entity:12345",
+            extracts=["dims"],
             resolved_type="native",
         )
         assert ref.binding_name == "plate_dims"
-        assert ref.entity_ref == "entity:12345"
-        assert ref.extract == "dimensions"
+        assert ref.selector == "entity:12345"
+        assert ref.extracts == ["dims"]
         assert ref.resolved_type == "native"
         assert ref.source_node_id is None
 
     def test_vcad_import_ref(self) -> None:
         ref = ImportRef(
             binding_name="base_solid",
-            entity_ref="entity:67890",
-            extract="solid",
+            selector="entity:67890",
+            extracts=["solid"],
             resolved_type="vcad",
             source_node_id="base-plate",
         )
@@ -694,14 +694,14 @@ class TestVCADDagMixedImports:
             imports=[
                 ImportRef(
                     binding_name="native_data",
-                    entity_ref="entity:100",
-                    extract="dimensions",
+                    selector="entity:100",
+                    extracts=["dims"],
                     resolved_type="native",
                 ),
                 ImportRef(
                     binding_name="vcad_solid",
-                    entity_ref="entity:200",
-                    extract="solid",
+                    selector="entity:200",
+                    extracts=["solid"],
                     resolved_type="vcad",
                     source_node_id="A",
                 ),
@@ -723,8 +723,8 @@ class TestVCADDagMixedImports:
             source_file="/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a_solid",
-                entity_ref="entity:200",
-                extract="solid",
+                selector="entity:200",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="A",
             )],

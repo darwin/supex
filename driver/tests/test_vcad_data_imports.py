@@ -56,7 +56,7 @@ def source_file(tmp_path):
     """Create a temporary .skp.oo source file with imports."""
     src = tmp_path / "part.skp.oo"
     src.write_text(
-        '[let host-dims [import :dimensions "entity:12345"]]\n'
+        '[let host-dims [import :host "entity:12345" :dims]]\n'
         "[pipe [cube [get host-dims :width] 10.0 [get host-dims :height]]\n"
         "  [fillet 2.0]]"
     )
@@ -89,8 +89,9 @@ class TestVCADPlaceImports:
                 {
                     "import_id": "import_0",
                     "binding_name": "host-dims",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:12345",
+                    "source": "host",
+                    "selector": "entity:12345",
+                    "extracts": ["dims"],
                     "injected_symbol": "__vcad_import_0",
                 }
             ],
@@ -100,7 +101,7 @@ class TestVCADPlaceImports:
         # SketchUp resolve_vcad_import
         mock_sketchup.send_command.side_effect = [
             {
-                "extract": "dimensions",
+                "extract": "dims",
                 "vcad_node_id": None,
                 "data": {"width": 100.0, "height": 200.0, "depth": 50.0},
             },
@@ -140,7 +141,7 @@ class TestVCADPlaceImports:
         resolve_call = mock_sketchup.send_command.call_args_list[0]
         assert resolve_call.kwargs["method"] == "resolve_vcad_import"
         assert resolve_call.kwargs["params"]["entity_id"] == "12345"
-        assert resolve_call.kwargs["params"]["extract"] == "dimensions"
+        assert resolve_call.kwargs["params"]["extract"] == "dims"
 
         # Verify eval_with_imports was called with resolved data
         mock_vcad.eval_with_imports.assert_called_once()
@@ -183,8 +184,8 @@ class TestVCADPlaceImports:
         """Multiple imports resolved in order."""
         src = tmp_path / "multi.skp.oo"
         src.write_text(
-            '[let dims [import :dimensions "entity:100"]]\n'
-            '[let bb [import :bbox "entity:200"]]\n'
+            '[let dims [import :host "entity:100" :dims]]\n'
+            '[let bb [import :host "entity:200" :bbox]]\n'
             "[cube 1.0 1.0 1.0]"
         )
 
@@ -193,15 +194,17 @@ class TestVCADPlaceImports:
                 {
                     "import_id": "import_0",
                     "binding_name": "dims",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:100",
+                    "source": "host",
+                    "selector": "entity:100",
+                    "extracts": ["dims"],
                     "injected_symbol": "__vcad_import_0",
                 },
                 {
                     "import_id": "import_1",
                     "binding_name": "bb",
-                    "extract": "bbox",
-                    "entity_ref": "entity:200",
+                    "source": "host",
+                    "selector": "entity:200",
+                    "extracts": ["bbox"],
                     "injected_symbol": "__vcad_import_1",
                 },
             ],
@@ -209,7 +212,7 @@ class TestVCADPlaceImports:
         }
         mock_sketchup.send_command.side_effect = [
             {
-                "extract": "dimensions",
+                "extract": "dims",
                 "vcad_node_id": "plate",
                 "data": {"width": 50.0, "height": 30.0, "depth": 10.0},
             },
@@ -284,8 +287,9 @@ class TestVCADPlaceImportsErrors:
                 {
                     "import_id": "import_0",
                     "binding_name": "x",
-                    "extract": "dimensions",
-                    "entity_ref": "entity:999",
+                    "source": "host",
+                    "selector": "entity:999",
+                    "extracts": ["dims"],
                     "injected_symbol": "__vcad_import_0",
                 }
             ],

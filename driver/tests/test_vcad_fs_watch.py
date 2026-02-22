@@ -411,8 +411,8 @@ class TestPollAndCascade:
             source_file=source_b,
             imports=[ImportRef(
                 binding_name="a_solid",
-                entity_ref="entity:100",
-                extract="solid",
+                selector="entity:100",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="node-a",
             )],
@@ -455,8 +455,8 @@ class TestPollAndCascade:
             source_file=source_b,
             imports=[ImportRef(
                 binding_name="a_solid",
-                entity_ref="entity:100",
-                extract="solid",
+                selector="entity:100",
+                extracts=["solid"],
                 resolved_type="vcad",
                 source_node_id="node-a",
             )],
