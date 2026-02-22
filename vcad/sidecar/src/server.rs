@@ -72,10 +72,6 @@ pub enum EvalRequest {
         path: String,
         node_id: String,
     },
-    Inspect {
-        id: serde_json::Value,
-        code_or_path: String,
-    },
     EvalWithImports {
         id: serde_json::Value,
         transformed_source: String,
@@ -100,7 +96,6 @@ impl EvalRequest {
             EvalRequest::EvalCode { id, .. } => id,
             EvalRequest::EvalFile { id, .. } => id,
             EvalRequest::EvalFileTracked { id, .. } => id,
-            EvalRequest::Inspect { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
             EvalRequest::EvalReplWithImports { id, .. } => id,
         }
@@ -502,31 +497,6 @@ fn dispatch_tools_call(
                 }
             }
         }
-        "vcad.inspect" => {
-            let code_or_path = arguments
-                .get("code_or_path")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            if code_or_path.is_empty() {
-                return make_error_response(
-                    request.id.clone(),
-                    JSONRPC_INVALID_REQUEST,
-                    "vcad.inspect requires non-empty 'code_or_path' argument",
-                    None,
-                );
-            }
-            // If it looks like a file path, validate it.
-            // Preferred module extension is .oo (legacy .loon accepted).
-            if code_or_path.ends_with(".oo") || code_or_path.ends_with(".loon") {
-                if let Err(resp) = validate_path_policy(code_or_path, ctx, &request.id) {
-                    return resp;
-                }
-            }
-            EvalRequest::Inspect {
-                id: request.id.clone(),
-                code_or_path: code_or_path.to_string(),
-            }
-        }
         "vcad.extract_imports" => {
             // Fast-path: parse-only, no eval queue needed.
             let source = arguments
@@ -915,10 +885,6 @@ fn dispatch_eval(
                 Err(e) => eval_error_response(id.clone(), &e),
             }
         }
-        EvalRequest::Inspect { id, code_or_path } => match evaluator.inspect(code_or_path) {
-            Ok(result) => eval_result_response(id.clone(), &result),
-            Err(e) => eval_error_response(id.clone(), &e),
-        },
         EvalRequest::EvalWithImports {
             id,
             transformed_source,

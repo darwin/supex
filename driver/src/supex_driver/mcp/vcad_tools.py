@@ -639,20 +639,17 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
 
         has_imports, details = _resolve_imports(ctx, source_text, source if is_file else None)
 
-        if has_imports:
-            base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
-            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, inspect_only=True)
-            return json.dumps({
-                "success": True,
-                "volume": eval_result.get("volume", 0.0),
-                "surface_area": eval_result.get("surface_area", 0.0),
-                "bbox": eval_result.get("bbox", {}),
-                "is_empty": eval_result.get("is_empty", False),
-            })
-        else:
-            vcad = get_vcad_connection(agent=get_agent_name(ctx))
-            result = vcad.inspect(source)
-            return json.dumps({"success": True, **result})
+        if not has_imports:
+            details = {"transformed_source": source_text, "resolved_imports": {}}
+        base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
+        eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, inspect_only=True)
+        return json.dumps({
+            "success": True,
+            "volume": eval_result.get("volume", 0.0),
+            "surface_area": eval_result.get("surface_area", 0.0),
+            "bbox": eval_result.get("bbox", {}),
+            "is_empty": eval_result.get("is_empty", False),
+        })
     except (
         VCADCapabilityError,
         VCADProtocolError,

@@ -467,17 +467,6 @@ class VCADConnection:
             params["node_id"] = node_id
         return self.send_command("vcad.eval_file", params)
 
-    def inspect(self, code_or_path: str) -> dict[str, Any]:
-        """Inspect Loon code or file without full evaluation.
-
-        Args:
-            code_or_path: Loon source code or file path to inspect.
-
-        Returns:
-            Inspection result from sidecar.
-        """
-        return self.send_command("vcad.inspect", {"code_or_path": code_or_path})
-
     def extract_imports(self, source: str) -> dict[str, Any]:
         """Parse source and extract import declarations.
 

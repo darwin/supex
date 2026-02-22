@@ -326,20 +326,6 @@ class TestVCADConnectionIntegration:
         assert tool_call["params"]["arguments"]["path"] == "/path/to/test.skp.oo"
         conn.disconnect()
 
-    def test_inspect(self, mock_sidecar: MockVCADSidecar) -> None:
-        mock_sidecar.set_response(
-            "tools/call",
-            result={"type": "Cube", "params": [10.0, 10.0, 10.0]},
-        )
-
-        conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port)
-        result = conn.inspect("[cube 10.0 10.0 10.0]")
-
-        assert result["type"] == "Cube"
-        tool_call = mock_sidecar.requests[-1]
-        assert tool_call["params"]["name"] == "vcad.inspect"
-        conn.disconnect()
-
     def test_remote_error(self, mock_sidecar: MockVCADSidecar) -> None:
         mock_sidecar.set_response(
             "tools/call",

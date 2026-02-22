@@ -228,11 +228,12 @@ class TestVCADInspect:
     """Test vcad_inspect tool."""
 
     def test_inspect_success(self, mock_ctx, mock_vcad):
-        """Inspect returns geometry properties."""
-        mock_vcad.inspect.return_value = {
+        """Inspect returns geometry properties via eval_with_imports(inspect_only=True)."""
+        mock_vcad.eval_with_imports.return_value = {
             "volume": 1000.0,
             "surface_area": 600.0,
-            "bounding_box": {"min": [0, 0, 0], "max": [10, 10, 10]},
+            "bbox": {"min": [0, 0, 0], "max": [10, 10, 10]},
+            "is_empty": False,
         }
 
         result = json.loads(vcad_inspect(mock_ctx, source="[cube 10.0 10.0 10.0]"))
@@ -240,10 +241,14 @@ class TestVCADInspect:
         assert result["success"] is True
         assert result["volume"] == 1000.0
         assert result["surface_area"] == 600.0
+        # Verify it used eval_with_imports with inspect_only=True
+        mock_vcad.eval_with_imports.assert_called_once()
+        call_kwargs = mock_vcad.eval_with_imports.call_args
+        assert call_kwargs.kwargs.get("inspect_only") is True
 
     def test_inspect_error(self, mock_ctx, mock_vcad):
         """Inspect with invalid code returns error."""
-        mock_vcad.inspect.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="Invalid Loon"
         )
 
@@ -448,8 +453,8 @@ class TestVCADToolsErrorPropagation:
 
     def test_capability_error_no_fallback(self, mock_ctx, mock_vcad, mock_sketchup):
         """Tool returns error directly on capability mismatch (no fallback)."""
-        mock_vcad.inspect.side_effect = VCADCapabilityError(
-            required_capability="inspect",
+        mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
+            required_capability="imports.data_extracts",
             negotiated_capabilities=["eval"],
             operation="vcad_inspect",
         )

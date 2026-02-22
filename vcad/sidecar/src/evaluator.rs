@@ -278,44 +278,6 @@ impl Evaluator {
         Ok((result, loaded_paths))
     }
 
-    /// Inspect: evaluate and return only geometry metadata (no OBJ export).
-    pub fn inspect(&self, code_or_path: &str) -> Result<EvalResult, EvalError> {
-        let doc = if code_or_path.ends_with(".skp.oo")
-            || code_or_path.ends_with(".oo")
-            // Legacy extension accepted for backward compatibility.
-            || code_or_path.ends_with(".skp.loon")
-        {
-            eval_vcad_file(Path::new(code_or_path)).map_err(EvalError::Loon)?
-        } else {
-            eval_vcad(code_or_path, None).map_err(EvalError::Loon)?
-        };
-
-        let options = EvalOptions {
-            skip_clash_detection: true,
-            clock: None,
-        };
-        let scene = evaluate_document(&doc, &options).map_err(EvalError::Kernel)?;
-        let part = select_single_part(&scene)?;
-        let solid = part
-            .solid
-            .as_ref()
-            .ok_or_else(|| EvalError::Internal("No BRep solid produced".to_string()))?;
-
-        let (bb_min, bb_max) = solid.bounding_box();
-
-        Ok(EvalResult {
-            obj_path: String::new(),
-            manifest_path: String::new(),
-            volume: solid.volume(),
-            surface_area: solid.surface_area(),
-            bbox: BBox {
-                min: bb_min,
-                max: bb_max,
-            },
-            is_empty: solid.is_empty(),
-        })
-    }
-
     /// Evaluate a Document and return only geometry metadata (no mesh export).
     ///
     /// Used by `eval_with_imports(inspect_only=true)` to skip tessellation,
