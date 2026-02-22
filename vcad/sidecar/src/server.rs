@@ -61,12 +61,8 @@ pub enum EvalRequest {
     EvalFile {
         id: serde_json::Value,
         path: String,
-    },
-    /// Evaluate .skp.oo file with module tracking (when node_id is provided).
-    EvalFileTracked {
-        id: serde_json::Value,
-        path: String,
-        node_id: String,
+        node_id: Option<String>,
+        track_modules: bool,
     },
     EvalWithImports {
         id: serde_json::Value,
@@ -90,7 +86,6 @@ impl EvalRequest {
     fn id(&self) -> &serde_json::Value {
         match self {
             EvalRequest::EvalFile { id, .. } => id,
-            EvalRequest::EvalFileTracked { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
             EvalRequest::EvalReplWithImports { id, .. } => id,
         }
@@ -459,22 +454,16 @@ fn dispatch_tools_call(
             if let Err(resp) = validate_path_policy(path, ctx, &request.id) {
                 return resp;
             }
-            // When node_id is provided, use module-tracking eval
             let node_id = arguments
                 .get("node_id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            if let Some(nid) = node_id {
-                EvalRequest::EvalFileTracked {
-                    id: request.id.clone(),
-                    path: path.to_string(),
-                    node_id: nid,
-                }
-            } else {
-                EvalRequest::EvalFile {
-                    id: request.id.clone(),
-                    path: path.to_string(),
-                }
+            let track_modules = node_id.is_some();
+            EvalRequest::EvalFile {
+                id: request.id.clone(),
+                path: path.to_string(),
+                node_id,
+                track_modules,
             }
         }
         "vcad.extract_imports" => {
@@ -832,33 +821,38 @@ fn dispatch_eval(
     module_tracker: &Arc<Mutex<ModuleTracker>>,
 ) -> JsonRpcResponse {
     match request {
-        EvalRequest::EvalFile { id, path } => match evaluator.eval_file(path) {
-            Ok(result) => eval_result_response(id.clone(), &result),
-            Err(e) => eval_error_response(id.clone(), &e),
-        },
-        EvalRequest::EvalFileTracked { id, path, node_id } => {
-            match evaluator.eval_file_tracked(path) {
-                Ok((result, loaded_paths)) => {
-                    // Record module dependencies in the tracker
-                    if let Ok(mut tracker) = module_tracker.lock() {
-                        tracker.record_evaluation(node_id, loaded_paths.clone());
+        EvalRequest::EvalFile { id, path, node_id, track_modules } => {
+            if *track_modules {
+                match evaluator.eval_file_tracked(path) {
+                    Ok((result, loaded_paths)) => {
+                        // Record module dependencies in the tracker
+                        if let Some(nid) = node_id.as_deref() {
+                            if let Ok(mut tracker) = module_tracker.lock() {
+                                tracker.record_evaluation(nid, loaded_paths.clone());
+                            }
+                        }
+                        // Include loaded_module_paths in response
+                        let path_strings: Vec<String> = loaded_paths
+                            .iter()
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .collect();
+                        let mut value =
+                            serde_json::to_value(&result).unwrap_or(serde_json::Value::Null);
+                        if let Some(obj) = value.as_object_mut() {
+                            obj.insert(
+                                "loaded_module_paths".to_string(),
+                                serde_json::json!(path_strings),
+                            );
+                        }
+                        make_success_response(id.clone(), value)
                     }
-                    // Include loaded_module_paths in response
-                    let path_strings: Vec<String> = loaded_paths
-                        .iter()
-                        .map(|p| p.to_string_lossy().into_owned())
-                        .collect();
-                    let mut value =
-                        serde_json::to_value(&result).unwrap_or(serde_json::Value::Null);
-                    if let Some(obj) = value.as_object_mut() {
-                        obj.insert(
-                            "loaded_module_paths".to_string(),
-                            serde_json::json!(path_strings),
-                        );
-                    }
-                    make_success_response(id.clone(), value)
+                    Err(e) => eval_error_response(id.clone(), &e),
                 }
-                Err(e) => eval_error_response(id.clone(), &e),
+            } else {
+                match evaluator.eval_file(path) {
+                    Ok(result) => eval_result_response(id.clone(), &result),
+                    Err(e) => eval_error_response(id.clone(), &e),
+                }
             }
         }
         EvalRequest::EvalWithImports {
