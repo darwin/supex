@@ -14,7 +14,7 @@ from supex_driver.connection.sketchup_exceptions import (
 )
 from supex_driver.mcp.vcad_tools import (
     _build_import_refs,
-    vcad_place_with_imports,
+    vcad_place,
 )
 
 
@@ -102,7 +102,7 @@ def mixed_native_vcad_source(tmp_path):
 
 
 class TestNativeMeshImportSuccess:
-    """Test native mesh import flow through vcad_place_with_imports."""
+    """Test native mesh import flow through vcad_place."""
 
     def test_native_mesh_import_forwards_mesh_to_sidecar(
         self, mock_ctx, mock_vcad, mock_sketchup, native_solid_source
@@ -142,7 +142,7 @@ class TestNativeMeshImportSuccess:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="consumer",
                 source_file=native_solid_source,
@@ -220,7 +220,7 @@ class TestNativeMeshImportSuccess:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="mixed",
                 source_file=mixed_native_vcad_source,
@@ -295,7 +295,7 @@ class TestNativeMeshImportSuccess:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="native-data",
                 source_file=str(src),
@@ -349,7 +349,7 @@ class TestNativeMeshImportErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="bad-native",
                 source_file=native_solid_source,

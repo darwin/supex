@@ -10,14 +10,13 @@ For strict rules and constraints, see `supex-guide/README.md`.
 |------|------------------|-----|
 | Manipulate existing SketchUp entities and settings | Ruby | Direct SketchUp API control |
 | Build repeatable parametric solids from source | VCAD | `.skp.oo` source-of-truth and deterministic updates |
-| Drive geometry from host entity imports | VCAD with imports | Requires `vcad_place_with_imports` pipeline |
+| Drive geometry from host entity imports | VCAD | Use `[import ...]` in `.skp.oo` source — auto-resolved |
 
 ## VCAD Workflow Loop
 
 1. Check existing `.oo` modules first and reuse CAD library helpers.
 2. Keep each `.skp.oo` file as one node that evaluates to exactly one solid.
-3. Use `vcad_place` for sources with no imports.
-4. Use `vcad_place_with_imports` for sources containing `[import ...]`.
+3. Use `vcad_place` to place nodes (imports are auto-detected and resolved).
 5. Re-evaluate with `vcad_update` for one node or `vcad_update_cascade` for dependent graphs.
 6. Verify with `vcad_list_nodes()` and screenshots.
 
@@ -38,12 +37,11 @@ For strict rules and constraints, see `supex-guide/README.md`.
 ### VCAD Import Example
 
 ```loon
-; Requires vcad_place_with_imports
 [let host [import :dimensions "entity:12345"]]
 [cube [get host :width] 10.0 [get host :height]]
 ```
 
-`[import ...]` declarations must stay in `.skp.oo` files. They do not work in `.oo` modules loaded via `[use ...]`, and they are not available in `vcad_eval` / `vcad_inspect`.
+`[import ...]` declarations must stay in `.skp.oo` files (or inline code). They do not work in `.oo` modules loaded via `[use ...]`.
 
 ### Batch Editing Pattern
 

@@ -156,6 +156,117 @@ def _build_import_refs(
     return refs
 
 
+def _resolve_imports(
+    ctx: McpContext,
+    source_text: str,
+    source_file: str | None = None,
+) -> tuple[bool, dict[str, Any]]:
+    """Extract and resolve imports from source text.
+
+    Returns (has_imports, details) where details contains:
+    - transformed_source, import_decls, resolved_imports, has_solid_imports
+    """
+    # Quick syntactic check: skip sidecar call when no import keyword present
+    if "[import " not in source_text:
+        return (False, {})
+
+    agent = get_agent_name(ctx)
+
+    # Step 1: Extract imports via sidecar (parse-only, fast-path)
+    vcad = get_vcad_connection(agent=agent)
+    extraction = vcad.extract_imports(source_text)
+
+    import_decls = extraction.get("imports", [])
+    transformed_source = extraction.get("transformed_source", source_text)
+
+    if not import_decls:
+        return (False, {})
+
+    # Step 2: Resolve each import via SketchUp bridge
+    resolved_imports: dict[str, Any] = {}
+    has_solid_imports = False
+    sketchup = get_sketchup_connection(agent=agent)
+
+    for imp in import_decls:
+        entity_ref = imp["entity_ref"]
+        entity_id_str = entity_ref.split(":", 1)[1] if ":" in entity_ref else ""
+
+        resolve_result = sketchup.send_command(
+            method="resolve_vcad_import",
+            params={
+                "entity_id": entity_id_str,
+                "extract": imp["extract"],
+            },
+            request_id=ctx.request_id,
+        )
+
+        if imp["extract"] == "solid":
+            has_solid_imports = True
+            source = resolve_result.get("source", "vcad")
+            if source == "native_mesh":
+                resolved_imports[imp["import_id"]] = {
+                    "extract": "solid",
+                    "injected_symbol": imp["injected_symbol"],
+                    "source": "native_mesh",
+                    "data": None,
+                    "vcad_node_id": None,
+                    "native_mesh": resolve_result.get("mesh"),
+                    "resolved_type": "native_mesh",
+                }
+            else:
+                resolved_imports[imp["import_id"]] = {
+                    "extract": "solid",
+                    "injected_symbol": imp["injected_symbol"],
+                    "data": None,
+                    "vcad_node_id": resolve_result.get("vcad_node_id"),
+                }
+        else:
+            resolved_imports[imp["import_id"]] = {
+                "extract": imp["extract"],
+                "injected_symbol": imp["injected_symbol"],
+                "data": resolve_result.get("data", {}),
+            }
+
+    return (True, {
+        "transformed_source": transformed_source,
+        "import_decls": import_decls,
+        "resolved_imports": resolved_imports,
+        "has_solid_imports": has_solid_imports,
+    })
+
+
+def _eval_with_imports(
+    ctx: McpContext,
+    details: dict[str, Any],
+    base_dir: str | None = None,
+    node_id: str | None = None,
+) -> dict[str, Any]:
+    """Evaluate transformed source with resolved imports via appropriate sidecar endpoint.
+
+    Chooses eval_with_solid_imports or eval_with_imports based on has_solid_imports.
+    """
+    agent = get_agent_name(ctx)
+    vcad = get_vcad_connection(agent=agent)
+
+    transformed_source = details["transformed_source"]
+    resolved_imports = details["resolved_imports"]
+    has_solid_imports = details["has_solid_imports"]
+
+    if has_solid_imports:
+        return vcad.eval_with_solid_imports(
+            transformed_source=transformed_source,
+            base_dir=base_dir,
+            imports=resolved_imports,
+            node_id=node_id,
+        )
+    else:
+        return vcad.eval_with_imports(
+            transformed_source=transformed_source,
+            base_dir=base_dir,
+            imports=resolved_imports,
+        )
+
+
 def _vcad_update_single(
     ctx: McpContext,
     node_id: str,
@@ -165,14 +276,31 @@ def _vcad_update_single(
 ) -> dict[str, Any]:
     """Internal helper: re-evaluate a single node with revision guard.
 
+    Auto-detects imports in source and resolves them before evaluation.
     Returns result dict with success/error status.
     """
     agent = get_agent_name(ctx)
 
-    # Re-evaluate via sidecar (with module tracking)
+    # Read source and check for imports
     try:
-        vcad = get_vcad_connection(agent=agent)
-        eval_result = vcad.eval_file(source_file, node_id=node_id)
+        with open(source_file) as f:
+            source_text = f.read()
+    except OSError as e:
+        return build_error("IO_ERROR", f"Cannot read source file: {e}", {"node_id": node_id})
+
+    try:
+        has_imports, details = _resolve_imports(ctx, source_text, source_file)
+    except Exception as e:
+        return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
+
+    # Re-evaluate via sidecar
+    try:
+        if has_imports:
+            base_dir = os.path.dirname(os.path.abspath(source_file))
+            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, node_id=node_id)
+        else:
+            vcad = get_vcad_connection(agent=agent)
+            eval_result = vcad.eval_file(source_file, node_id=node_id)
     except Exception as e:
         return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
 
@@ -203,6 +331,14 @@ def _vcad_update_single(
         )
     except Exception as e:
         return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
+
+    # Update DAG with import refs if applicable
+    if has_imports:
+        node = dag.get_node(node_id)
+        if node:
+            node.imports = _build_import_refs(
+                details["import_decls"], details["resolved_imports"]
+            )
 
     # Mark applied and persist
     dag.mark_applied(node_id, revision)
@@ -242,10 +378,43 @@ def vcad_place(
     """
     agent = get_agent_name(ctx)
 
-    # Step 1: Evaluate source file via VCAD sidecar (with module tracking)
+    # Step 1: Read source and check for imports
+    try:
+        with open(source_file) as f:
+            source_text = f.read()
+    except OSError as e:
+        return json.dumps(
+            build_error("IO_ERROR", f"Cannot read source file: {e}", operation="vcad_place:read")
+        )
+
+    try:
+        has_imports, details = _resolve_imports(ctx, source_text, source_file)
+    except (
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
+    ) as e:
+        return _handle_vcad_error(e, "vcad_place:extract")
+    except (
+        SketchUpRemoteError,
+        SketchUpConnectionError,
+        SketchUpTimeoutError,
+        SketchUpProtocolError,
+    ) as e:
+        return _handle_sketchup_error(e, "vcad_place:resolve")
+    except Exception as e:
+        return _handle_vcad_error(e, "vcad_place:extract")
+
+    # Step 2: Evaluate via sidecar
     try:
         vcad = get_vcad_connection(agent=agent)
-        eval_result = vcad.eval_file(source_file, node_id=node_id)
+        if has_imports:
+            base_dir = os.path.dirname(os.path.abspath(source_file))
+            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, node_id=node_id)
+        else:
+            eval_result = vcad.eval_file(source_file, node_id=node_id)
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -263,7 +432,7 @@ def vcad_place(
             build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_place:eval")
         )
 
-    # Step 2: Place in SketchUp via Ruby bridge
+    # Step 3: Place in SketchUp via Ruby bridge
     try:
         sketchup = get_sketchup_connection(agent=agent)
         place_params: dict[str, Any] = {
@@ -282,11 +451,16 @@ def vcad_place(
             request_id=ctx.request_id,
         )
 
-        # Register node in DAG (no imports for simple place)
+        # Register node in DAG (with imports if applicable)
         dag = get_vcad_dag()
+        dag_imports = (
+            _build_import_refs(details["import_decls"], details["resolved_imports"])
+            if has_imports else []
+        )
         dag_node = VCADNode(
             node_id=node_id,
             source_file=source_file,
+            imports=dag_imports,
             last_entity_id=result.get("entity_id"),
         )
         dag.add_node(dag_node)
@@ -351,10 +525,43 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
         except Exception as e:
             return _handle_sketchup_error(e, "vcad_update:lookup")
 
-    # Re-evaluate via sidecar (with module tracking)
+    # Read source and check for imports
     try:
-        vcad = get_vcad_connection(agent=agent)
-        eval_result = vcad.eval_file(source_file, node_id=node_id)
+        with open(source_file) as f:
+            source_text = f.read()
+    except OSError as e:
+        return json.dumps(
+            build_error("IO_ERROR", f"Cannot read source file: {e}", operation="vcad_update:read")
+        )
+
+    try:
+        has_imports, details = _resolve_imports(ctx, source_text, source_file)
+    except (
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
+    ) as e:
+        return _handle_vcad_error(e, "vcad_update:extract")
+    except (
+        SketchUpRemoteError,
+        SketchUpConnectionError,
+        SketchUpTimeoutError,
+        SketchUpProtocolError,
+    ) as e:
+        return _handle_sketchup_error(e, "vcad_update:resolve")
+    except Exception as e:
+        return _handle_vcad_error(e, "vcad_update:extract")
+
+    # Re-evaluate via sidecar
+    try:
+        if has_imports:
+            base_dir = os.path.dirname(os.path.abspath(source_file))
+            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, node_id=node_id)
+        else:
+            vcad = get_vcad_connection(agent=agent)
+            eval_result = vcad.eval_file(source_file, node_id=node_id)
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -387,15 +594,21 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
 
         # Refresh DAG entry (imports may have changed)
         dag = get_vcad_dag()
+        dag_imports = (
+            _build_import_refs(details["import_decls"], details["resolved_imports"])
+            if has_imports else []
+        )
         existing = dag.get_node(node_id)
         if existing:
             existing.source_file = source_file
+            existing.imports = dag_imports
             existing.last_entity_id = result.get("entity_id", existing.last_entity_id)
             dag.add_node(existing)
         else:
             dag.add_node(VCADNode(
                 node_id=node_id,
                 source_file=source_file,
+                imports=dag_imports,
                 last_entity_id=result.get("entity_id"),
             ))
         dag.persist_state()
@@ -423,9 +636,35 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
         source: A .skp.oo file path or inline Loon code
     """
     try:
-        vcad = get_vcad_connection(agent=get_agent_name(ctx))
-        result = vcad.inspect(source)
-        return json.dumps({"success": True, **result})
+        # Read source text if it's a file path
+        is_file = source.endswith(".oo") or source.endswith(".loon")
+        if is_file:
+            try:
+                with open(source) as f:
+                    source_text = f.read()
+            except OSError as e:
+                return json.dumps(
+                    build_error("IO_ERROR", f"Cannot read source file: {e}", operation="vcad_inspect:read")
+                )
+        else:
+            source_text = source
+
+        has_imports, details = _resolve_imports(ctx, source_text, source if is_file else None)
+
+        if has_imports:
+            base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
+            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir)
+            return json.dumps({
+                "success": True,
+                "volume": eval_result.get("volume", 0.0),
+                "surface_area": eval_result.get("surface_area", 0.0),
+                "bbox": eval_result.get("bbox", {}),
+                "is_empty": eval_result.get("is_empty", False),
+            })
+        else:
+            vcad = get_vcad_connection(agent=get_agent_name(ctx))
+            result = vcad.inspect(source)
+            return json.dumps({"success": True, **result})
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -434,6 +673,13 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
         VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_inspect")
+    except (
+        SketchUpRemoteError,
+        SketchUpConnectionError,
+        SketchUpTimeoutError,
+        SketchUpProtocolError,
+    ) as e:
+        return _handle_sketchup_error(e, "vcad_inspect")
     except Exception as e:
         return _handle_vcad_error(e, "vcad_inspect")
 
@@ -454,15 +700,37 @@ def vcad_export(
         output_path: Optional output file path. Auto-generated if empty.
     """
     try:
-        vcad = get_vcad_connection(agent=get_agent_name(ctx))
-        params: dict[str, str] = {
-            "source": source,
-            "format": format,
-        }
-        if output_path:
-            params["output_path"] = output_path
-        result = vcad.send_command("vcad.export", params)
-        return json.dumps({"success": True, **result})
+        # Read source text if it's a file path
+        is_file = source.endswith(".oo") or source.endswith(".loon")
+        if is_file:
+            try:
+                with open(source) as f:
+                    source_text = f.read()
+            except OSError as e:
+                return json.dumps(
+                    build_error("IO_ERROR", f"Cannot read source file: {e}", operation="vcad_export:read")
+                )
+        else:
+            source_text = source
+
+        has_imports, details = _resolve_imports(ctx, source_text, source if is_file else None)
+
+        if has_imports:
+            # Eval with imports first, then use the resulting obj_path
+            base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
+            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir)
+            # The eval_result already contains obj_path with the mesh
+            return json.dumps({"success": True, **eval_result})
+        else:
+            vcad = get_vcad_connection(agent=get_agent_name(ctx))
+            params: dict[str, str] = {
+                "source": source,
+                "format": format,
+            }
+            if output_path:
+                params["output_path"] = output_path
+            result = vcad.send_command("vcad.export", params)
+            return json.dumps({"success": True, **result})
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -471,6 +739,13 @@ def vcad_export(
         VCADTimeoutError,
     ) as e:
         return _handle_vcad_error(e, "vcad_export")
+    except (
+        SketchUpRemoteError,
+        SketchUpConnectionError,
+        SketchUpTimeoutError,
+        SketchUpProtocolError,
+    ) as e:
+        return _handle_sketchup_error(e, "vcad_export")
     except Exception as e:
         return _handle_vcad_error(e, "vcad_export")
 
@@ -484,147 +759,18 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
         code: Loon source code to evaluate
     """
     try:
+        has_imports, details = _resolve_imports(ctx, code)
+
         vcad = get_vcad_connection(agent=get_agent_name(ctx))
-        result = vcad.eval_code(code)
-        return json.dumps({"success": True, **result})
-    except (
-        VCADCapabilityError,
-        VCADProtocolError,
-        VCADRemoteError,
-        VCADConnectionError,
-        VCADTimeoutError,
-    ) as e:
-        return _handle_vcad_error(e, "vcad_eval")
-    except Exception as e:
-        return _handle_vcad_error(e, "vcad_eval")
-
-
-@mcp.tool()
-def vcad_place_with_imports(
-    ctx: McpContext,
-    node_id: str,
-    source_file: str,
-    position: list[float] | None = None,
-    component_name: str | None = None,
-) -> str:
-    """Place vcad node with data references from SketchUp entities.
-
-    Imports are declared inline in source using:
-      [let <binding> [import :dimensions|:bbox|:transform "entity:<id>"]]
-    and are resolved by sidecar+driver before evaluation.
-
-    Args:
-        ctx: MCP context
-        node_id: Unique identifier for this VCAD node
-        source_file: Path to the .skp.oo file
-        position: Optional [x, y, z] position in mm (default [0, 0, 0])
-        component_name: Optional name for the SketchUp component
-    """
-    agent = get_agent_name(ctx)
-
-    # Step 1: Read source file
-    try:
-        with open(source_file) as f:
-            source = f.read()
-    except OSError as e:
-        return json.dumps(
-            build_error("IO_ERROR", f"Cannot read source file: {e}", operation="vcad_place_with_imports:read")
-        )
-
-    # Step 2: Extract imports via sidecar (parse-only, fast-path)
-    try:
-        vcad = get_vcad_connection(agent=agent)
-        extraction = vcad.extract_imports(source)
-    except (
-        VCADCapabilityError,
-        VCADProtocolError,
-        VCADRemoteError,
-        VCADConnectionError,
-        VCADTimeoutError,
-    ) as e:
-        return _handle_vcad_error(e, "vcad_place_with_imports:extract")
-    except Exception as e:
-        return _handle_vcad_error(e, "vcad_place_with_imports:extract")
-
-    import_decls = extraction.get("imports", [])
-    transformed_source = extraction.get("transformed_source", source)
-
-    # Step 3: Resolve each import via SketchUp bridge
-    resolved_imports: dict[str, Any] = {}
-    has_solid_imports = False
-    if import_decls:
-        try:
-            sketchup = get_sketchup_connection(agent=agent)
-            for imp in import_decls:
-                entity_ref = imp["entity_ref"]
-                entity_id_str = entity_ref.split(":", 1)[1] if ":" in entity_ref else ""
-
-                resolve_result = sketchup.send_command(
-                    method="resolve_vcad_import",
-                    params={
-                        "entity_id": entity_id_str,
-                        "extract": imp["extract"],
-                    },
-                    request_id=ctx.request_id,
-                )
-
-                if imp["extract"] == "solid":
-                    has_solid_imports = True
-                    source = resolve_result.get("source", "vcad")
-                    if source == "native_mesh":
-                        # Native SketchUp solid: mesh data forwarded to sidecar
-                        resolved_imports[imp["import_id"]] = {
-                            "extract": "solid",
-                            "injected_symbol": imp["injected_symbol"],
-                            "source": "native_mesh",
-                            "data": None,
-                            "vcad_node_id": None,
-                            "native_mesh": resolve_result.get("mesh"),
-                            "resolved_type": "native_mesh",
-                        }
-                    else:
-                        # VCAD-backed: ADT retrieved from sidecar cache
-                        resolved_imports[imp["import_id"]] = {
-                            "extract": "solid",
-                            "injected_symbol": imp["injected_symbol"],
-                            "data": None,
-                            "vcad_node_id": resolve_result.get("vcad_node_id"),
-                        }
-                else:
-                    # Data import: resolved data injected as Loon let-binding
-                    resolved_imports[imp["import_id"]] = {
-                        "extract": imp["extract"],
-                        "injected_symbol": imp["injected_symbol"],
-                        "data": resolve_result.get("data", {}),
-                    }
-        except (
-            SketchUpRemoteError,
-            SketchUpConnectionError,
-            SketchUpTimeoutError,
-            SketchUpProtocolError,
-        ) as e:
-            return _handle_sketchup_error(e, "vcad_place_with_imports:resolve")
-        except Exception as e:
-            return _handle_sketchup_error(e, "vcad_place_with_imports:resolve")
-
-    # Step 4: Evaluate with resolved imports via sidecar
-    try:
-        vcad = get_vcad_connection(agent=agent)
-        base_dir = os.path.dirname(os.path.abspath(source_file))
-        if has_solid_imports:
-            # Use solid-aware eval path (ADT composition)
-            eval_result = vcad.eval_with_solid_imports(
-                transformed_source=transformed_source,
-                base_dir=base_dir,
-                imports=resolved_imports,
-                node_id=node_id,
+        if has_imports:
+            result = vcad.eval_repl_with_imports(
+                transformed_source=details["transformed_source"],
+                imports=details["resolved_imports"],
             )
+            return json.dumps({"success": True, **result})
         else:
-            eval_result = vcad.eval_with_imports(
-                transformed_source=transformed_source,
-                base_dir=base_dir,
-                imports=resolved_imports,
-            )
+            result = vcad.eval_code(code)
+            return json.dumps({"success": True, **result})
     except (
         VCADCapabilityError,
         VCADProtocolError,
@@ -632,61 +778,16 @@ def vcad_place_with_imports(
         VCADConnectionError,
         VCADTimeoutError,
     ) as e:
-        return _handle_vcad_error(e, "vcad_place_with_imports:eval")
-    except Exception as e:
-        return _handle_vcad_error(e, "vcad_place_with_imports:eval")
-
-    obj_path = eval_result.get("obj_path")
-    if not obj_path:
-        return json.dumps(
-            build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_place_with_imports:eval")
-        )
-
-    # Step 5: Place in SketchUp via Ruby bridge
-    try:
-        sketchup = get_sketchup_connection(agent=agent)
-        place_params: dict[str, Any] = {
-            "obj_path": obj_path,
-            "node_id": node_id,
-            "source_file": source_file,
-        }
-        if position is not None:
-            place_params["position"] = position
-        if component_name is not None:
-            place_params["component_name"] = component_name
-
-        result = sketchup.send_command(
-            method="place_vcad_node",
-            params=place_params,
-            request_id=ctx.request_id,
-        )
-
-        # Register node with imports in DAG
-        dag = get_vcad_dag()
-        dag_imports = _build_import_refs(import_decls, resolved_imports)
-        dag_node = VCADNode(
-            node_id=node_id,
-            source_file=source_file,
-            imports=dag_imports,
-            last_entity_id=result.get("entity_id"),
-        )
-        dag.add_node(dag_node)
-        dag.persist_state()
-
-        # Auto-start file watcher on first place
-        watcher = get_vcad_file_watcher()
-        watcher.auto_start_if_needed(source_file, vcad)
-
-        return json.dumps(result)
+        return _handle_vcad_error(e, "vcad_eval")
     except (
         SketchUpRemoteError,
         SketchUpConnectionError,
         SketchUpTimeoutError,
         SketchUpProtocolError,
     ) as e:
-        return _handle_sketchup_error(e, "vcad_place_with_imports:import")
+        return _handle_sketchup_error(e, "vcad_eval")
     except Exception as e:
-        return _handle_sketchup_error(e, "vcad_place_with_imports:import")
+        return _handle_vcad_error(e, "vcad_eval")
 
 
 @mcp.tool()

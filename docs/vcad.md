@@ -247,7 +247,7 @@ Electronic CAD types for schematic and PCB design. Not supported by the supex si
 
 ## Import System
 
-VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver resolves these references before evaluation. Imports are only available in `.skp.oo` files placed via `vcad_place_with_imports` — they do not work in `vcad_eval` or `vcad_inspect`.
+VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver auto-detects and resolves these references before evaluation. Imports are supported in all VCAD tools (`vcad_place`, `vcad_update`, `vcad_inspect`, `vcad_eval`, `vcad_export`).
 
 **Why imports cannot appear in library modules:** The driver preprocesses `[import ...]` declarations by extracting them from the source, resolving them via SketchUp, and injecting the results before evaluation. Library modules loaded via `[use ...]` bypass this pipeline entirely — the Loon interpreter evaluates them directly. A raw `[import ...]` in a library file will fail at evaluation time because `import` is not a Loon built-in.
 
@@ -286,7 +286,7 @@ Import a solid for CSG composition. Works with both VCAD-backed nodes and native
 
 **VCAD-backed entities**: The cached ADT tree is injected directly from the sidecar's ADT cache. The source node must be evaluated first.
 
-**Native SketchUp solids**: Groups and ComponentInstances with face geometry are triangulated in SketchUp and forwarded to the sidecar as `ImportedMesh` ADT values. Requires `vcad_place_with_imports` (not plain `vcad_place`).
+**Native SketchUp solids**: Groups and ComponentInstances with face geometry are triangulated in SketchUp and forwarded to the sidecar as `ImportedMesh` ADT values.
 
 ### Import resolution flow
 
@@ -306,7 +306,7 @@ When VCAD nodes import from other entities, the driver maintains a dependency DA
 
 ### How it works
 
-- Each `vcad_place_with_imports` call registers the node and its import dependencies in the DAG
+- Each `vcad_place` call registers the node and its import dependencies in the DAG
 - DAG state is persisted to `.supex/vcad-state.json`
 - `vcad_update_cascade` re-evaluates a node and all downstream dependents in topological order
 - ADT composition: each node's result is cached in the sidecar, so downstream nodes importing `:solid` get the fresh ADT directly
@@ -326,7 +326,7 @@ The sidecar watcher classifies changes in `.skp.oo` source files and `.oo` libra
 
 ### Source file watching
 
-- Auto-starts on first `vcad_place` or `vcad_place_with_imports`
+- Auto-starts on first `vcad_place`
 - Detects file modifications via the sidecar's filesystem watcher
 - Provides change events consumed by driver-side update flows
 
@@ -350,17 +350,6 @@ vcad_watch_resume()  # Flushes all accumulated changes as one cascade
 ### vcad_place
 
 Evaluate a `.skp.oo` file and place the resulting mesh in SketchUp.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `node_id` | string | Unique identifier for this VCAD node |
-| `source_file` | string | Path to the `.skp.oo` file |
-| `position` | [x,y,z] | Position in mm (default [0,0,0]) |
-| `component_name` | string | Optional SketchUp component name |
-
-### vcad_place_with_imports
-
-Place a VCAD node that references SketchUp entities via `[import ...]` declarations. The driver resolves imports (data extracts, solid ADTs, native meshes) before evaluation.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|

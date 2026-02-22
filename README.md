@@ -69,7 +69,7 @@ VCAD is a BRep (Boundary Representation) kernel that brings parametric CAD model
 - **Live preview**: Standalone Tauri viewer with BRep rendering
 - **Idempotent updates**: Atomic definition swap preserves instance placements
 - **Revision tracking**: Stale result detection and supersede-aware eval queue
-- **Import-aware authoring**: Data/solid imports from existing SketchUp entities via `vcad_place_with_imports`
+- **Import-aware authoring**: Data/solid imports from existing SketchUp entities (auto-detected by all VCAD tools)
 - **Dependency graph**: DAG-based topological cascade updates (`vcad_update_cascade`)
 - **Watch controls**: Pause/resume reactive updates for batch editing (`vcad_watch_pause`, `vcad_watch_resume`)
 - **Diagnostics**: Health, metrics, and reconcile status tools (`vcad_health`, `vcad_metrics`, `vcad_reconcile_status`)

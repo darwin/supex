@@ -1,4 +1,4 @@
-"""Tests for VCAD data import extraction and MCP tool (vcad_place_with_imports).
+"""Tests for VCAD data import extraction and MCP tool (vcad_place).
 
 Unit tests using mocked sidecar and SketchUp connections.
 """
@@ -17,7 +17,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADConnectionError,
     VCADRemoteError,
 )
-from supex_driver.mcp.vcad_tools import vcad_place_with_imports
+from supex_driver.mcp.vcad_tools import vcad_place
 
 
 # ---------------------------------------------------------------------------
@@ -72,12 +72,12 @@ def source_file_no_imports(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# vcad_place_with_imports — success paths
+# vcad_place — success paths
 # ---------------------------------------------------------------------------
 
 
-class TestVCADPlaceWithImports:
-    """Test vcad_place_with_imports MCP tool."""
+class TestVCADPlaceImports:
+    """Test vcad_place MCP tool."""
 
     def test_place_with_imports_success(
         self, mock_ctx, mock_vcad, mock_sketchup, source_file
@@ -120,7 +120,7 @@ class TestVCADPlaceWithImports:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="my-part",
                 source_file=source_file,
@@ -165,7 +165,7 @@ class TestVCADPlaceWithImports:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="simple",
                 source_file=source_file_no_imports,
@@ -229,7 +229,7 @@ class TestVCADPlaceWithImports:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="multi", source_file=str(src)
             )
         )
@@ -244,13 +244,13 @@ class TestVCADPlaceWithImports:
 # ---------------------------------------------------------------------------
 
 
-class TestVCADPlaceWithImportsErrors:
-    """Test error handling in vcad_place_with_imports."""
+class TestVCADPlaceImportsErrors:
+    """Test error handling in vcad_place."""
 
     def test_source_file_not_found(self, mock_ctx):
         """Missing source file returns IO error."""
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="n1",
                 source_file="/nonexistent/file.skp.oo",
@@ -268,7 +268,7 @@ class TestVCADPlaceWithImportsErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="n1", source_file=source_file
             )
         )
@@ -296,7 +296,7 @@ class TestVCADPlaceWithImportsErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="n1", source_file=source_file
             )
         )
@@ -304,20 +304,20 @@ class TestVCADPlaceWithImportsErrors:
         assert result["error_code"] == -32603
         assert result["details"]["error_type"] == "remote"
 
-    def test_eval_with_imports_error(
+    def test_eval_file_error(
         self, mock_ctx, mock_vcad, mock_sketchup, source_file
     ):
-        """Sidecar eval_with_imports failure propagated."""
+        """Sidecar eval_file failure propagated (no imports path)."""
         mock_vcad.extract_imports.return_value = {
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
-        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
+        mock_vcad.eval_file.side_effect = VCADRemoteError(
             code=-32000, message="LOON_ERROR: undefined binding"
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="n1", source_file=source_file
             )
         )
@@ -332,10 +332,10 @@ class TestVCADPlaceWithImportsErrors:
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
-        mock_vcad.eval_with_imports.return_value = {"volume": 100.0}
+        mock_vcad.eval_file.return_value = {"volume": 100.0}
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="n1", source_file=source_file
             )
         )
@@ -350,7 +350,7 @@ class TestVCADPlaceWithImportsErrors:
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
-        mock_vcad.eval_with_imports.return_value = {
+        mock_vcad.eval_file.return_value = {
             "obj_path": "/tmp/out.dae",
         }
         mock_sketchup.send_command.side_effect = SketchUpConnectionError(
@@ -358,7 +358,7 @@ class TestVCADPlaceWithImportsErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="n1", source_file=source_file
             )
         )
@@ -375,7 +375,7 @@ class TestVCADPlaceWithImportsErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx, node_id="n1", source_file=source_file
             )
         )
@@ -390,14 +390,14 @@ class TestVCADPlaceWithImportsErrors:
 
 
 class TestVCADDataImportsRegistration:
-    """Test that vcad_place_with_imports is properly registered."""
+    """Test that vcad_place is properly registered."""
 
     def test_tool_exists_in_module(self):
-        """vcad_place_with_imports is importable."""
+        """vcad_place is importable."""
         from supex_driver.mcp import vcad_tools
 
-        assert hasattr(vcad_tools, "vcad_place_with_imports")
+        assert hasattr(vcad_tools, "vcad_place")
 
     def test_tool_callable(self):
-        """vcad_place_with_imports is a callable."""
-        assert callable(vcad_place_with_imports)
+        """vcad_place is a callable."""
+        assert callable(vcad_place)

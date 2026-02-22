@@ -586,6 +586,29 @@ class VCADConnection:
             params["node_id"] = node_id
         return self.send_command("vcad.eval_with_solid_imports", params)
 
+    def eval_repl_with_imports(
+        self,
+        transformed_source: str,
+        base_dir: str | None = None,
+        imports: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """REPL eval with resolved data+solid imports. Returns display string.
+
+        Args:
+            transformed_source: Source with import expressions replaced by symbols.
+            base_dir: Optional base directory for module resolution.
+            imports: Dict of import_id -> resolved import data (ResolvedImport format).
+
+        Returns:
+            Dict with 'display' string from sidecar.
+        """
+        params: dict[str, Any] = {"transformed_source": transformed_source}
+        if base_dir is not None:
+            params["base_dir"] = base_dir
+        if imports is not None:
+            params["imports"] = imports
+        return self.send_command("vcad.eval_repl_with_imports", params)
+
 
 # Global connection management with thread safety
 _vcad_connection_lock = threading.Lock()

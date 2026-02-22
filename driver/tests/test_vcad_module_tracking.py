@@ -344,6 +344,8 @@ class TestVCADUpdateSingleModuleTracking:
         from supex_driver.mcp.vcad_tools import _vcad_update_single
 
         source_file = str(tmp_path / "bracket.skp.oo")
+        with open(source_file, "w") as f:
+            f.write("[cube 10.0 10.0 10.0]")
         dag.add_node(VCADNode(
             node_id="bracket",
             source_file=source_file,

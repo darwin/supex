@@ -419,6 +419,72 @@ impl Evaluator {
         self.evaluate_and_export(&doc, "import-eval")
     }
 
+    /// Evaluate transformed source with imports in REPL mode (display string, no mesh).
+    ///
+    /// Same import resolution as `eval_with_imports` (data preamble + solid ADT
+    /// injection), but returns the display string instead of converting to
+    /// Document + mesh.
+    pub fn eval_repl_with_imports(
+        &mut self,
+        transformed_source: &str,
+        base_dir: Option<&Path>,
+        imports: &HashMap<String, ResolvedImport>,
+    ) -> Result<String, EvalError> {
+        // 1. Build Loon preamble for data imports only (solid skipped)
+        let preamble = build_data_preamble(imports);
+        let augmented_source = format!("{}{}\n{}", VCAD_LIB_SOURCE, preamble, transformed_source);
+
+        // 2. Parse the augmented source
+        let exprs = parse(&augmented_source)
+            .map_err(|e| EvalError::Loon(format!("Parse error: {}", e.message)))?;
+
+        // 3. Set up Loon environment with solid ADT bindings
+        let mut env = Env::new();
+        for import in imports.values() {
+            if import.extract == "solid" {
+                if let Some(ref mesh_data) = import.native_mesh {
+                    let positions = Value::Vec(
+                        mesh_data.positions.iter().map(|&v| Value::Float(v)).collect(),
+                    );
+                    let indices = Value::Vec(
+                        mesh_data.indices.iter().map(|&v| Value::Int(v as i64)).collect(),
+                    );
+                    let normals = Value::Vec(
+                        mesh_data.normals.iter().map(|&v| Value::Float(v)).collect(),
+                    );
+                    let mesh_value = Value::Adt(
+                        "ImportedMesh".to_string(),
+                        vec![positions, indices, normals],
+                    );
+                    env.set(import.injected_symbol.clone(), mesh_value);
+                } else if let Some(ref vcad_nid) = import.vcad_node_id {
+                    if let Some(cached_adt) = self.adt_cache.get(vcad_nid) {
+                        env.set(import.injected_symbol.clone(), cached_adt.clone());
+                    } else {
+                        return Err(EvalError::Loon(format!(
+                            "ADT_CACHE_MISS: no cached ADT for node '{}' — \
+                             the source node must be evaluated before it can be imported",
+                            vcad_nid
+                        )));
+                    }
+                } else {
+                    return Err(EvalError::Loon(
+                        "SOLID_IMPORT_UNAVAILABLE: :solid import requires a \
+                         vcad-backed entity with a vcad_node_id or native mesh data"
+                            .to_string(),
+                    ));
+                }
+            }
+        }
+
+        // 4. Evaluate Loon with pre-populated environment
+        let result_value = eval_program_with_env_and_base_dir(&exprs, &mut env, base_dir)
+            .map_err(|e| EvalError::Loon(format!("{e}")))?;
+
+        // 5. Return display string (no mesh conversion)
+        Ok(format!("{}", result_value))
+    }
+
     /// Provide read access to the ADT cache (for server-level queries).
     #[allow(dead_code)]
     pub fn adt_cache(&mut self) -> &mut AdtCache {

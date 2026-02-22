@@ -94,6 +94,13 @@ pub enum EvalRequest {
         imports: HashMap<String, ResolvedImport>,
         node_id: Option<String>,
     },
+    /// REPL eval with data and solid imports (display string, no mesh).
+    EvalReplWithImports {
+        id: serde_json::Value,
+        transformed_source: String,
+        base_dir: Option<String>,
+        imports: HashMap<String, ResolvedImport>,
+    },
 }
 
 impl EvalRequest {
@@ -107,6 +114,7 @@ impl EvalRequest {
             EvalRequest::EvalRepl { id, .. } => id,
             EvalRequest::EvalWithImports { id, .. } => id,
             EvalRequest::EvalWithSolidImports { id, .. } => id,
+            EvalRequest::EvalReplWithImports { id, .. } => id,
         }
     }
 }
@@ -655,6 +663,33 @@ fn dispatch_tools_call(
                 node_id,
             }
         }
+        "vcad.eval_repl_with_imports" => {
+            let transformed_source = arguments
+                .get("transformed_source")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if transformed_source.is_empty() {
+                return make_error_response(
+                    request.id.clone(),
+                    JSONRPC_INVALID_REQUEST,
+                    "vcad.eval_repl_with_imports requires non-empty 'transformed_source' argument",
+                    None,
+                );
+            }
+            let base_dir = arguments
+                .get("base_dir")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
+            let resolved_imports: HashMap<String, ResolvedImport> =
+                serde_json::from_value(raw_imports).unwrap_or_default();
+            EvalRequest::EvalReplWithImports {
+                id: request.id.clone(),
+                transformed_source: transformed_source.to_string(),
+                base_dir,
+                imports: resolved_imports,
+            }
+        }
         _ => {
             return make_error_response(
                 request.id.clone(),
@@ -962,6 +997,20 @@ fn dispatch_eval(
             match evaluator.eval_with_imports(transformed_source, base, imports, node_id.as_deref())
             {
                 Ok(result) => eval_result_response(id.clone(), &result),
+                Err(e) => eval_error_response(id.clone(), &e),
+            }
+        }
+        EvalRequest::EvalReplWithImports {
+            id,
+            transformed_source,
+            base_dir,
+            imports,
+        } => {
+            let base = base_dir.as_deref().map(std::path::Path::new);
+            match evaluator.eval_repl_with_imports(transformed_source, base, imports) {
+                Ok(display) => {
+                    make_success_response(id.clone(), serde_json::json!({ "display": display }))
+                }
                 Err(e) => eval_error_response(id.clone(), &e),
             }
         }

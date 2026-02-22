@@ -46,7 +46,7 @@ All Ruby scripts are git-trackable and editable in user's IDE with full syntax h
 
 1. **Author source files** - Create `.skp.oo` node files and shared `.oo` library modules in the project
 2. **Reuse CAD library first** - Prefer existing `.oo` modules and supported constructors over ad-hoc geometry DSL
-3. **Place nodes** - Use `vcad_place` (no imports) or `vcad_place_with_imports` (source contains `[import ...]`)
+3. **Place nodes** - Use `vcad_place` to place nodes (imports are auto-detected and resolved)
 4. **Update safely** - Use `vcad_update` for one node or `vcad_update_cascade` for dependency graphs
 5. **Verify** - Use `vcad_list_nodes` and screenshots to confirm geometry and placement
 
@@ -63,8 +63,7 @@ Always prefer file-based execution for better error reporting.
 
 ### VCAD Execution
 
-- `vcad_place(node_id, source_file, ...)` - Place/update `.skp.oo` node when source has no `[import ...]`
-- `vcad_place_with_imports(node_id, source_file, ...)` - Required when source contains `[import ...]`
+- `vcad_place(node_id, source_file, ...)` - Place/update `.skp.oo` node (imports auto-resolved)
 - `vcad_update(node_id, source_file?)` - Re-evaluate one node
 - `vcad_update_cascade(node_id)` - Re-evaluate node and downstream dependents in DAG order
 - `vcad_watch_pause()` / `vcad_watch_resume()` - Batch multiple `.skp.oo` / `.oo` edits into one cascade
@@ -275,9 +274,8 @@ Do not invent unsupported primitives or ad-hoc DSL forms.
 
 ### 3. Import Semantics Are Strict
 
-- `[import ...]` works only in `.skp.oo` source files evaluated via `vcad_place_with_imports`
+- `[import ...]` is supported in all VCAD tools — imports are auto-detected and resolved
 - `[import ...]` does not work in `.oo` modules loaded via `[use ...]`
-- Imports are not available in `vcad_eval` or `vcad_inspect`
 
 ### 4. Update and Dependency Safety
 
@@ -366,8 +364,7 @@ For detailed geometry troubleshooting (coplanar faces, tiny edges, reversed face
 - `eval_ruby(code)` - One-line queries only
 
 ### VCAD Authoring
-- `vcad_place(node_id, source_file, position?, component_name?)` - Evaluate `.skp.oo` and place/update node
-- `vcad_place_with_imports(node_id, source_file, position?, component_name?)` - Place node with `[import ...]` resolution
+- `vcad_place(node_id, source_file, position?, component_name?)` - Evaluate `.skp.oo` and place/update node (imports auto-resolved)
 - `vcad_update(node_id, source_file?)` - Re-evaluate one node
 - `vcad_update_cascade(node_id)` - Re-evaluate node and downstream dependents
 - `vcad_list_nodes()` - List placed VCAD nodes and versions

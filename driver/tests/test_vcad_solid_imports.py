@@ -17,7 +17,7 @@ from supex_driver.connection.vcad_exceptions import (
 )
 from supex_driver.mcp.vcad_tools import (
     _build_import_refs,
-    vcad_place_with_imports,
+    vcad_place,
 )
 
 
@@ -84,7 +84,7 @@ def mixed_source_file(tmp_path):
 
 
 class TestSolidImportSuccess:
-    """Test solid import flow through vcad_place_with_imports."""
+    """Test solid import flow through vcad_place."""
 
     def test_solid_import_uses_eval_with_solid_imports(
         self, mock_ctx, mock_vcad, mock_sketchup, solid_source_file
@@ -127,7 +127,7 @@ class TestSolidImportSuccess:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="consumer",
                 source_file=solid_source_file,
@@ -200,7 +200,7 @@ class TestSolidImportSuccess:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="mixed",
                 source_file=mixed_source_file,
@@ -262,7 +262,7 @@ class TestSolidImportSuccess:
         }
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="data-only",
                 source_file=str(src),
@@ -307,7 +307,7 @@ class TestSolidImportErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="bad-solid",
                 source_file=solid_source_file,
@@ -349,7 +349,7 @@ class TestSolidImportErrors:
         )
 
         result = json.loads(
-            vcad_place_with_imports(
+            vcad_place(
                 mock_ctx,
                 node_id="consumer",
                 source_file=solid_source_file,

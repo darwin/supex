@@ -19,10 +19,9 @@ For source-of-truth behavior, see `supex-guide/README.md`.
 
 ## VCAD Import Rules
 
-- If a source contains `[import ...]`, place it with `vcad_place_with_imports`
-- Keep `[import ...]` declarations in `.skp.oo` files only
+- `[import ...]` is supported in all VCAD tools — imports are auto-detected and resolved
+- Keep `[import ...]` declarations in `.skp.oo` files (or inline code) only
 - Do not put `[import ...]` in `.oo` modules loaded via `[use ...]`
-- Imports are not available in `vcad_eval` or `vcad_inspect`
 
 ## VCAD Update Safety
 

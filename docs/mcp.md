@@ -54,8 +54,7 @@ For full workflow and semantics, see [VCAD Integration](vcad.md).
 
 | Tool | Description |
 |------|-------------|
-| `vcad_place` | Evaluate `.skp.oo` and place/update node in SketchUp |
-| `vcad_place_with_imports` | Place node with `[import ...]` resolution |
+| `vcad_place` | Evaluate `.skp.oo` and place/update node in SketchUp (imports auto-resolved) |
 | `vcad_update` | Re-evaluate a single node |
 | `vcad_update_cascade` | Re-evaluate node and downstream dependents in DAG order |
 | `vcad_inspect` | Evaluate and return geometry metadata |

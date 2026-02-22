@@ -10,7 +10,7 @@ It covers two authoring workflows:
 
 When an AI agent (Claude, etc.) works on a SketchUp project using Supex, it needs guidance on:
 - How to choose Ruby vs VCAD for the task
-- How to use the MCP tools (`eval_ruby_file`, `vcad_place`, `vcad_place_with_imports`, etc.)
+- How to use the MCP tools (`eval_ruby_file`, `vcad_place`, `vcad_update`, etc.)
 - SketchUp Ruby API patterns and best practices
 - Loon `.skp.oo` authoring constraints and VCAD update workflow
 - Reusing existing CAD library modules instead of writing ad-hoc geometry helpers

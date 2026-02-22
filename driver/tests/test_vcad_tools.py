@@ -1,7 +1,7 @@
 """Tests for MCP vcad tools."""
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
@@ -44,7 +44,8 @@ def mock_ctx():
 @pytest.fixture
 def mock_vcad():
     """Patch get_vcad_connection to return a mock VCADConnection."""
-    with patch("supex_driver.mcp.vcad_tools.get_vcad_connection") as mock_get:
+    with patch("supex_driver.mcp.vcad_tools.get_vcad_connection") as mock_get, \
+         patch("builtins.open", mock_open(read_data="[cube 1.0 1.0 1.0]")):
         conn = MagicMock()
         mock_get.return_value = conn
         yield conn
