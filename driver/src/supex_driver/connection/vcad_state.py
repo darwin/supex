@@ -326,25 +326,49 @@ class TriggerCoalescer:
     cascade is scheduled per coalesced batch. Events arriving during an
     active cascade are queued for the next batch.
 
+    Bounded-wait flush: during continuous event streams, the window is
+    capped at ``max_coalesce_ms`` from the first event in the batch to
+    prevent starvation. Once the max wait is exceeded, the next trigger
+    fires immediately instead of resetting the timer.
+
     Args:
         coalesce_ms: Coalescing window in milliseconds.
         callback: Function called with the set of affected node_ids.
+        max_coalesce_ms: Maximum wait before forced flush (default: 3x window).
     """
 
     def __init__(
         self,
         coalesce_ms: float = VCAD_TRIGGER_COALESCE_MS,
         callback: Callable[[set[str]], None] | None = None,
+        max_coalesce_ms: float | None = None,
     ):
         self.coalesce_ms = coalesce_ms
+        self.max_coalesce_ms = (
+            max_coalesce_ms if max_coalesce_ms is not None else coalesce_ms * 3
+        )
         self.callback = callback
         self._pending: set[str] = set()
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
         self._cascade_active: bool = False
         self._deferred: set[str] = set()
+        self._window_start: float | None = None
         self.cascade_count: int = 0
         self.merged_events_total: int = 0
+        # Publish effective window gauge
+        self._publish_window_gauge()
+
+    def _publish_window_gauge(self) -> None:
+        """Set the coalesce_window_ms_effective gauge in centralized metrics."""
+        try:
+            from supex_driver.connection.vcad_metrics import get_vcad_metrics
+
+            get_vcad_metrics().set_gauge(
+                "coalesce_window_ms_effective", self.coalesce_ms
+            )
+        except Exception:
+            pass
 
     @staticmethod
     def _emit_coalesce_metric(name: str) -> None:
@@ -360,7 +384,8 @@ class TriggerCoalescer:
         """Register a change event for a node.
 
         Events within the coalescing window are merged. Events during
-        an active cascade are deferred to the next batch.
+        an active cascade are deferred to the next batch. If the bounded
+        wait has been exceeded, the pending batch fires immediately.
 
         Args:
             node_id: The affected node identifier.
@@ -373,12 +398,23 @@ class TriggerCoalescer:
                 self._deferred.add(node_id)
                 return
             self._pending.add(node_id)
+
+            now = time.monotonic()
+            if self._window_start is None:
+                self._window_start = now
+
+            # Cancel existing timer — we will reschedule
             if self._timer is not None:
                 self._timer.cancel()
-            self._timer = threading.Timer(
-                self.coalesce_ms / 1000.0,
-                self._fire,
-            )
+
+            # Bounded wait: if accumulating too long, fire immediately
+            elapsed_ms = (now - self._window_start) * 1000.0
+            if elapsed_ms >= self.max_coalesce_ms:
+                delay = 0.0
+            else:
+                delay = self.coalesce_ms / 1000.0
+
+            self._timer = threading.Timer(delay, self._fire)
             self._timer.daemon = True
             self._timer.start()
 
@@ -389,6 +425,7 @@ class TriggerCoalescer:
             self._pending.clear()
             self._timer = None
             self._cascade_active = True
+            self._window_start = None
 
         if self.callback and nodes:
             try:
@@ -404,6 +441,7 @@ class TriggerCoalescer:
                 self._pending.update(self._deferred)
                 self._deferred.clear()
                 if self._pending:
+                    self._window_start = time.monotonic()
                     self._timer = threading.Timer(
                         self.coalesce_ms / 1000.0,
                         self._fire,
@@ -412,11 +450,12 @@ class TriggerCoalescer:
                     self._timer.start()
 
     def cancel(self) -> None:
-        """Cancel any pending timer."""
+        """Cancel any pending timer and reset window."""
         with self._lock:
             if self._timer is not None:
                 self._timer.cancel()
                 self._timer = None
+            self._window_start = None
 
 
 class VCADPersistentState:
