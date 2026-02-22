@@ -3,7 +3,7 @@ use vcad_eval::EvaluatedMesh;
 use vcad_kernel_geom::{GeometryStore, SurfaceKind};
 use vcad_kernel_math::{Point2, Vec3};
 use vcad_kernel_primitives::BRepSolid;
-use vcad_kernel_tessellate::{TessellationParams, tessellate_face};
+use vcad_kernel_tessellate::{tessellate_face, TessellationParams};
 use vcad_kernel_topo::{Orientation, Topology};
 
 /// Convert a BRep solid to COLLADA (.dae) XML text.
@@ -187,7 +187,8 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
     // Pre-allocate: rough estimate
     let mut xml = String::with_capacity(num_floats * 24 + indices.len() * 8 + 1024);
 
-    xml.push_str(r##"<?xml version="1.0" encoding="utf-8"?>
+    xml.push_str(
+        r##"<?xml version="1.0" encoding="utf-8"?>
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
   <asset>
     <unit name="millimeter" meter="0.001"/>
@@ -197,7 +198,8 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
     <geometry id="mesh0" name="mesh">
       <mesh>
         <source id="mesh0-positions">
-"##);
+"##,
+    );
 
     // float_array
     write!(
@@ -230,11 +232,13 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
     )
     .unwrap();
 
-    xml.push_str(r##"        </source>
+    xml.push_str(
+        r##"        </source>
         <vertices id="mesh0-vertices">
           <input semantic="POSITION" source="#mesh0-positions"/>
         </vertices>
-"##);
+"##,
+    );
 
     // polylist
     write!(xml, "        <polylist count=\"{}\">\n", num_faces).unwrap();
@@ -262,7 +266,8 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
     }
     xml.push_str("</p>\n");
 
-    xml.push_str(r##"        </polylist>
+    xml.push_str(
+        r##"        </polylist>
       </mesh>
     </geometry>
   </library_geometries>
@@ -277,7 +282,8 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
     <instance_visual_scene url="#Scene"/>
   </scene>
 </COLLADA>
-"##);
+"##,
+    );
 
     xml
 }

@@ -468,6 +468,43 @@ class VCADConnection:
         """
         return self.send_command("vcad.inspect", {"code_or_path": code_or_path})
 
+    def extract_imports(self, source: str) -> dict[str, Any]:
+        """Parse source and extract import declarations.
+
+        Args:
+            source: Loon source code to scan for imports.
+
+        Returns:
+            Dict with 'imports' (list of import declarations) and
+            'transformed_source' (source with imports replaced by symbols).
+        """
+        return self.send_command("vcad.extract_imports", {"source": source})
+
+    def eval_with_imports(
+        self,
+        transformed_source: str,
+        base_dir: str | None = None,
+        imports: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Evaluate transformed source with resolved import data.
+
+        Args:
+            transformed_source: Source with import expressions replaced by symbols.
+            base_dir: Optional base directory for module resolution.
+            imports: Dict of import_id -> resolved import data.
+
+        Returns:
+            Evaluation result from sidecar.
+        """
+        params: dict[str, Any] = {
+            "transformed_source": transformed_source,
+        }
+        if base_dir is not None:
+            params["base_dir"] = base_dir
+        if imports is not None:
+            params["imports"] = imports
+        return self.send_command("vcad.eval_with_imports", params)
+
 
 # Global connection management with thread safety
 _vcad_connection_lock = threading.Lock()

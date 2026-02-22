@@ -1,6 +1,8 @@
 use crate::config::Config;
 use crate::evaluator::{EvalError, EvalResult, Evaluator};
+use crate::imports::{self, ResolvedDataImport};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
@@ -70,6 +72,12 @@ pub enum EvalRequest {
         id: serde_json::Value,
         code: String,
     },
+    EvalWithImports {
+        id: serde_json::Value,
+        transformed_source: String,
+        base_dir: Option<String>,
+        imports: HashMap<String, ResolvedDataImport>,
+    },
 }
 
 impl EvalRequest {
@@ -80,6 +88,7 @@ impl EvalRequest {
             EvalRequest::EvalFile { id, .. } => id,
             EvalRequest::Inspect { id, .. } => id,
             EvalRequest::EvalRepl { id, .. } => id,
+            EvalRequest::EvalWithImports { id, .. } => id,
         }
     }
 }
@@ -481,6 +490,49 @@ fn dispatch_tools_call(
                 code: code.to_string(),
             }
         }
+        "vcad.extract_imports" => {
+            // Fast-path: parse-only, no eval queue needed.
+            let source = arguments
+                .get("source")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if source.is_empty() {
+                return make_error_response(
+                    request.id.clone(),
+                    JSONRPC_INVALID_REQUEST,
+                    "vcad.extract_imports requires non-empty 'source' argument",
+                    None,
+                );
+            }
+            return dispatch_extract_imports(&request.id, source);
+        }
+        "vcad.eval_with_imports" => {
+            let transformed_source = arguments
+                .get("transformed_source")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if transformed_source.is_empty() {
+                return make_error_response(
+                    request.id.clone(),
+                    JSONRPC_INVALID_REQUEST,
+                    "vcad.eval_with_imports requires non-empty 'transformed_source' argument",
+                    None,
+                );
+            }
+            let base_dir = arguments
+                .get("base_dir")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
+            let resolved_imports: HashMap<String, ResolvedDataImport> =
+                serde_json::from_value(raw_imports).unwrap_or_default();
+            EvalRequest::EvalWithImports {
+                id: request.id.clone(),
+                transformed_source: transformed_source.to_string(),
+                base_dir,
+                imports: resolved_imports,
+            }
+        }
         _ => {
             return make_error_response(
                 request.id.clone(),
@@ -573,6 +625,27 @@ fn validate_path_policy(
     Ok(())
 }
 
+/// Fast-path handler for vcad.extract_imports (parse-only, no eval).
+fn dispatch_extract_imports(request_id: &serde_json::Value, source: &str) -> JsonRpcResponse {
+    match imports::extract_and_rewrite_imports(source) {
+        Ok(extracted) => {
+            let result = serde_json::json!({
+                "imports": extracted.imports,
+                "transformed_source": extracted.transformed_source,
+            });
+            make_success_response(request_id.clone(), result)
+        }
+        Err(e) => {
+            let error_code = if e.starts_with("IMPORT_FORM_INVALID") {
+                "IMPORT_FORM_INVALID"
+            } else {
+                "LOON_ERROR"
+            };
+            make_app_error_response(request_id.clone(), error_code, &e)
+        }
+    }
+}
+
 /// Dispatch an eval request to the evaluator (runs on eval worker thread).
 fn dispatch_eval(request: &EvalRequest, evaluator: &mut Evaluator) -> JsonRpcResponse {
     match request {
@@ -594,6 +667,18 @@ fn dispatch_eval(request: &EvalRequest, evaluator: &mut Evaluator) -> JsonRpcRes
             }
             Err(e) => eval_error_response(id.clone(), &e),
         },
+        EvalRequest::EvalWithImports {
+            id,
+            transformed_source,
+            base_dir,
+            imports,
+        } => {
+            let base = base_dir.as_deref().map(std::path::Path::new);
+            match evaluator.eval_with_data_imports(transformed_source, base, imports) {
+                Ok(result) => eval_result_response(id.clone(), &result),
+                Err(e) => eval_error_response(id.clone(), &e),
+            }
+        }
     }
 }
 

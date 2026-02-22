@@ -578,6 +578,8 @@ module SupexRuntime
                  VCADTools.list_vcad_nodes(args, workspace: workspace)
                when 'get_vcad_node'
                  VCADTools.get_vcad_node(args, workspace: workspace)
+               when 'resolve_vcad_import'
+                 VCADTools.resolve_vcad_import(args, workspace: workspace)
                end
       result
     rescue PathPolicy::PathAccessDenied => e

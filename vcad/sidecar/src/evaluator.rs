@@ -1,6 +1,8 @@
 use crate::adt_cache::AdtCache;
 use crate::dae_export::{brep_to_dae, mesh_to_dae};
+use crate::imports::{build_import_preamble, ResolvedDataImport};
 use serde::Serialize;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use vcad_eval::{evaluate_document, EvalOptions};
 use vcad_ir::Document;
@@ -212,7 +214,10 @@ impl Evaluator {
 
     /// Inspect: evaluate and return only geometry metadata (no OBJ export).
     pub fn inspect(&self, code_or_path: &str) -> Result<EvalResult, EvalError> {
-        let doc = if code_or_path.ends_with(".skp.oo") || code_or_path.ends_with(".skp.loon") || code_or_path.ends_with(".oo") {
+        let doc = if code_or_path.ends_with(".skp.oo")
+            || code_or_path.ends_with(".skp.loon")
+            || code_or_path.ends_with(".oo")
+        {
             eval_vcad_file(Path::new(code_or_path)).map_err(EvalError::Loon)?
         } else {
             eval_vcad(code_or_path, None).map_err(EvalError::Loon)?
@@ -242,6 +247,24 @@ impl Evaluator {
             },
             is_empty: solid.is_empty(),
         })
+    }
+
+    /// Evaluate transformed source with resolved data imports injected as let-bindings.
+    ///
+    /// Raw `[import ...]` calls never reach the Loon interpreter — they are
+    /// rewritten to injected symbols by `extract_and_rewrite_imports()`, and
+    /// resolved data is prepended as `[let __vcad_import_N ...]` bindings.
+    pub fn eval_with_data_imports(
+        &mut self,
+        transformed_source: &str,
+        base_dir: Option<&Path>,
+        imports: &HashMap<String, ResolvedDataImport>,
+    ) -> Result<EvalResult, EvalError> {
+        let preamble = build_import_preamble(imports);
+        let augmented_source = format!("{}{}", preamble, transformed_source);
+
+        let doc = eval_vcad(&augmented_source, base_dir).map_err(EvalError::Loon)?;
+        self.evaluate_and_export(&doc, "import-eval")
     }
 
     fn evaluate_and_export(&mut self, doc: &Document, name: &str) -> Result<EvalResult, EvalError> {
@@ -344,7 +367,10 @@ impl Evaluator {
             }
         }
 
-        let ext = obj_path.extension().and_then(|s| s.to_str()).unwrap_or("dae");
+        let ext = obj_path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("dae");
         let obj_tmp = obj_path.with_extension(format!("{ext}.tmp"));
         let manifest_tmp = manifest_path.with_extension("json.tmp");
         let pair_marker = obj_path.with_extension("pair.pending");
@@ -691,5 +717,4 @@ mod tests {
         // Existing file should still be there
         assert!(temp.path().join("eval-00000000000000000005.obj").exists());
     }
-
 }

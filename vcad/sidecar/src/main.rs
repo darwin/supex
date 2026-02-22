@@ -2,6 +2,7 @@ mod adt_cache;
 mod config;
 mod dae_export;
 mod evaluator;
+mod imports;
 mod server;
 
 fn main() {

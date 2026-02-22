@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from typing import Any
 
 from supex_driver.connection import (
@@ -386,6 +387,153 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
         return _handle_vcad_error(e, "vcad_eval")
     except Exception as e:
         return _handle_vcad_error(e, "vcad_eval")
+
+
+@mcp.tool()
+def vcad_place_with_imports(
+    ctx: McpContext,
+    node_id: str,
+    source_file: str,
+    position: list[float] | None = None,
+    component_name: str | None = None,
+) -> str:
+    """Place vcad node with data references from SketchUp entities.
+
+    Imports are declared inline in source using:
+      [let <binding> [import :dimensions|:bbox|:transform "entity:<id>"]]
+    and are resolved by sidecar+driver before evaluation.
+
+    Args:
+        ctx: MCP context
+        node_id: Unique identifier for this VCAD node
+        source_file: Path to the .skp.oo file
+        position: Optional [x, y, z] position in mm (default [0, 0, 0])
+        component_name: Optional name for the SketchUp component
+    """
+    agent = get_agent_name(ctx)
+
+    # Step 1: Read source file
+    try:
+        with open(source_file) as f:
+            source = f.read()
+    except OSError as e:
+        return json.dumps(
+            {
+                "success": False,
+                "error": f"Cannot read source file: {e}",
+                "error_type": "io",
+            }
+        )
+
+    # Step 2: Extract imports via sidecar (parse-only, fast-path)
+    try:
+        vcad = get_vcad_connection(agent=agent)
+        extraction = vcad.extract_imports(source)
+    except (
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
+    ) as e:
+        return _handle_vcad_error(e, "vcad_place_with_imports:extract")
+    except Exception as e:
+        return _handle_vcad_error(e, "vcad_place_with_imports:extract")
+
+    import_decls = extraction.get("imports", [])
+    transformed_source = extraction.get("transformed_source", source)
+
+    # Step 3: Resolve each import via SketchUp bridge
+    resolved_imports: dict[str, Any] = {}
+    if import_decls:
+        try:
+            sketchup = get_sketchup_connection(agent=agent)
+            for imp in import_decls:
+                entity_ref = imp["entity_ref"]
+                entity_id_str = entity_ref.split(":", 1)[1] if ":" in entity_ref else ""
+
+                resolve_result = sketchup.send_command(
+                    method="resolve_vcad_import",
+                    params={
+                        "entity_id": entity_id_str,
+                        "extract": imp["extract"],
+                    },
+                    request_id=ctx.request_id,
+                )
+
+                resolved_imports[imp["import_id"]] = {
+                    "extract": imp["extract"],
+                    "injected_symbol": imp["injected_symbol"],
+                    "data": resolve_result.get("data", {}),
+                }
+        except (
+            SketchUpRemoteError,
+            SketchUpConnectionError,
+            SketchUpTimeoutError,
+            SketchUpProtocolError,
+        ) as e:
+            return _handle_sketchup_error(e, "vcad_place_with_imports:resolve")
+        except Exception as e:
+            return _handle_sketchup_error(e, "vcad_place_with_imports:resolve")
+
+    # Step 4: Evaluate with resolved imports via sidecar
+    try:
+        vcad = get_vcad_connection(agent=agent)
+        base_dir = os.path.dirname(os.path.abspath(source_file))
+        eval_result = vcad.eval_with_imports(
+            transformed_source=transformed_source,
+            base_dir=base_dir,
+            imports=resolved_imports,
+        )
+    except (
+        VCADCapabilityError,
+        VCADProtocolError,
+        VCADRemoteError,
+        VCADConnectionError,
+        VCADTimeoutError,
+    ) as e:
+        return _handle_vcad_error(e, "vcad_place_with_imports:eval")
+    except Exception as e:
+        return _handle_vcad_error(e, "vcad_place_with_imports:eval")
+
+    obj_path = eval_result.get("obj_path")
+    if not obj_path:
+        return json.dumps(
+            {
+                "success": False,
+                "error": "Sidecar did not return obj_path",
+                "error_type": "unexpected",
+            }
+        )
+
+    # Step 5: Place in SketchUp via Ruby bridge
+    try:
+        sketchup = get_sketchup_connection(agent=agent)
+        place_params: dict[str, Any] = {
+            "obj_path": obj_path,
+            "node_id": node_id,
+            "source_file": source_file,
+        }
+        if position is not None:
+            place_params["position"] = position
+        if component_name is not None:
+            place_params["component_name"] = component_name
+
+        result = sketchup.send_command(
+            method="place_vcad_node",
+            params=place_params,
+            request_id=ctx.request_id,
+        )
+        return json.dumps(result)
+    except (
+        SketchUpRemoteError,
+        SketchUpConnectionError,
+        SketchUpTimeoutError,
+        SketchUpProtocolError,
+    ) as e:
+        return _handle_sketchup_error(e, "vcad_place_with_imports:import")
+    except Exception as e:
+        return _handle_sketchup_error(e, "vcad_place_with_imports:import")
 
 
 @mcp.tool()

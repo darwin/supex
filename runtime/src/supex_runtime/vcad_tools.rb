@@ -167,6 +167,42 @@ module SupexRuntime
       }
     end
 
+    # Resolve a VCAD data import from a SketchUp entity.
+    # Extracts dimensions, bbox, or transform from the entity identified by entity_id.
+    # @param params [Hash] parameters: entity_id, extract
+    # @param workspace [String, nil] unused
+    # @return [Hash] resolved data with vcad_node_id
+    def resolve_vcad_import(params, workspace: nil)
+      entity_id = params['entity_id'].to_i
+      extract_type = params['extract']
+
+      entity = Sketchup.active_model.find_entity_by_id(entity_id)
+      raise "Entity not found: #{entity_id}" unless entity
+
+      defn = entity.respond_to?(:definition) ? entity.definition : nil
+      vcad_node_id = defn&.get_attribute(VCAD_DICT, 'node_id')
+
+      case extract_type
+      when 'dimensions'
+        bb = entity.bounds
+        { extract: 'dimensions', vcad_node_id: vcad_node_id,
+          data: { width: bb.width.to_mm, height: bb.height.to_mm, depth: bb.depth.to_mm } }
+      when 'bbox'
+        bb = entity.bounds
+        { extract: 'bbox', vcad_node_id: vcad_node_id,
+          data: { min: [bb.min.x.to_mm, bb.min.y.to_mm, bb.min.z.to_mm],
+                  max: [bb.max.x.to_mm, bb.max.y.to_mm, bb.max.z.to_mm] } }
+      when 'transform'
+        raise "Entity #{entity_id} has no transformation" unless entity.respond_to?(:transformation)
+        { extract: 'transform', vcad_node_id: vcad_node_id,
+          data: { matrix: entity.transformation.to_a } }
+      when 'solid'
+        raise "Solid import not supported in this phase"
+      else
+        raise "Unsupported extract type: #{extract_type}"
+      end
+    end
+
     private
 
     def find_vcad_definition(model, node_id)
