@@ -29,21 +29,145 @@
     }
   },
   "additionalProperties": true,
-  "if": {
-    "properties": {
-      "error_code": { "const": "SCHEMA_VALIDATION_FAILED" }
-    },
-    "required": ["error_code"]
-  },
-  "then": {
-    "properties": {
-      "details": {
-        "type": "object",
+  "allOf": [
+    {
+      "if": {
+        "properties": { "error_code": { "const": "SCHEMA_VALIDATION_FAILED" } },
+        "required": ["error_code"]
+      },
+      "then": {
         "properties": {
-          "path": { "type": "string", "description": "JSON path to the invalid field." },
-          "expected": { "type": "string", "description": "Expected type or constraint." }
-        }
+          "details": {
+            "type": "object",
+            "required": ["path", "expected"],
+            "properties": {
+              "path": { "type": "string", "description": "JSON path to the invalid field." },
+              "expected": { "type": "string", "description": "Expected type or constraint." }
+            }
+          }
+        },
+        "required": ["details"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "error_code": { "const": "PROTOCOL_MISMATCH" } },
+        "required": ["error_code"]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "required": ["expected_protocol", "actual_protocol", "operation"],
+            "properties": {
+              "expected_protocol": { "type": "string", "description": "Expected protocol version." },
+              "actual_protocol": { "type": "string", "description": "Actual protocol version from remote." },
+              "operation": { "type": "string", "description": "Operation that triggered the error." }
+            }
+          }
+        },
+        "required": ["details"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "error_code": { "const": "CAPABILITY_UNAVAILABLE" } },
+        "required": ["error_code"]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "required": ["required_capability", "negotiated_capabilities", "operation"],
+            "properties": {
+              "required_capability": { "type": "string", "description": "The capability that was required." },
+              "negotiated_capabilities": { "type": "array", "items": { "type": "string" }, "description": "Capabilities negotiated during handshake." },
+              "operation": { "type": "string", "description": "Operation that required the capability." }
+            }
+          }
+        },
+        "required": ["details"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "error_code": { "const": "PATH_NOT_ALLOWED" } },
+        "required": ["error_code"]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "required": ["path", "workspace", "operation"],
+            "properties": {
+              "path": { "type": "string", "description": "The disallowed path." },
+              "workspace": { "type": "string", "description": "The workspace boundary." },
+              "operation": { "type": "string", "description": "Operation that attempted the path access." }
+            }
+          }
+        },
+        "required": ["details"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "error_code": { "const": "SOURCE_FILE_MISSING" } },
+        "required": ["error_code"]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "required": ["node_id", "source_file", "operation"],
+            "properties": {
+              "node_id": { "type": "string", "description": "The VCAD node identifier." },
+              "source_file": { "type": "string", "description": "The missing source file path." },
+              "operation": { "type": "string", "description": "Operation that required the source file." }
+            }
+          }
+        },
+        "required": ["details"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "error_code": { "const": "STATE_RECONCILE_REQUIRED" } },
+        "required": ["error_code"]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "required": ["drift", "pending_nodes", "operation"],
+            "properties": {
+              "drift": { "type": "string", "description": "Description of state drift detected." },
+              "pending_nodes": { "type": "array", "items": { "type": "string" }, "description": "Node IDs pending reconciliation." },
+              "operation": { "type": "string", "description": "Operation that detected the drift." }
+            }
+          }
+        },
+        "required": ["details"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "error_code": { "const": "ARTIFACT_READ_FAILED" } },
+        "required": ["error_code"]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "type": "object",
+            "required": ["manifest_path", "reason", "operation"],
+            "properties": {
+              "manifest_path": { "type": "string", "description": "Path to the artifact manifest." },
+              "reason": { "type": "string", "description": "Reason the read failed." },
+              "operation": { "type": "string", "description": "Operation that attempted the read." }
+            }
+          }
+        },
+        "required": ["details"]
       }
     }
-  }
+  ]
 }

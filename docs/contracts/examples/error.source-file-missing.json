@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "error": "Source file not found: /project/bracket.skp.oo",
+  "error_code": "SOURCE_FILE_MISSING",
+  "details": {
+    "node_id": "bracket",
+    "source_file": "/project/bracket.skp.oo",
+    "operation": "vcad_update:eval"
+  }
+}

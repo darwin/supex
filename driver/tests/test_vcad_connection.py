@@ -168,8 +168,8 @@ class TestVCADConnectionProtocol:
         assert exc_info.value.error_code == PROTOCOL_MISMATCH
         assert "driver=" in str(exc_info.value)
         assert "sidecar=2.0" in str(exc_info.value)
-        assert exc_info.value.details["driver_version"] == PROTOCOL_VERSION
-        assert exc_info.value.details["sidecar_version"] == "2.0"
+        assert exc_info.value.details["expected_protocol"] == PROTOCOL_VERSION
+        assert exc_info.value.details["actual_protocol"] == "2.0"
 
     @patch("socket.socket")
     def test_protocol_mismatch_no_fallback(self, mock_socket: Mock) -> None:

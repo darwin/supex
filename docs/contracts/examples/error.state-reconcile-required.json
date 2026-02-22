@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "error": "State reconciliation required: DAG and SketchUp model have diverged",
+  "error_code": "STATE_RECONCILE_REQUIRED",
+  "details": {
+    "drift": "3 nodes in DAG missing from SketchUp model",
+    "pending_nodes": ["bracket", "plate", "bolt-pattern"],
+    "operation": "vcad_update_cascade"
+  }
+}

@@ -18,6 +18,18 @@ logger = logging.getLogger("supex.vcad.schema")
 
 SCHEMA_VALIDATION_FAILED = "SCHEMA_VALIDATION_FAILED"
 
+# Required details keys per error_code. At MCP boundary, all listed keys
+# must be present in `details`; if any are missing the response is
+# normalized to SCHEMA_VALIDATION_FAILED with path info.
+REQUIRED_ERROR_DETAILS: dict[str, list[str]] = {
+    "PROTOCOL_MISMATCH": ["expected_protocol", "actual_protocol", "operation"],
+    "CAPABILITY_UNAVAILABLE": ["required_capability", "negotiated_capabilities", "operation"],
+    "PATH_NOT_ALLOWED": ["path", "workspace", "operation"],
+    "SOURCE_FILE_MISSING": ["node_id", "source_file", "operation"],
+    "STATE_RECONCILE_REQUIRED": ["drift", "pending_nodes", "operation"],
+    "ARTIFACT_READ_FAILED": ["manifest_path", "reason", "operation"],
+}
+
 # Resolve contracts directory relative to the repo root
 _CONTRACTS_DIR = Path(__file__).resolve().parents[4] / "docs" / "contracts"
 
@@ -176,6 +188,66 @@ def validate_tools_call(payload: dict[str, Any]) -> list[dict[str, str]]:
 def validate_error_envelope(payload: dict[str, Any]) -> list[dict[str, str]]:
     """Validate an error response envelope."""
     return validate_payload(payload, "v1", "error-envelope")
+
+
+def normalize_error_response(
+    response: dict[str, Any],
+    operation: str,
+) -> dict[str, Any]:
+    """Normalize an error response at the MCP boundary.
+
+    Ensures that error responses with known error_code values carry all
+    required details keys.  The driver never replaces the upstream
+    error_code — it may only fill a missing ``details.operation``.
+
+    If a required key is missing after enrichment, the response is
+    replaced with a SCHEMA_VALIDATION_FAILED envelope listing the
+    missing keys.
+
+    Args:
+        response: The error response dict (must have ``success=False``).
+        operation: The MCP tool operation name (used to fill missing
+            ``details.operation``).
+
+    Returns:
+        The (possibly enriched) response, or a SCHEMA_VALIDATION_FAILED
+        response if required keys are absent.
+    """
+    error_code = response.get("error_code")
+    if error_code is None or error_code not in REQUIRED_ERROR_DETAILS:
+        return response
+
+    required_keys = REQUIRED_ERROR_DETAILS[error_code]
+
+    # Ensure details is a dict
+    details = response.get("details")
+    if details is None or not isinstance(details, dict):
+        details = {}
+        response["details"] = details
+
+    # Fill missing operation (driver enrichment)
+    if "operation" not in details:
+        details["operation"] = operation
+
+    # Validate all required keys are present
+    missing = [k for k in required_keys if k not in details]
+    if missing:
+        return {
+            "success": False,
+            "error": (
+                f"Error response for {error_code} missing required details: "
+                + ", ".join(missing)
+            ),
+            "error_code": SCHEMA_VALIDATION_FAILED,
+            "details": {
+                "path": f"$.details",
+                "expected": f"required keys for {error_code}: {required_keys}",
+                "missing_keys": missing,
+                "original_error_code": error_code,
+            },
+        }
+
+    return response
 
 
 def clear_schema_cache() -> None:

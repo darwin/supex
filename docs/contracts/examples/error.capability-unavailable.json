@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "error": "Capability 'adt_cache' not available for operation 'vcad_place'. Negotiated: [\"eval\", \"inspect\"]",
+  "error_code": "CAPABILITY_UNAVAILABLE",
+  "details": {
+    "required_capability": "adt_cache",
+    "negotiated_capabilities": ["eval", "inspect"],
+    "operation": "vcad_place"
+  }
+}

@@ -33,6 +33,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADRemoteError,
     VCADTimeoutError,
 )
+from supex_driver.connection.vcad_schema import normalize_error_response
 from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
 
 logger = logging.getLogger("supex.mcp.vcad")
@@ -69,27 +70,29 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
     Preserves upstream error_code and details unchanged.
     Driver must not rewrite upstream error_code; it may only enrich
     missing details.operation.
+
+    At the MCP boundary, normalizes error responses to ensure all
+    required details keys are present for known error_code values.
     """
     if isinstance(e, VCADCapabilityError):
         logger.error(f"Capability error during {operation}: {e}")
-        return json.dumps(
-            {
-                "success": False,
-                "error": str(e),
-                "error_code": e.error_code,
-                "details": e.details,
-            }
-        )
+        response: dict[str, Any] = {
+            "success": False,
+            "error": str(e),
+            "error_code": e.error_code,
+            "details": e.details,
+        }
+        return json.dumps(normalize_error_response(response, operation))
     if isinstance(e, VCADProtocolError):
         logger.error(f"Protocol error during {operation}: {e}")
-        response: dict[str, Any] = {
+        response = {
             "success": False,
             "error": str(e),
             "error_code": e.error_code,
         }
         if e.details:
             response["details"] = e.details
-        return json.dumps(response)
+        return json.dumps(normalize_error_response(response, operation))
     if isinstance(e, VCADRemoteError):
         logger.error(f"Remote error during {operation}: {e}")
         response = {
@@ -99,7 +102,7 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
         }
         if e.data:
             response["details"] = e.data
-        return json.dumps(response)
+        return json.dumps(normalize_error_response(response, operation))
     if isinstance(e, (VCADConnectionError, VCADTimeoutError)):
         logger.error(f"Connection error during {operation}: {e}")
         return json.dumps(
@@ -120,17 +123,20 @@ def _handle_vcad_error(e: Exception, operation: str) -> str:
 
 
 def _handle_sketchup_error(e: Exception, operation: str) -> str:
-    """Standardized error handling for SketchUp bridge errors."""
+    """Standardized error handling for SketchUp bridge errors.
+
+    Normalizes error responses at the MCP boundary to ensure required
+    details keys are present for known error_code values.
+    """
     if isinstance(e, SketchUpRemoteError):
         logger.error(f"Remote error during {operation}: {e}")
-        return json.dumps(
-            {
-                "success": False,
-                "error": e.message,
-                "error_type": "remote",
-                "error_code": e.code,
-            }
-        )
+        response: dict[str, Any] = {
+            "success": False,
+            "error": e.message,
+            "error_type": "remote",
+            "error_code": e.code,
+        }
+        return json.dumps(normalize_error_response(response, operation))
     if isinstance(e, (SketchUpConnectionError, SketchUpTimeoutError)):
         logger.error(f"Connection error during {operation}: {e}")
         return json.dumps(

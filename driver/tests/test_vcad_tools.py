@@ -393,8 +393,8 @@ class TestVCADToolsErrorPropagation:
             "Protocol version mismatch: driver=1.0, sidecar=2.0",
             error_code=PROTOCOL_MISMATCH,
             details={
-                "driver_version": "1.0",
-                "sidecar_version": "2.0",
+                "expected_protocol": "1.0",
+                "actual_protocol": "2.0",
             },
         )
 
@@ -402,8 +402,9 @@ class TestVCADToolsErrorPropagation:
 
         assert result["success"] is False
         assert result["error_code"] == PROTOCOL_MISMATCH
-        assert result["details"]["driver_version"] == "1.0"
-        assert result["details"]["sidecar_version"] == "2.0"
+        assert result["details"]["expected_protocol"] == "1.0"
+        assert result["details"]["actual_protocol"] == "2.0"
+        assert result["details"]["operation"] == "vcad_eval"
 
     def test_capability_unavailable_surfaces_in_mcp(self, mock_ctx, mock_vcad):
         """Missing capability surfaces as CAPABILITY_UNAVAILABLE with full details."""
@@ -428,7 +429,7 @@ class TestVCADToolsErrorPropagation:
         mock_vcad.eval_file.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
-            details={"driver_version": "1.0", "sidecar_version": "3.0"},
+            details={"expected_protocol": "1.0", "actual_protocol": "3.0"},
         )
 
         result = json.loads(
@@ -474,7 +475,7 @@ class TestVCADToolsErrorPropagation:
         mock_vcad.send_command.side_effect = VCADProtocolError(
             "Protocol version mismatch",
             error_code=PROTOCOL_MISMATCH,
-            details={"driver_version": "1.0", "sidecar_version": "2.0"},
+            details={"expected_protocol": "1.0", "actual_protocol": "2.0"},
         )
 
         result = json.loads(vcad_export(mock_ctx, source="[cube 1.0 1.0 1.0]"))

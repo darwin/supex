@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "error": "Path /etc/passwd is outside workspace boundary",
+  "error_code": "PATH_NOT_ALLOWED",
+  "details": {
+    "path": "/etc/passwd",
+    "workspace": "/Users/user/project",
+    "operation": "vcad_place:eval"
+  }
+}

@@ -183,8 +183,8 @@ class VCADConnection:
                     f"sidecar={sidecar_version}",
                     error_code=PROTOCOL_MISMATCH,
                     details={
-                        "driver_version": PROTOCOL_VERSION,
-                        "sidecar_version": sidecar_version,
+                        "expected_protocol": PROTOCOL_VERSION,
+                        "actual_protocol": sidecar_version,
                     },
                 )
 

@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "error": "Failed to read artifact manifest",
+  "error_code": "ARTIFACT_READ_FAILED",
+  "details": {
+    "manifest_path": "/project/.tmp/vcad-sidecar/bracket/manifest.json",
+    "reason": "Permission denied",
+    "operation": "vcad_update:eval"
+  }
+}
