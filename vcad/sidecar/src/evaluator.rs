@@ -863,6 +863,22 @@ mod tests {
     }
 
     #[test]
+    fn test_raw_import_fails_without_preprocessing() {
+        // Imports are only supported in .skp.oo files where they are
+        // preprocessed by extract_and_rewrite_imports before evaluation.
+        // In plain .oo modules (loaded via [use ...]), raw [import ...]
+        // reaches the Loon interpreter directly and must fail.
+        let temp = tempfile::tempdir().unwrap();
+        let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
+
+        let source = r#"[let cutout [import :solid "entity:12345"]]
+[cube 10.0 10.0 10.0]"#;
+
+        let result = evaluator.eval_code(source);
+        assert!(result.is_err(), "raw [import ...] must fail during evaluation");
+    }
+
+    #[test]
     fn test_no_overwrite_existing_obj_after_restart() {
         let temp = tempfile::tempdir().unwrap();
 
