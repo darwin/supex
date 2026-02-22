@@ -14,6 +14,7 @@ from supex_driver.connection.vcad_connection import (
     VCADConnection,
     _parse_major_version,
 )
+from supex_driver.connection.vcad_dag import VcadDag, VcadNode
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
@@ -1044,3 +1045,210 @@ class TestVCADConnectionSidecarLifecycle:
         """stop is a no-op when no process is running."""
         sidecar = VCADSidecar(sidecar_path="/test")
         sidecar.stop()  # Should not raise
+
+
+# ---------------------------------------------------------------------------
+# Reconciler with DAG integration
+# ---------------------------------------------------------------------------
+
+
+class TestReconcilerWithDag:
+    """Test VCADReconciler integration with VcadDag for startup recovery."""
+
+    @pytest.fixture
+    def tmp_state_path(self, tmp_path):
+        return str(tmp_path / "vcad-state.json")
+
+    def test_Reconciler_seed_and_load(self, tmp_state_path: str) -> None:
+        """Seed persisted vcad-state.json, restart driver, verify state loads."""
+        state = VCADPersistentState(state_path=tmp_state_path)
+        state.set_node(NodeState(
+            node_id="node-1",
+            source_file=__file__,
+            revision=5,
+            applied_revision=5,
+        ))
+        state.set_node(NodeState(
+            node_id="node-2",
+            source_file=__file__,
+            revision=3,
+            applied_revision=3,
+        ))
+        state.save()
+
+        # Simulate driver restart
+        dag = VcadDag(
+            state=VCADPersistentState(state_path=tmp_state_path),
+            tracker=RevisionTracker(),
+        )
+        dag.load_persisted_state()
+
+        assert "node-1" in dag.nodes
+        assert "node-2" in dag.nodes
+        assert dag.current_revision("node-1") == 5
+        assert dag.current_revision("node-2") == 3
+
+    def test_Reconciler_drift_buckets(self, tmp_state_path: str) -> None:
+        """Seed state, reconcile with list_vcad_nodes snapshot,
+        verify all drift buckets are classified correctly.
+        """
+        # Create and delete a file for source_missing
+        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
+            missing_path = f.name
+        os.unlink(missing_path)
+
+        state = VCADPersistentState(state_path=tmp_state_path)
+        # node-1: OK in both persisted and SketchUp
+        state.set_node(NodeState(
+            node_id="node-1",
+            source_file=__file__,
+            revision=3,
+            applied_revision=3,
+        ))
+        # node-2: source file missing
+        state.set_node(NodeState(
+            node_id="node-2",
+            source_file=missing_path,
+            revision=2,
+            applied_revision=2,
+        ))
+        # node-3: persisted but not in SketchUp (missing_node)
+        state.set_node(NodeState(
+            node_id="node-3",
+            source_file=__file__,
+            revision=1,
+            applied_revision=1,
+        ))
+        # node-4: has revision gap
+        state.set_node(NodeState(
+            node_id="node-4",
+            source_file=__file__,
+            revision=7,
+            applied_revision=4,
+        ))
+        state.save()
+
+        dag = VcadDag(
+            state=VCADPersistentState(state_path=tmp_state_path),
+            tracker=RevisionTracker(),
+        )
+        dag.load_persisted_state()
+
+        # SketchUp snapshot: has node-1, node-2, node-4, and orphan node-5
+        su_nodes = [
+            {"node_id": "node-1"},
+            {"node_id": "node-2"},
+            {"node_id": "node-4"},
+            {"node_id": "node-5"},
+        ]
+
+        buckets = dag.reconcile_with_sketchup(su_nodes)
+
+        assert "node-3" in buckets["missing_node"]
+        assert "node-5" in buckets["orphan_definition"]
+        assert "node-2" in buckets["source_missing"]
+        assert "node-4" in buckets["revision_gap"]
+
+    def test_Reconciler_source_missing_degraded(self, tmp_state_path: str) -> None:
+        """Verify source_missing nodes are marked degraded and return
+        SOURCE_FILE_MISSING deterministically.
+        """
+        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
+            missing_path = f.name
+        os.unlink(missing_path)
+
+        state = VCADPersistentState(state_path=tmp_state_path)
+        state.set_node(NodeState(
+            node_id="node-1",
+            source_file=missing_path,
+            revision=2,
+            applied_revision=2,
+            status="active",
+        ))
+        state.save()
+
+        su_nodes = [{"node_id": "node-1"}]
+
+        # Run reconciliation 3 times
+        for _ in range(3):
+            dag = VcadDag(
+                state=VCADPersistentState(state_path=tmp_state_path),
+                tracker=RevisionTracker(),
+            )
+            dag.load_persisted_state()
+            buckets = dag.reconcile_with_sketchup(su_nodes)
+
+            assert "node-1" in buckets["source_missing"]
+            assert dag.nodes["node-1"].status == "degraded"
+
+    def test_Reconciler_cascade_after_reconcile(self, tmp_state_path: str) -> None:
+        """After reconciliation, revision_gap nodes get cascade_update action,
+        and revisions are properly rebuilt for subsequent operations.
+        """
+        state = VCADPersistentState(state_path=tmp_state_path)
+        state.set_node(NodeState(
+            node_id="node-1",
+            source_file=__file__,
+            revision=5,
+            applied_revision=3,  # gap: needs cascade
+        ))
+        state.save()
+
+        dag = VcadDag(
+            state=VCADPersistentState(state_path=tmp_state_path),
+            tracker=RevisionTracker(),
+        )
+        dag.load_persisted_state()
+
+        buckets = dag.reconcile_with_sketchup([{"node_id": "node-1"}])
+        assert "node-1" in buckets["revision_gap"]
+
+        # After reconcile, revision tracker should be at 5
+        assert dag.current_revision("node-1") == 5
+
+        # Bump should go to 6
+        new_rev = dag.bump_revision("node-1")
+        assert new_rev == 6
+
+    def test_Reconciler_orphan_tracked_in_dag(self, tmp_state_path: str) -> None:
+        """Orphan definitions from SketchUp are added to the DAG."""
+        state = VCADPersistentState(state_path=tmp_state_path)
+        state.save()
+
+        dag = VcadDag(
+            state=VCADPersistentState(state_path=tmp_state_path),
+            tracker=RevisionTracker(),
+        )
+        dag.load_persisted_state()
+
+        su_nodes = [{"node_id": "orphan-1"}, {"node_id": "orphan-2"}]
+        buckets = dag.reconcile_with_sketchup(su_nodes)
+
+        assert set(buckets["orphan_definition"]) == {"orphan-1", "orphan-2"}
+        assert "orphan-1" in dag.nodes
+        assert dag.nodes["orphan-1"].status == "orphan"
+        assert "orphan-2" in dag.nodes
+        assert dag.nodes["orphan-2"].status == "orphan"
+
+    def test_Reconciler_missing_node_removed(self, tmp_state_path: str) -> None:
+        """Nodes persisted but absent in SketchUp are removed from state."""
+        state = VCADPersistentState(state_path=tmp_state_path)
+        state.set_node(NodeState(
+            node_id="gone-node",
+            source_file=__file__,
+            revision=1,
+            applied_revision=1,
+        ))
+        state.save()
+
+        dag = VcadDag(
+            state=VCADPersistentState(state_path=tmp_state_path),
+            tracker=RevisionTracker(),
+        )
+        dag.load_persisted_state()
+
+        buckets = dag.reconcile_with_sketchup([])
+        assert "gone-node" in buckets["missing_node"]
+
+        # Should no longer be in DAG or persisted state
+        assert dag.state.get_node("gone-node") is None

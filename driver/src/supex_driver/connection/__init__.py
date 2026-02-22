@@ -18,6 +18,11 @@ from supex_driver.connection.vcad_connection import (
     VCADConnection,
     get_vcad_connection,
 )
+from supex_driver.connection.vcad_dag import (
+    ImportRef,
+    VcadDag,
+    VcadNode,
+)
 from supex_driver.connection.vcad_exceptions import (
     VCADCapabilityError,
     VCADConnectionError,
@@ -64,4 +69,7 @@ __all__ = [
     "VCADViewerTimeoutError",
     "VCADViewerProtocolError",
     "VCADViewerCapabilityError",
+    "ImportRef",
+    "VcadDag",
+    "VcadNode",
 ]

@@ -9,6 +9,7 @@ from supex_driver.connection import (
     get_sketchup_connection,
     get_vcad_connection,
 )
+from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
 from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
@@ -25,6 +26,26 @@ from supex_driver.connection.vcad_exceptions import (
 from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
 
 logger = logging.getLogger("supex.mcp.vcad")
+
+# ---------------------------------------------------------------------------
+# DAG singleton
+# ---------------------------------------------------------------------------
+
+_vcad_dag: VcadDag | None = None
+
+
+def get_vcad_dag() -> VcadDag:
+    """Get or create the global VCAD DAG instance."""
+    global _vcad_dag
+    if _vcad_dag is None:
+        _vcad_dag = VcadDag()
+    return _vcad_dag
+
+
+def _reset_vcad_dag() -> None:
+    """Reset the global DAG instance (for testing)."""
+    global _vcad_dag
+    _vcad_dag = None
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +150,96 @@ def _handle_sketchup_error(e: Exception, operation: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# DAG helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_import_refs(
+    import_decls: list[dict[str, Any]],
+    resolved_imports: dict[str, Any],
+) -> list[ImportRef]:
+    """Build ImportRef list from extraction and resolution results."""
+    refs = []
+    for imp in import_decls:
+        import_id = imp.get("import_id", "")
+        resolved = resolved_imports.get(import_id, {})
+        resolved_type = resolved.get("resolved_type", "native")
+        source_node_id = resolved.get("source_node_id")
+
+        refs.append(ImportRef(
+            binding_name=imp.get("injected_symbol", imp.get("binding_name", "")),
+            entity_ref=imp.get("entity_ref", ""),
+            extract=imp.get("extract", ""),
+            resolved_type=resolved_type,
+            source_node_id=source_node_id,
+        ))
+    return refs
+
+
+def _vcad_update_single(
+    ctx: McpContext,
+    node_id: str,
+    source_file: str,
+    revision: int,
+    dag: VcadDag,
+) -> dict[str, Any]:
+    """Internal helper: re-evaluate a single node with revision guard.
+
+    Returns result dict with success/error status.
+    """
+    agent = get_agent_name(ctx)
+
+    # Re-evaluate via sidecar
+    try:
+        vcad = get_vcad_connection(agent=agent)
+        eval_result = vcad.eval_file(source_file)
+    except Exception as e:
+        return {"success": False, "node_id": node_id, "error": str(e)}
+
+    obj_path = eval_result.get("obj_path")
+    if not obj_path:
+        return {
+            "success": False,
+            "node_id": node_id,
+            "error": "Sidecar did not return obj_path",
+        }
+
+    # Check revision freshness before applying
+    if not dag.should_apply(node_id, revision):
+        return {
+            "success": False,
+            "node_id": node_id,
+            "error": "Stale revision dropped",
+            "error_type": "stale",
+            "revision": revision,
+        }
+
+    # Apply in SketchUp
+    try:
+        sketchup = get_sketchup_connection(agent=agent)
+        result = sketchup.send_command(
+            method="update_vcad_node",
+            params={
+                "obj_path": obj_path,
+                "node_id": node_id,
+                "source_file": source_file,
+            },
+            request_id=ctx.request_id,
+        )
+    except Exception as e:
+        return {"success": False, "node_id": node_id, "error": str(e)}
+
+    # Mark applied and persist
+    dag.mark_applied(node_id, revision)
+    node = dag.get_node(node_id)
+    if node:
+        node.last_entity_id = result.get("entity_id", node.last_entity_id)
+    dag.persist_state()
+
+    return {"success": True, "node_id": node_id, "revision": revision}
+
+
+# ---------------------------------------------------------------------------
 # MCP tools
 # ---------------------------------------------------------------------------
 
@@ -199,6 +310,17 @@ def vcad_place(
             params=place_params,
             request_id=ctx.request_id,
         )
+
+        # Register node in DAG (no imports for simple place)
+        dag = get_vcad_dag()
+        dag_node = VcadNode(
+            node_id=node_id,
+            source_file=source_file,
+            last_entity_id=result.get("entity_id"),
+        )
+        dag.add_node(dag_node)
+        dag.persist_state()
+
         return json.dumps(result)
     except (
         SketchUpRemoteError,
@@ -290,6 +412,22 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
             },
             request_id=ctx.request_id,
         )
+
+        # Refresh DAG entry (imports may have changed)
+        dag = get_vcad_dag()
+        existing = dag.get_node(node_id)
+        if existing:
+            existing.source_file = source_file
+            existing.last_entity_id = result.get("entity_id", existing.last_entity_id)
+            dag.add_node(existing)
+        else:
+            dag.add_node(VcadNode(
+                node_id=node_id,
+                source_file=source_file,
+                last_entity_id=result.get("entity_id"),
+            ))
+        dag.persist_state()
+
         return json.dumps(result)
     except (
         SketchUpRemoteError,
@@ -524,6 +662,19 @@ def vcad_place_with_imports(
             params=place_params,
             request_id=ctx.request_id,
         )
+
+        # Register node with imports in DAG
+        dag = get_vcad_dag()
+        dag_imports = _build_import_refs(import_decls, resolved_imports)
+        dag_node = VcadNode(
+            node_id=node_id,
+            source_file=source_file,
+            imports=dag_imports,
+            last_entity_id=result.get("entity_id"),
+        )
+        dag.add_node(dag_node)
+        dag.persist_state()
+
         return json.dumps(result)
     except (
         SketchUpRemoteError,
@@ -556,3 +707,64 @@ def vcad_list_nodes(ctx: McpContext) -> str:
         return _handle_sketchup_error(e, "vcad_list_nodes")
     except Exception as e:
         return _handle_sketchup_error(e, "vcad_list_nodes")
+
+
+@mcp.tool()
+def vcad_update_cascade(ctx: McpContext, node_id: str) -> str:
+    """Re-evaluate node and all downstream dependents in topological order.
+
+    ADT composition: each node's ADT tree is cached in the sidecar,
+    so downstream nodes that import :solid get the fresh ADT directly.
+
+    This is a manually triggered tool -- the agent (or user) calls it
+    explicitly after editing a source file.
+
+    Args:
+        ctx: MCP context
+        node_id: The root VCAD node to re-evaluate
+    """
+    dag = get_vcad_dag()
+
+    root_node = dag.get_node(node_id)
+    if not root_node:
+        return json.dumps({
+            "success": False,
+            "error": f"Node {node_id} not found in DAG",
+            "error_type": "not_found",
+        })
+
+    # Build affected set: root + all downstream
+    downstream = dag.get_downstream(node_id)
+    affected = [node_id] + downstream
+    order = dag._topological_sort(affected)
+
+    results = []
+    for nid in order:
+        node = dag.get_node(nid)
+        if not node:
+            results.append({
+                "success": False,
+                "node_id": nid,
+                "error": "Node not found in DAG",
+            })
+            continue
+
+        if node.status == "degraded":
+            results.append({
+                "success": False,
+                "node_id": nid,
+                "error": "Node is degraded",
+                "error_code": "SOURCE_FILE_MISSING",
+            })
+            continue
+
+        revision = dag.bump_revision(nid)
+        result = _vcad_update_single(ctx, nid, node.source_file, revision, dag)
+        results.append(result)
+
+    return json.dumps({
+        "success": all(r.get("success") for r in results),
+        "updated": [r["node_id"] for r in results if r.get("success")],
+        "failed": [r["node_id"] for r in results if not r.get("success")],
+        "results": results,
+    })
