@@ -2,10 +2,10 @@
 /.idea/
 .gemini/
 supex-docs
-AGENTS.override.md
+supex
 *.iml
 .DS_Store
 /.claude/
 /.code/
 .envrc
-supex
+.supex/
