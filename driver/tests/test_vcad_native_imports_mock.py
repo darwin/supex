@@ -146,7 +146,7 @@ class TestNativeMeshCSG:
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/diff-native.dae",
             "volume": 7000000.0,
             "surface_area": 240000.0,
@@ -161,7 +161,7 @@ class TestNativeMeshCSG:
         assert result["success"] is True
 
         # Verify mesh forwarded to sidecar
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         imp = call_kwargs["imports"]["import_0"]
         assert imp["source"] == "native_mesh"
         assert imp["native_mesh"]["positions"] == BOX_MESH["positions"]
@@ -179,7 +179,7 @@ class TestNativeMeshCSG:
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/union-native.dae",
             "volume": 9000000.0,
         }
@@ -191,7 +191,7 @@ class TestNativeMeshCSG:
         )
 
         assert result["success"] is True
-        mock_vcad.eval_with_solid_imports.assert_called_once()
+        mock_vcad.eval_with_imports.assert_called_once()
 
     def test_intersection_with_native_mesh(
         self, mock_ctx, mock_vcad, mock_sketchup, tmp_path
@@ -206,7 +206,7 @@ class TestNativeMeshCSG:
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/intersect-native.dae",
             "volume": 1000000.0,
         }
@@ -218,7 +218,7 @@ class TestNativeMeshCSG:
         )
 
         assert result["success"] is True
-        mock_vcad.eval_with_solid_imports.assert_called_once()
+        mock_vcad.eval_with_imports.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +240,7 @@ class TestNativeMeshDataIntegrity:
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/preserve.dae",
         }
 
@@ -248,7 +248,7 @@ class TestNativeMeshDataIntegrity:
             mock_ctx, node_id="csg-test", source_file=src
         )
 
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         mesh = call_kwargs["imports"]["import_0"]["native_mesh"]
         assert mesh["positions"] == BOX_MESH["positions"]
         assert mesh["indices"] == BOX_MESH["indices"]
@@ -270,7 +270,7 @@ class TestNativeMeshDataIntegrity:
             "normals": [],
         }
         _setup_native_mesh_flow(mock_vcad, mock_sketchup, mesh=mesh_no_normals)
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/no-normals.dae",
         }
 
@@ -278,7 +278,7 @@ class TestNativeMeshDataIntegrity:
             mock_ctx, node_id="csg-test", source_file=src
         )
 
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         mesh = call_kwargs["imports"]["import_0"]["native_mesh"]
         assert mesh["normals"] == []
 
@@ -339,7 +339,7 @@ class TestNativeMeshErrors:
         )
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
-        mock_vcad.eval_with_solid_imports.side_effect = VCADRemoteError(
+        mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000,
             message="INVALID_MESH: native mesh has zero triangles",
             data={"error_code": "INVALID_MESH"},
@@ -413,7 +413,7 @@ class TestNativeMeshErrors:
             },
         ]
 
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/multi-native.dae",
             "volume": 500000.0,
         }
@@ -426,7 +426,7 @@ class TestNativeMeshErrors:
 
         assert result["success"] is True
 
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         imports = call_kwargs["imports"]
         assert imports["import_0"]["native_mesh"] == mesh_a
         assert imports["import_1"]["native_mesh"] == mesh_b

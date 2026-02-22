@@ -107,7 +107,7 @@ class TestNativeMeshImportSuccess:
     def test_native_mesh_import_forwards_mesh_to_sidecar(
         self, mock_ctx, mock_vcad, mock_sketchup, native_solid_source
     ):
-        """Native mesh import passes mesh data to eval_with_solid_imports."""
+        """Native mesh import passes mesh data to eval_with_imports."""
         mock_vcad.extract_imports.return_value = {
             "imports": [
                 {
@@ -136,7 +136,7 @@ class TestNativeMeshImportSuccess:
             },
         ]
 
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/native-mesh-001.dae",
             "volume": 6000000.0,
         }
@@ -152,12 +152,11 @@ class TestNativeMeshImportSuccess:
         assert result["success"] is True
         assert result["node_id"] == "consumer"
 
-        # eval_with_solid_imports used (not eval_with_imports)
-        mock_vcad.eval_with_solid_imports.assert_called_once()
-        mock_vcad.eval_with_imports.assert_not_called()
+        # eval_with_imports used (unified pipeline)
+        mock_vcad.eval_with_imports.assert_called_once()
 
         # Verify native mesh data is forwarded
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         import_0 = call_kwargs["imports"]["import_0"]
         assert import_0["extract"] == "solid"
         assert import_0["source"] == "native_mesh"
@@ -170,7 +169,7 @@ class TestNativeMeshImportSuccess:
     def test_mixed_native_and_vcad_solid_imports(
         self, mock_ctx, mock_vcad, mock_sketchup, mixed_native_vcad_source
     ):
-        """Mixed native mesh + vcad-backed solids both use eval_with_solid_imports."""
+        """Mixed native mesh + vcad-backed solids both use eval_with_imports."""
         mock_vcad.extract_imports.return_value = {
             "imports": [
                 {
@@ -214,7 +213,7 @@ class TestNativeMeshImportSuccess:
             },
         ]
 
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/mixed-native-vcad.dae",
             "volume": 1000.0,
         }
@@ -229,7 +228,7 @@ class TestNativeMeshImportSuccess:
 
         assert result["success"] is True
 
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         imports = call_kwargs["imports"]
 
         # Native mesh import
@@ -290,7 +289,7 @@ class TestNativeMeshImportSuccess:
             },
         ]
 
-        mock_vcad.eval_with_solid_imports.return_value = {
+        mock_vcad.eval_with_imports.return_value = {
             "obj_path": "/tmp/native-data.dae",
         }
 
@@ -304,7 +303,7 @@ class TestNativeMeshImportSuccess:
 
         assert result["success"] is True
 
-        call_kwargs = mock_vcad.eval_with_solid_imports.call_args.kwargs
+        call_kwargs = mock_vcad.eval_with_imports.call_args.kwargs
         imports = call_kwargs["imports"]
 
         # Data import
