@@ -1,8 +1,61 @@
 # Extended Workflow Examples
 
-Extended examples and reference material. For essential patterns, see `prompt.md`.
+Practical playbook for both authoring workflows.
 
-## Common Geometry Operations
+For strict rules and constraints, see `supex-docs/prompt.md`.
+
+## Workflow Chooser
+
+| Goal | Primary workflow | Why |
+|------|------------------|-----|
+| Manipulate existing SketchUp entities and settings | Ruby | Direct SketchUp API control |
+| Build repeatable parametric solids from source | VCAD | `.skp.oo` source-of-truth and deterministic updates |
+| Drive geometry from host entity imports | VCAD with imports | Requires `vcad_place_with_imports` pipeline |
+
+## VCAD Workflow Loop
+
+1. Check existing `.oo` modules first and reuse CAD library helpers.
+2. Keep each `.skp.oo` file as one node that evaluates to exactly one solid.
+3. Use `vcad_place` for sources with no imports.
+4. Use `vcad_place_with_imports` for sources containing `[import ...]`.
+5. Re-evaluate with `vcad_update` for one node or `vcad_update_cascade` for dependent graphs.
+6. Verify with `vcad_list_nodes()` and screenshots.
+
+### VCAD Node Example
+
+```loon
+; skp/bracket.skp.oo
+[use shared/params :as p]
+[use shared/lib :as lib]
+
+[pipe [lib.base-bracket p.width p.depth p.height]
+  [difference
+    [translate p.hole_x p.hole_y 0.0
+      [cylinder p.hole_radius p.height]]]
+  [fillet p.edge_radius]]
+```
+
+### VCAD Import Example
+
+```loon
+; Requires vcad_place_with_imports
+[let host [import :dimensions "entity:12345"]]
+[cube [get host :width] 10.0 [get host :height]]
+```
+
+`[import ...]` declarations must stay in `.skp.oo` files. They do not work in `.oo` modules loaded via `[use ...]`, and they are not available in `vcad_eval` / `vcad_inspect`.
+
+### Batch Editing Pattern
+
+```text
+vcad_watch_pause()
+# edit multiple .skp.oo and .oo files
+vcad_watch_resume()  # flushes as one merged cascade update
+```
+
+## Ruby Workflow Quick Reference
+
+### Common Geometry Operations
 
 ```ruby
 # Create face and extrude
@@ -29,7 +82,7 @@ group.transform!(tr)
 tr = Geom::Transformation.new(point, xaxis, yaxis, zaxis)
 ```
 
-## Materials
+### Materials
 
 ```ruby
 # Create material
@@ -47,7 +100,7 @@ material.texture = '/path/to/texture.jpg'
 material.texture.size = [1.m, 1.m]
 ```
 
-## Components
+### Components
 
 ```ruby
 # Create component definition
@@ -62,7 +115,7 @@ instance.name = 'Instance 1'
 instance.definition.entities.each { |e| puts e }
 ```
 
-## Curves and Arcs
+### Curves and Arcs
 
 ```ruby
 # Arc (center, xaxis, normal, radius, start_angle, end_angle)
@@ -78,7 +131,7 @@ edges = entities.add_ngon(center, Z_AXIS, radius, 6)
 edges = entities.add_curve(points_array)
 ```
 
-## Layers/Tags
+### Layers/Tags
 
 ```ruby
 # Create layer
@@ -91,7 +144,7 @@ group.layer = layer
 layer.visible = false
 ```
 
-## Selection and Iteration
+### Selection and Iteration
 
 ```ruby
 # Get selection
@@ -109,7 +162,7 @@ table = entities.find { |e| e.respond_to?(:name) && e.name == 'Table' }
 tagged = entities.select { |e| e.get_attribute('supex', 'type') == 'my_tag' }
 ```
 
-## Bounding Box
+### Bounding Box
 
 ```ruby
 # Get bounds
@@ -124,7 +177,7 @@ bounds.min         # Corner point
 bounds.max         # Corner point
 ```
 
-## Units and Conversions
+### Units and Conversions
 
 ```ruby
 # Length literals (SketchUp extension)
@@ -142,7 +195,7 @@ Math::PI / 4       # Same as above
 length_in_inches = length.to_l.to_s  # Returns string with units
 ```
 
-## Error Handling Patterns
+### Error Handling Patterns
 
 ```ruby
 # Safe entity access
@@ -163,7 +216,7 @@ if face.normal.z < 0
 end
 ```
 
-## Debugging Tips
+### Debugging Tips
 
 ```ruby
 # Print entity info
