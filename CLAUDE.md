@@ -104,10 +104,28 @@ The vcad submodule requires `npm install` in `vcad/vendor/vcad/` for font assets
 ```bash
 cd vcad/vendor/vcad
 npm install
-git update-index --assume-unchanged package-lock.json
-# local-only ignore for node_modules (not committed to vcad repo)
-echo "node_modules/" >> $(git rev-parse --git-dir)/info/exclude
+git update-index --assume-unchanged package-lock.json Cargo.lock
+# local-only ignore for node_modules and IDE files (not committed to vcad repo)
+echo -e "node_modules/\n*.iml" >> $(git rev-parse --git-dir)/info/exclude
 ```
+
+Also exclude IDE files in loon and phyz:
+
+```bash
+for repo in loon phyz; do
+  echo "*.iml" >> $(git -C vcad/vendor/$repo rev-parse --git-dir)/info/exclude
+done
+```
+
+During development, vendor submodules often show as dirty in `git status` (untracked build artifacts, modified files). Silence this noise in the parent repo:
+
+```bash
+git config submodule.vcad/vendor/vcad.ignore dirty
+git config submodule.vcad/vendor/loon.ignore dirty
+git config submodule.vcad/vendor/phyz.ignore dirty
+```
+
+This only hides working-tree dirt — committed HEAD pointer changes still show up (which is what you want).
 
 After any code change that affects the sidecar:
 

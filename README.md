@@ -191,6 +191,14 @@ Supex uses git submodules for vendored VCAD dependencies (`vcad/vendor/`). If yo
 git submodule update --init --recursive
 ```
 
+Vendor submodules often appear dirty in `git status` during development. To silence this locally:
+
+```bash
+git config submodule.vcad/vendor/vcad.ignore dirty
+git config submodule.vcad/vendor/loon.ignore dirty
+git config submodule.vcad/vendor/phyz.ignore dirty
+```
+
 ### 2. Launch SketchUp with Extension
 
 The development launcher handles extension deployment automatically:
