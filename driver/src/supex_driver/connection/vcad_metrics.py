@@ -58,7 +58,7 @@ GAUGE_METRICS = {
 }
 
 
-class VcadMetrics:
+class VCADMetrics:
     """Thread-safe centralized metrics registry.
 
     Some metrics are tracked directly via increment/set methods.
@@ -157,15 +157,15 @@ class VcadMetrics:
 
 # Singleton
 _metrics_lock = threading.Lock()
-_metrics: VcadMetrics | None = None
+_metrics: VCADMetrics | None = None
 
 
-def get_vcad_metrics() -> VcadMetrics:
-    """Get or create the global VcadMetrics singleton."""
+def get_vcad_metrics() -> VCADMetrics:
+    """Get or create the global VCADMetrics singleton."""
     global _metrics
     with _metrics_lock:
         if _metrics is None:
-            _metrics = VcadMetrics()
+            _metrics = VCADMetrics()
         return _metrics
 
 

@@ -31,7 +31,7 @@ class ImportRef:
 
 
 @dataclass
-class VcadNode:
+class VCADNode:
     """A node in the vcad dependency graph."""
 
     node_id: str
@@ -43,10 +43,10 @@ class VcadNode:
     status: str = "active"  # active | degraded | orphan
 
 
-class VcadDag:
+class VCADDag:
     """Dependency graph tracking vcad node relationships.
 
-    Manages the in-memory graph of VcadNode objects and delegates
+    Manages the in-memory graph of VCADNode objects and delegates
     persistence to VCADPersistentState and revision tracking to
     RevisionTracker from vcad_state.py.
     """
@@ -56,11 +56,11 @@ class VcadDag:
         state: VCADPersistentState | None = None,
         tracker: RevisionTracker | None = None,
     ):
-        self.nodes: dict[str, VcadNode] = {}
+        self.nodes: dict[str, VCADNode] = {}
         self.state = state or VCADPersistentState()
         self.tracker = tracker or RevisionTracker()
 
-    def add_node(self, node: VcadNode) -> None:
+    def add_node(self, node: VCADNode) -> None:
         """Add or replace a node in the DAG."""
         self.nodes[node.node_id] = node
         self.tracker.set_revision(node.node_id, node.revision)
@@ -72,7 +72,7 @@ class VcadDag:
         self.tracker.remove_node(node_id)
         self.state.remove_node(node_id)
 
-    def get_node(self, node_id: str) -> VcadNode | None:
+    def get_node(self, node_id: str) -> VCADNode | None:
         """Get a node by ID."""
         return self.nodes.get(node_id)
 
@@ -146,7 +146,7 @@ class VcadDag:
 
         for nid, ns in self.state.all_nodes().items():
             if nid not in self.nodes:
-                self.nodes[nid] = VcadNode(
+                self.nodes[nid] = VCADNode(
                     node_id=ns.node_id,
                     source_file=ns.source_file,
                     revision=ns.revision,
@@ -192,7 +192,7 @@ class VcadDag:
             if ns.node_id in self.nodes:
                 self.nodes[ns.node_id].status = ns.status
             else:
-                self.nodes[ns.node_id] = VcadNode(
+                self.nodes[ns.node_id] = VCADNode(
                     node_id=ns.node_id,
                     source_file=ns.source_file,
                     revision=ns.revision,
@@ -328,8 +328,8 @@ class VcadDag:
 
         return result
 
-    def _sync_to_state(self, node: VcadNode) -> None:
-        """Sync a VcadNode to the persistent state store."""
+    def _sync_to_state(self, node: VCADNode) -> None:
+        """Sync a VCADNode to the persistent state store."""
         self.state.set_node(
             NodeState(
                 node_id=node.node_id,

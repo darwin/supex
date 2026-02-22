@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_state import (
     RevisionTracker,
     VCADPersistentState,
@@ -26,10 +26,10 @@ def tmp_state_path(tmp_path):
 
 @pytest.fixture
 def dag(tmp_state_path):
-    """Create a fresh VcadDag with temporary state path."""
+    """Create a fresh VCADDag with temporary state path."""
     state = VCADPersistentState(state_path=tmp_state_path)
     tracker = RevisionTracker()
-    return VcadDag(state=state, tracker=tracker)
+    return VCADDag(state=state, tracker=tracker)
 
 
 # ---------------------------------------------------------------------------
@@ -37,36 +37,36 @@ def dag(tmp_state_path):
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagBasic:
+class TestVCADDagBasic:
     """Test basic DAG node operations."""
 
-    def test_add_node(self, dag: VcadDag) -> None:
-        node = VcadNode(node_id="node-1", source_file="/test/a.skp.oo")
+    def test_add_node(self, dag: VCADDag) -> None:
+        node = VCADNode(node_id="node-1", source_file="/test/a.skp.oo")
         dag.add_node(node)
 
         assert "node-1" in dag.nodes
         assert dag.get_node("node-1") is node
 
-    def test_remove_node(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(node_id="node-1", source_file="/test/a.skp.oo"))
-        dag.add_node(VcadNode(node_id="node-2", source_file="/test/b.skp.oo"))
+    def test_remove_node(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(node_id="node-1", source_file="/test/a.skp.oo"))
+        dag.add_node(VCADNode(node_id="node-2", source_file="/test/b.skp.oo"))
 
         dag.remove_node("node-1")
 
         assert "node-1" not in dag.nodes
         assert "node-2" in dag.nodes
 
-    def test_remove_nonexistent_node(self, dag: VcadDag) -> None:
+    def test_remove_nonexistent_node(self, dag: VCADDag) -> None:
         dag.remove_node("nonexistent")  # Should not raise
 
-    def test_get_nonexistent_node(self, dag: VcadDag) -> None:
+    def test_get_nonexistent_node(self, dag: VCADDag) -> None:
         assert dag.get_node("nonexistent") is None
 
-    def test_add_node_replaces_existing(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(
+    def test_add_node_replaces_existing(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(
             node_id="node-1", source_file="/test/old.skp.oo"
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1", source_file="/test/new.skp.oo"
         ))
 
@@ -78,13 +78,13 @@ class TestVcadDagBasic:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagDependencies:
+class TestVCADDagDependencies:
     """Test dependency tracking and downstream computation."""
 
-    def _make_dag_with_chain(self, dag: VcadDag) -> None:
+    def _make_dag_with_chain(self, dag: VCADDag) -> None:
         """Create A -> B -> C chain (C depends on B depends on A)."""
-        dag.add_node(VcadNode(node_id="A", source_file="/test/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/test/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B",
             source_file="/test/b.skp.oo",
             imports=[ImportRef(
@@ -95,7 +95,7 @@ class TestVcadDagDependencies:
                 source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="C",
             source_file="/test/c.skp.oo",
             imports=[ImportRef(
@@ -107,33 +107,33 @@ class TestVcadDagDependencies:
             )],
         ))
 
-    def test_get_downstream_chain(self, dag: VcadDag) -> None:
+    def test_get_downstream_chain(self, dag: VCADDag) -> None:
         """A -> B -> C: downstream of A is [B, C]."""
         self._make_dag_with_chain(dag)
 
         downstream = dag.get_downstream("A")
         assert set(downstream) == {"B", "C"}
 
-    def test_get_downstream_middle(self, dag: VcadDag) -> None:
+    def test_get_downstream_middle(self, dag: VCADDag) -> None:
         """A -> B -> C: downstream of B is [C]."""
         self._make_dag_with_chain(dag)
 
         downstream = dag.get_downstream("B")
         assert downstream == ["C"]
 
-    def test_get_downstream_leaf(self, dag: VcadDag) -> None:
+    def test_get_downstream_leaf(self, dag: VCADDag) -> None:
         """A -> B -> C: downstream of C is []."""
         self._make_dag_with_chain(dag)
 
         downstream = dag.get_downstream("C")
         assert downstream == []
 
-    def test_get_downstream_nonexistent(self, dag: VcadDag) -> None:
+    def test_get_downstream_nonexistent(self, dag: VCADDag) -> None:
         downstream = dag.get_downstream("nonexistent")
         assert downstream == []
 
-    def test_get_dependents_of_entity(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(
+    def test_get_dependents_of_entity(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file="/test/a.skp.oo",
             imports=[ImportRef(
@@ -143,7 +143,7 @@ class TestVcadDagDependencies:
                 resolved_type="native",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-2",
             source_file="/test/b.skp.oo",
             imports=[ImportRef(
@@ -153,7 +153,7 @@ class TestVcadDagDependencies:
                 resolved_type="native",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-3",
             source_file="/test/c.skp.oo",
             imports=[ImportRef(
@@ -167,12 +167,12 @@ class TestVcadDagDependencies:
         dependents = dag.get_dependents_of_entity("42")
         assert set(dependents) == {"node-1", "node-2"}
 
-    def test_diamond_dependency(self, dag: VcadDag) -> None:
+    def test_diamond_dependency(self, dag: VCADDag) -> None:
         """Diamond: A -> B, A -> C, B -> D, C -> D.
         Downstream of A should include B, C, D.
         """
-        dag.add_node(VcadNode(node_id="A", source_file="/test/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/test/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B",
             source_file="/test/b.skp.oo",
             imports=[ImportRef(
@@ -180,7 +180,7 @@ class TestVcadDagDependencies:
                 extract="solid", resolved_type="vcad", source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="C",
             source_file="/test/c.skp.oo",
             imports=[ImportRef(
@@ -188,7 +188,7 @@ class TestVcadDagDependencies:
                 extract="solid", resolved_type="vcad", source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="D",
             source_file="/test/d.skp.oo",
             imports=[
@@ -212,20 +212,20 @@ class TestVcadDagDependencies:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagTopologicalSort:
+class TestVCADDagTopologicalSort:
     """Test topological ordering of nodes."""
 
-    def test_linear_chain(self, dag: VcadDag) -> None:
+    def test_linear_chain(self, dag: VCADDag) -> None:
         """A -> B -> C should sort as [A, B, C]."""
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a", entity_ref="entity:1",
                 extract="solid", resolved_type="vcad", source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="C", source_file="/c.skp.oo",
             imports=[ImportRef(
                 binding_name="b", entity_ref="entity:2",
@@ -236,24 +236,24 @@ class TestVcadDagTopologicalSort:
         order = dag.get_evaluation_order()
         assert order.index("A") < order.index("B") < order.index("C")
 
-    def test_diamond(self, dag: VcadDag) -> None:
+    def test_diamond(self, dag: VCADDag) -> None:
         """Diamond: A before B,C before D."""
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a", entity_ref="entity:1",
                 extract="solid", resolved_type="vcad", source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="C", source_file="/c.skp.oo",
             imports=[ImportRef(
                 binding_name="a", entity_ref="entity:1",
                 extract="solid", resolved_type="vcad", source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="D", source_file="/d.skp.oo",
             imports=[
                 ImportRef(
@@ -273,26 +273,26 @@ class TestVcadDagTopologicalSort:
         assert order.index("B") < order.index("D")
         assert order.index("C") < order.index("D")
 
-    def test_independent_nodes(self, dag: VcadDag) -> None:
+    def test_independent_nodes(self, dag: VCADDag) -> None:
         """Independent nodes can appear in any order."""
-        dag.add_node(VcadNode(node_id="X", source_file="/x.skp.oo"))
-        dag.add_node(VcadNode(node_id="Y", source_file="/y.skp.oo"))
-        dag.add_node(VcadNode(node_id="Z", source_file="/z.skp.oo"))
+        dag.add_node(VCADNode(node_id="X", source_file="/x.skp.oo"))
+        dag.add_node(VCADNode(node_id="Y", source_file="/y.skp.oo"))
+        dag.add_node(VCADNode(node_id="Z", source_file="/z.skp.oo"))
 
         order = dag.get_evaluation_order()
         assert set(order) == {"X", "Y", "Z"}
 
-    def test_subset_sort(self, dag: VcadDag) -> None:
+    def test_subset_sort(self, dag: VCADDag) -> None:
         """Topological sort of a subset respects dependencies within subset."""
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a", entity_ref="entity:1",
                 extract="solid", resolved_type="vcad", source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(node_id="C", source_file="/c.skp.oo"))
+        dag.add_node(VCADNode(node_id="C", source_file="/c.skp.oo"))
 
         order = dag._topological_sort(["A", "B"])
         assert order == ["A", "B"]
@@ -303,12 +303,12 @@ class TestVcadDagTopologicalSort:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagCycleDetection:
+class TestVCADDagCycleDetection:
     """Test cycle detection in DAG."""
 
-    def test_no_cycle(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(
+    def test_no_cycle(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a", entity_ref="entity:1",
@@ -318,16 +318,16 @@ class TestVcadDagCycleDetection:
 
         assert dag.detect_cycle() is None
 
-    def test_direct_cycle(self, dag: VcadDag) -> None:
+    def test_direct_cycle(self, dag: VCADDag) -> None:
         """A -> B -> A should be detected."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="A", source_file="/a.skp.oo",
             imports=[ImportRef(
                 binding_name="b", entity_ref="entity:2",
                 extract="solid", resolved_type="vcad", source_node_id="B",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="B", source_file="/b.skp.oo",
             imports=[ImportRef(
                 binding_name="a", entity_ref="entity:1",
@@ -339,7 +339,7 @@ class TestVcadDagCycleDetection:
         assert cycle is not None
         assert len(cycle) >= 2
 
-    def test_empty_dag(self, dag: VcadDag) -> None:
+    def test_empty_dag(self, dag: VCADDag) -> None:
         assert dag.detect_cycle() is None
 
 
@@ -348,11 +348,11 @@ class TestVcadDagCycleDetection:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagRevisions:
+class TestVCADDagRevisions:
     """Test revision tracking through the DAG interface."""
 
-    def test_bump_revision(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(node_id="node-1", source_file="/a.skp.oo"))
+    def test_bump_revision(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(node_id="node-1", source_file="/a.skp.oo"))
 
         rev1 = dag.bump_revision("node-1")
         assert rev1 == 1
@@ -361,22 +361,22 @@ class TestVcadDagRevisions:
         rev2 = dag.bump_revision("node-1")
         assert rev2 == 2
 
-    def test_should_apply(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(node_id="node-1", source_file="/a.skp.oo"))
+    def test_should_apply(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(node_id="node-1", source_file="/a.skp.oo"))
 
         rev = dag.bump_revision("node-1")
         assert dag.should_apply("node-1", rev) is True
 
-    def test_stale_revision_dropped(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(node_id="node-1", source_file="/a.skp.oo"))
+    def test_stale_revision_dropped(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(node_id="node-1", source_file="/a.skp.oo"))
 
         old_rev = dag.bump_revision("node-1")
         dag.bump_revision("node-1")  # bump again
 
         assert dag.should_apply("node-1", old_rev) is False
 
-    def test_mark_applied(self, dag: VcadDag) -> None:
-        dag.add_node(VcadNode(node_id="node-1", source_file="/a.skp.oo"))
+    def test_mark_applied(self, dag: VCADDag) -> None:
+        dag.add_node(VCADNode(node_id="node-1", source_file="/a.skp.oo"))
 
         rev = dag.bump_revision("node-1")
         dag.mark_applied("node-1", rev)
@@ -390,14 +390,14 @@ class TestVcadDagRevisions:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagPersistence:
+class TestVCADDagPersistence:
     """Test DAG persistence and loading."""
 
     def test_persist_and_load(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file="/test/a.skp.oo",
             revision=3,
@@ -407,7 +407,7 @@ class TestVcadDagPersistence:
 
         # Load into fresh DAG
         state2 = VCADPersistentState(state_path=tmp_state_path)
-        dag2 = VcadDag(state=state2)
+        dag2 = VCADDag(state=state2)
         dag2.load_persisted_state()
 
         assert "node-1" in dag2.nodes
@@ -417,16 +417,16 @@ class TestVcadDagPersistence:
 
     def test_load_no_file(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
         dag.load_persisted_state()  # Should not raise
 
         assert len(dag.nodes) == 0
 
     def test_persist_includes_status(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file="/missing.skp.oo",
             status="degraded",
@@ -444,14 +444,14 @@ class TestVcadDagPersistence:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagReconciliation:
+class TestVCADDagReconciliation:
     """Test DAG reconciliation with SketchUp state."""
 
     def test_no_drift(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,  # existing file
             revision=3,
@@ -467,9 +467,9 @@ class TestVcadDagReconciliation:
 
     def test_missing_node(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,
             revision=1,
@@ -483,7 +483,7 @@ class TestVcadDagReconciliation:
 
     def test_orphan_definition(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
         dag.persist_state()
 
         # SketchUp has a node we don't know about
@@ -500,9 +500,9 @@ class TestVcadDagReconciliation:
         os.unlink(missing_path)
 
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=missing_path,
             revision=2,
@@ -517,9 +517,9 @@ class TestVcadDagReconciliation:
 
     def test_revision_gap(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,
             revision=5,
@@ -538,31 +538,31 @@ class TestVcadDagReconciliation:
         os.unlink(missing_path)
 
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
         # node-1: exists in both, source exists, no gap -> ok
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,
             revision=5,
             applied_revision=5,
         ))
         # node-2: exists in persisted but source is missing -> source_missing
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-2",
             source_file=missing_path,
             revision=3,
             applied_revision=3,
         ))
         # node-3: exists in persisted but not in SketchUp -> missing_node
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-3",
             source_file=__file__,
             revision=2,
             applied_revision=2,
         ))
         # node-4: has revision gap
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-4",
             source_file=__file__,
             revision=7,
@@ -597,9 +597,9 @@ class TestVcadDagReconciliation:
         os.unlink(missing_path)
 
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=missing_path,
             revision=1,
@@ -623,9 +623,9 @@ class TestVcadDagReconciliation:
         os.unlink(missing_path)
 
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=missing_path,
             revision=2,
@@ -637,7 +637,7 @@ class TestVcadDagReconciliation:
 
         # Load fresh
         state2 = VCADPersistentState(state_path=tmp_state_path)
-        dag2 = VcadDag(state=state2)
+        dag2 = VCADDag(state=state2)
         dag2.load_persisted_state()
 
         assert dag2.nodes["node-1"].status == "degraded"
@@ -682,13 +682,13 @@ class TestImportRef:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadDagMixedImports:
+class TestVCADDagMixedImports:
     """Test DAG with both native and vcad imports."""
 
-    def test_only_vcad_imports_create_edges(self, dag: VcadDag) -> None:
+    def test_only_vcad_imports_create_edges(self, dag: VCADDag) -> None:
         """Native imports don't create DAG edges for downstream."""
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B",
             source_file="/b.skp.oo",
             imports=[
@@ -715,10 +715,10 @@ class TestVcadDagMixedImports:
         entity_deps = dag.get_dependents_of_entity("100")
         assert "B" in entity_deps
 
-    def test_entity_dependents_includes_vcad_backed(self, dag: VcadDag) -> None:
+    def test_entity_dependents_includes_vcad_backed(self, dag: VCADDag) -> None:
         """get_dependents_of_entity works for vcad-backed entities too."""
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(
             node_id="B",
             source_file="/b.skp.oo",
             imports=[ImportRef(

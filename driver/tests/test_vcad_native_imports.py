@@ -449,14 +449,14 @@ class TestBuildImportRefsWithNativeMesh:
 
     def test_native_mesh_no_dag_dependency(self):
         """Native mesh imports don't create DAG edges (no source_node_id)."""
-        from supex_driver.connection.vcad_dag import VcadDag, VcadNode
+        from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 
-        dag = VcadDag()
+        dag = VCADDag()
 
         # Consumer node imports native mesh (no source_node_id)
         from supex_driver.connection.vcad_dag import ImportRef
 
-        consumer = VcadNode(
+        consumer = VCADNode(
             node_id="consumer",
             source_file="/tmp/consumer.skp.oo",
             imports=[

@@ -20,7 +20,7 @@ VCAD_OBSERVER_POLL_MS = float(os.environ.get("VCAD_OBSERVER_POLL_MS", "250"))
 VCAD_TRIGGER_COALESCE_MS = float(os.environ.get("VCAD_TRIGGER_COALESCE_MS", "150"))
 
 
-class VcadObserverPoller:
+class VCADObserverPoller:
     """Polls SketchUp bridge for entity changes via vcad.observer_poll.
 
     Runs a periodic background thread that calls vcad.observer_poll on the
@@ -142,11 +142,11 @@ class VcadObserverPoller:
         logger.info("Observer polling stopped")
 
 
-class VcadReactiveWatcher:
+class VCADReactiveWatcher:
     """Unified reactive watcher combining all change sources.
 
     Integrates:
-    - SketchUp entity observer (poll-based via VcadObserverPoller)
+    - SketchUp entity observer (poll-based via VCADObserverPoller)
     - Filesystem watcher (.skp.oo files)
     - Module tracker (.loon library files)
 
@@ -162,7 +162,7 @@ class VcadReactiveWatcher:
             coalesce_ms=coalesce_ms,
             callback=None,  # Set via set_cascade_callback
         )
-        self._observer_poller = VcadObserverPoller()
+        self._observer_poller = VCADObserverPoller()
         self._paused = False
         self._pending_while_paused: set[str] = set()
         self._lock = threading.Lock()
@@ -180,7 +180,7 @@ class VcadReactiveWatcher:
         return self._reconciled
 
     @property
-    def observer_poller(self) -> VcadObserverPoller:
+    def observer_poller(self) -> VCADObserverPoller:
         """Access to the underlying observer poller."""
         return self._observer_poller
 
@@ -316,16 +316,16 @@ class VcadReactiveWatcher:
 # Global singleton
 # ---------------------------------------------------------------------------
 
-_vcad_reactive_watcher: VcadReactiveWatcher | None = None
+_vcad_reactive_watcher: VCADReactiveWatcher | None = None
 _vcad_reactive_watcher_lock = threading.Lock()
 
 
-def get_vcad_reactive_watcher() -> VcadReactiveWatcher:
-    """Get or create the global VcadReactiveWatcher singleton."""
+def get_vcad_reactive_watcher() -> VCADReactiveWatcher:
+    """Get or create the global VCADReactiveWatcher singleton."""
     global _vcad_reactive_watcher
     with _vcad_reactive_watcher_lock:
         if _vcad_reactive_watcher is None:
-            _vcad_reactive_watcher = VcadReactiveWatcher()
+            _vcad_reactive_watcher = VCADReactiveWatcher()
         return _vcad_reactive_watcher
 
 

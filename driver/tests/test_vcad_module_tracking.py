@@ -10,9 +10,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from supex_driver.connection.vcad_dag import VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 from supex_driver.connection.vcad_file_watcher import (
-    VcadFileWatcher,
+    VCADFileWatcher,
     get_vcad_file_watcher,
     _reset_vcad_file_watcher,
 )
@@ -35,16 +35,16 @@ def tmp_state_path(tmp_path):
 
 @pytest.fixture
 def dag(tmp_state_path):
-    """Create a fresh VcadDag with temporary state path."""
+    """Create a fresh VCADDag with temporary state path."""
     state = VCADPersistentState(state_path=tmp_state_path)
     tracker = RevisionTracker()
-    return VcadDag(state=state, tracker=tracker)
+    return VCADDag(state=state, tracker=tracker)
 
 
 @pytest.fixture
 def watcher():
-    """Create a fresh VcadFileWatcher instance."""
-    return VcadFileWatcher()
+    """Create a fresh VCADFileWatcher instance."""
+    return VCADFileWatcher()
 
 
 @pytest.fixture
@@ -177,7 +177,7 @@ class TestGetAffectedNodes:
 
 
 # ---------------------------------------------------------------------------
-# VcadFileWatcher.find_nodes_for_loon_changes
+# VCADFileWatcher.find_nodes_for_loon_changes
 # ---------------------------------------------------------------------------
 
 
@@ -278,7 +278,7 @@ class TestFindNodesForLoonChanges:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadPlaceModuleTracking:
+class TestVCADPlaceModuleTracking:
     """Test that vcad_place passes node_id for module tracking."""
 
     def test_vcad_place_passes_node_id(self, tmp_path):
@@ -336,7 +336,7 @@ class TestVcadPlaceModuleTracking:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadUpdateSingleModuleTracking:
+class TestVCADUpdateSingleModuleTracking:
     """Test that _vcad_update_single passes node_id for module tracking."""
 
     def test_update_single_passes_node_id(self, dag, tmp_path):
@@ -344,7 +344,7 @@ class TestVcadUpdateSingleModuleTracking:
         from supex_driver.mcp.vcad_tools import _vcad_update_single
 
         source_file = str(tmp_path / "bracket.skp.oo")
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="bracket",
             source_file=source_file,
         ))
@@ -385,7 +385,7 @@ class TestVcadUpdateSingleModuleTracking:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadUpdateModuleTracking:
+class TestVCADUpdateModuleTracking:
     """Test that vcad_update passes node_id for module tracking."""
 
     def test_vcad_update_passes_node_id(self, tmp_path):
@@ -449,10 +449,10 @@ class TestLoonChangeCascadeFlow:
         source_a = str(tmp_path / "base-plate.skp.oo")
         source_b = str(tmp_path / "bracket.skp.oo")
 
-        dag.add_node(VcadNode(node_id="base-plate", source_file=source_a))
-        dag.add_node(VcadNode(node_id="bracket", source_file=source_b))
+        dag.add_node(VCADNode(node_id="base-plate", source_file=source_a))
+        dag.add_node(VCADNode(node_id="bracket", source_file=source_b))
 
-        watcher = VcadFileWatcher()
+        watcher = VCADFileWatcher()
 
         # Simulate sidecar returning affected nodes for dims.loon change
         mock_vcad = MagicMock()
@@ -477,10 +477,10 @@ class TestLoonChangeCascadeFlow:
         source_a = str(tmp_path / "base-plate.skp.oo")
         source_b = str(tmp_path / "bracket.skp.oo")
 
-        dag.add_node(VcadNode(node_id="base-plate", source_file=source_a))
-        dag.add_node(VcadNode(node_id="bracket", source_file=source_b))
+        dag.add_node(VCADNode(node_id="base-plate", source_file=source_a))
+        dag.add_node(VCADNode(node_id="bracket", source_file=source_b))
 
-        watcher = VcadFileWatcher()
+        watcher = VCADFileWatcher()
 
         # Setup mock
         mock_vcad = MagicMock()
@@ -508,9 +508,9 @@ class TestLoonChangeCascadeFlow:
     def test_loon_change_no_affected_nodes(self, dag, tmp_path):
         """Loon change with no affected nodes produces no cascades."""
         source = str(tmp_path / "base-plate.skp.oo")
-        dag.add_node(VcadNode(node_id="base-plate", source_file=source))
+        dag.add_node(VCADNode(node_id="base-plate", source_file=source))
 
-        watcher = VcadFileWatcher()
+        watcher = VCADFileWatcher()
 
         mock_vcad = MagicMock()
         mock_vcad.get_affected_nodes.return_value = []

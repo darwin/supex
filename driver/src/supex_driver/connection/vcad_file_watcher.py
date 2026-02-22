@@ -12,7 +12,7 @@ from typing import Any
 logger = logging.getLogger("supex.vcad.file_watcher")
 
 
-class VcadFileWatcher:
+class VCADFileWatcher:
     """Manages filesystem watching for VCAD source files.
 
     Communicates with the sidecar's notify-based watcher via JSON-RPC,
@@ -108,7 +108,7 @@ class VcadFileWatcher:
 
         Args:
             changes: List of change dicts from poll().
-            dag: VcadDag instance.
+            dag: VCADDag instance.
 
         Returns:
             List of node_ids whose source files changed.
@@ -182,16 +182,16 @@ def _detect_project_root(source_file: str) -> str | None:
 
 
 # Global singleton
-_vcad_file_watcher: VcadFileWatcher | None = None
+_vcad_file_watcher: VCADFileWatcher | None = None
 _vcad_file_watcher_lock = threading.Lock()
 
 
-def get_vcad_file_watcher() -> VcadFileWatcher:
-    """Get or create the global VcadFileWatcher singleton."""
+def get_vcad_file_watcher() -> VCADFileWatcher:
+    """Get or create the global VCADFileWatcher singleton."""
     global _vcad_file_watcher
     with _vcad_file_watcher_lock:
         if _vcad_file_watcher is None:
-            _vcad_file_watcher = VcadFileWatcher()
+            _vcad_file_watcher = VCADFileWatcher()
         return _vcad_file_watcher
 
 

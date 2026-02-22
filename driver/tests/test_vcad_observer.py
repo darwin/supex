@@ -11,10 +11,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_observer import (
-    VcadObserverPoller,
-    VcadReactiveWatcher,
+    VCADObserverPoller,
+    VCADReactiveWatcher,
     get_vcad_reactive_watcher,
     _reset_vcad_reactive_watcher,
 )
@@ -38,10 +38,10 @@ def tmp_state_path(tmp_path):
 
 @pytest.fixture
 def dag(tmp_state_path):
-    """Create a fresh VcadDag with temporary state path."""
+    """Create a fresh VCADDag with temporary state path."""
     state = VCADPersistentState(state_path=tmp_state_path)
     tracker = RevisionTracker()
-    return VcadDag(state=state, tracker=tracker)
+    return VCADDag(state=state, tracker=tracker)
 
 
 @pytest.fixture
@@ -58,14 +58,14 @@ def mock_sketchup():
 
 @pytest.fixture
 def poller():
-    """Create a fresh VcadObserverPoller."""
-    return VcadObserverPoller(poll_ms=50)
+    """Create a fresh VCADObserverPoller."""
+    return VCADObserverPoller(poll_ms=50)
 
 
 @pytest.fixture
 def watcher():
-    """Create a fresh VcadReactiveWatcher with fast coalescing."""
-    return VcadReactiveWatcher(coalesce_ms=20)
+    """Create a fresh VCADReactiveWatcher with fast coalescing."""
+    return VCADReactiveWatcher(coalesce_ms=20)
 
 
 @pytest.fixture(autouse=True)
@@ -77,7 +77,7 @@ def reset_singleton():
 
 
 # ---------------------------------------------------------------------------
-# VcadObserverPoller: basic operations
+# VCADObserverPoller: basic operations
 # ---------------------------------------------------------------------------
 
 
@@ -216,7 +216,7 @@ class TestObserverPollerPollingLoop:
 
 
 # ---------------------------------------------------------------------------
-# VcadReactiveWatcher: pause/resume
+# VCADReactiveWatcher: pause/resume
 # ---------------------------------------------------------------------------
 
 
@@ -291,7 +291,7 @@ class TestReactiveWatcherPauseResume:
 
 
 # ---------------------------------------------------------------------------
-# VcadReactiveWatcher: trigger flow
+# VCADReactiveWatcher: trigger flow
 # ---------------------------------------------------------------------------
 
 
@@ -414,7 +414,7 @@ class TestStormDedup:
     def test_rapid_entity_changes_deduplicated(self, dag, watcher):
         """Multiple rapid edits to same entity produce one cascade."""
         # Setup: node-a imports entity:12345
-        node_a = VcadNode(
+        node_a = VCADNode(
             node_id="node-a",
             source_file="/project/part-a.skp.oo",
             imports=[ImportRef(
@@ -458,7 +458,7 @@ class TestStaleResultRace:
 
     def test_stale_revision_dropped(self, dag):
         """Older revision result is rejected when newer revision exists."""
-        node = VcadNode(node_id="node-a", source_file="/project/part-a.skp.oo")
+        node = VCADNode(node_id="node-a", source_file="/project/part-a.skp.oo")
         dag.add_node(node)
 
         # Bump revision twice (simulating two rapid updates)
@@ -477,7 +477,7 @@ class TestStaleResultRace:
 
     def test_only_latest_revision_applied(self, dag):
         """Only the result from the latest revision is applied."""
-        node = VcadNode(node_id="node-a", source_file="/project/part-a.skp.oo")
+        node = VCADNode(node_id="node-a", source_file="/project/part-a.skp.oo")
         dag.add_node(node)
 
         rev1 = dag.bump_revision("node-a")
@@ -496,7 +496,7 @@ class TestStaleResultRace:
 
     def test_stale_drop_counter_increments(self, dag):
         """Stale dropped counter increments for each stale result."""
-        node = VcadNode(node_id="node-a", source_file="/project/part-a.skp.oo")
+        node = VCADNode(node_id="node-a", source_file="/project/part-a.skp.oo")
         dag.add_node(node)
 
         dag.bump_revision("node-a")

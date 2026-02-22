@@ -11,10 +11,10 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_observer import (
-    VcadObserverPoller,
-    VcadReactiveWatcher,
+    VCADObserverPoller,
+    VCADReactiveWatcher,
     _reset_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_state import (
@@ -37,10 +37,10 @@ def tmp_state_path(tmp_path):
 
 @pytest.fixture
 def dag(tmp_state_path):
-    """Create a fresh VcadDag with temporary state path."""
+    """Create a fresh VCADDag with temporary state path."""
     state = VCADPersistentState(state_path=tmp_state_path)
     tracker = RevisionTracker()
-    return VcadDag(state=state, tracker=tracker)
+    return VCADDag(state=state, tracker=tracker)
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ class TestObserverDagCascadeFlow:
     def test_entity_change_triggers_dependent_nodes(self, dag):
         """Entity change triggers all nodes that import that entity."""
         # Setup: two nodes import from entity:100
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="bracket",
             source_file="/project/bracket.skp.oo",
             imports=[ImportRef(
@@ -93,7 +93,7 @@ class TestObserverDagCascadeFlow:
                 extract="dimensions",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="plate",
             source_file="/project/plate.skp.oo",
             imports=[ImportRef(
@@ -103,7 +103,7 @@ class TestObserverDagCascadeFlow:
             )],
         ))
         # This node does NOT import entity:100
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="bolt",
             source_file="/project/bolt.skp.oo",
         ))
@@ -115,7 +115,7 @@ class TestObserverDagCascadeFlow:
     def test_observer_poll_to_cascade(self, dag, mock_sketchup):
         """Full flow: poll -> DAG lookup -> coalesced cascade."""
         # Setup DAG
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-a",
             source_file="/project/a.skp.oo",
             imports=[ImportRef(
@@ -127,7 +127,7 @@ class TestObserverDagCascadeFlow:
 
         # Setup reactive watcher
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=20)
+        watcher = VCADReactiveWatcher(coalesce_ms=20)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -151,11 +151,11 @@ class TestObserverDagCascadeFlow:
     def test_downstream_cascade_ordering(self, dag):
         """Downstream dependents are evaluated in topological order."""
         # A -> B -> C (dependency chain)
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="A",
             source_file="/project/a.skp.oo",
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="B",
             source_file="/project/b.skp.oo",
             imports=[ImportRef(
@@ -166,7 +166,7 @@ class TestObserverDagCascadeFlow:
                 source_node_id="A",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="C",
             source_file="/project/c.skp.oo",
             imports=[ImportRef(
@@ -199,15 +199,15 @@ class TestMultiSourceCoalescing:
 
     def test_all_three_sources_coalesced(self, dag):
         """fs-watch + mod-track + su-observer within one window -> one cascade."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-fs",
             source_file="/project/fs.skp.oo",
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-mod",
             source_file="/project/mod.skp.oo",
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-obs",
             source_file="/project/obs.skp.oo",
             imports=[ImportRef(
@@ -218,7 +218,7 @@ class TestMultiSourceCoalescing:
         ))
 
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=30)
+        watcher = VCADReactiveWatcher(coalesce_ms=30)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -243,7 +243,7 @@ class TestMultiSourceCoalescing:
             cascade_event.set()
             time.sleep(0.08)  # Simulate slow cascade
 
-        watcher = VcadReactiveWatcher(coalesce_ms=10)
+        watcher = VCADReactiveWatcher(coalesce_ms=10)
         watcher.set_cascade_callback(slow_cascade)
         watcher.mark_reconciled()
 
@@ -280,7 +280,7 @@ class TestBatchModeWorkflow:
     def test_agent_batch_workflow(self):
         """Full agent workflow: pause, edit 3 files, resume -> one cascade."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=20)
+        watcher = VCADReactiveWatcher(coalesce_ms=20)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -315,7 +315,7 @@ class TestBatchModeWorkflow:
     def test_batch_mode_deduplicates(self):
         """Duplicate events during pause are deduplicated on resume."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=20)
+        watcher = VCADReactiveWatcher(coalesce_ms=20)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -346,7 +346,7 @@ class TestBatchModeWorkflow:
             nonlocal cascade_count
             cascade_count += 1
 
-        watcher = VcadReactiveWatcher(coalesce_ms=10)
+        watcher = VCADReactiveWatcher(coalesce_ms=10)
         watcher.set_cascade_callback(counting_callback)
         watcher.mark_reconciled()
 
@@ -375,7 +375,7 @@ class TestStaleResultRaceIntegration:
 
     def test_two_updates_only_newer_applied(self, dag):
         """Two rapid updates for same node: only newer revision wins."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="widget",
             source_file="/project/widget.skp.oo",
         ))
@@ -399,7 +399,7 @@ class TestStaleResultRaceIntegration:
 
     def test_stale_drop_logged(self, dag):
         """Stale drops increment the counter for monitoring."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-x",
             source_file="/project/x.skp.oo",
         ))
@@ -421,11 +421,11 @@ class TestStaleResultRaceIntegration:
 
     def test_cascade_with_revision_guard(self, dag):
         """Cascade respects revision guard: bumps before eval, checks before apply."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="part-a",
             source_file="/project/part-a.skp.oo",
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="part-b",
             source_file="/project/part-b.skp.oo",
             imports=[ImportRef(
@@ -469,7 +469,7 @@ class TestObserverBatchCombined:
 
     def test_observer_changes_during_pause(self, dag):
         """Entity changes during pause are accumulated and flushed on resume."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="panel",
             source_file="/project/panel.skp.oo",
             imports=[ImportRef(
@@ -480,7 +480,7 @@ class TestObserverBatchCombined:
         ))
 
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=20)
+        watcher = VCADReactiveWatcher(coalesce_ms=20)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -510,7 +510,7 @@ class TestObserverBatchCombined:
 
     def test_mixed_sources_during_pause(self, dag):
         """All three sources during pause -> one cascade on resume."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="bracket",
             source_file="/project/bracket.skp.oo",
             imports=[ImportRef(
@@ -519,13 +519,13 @@ class TestObserverBatchCombined:
                 extract="dimensions",
             )],
         ))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="plate",
             source_file="/project/plate.skp.oo",
         ))
 
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=20)
+        watcher = VCADReactiveWatcher(coalesce_ms=20)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 

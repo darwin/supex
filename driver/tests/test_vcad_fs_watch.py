@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from supex_driver.connection.vcad_dag import VcadDag, VcadNode, ImportRef
+from supex_driver.connection.vcad_dag import VCADDag, VCADNode, ImportRef
 from supex_driver.connection.vcad_file_watcher import (
-    VcadFileWatcher,
+    VCADFileWatcher,
     _detect_project_root,
     get_vcad_file_watcher,
     _reset_vcad_file_watcher,
@@ -31,16 +31,16 @@ def tmp_state_path(tmp_path):
 
 @pytest.fixture
 def dag(tmp_state_path):
-    """Create a fresh VcadDag with temporary state path."""
+    """Create a fresh VCADDag with temporary state path."""
     state = VCADPersistentState(state_path=tmp_state_path)
     tracker = RevisionTracker()
-    return VcadDag(state=state, tracker=tracker)
+    return VCADDag(state=state, tracker=tracker)
 
 
 @pytest.fixture
 def watcher():
-    """Create a fresh VcadFileWatcher instance."""
-    return VcadFileWatcher()
+    """Create a fresh VCADFileWatcher instance."""
+    return VCADFileWatcher()
 
 
 @pytest.fixture
@@ -62,11 +62,11 @@ def reset_singleton():
 
 
 # ---------------------------------------------------------------------------
-# VcadFileWatcher basic lifecycle
+# VCADFileWatcher basic lifecycle
 # ---------------------------------------------------------------------------
 
 
-class TestVcadFileWatcherLifecycle:
+class TestVCADFileWatcherLifecycle:
     """Test basic watcher lifecycle operations."""
 
     def test_initial_state(self, watcher):
@@ -122,7 +122,7 @@ class TestVcadFileWatcherLifecycle:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadFileWatcherAutoStart:
+class TestVCADFileWatcherAutoStart:
     """Test auto-start behavior triggered from vcad_place."""
 
     def test_auto_start_from_source_file(self, watcher, mock_vcad, tmp_path):
@@ -207,7 +207,7 @@ class TestFindNodesForChanges:
     def test_match_by_source_file(self, watcher, dag, tmp_path):
         """Finds node whose source_file matches changed path."""
         source = str(tmp_path / "bracket.skp.oo")
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="bracket",
             source_file=source,
         ))
@@ -219,7 +219,7 @@ class TestFindNodesForChanges:
 
     def test_no_match(self, watcher, dag, tmp_path):
         """Returns empty list when no node matches."""
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="bracket",
             source_file=str(tmp_path / "bracket.skp.oo"),
         ))
@@ -232,7 +232,7 @@ class TestFindNodesForChanges:
     def test_ignores_loon_changes(self, watcher, dag, tmp_path):
         """Only matches vcad_loon changes, not loon library changes."""
         source = str(tmp_path / "lib.loon")
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="lib",
             source_file=source,
         ))
@@ -246,8 +246,8 @@ class TestFindNodesForChanges:
         """Finds multiple nodes when multiple files change."""
         source_a = str(tmp_path / "a.skp.oo")
         source_b = str(tmp_path / "b.skp.oo")
-        dag.add_node(VcadNode(node_id="node-a", source_file=source_a))
-        dag.add_node(VcadNode(node_id="node-b", source_file=source_b))
+        dag.add_node(VCADNode(node_id="node-a", source_file=source_a))
+        dag.add_node(VCADNode(node_id="node-b", source_file=source_b))
 
         changes = [
             {"path": source_a, "kind": "vcad_loon"},
@@ -267,7 +267,7 @@ class TestFindNodesForChanges:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadFileWatcherSingleton:
+class TestVCADFileWatcherSingleton:
     """Test global singleton management."""
 
     def test_get_returns_same_instance(self):
@@ -338,7 +338,7 @@ class TestVCADConnectionWatchMethods:
 # ---------------------------------------------------------------------------
 
 
-class TestVcadPlaceAutoStart:
+class TestVCADPlaceAutoStart:
     """Test that vcad_place auto-starts the file watcher."""
 
     def test_vcad_place_auto_starts_watcher(self, tmp_path):
@@ -405,8 +405,8 @@ class TestPollAndCascade:
         source_a = str(tmp_path / "a.skp.oo")
         source_b = str(tmp_path / "b.skp.oo")
 
-        dag.add_node(VcadNode(node_id="node-a", source_file=source_a))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="node-a", source_file=source_a))
+        dag.add_node(VCADNode(
             node_id="node-b",
             source_file=source_b,
             imports=[ImportRef(
@@ -418,7 +418,7 @@ class TestPollAndCascade:
             )],
         ))
 
-        watcher = VcadFileWatcher()
+        watcher = VCADFileWatcher()
 
         # Simulate sidecar returning a change for source_a
         changes = [{"path": source_a, "kind": "vcad_loon"}]
@@ -438,9 +438,9 @@ class TestPollAndCascade:
     def test_poll_no_changes_no_cascade(self, dag, tmp_path):
         """No changes means no cascade needed."""
         source = str(tmp_path / "a.skp.oo")
-        dag.add_node(VcadNode(node_id="node-a", source_file=source))
+        dag.add_node(VCADNode(node_id="node-a", source_file=source))
 
-        watcher = VcadFileWatcher()
+        watcher = VCADFileWatcher()
         changed_nodes = watcher.find_nodes_for_changes([], dag)
         assert changed_nodes == []
 
@@ -449,8 +449,8 @@ class TestPollAndCascade:
         source_a = str(tmp_path / "a.skp.oo")
         source_b = str(tmp_path / "b.skp.oo")
 
-        dag.add_node(VcadNode(node_id="node-a", source_file=source_a))
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(node_id="node-a", source_file=source_a))
+        dag.add_node(VCADNode(
             node_id="node-b",
             source_file=source_b,
             imports=[ImportRef(
@@ -462,7 +462,7 @@ class TestPollAndCascade:
             )],
         ))
 
-        watcher = VcadFileWatcher()
+        watcher = VCADFileWatcher()
         changes = [{"path": source_b, "kind": "vcad_loon"}]
         changed_nodes = watcher.find_nodes_for_changes(changes, dag)
 

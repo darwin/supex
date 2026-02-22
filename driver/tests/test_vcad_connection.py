@@ -14,7 +14,7 @@ from supex_driver.connection.vcad_connection import (
     VCADConnection,
     _parse_major_version,
 )
-from supex_driver.connection.vcad_dag import VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
@@ -1053,7 +1053,7 @@ class TestVCADConnectionSidecarLifecycle:
 
 
 class TestReconcilerWithDag:
-    """Test VCADReconciler integration with VcadDag for startup recovery."""
+    """Test VCADReconciler integration with VCADDag for startup recovery."""
 
     @pytest.fixture
     def tmp_state_path(self, tmp_path):
@@ -1077,7 +1077,7 @@ class TestReconcilerWithDag:
         state.save()
 
         # Simulate driver restart
-        dag = VcadDag(
+        dag = VCADDag(
             state=VCADPersistentState(state_path=tmp_state_path),
             tracker=RevisionTracker(),
         )
@@ -1128,7 +1128,7 @@ class TestReconcilerWithDag:
         ))
         state.save()
 
-        dag = VcadDag(
+        dag = VCADDag(
             state=VCADPersistentState(state_path=tmp_state_path),
             tracker=RevisionTracker(),
         )
@@ -1171,7 +1171,7 @@ class TestReconcilerWithDag:
 
         # Run reconciliation 3 times
         for _ in range(3):
-            dag = VcadDag(
+            dag = VCADDag(
                 state=VCADPersistentState(state_path=tmp_state_path),
                 tracker=RevisionTracker(),
             )
@@ -1194,7 +1194,7 @@ class TestReconcilerWithDag:
         ))
         state.save()
 
-        dag = VcadDag(
+        dag = VCADDag(
             state=VCADPersistentState(state_path=tmp_state_path),
             tracker=RevisionTracker(),
         )
@@ -1215,7 +1215,7 @@ class TestReconcilerWithDag:
         state = VCADPersistentState(state_path=tmp_state_path)
         state.save()
 
-        dag = VcadDag(
+        dag = VCADDag(
             state=VCADPersistentState(state_path=tmp_state_path),
             tracker=RevisionTracker(),
         )
@@ -1241,7 +1241,7 @@ class TestReconcilerWithDag:
         ))
         state.save()
 
-        dag = VcadDag(
+        dag = VCADDag(
             state=VCADPersistentState(state_path=tmp_state_path),
             tracker=RevisionTracker(),
         )

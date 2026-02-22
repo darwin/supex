@@ -15,7 +15,7 @@ import time
 
 import pytest
 
-from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_logging import (
     EVENT_EVAL_SUPERSEDED_ON_ENQUEUE,
     EVENT_EVAL_SUPERSEDED_SKIPPED,
@@ -24,7 +24,7 @@ from supex_driver.connection.vcad_logging import (
     set_correlation_id,
 )
 from supex_driver.connection.vcad_metrics import (
-    VcadMetrics,
+    VCADMetrics,
     _reset_vcad_metrics,
     get_vcad_metrics,
 )
@@ -65,7 +65,7 @@ def tracker():
 def dag(tmp_path):
     state = VCADPersistentState(state_path=str(tmp_path / "vcad-state.json"))
     t = RevisionTracker()
-    return VcadDag(state=state, tracker=t)
+    return VCADDag(state=state, tracker=t)
 
 
 # ===========================================================================
@@ -194,7 +194,7 @@ class TestSameNodeBurst:
         assert queue.get_next() is None
 
     def test_centralized_metrics_updated(self) -> None:
-        """Supersede metrics are reflected in VcadMetrics singleton."""
+        """Supersede metrics are reflected in VCADMetrics singleton."""
         metrics = get_vcad_metrics()
         queue = EvalQueue(max_size=10)
 
@@ -215,11 +215,11 @@ class TestSameNodeBurst:
 class TestTopologicalSafety:
     """Dependency order is preserved across different nodes in one cascade."""
 
-    def _make_dag_chain(self, dag: VcadDag) -> None:
+    def _make_dag_chain(self, dag: VCADDag) -> None:
         """Create A -> B -> C dependency chain."""
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
         dag.add_node(
-            VcadNode(
+            VCADNode(
                 node_id="B",
                 source_file="/b.skp.oo",
                 imports=[
@@ -234,7 +234,7 @@ class TestTopologicalSafety:
             )
         )
         dag.add_node(
-            VcadNode(
+            VCADNode(
                 node_id="C",
                 source_file="/c.skp.oo",
                 imports=[
@@ -249,7 +249,7 @@ class TestTopologicalSafety:
             )
         )
 
-    def test_cascade_preserves_topo_order(self, dag: VcadDag) -> None:
+    def test_cascade_preserves_topo_order(self, dag: VCADDag) -> None:
         """Cascade batch respects A -> B -> C dependency order."""
         self._make_dag_chain(dag)
         topo = dag.get_evaluation_order()
@@ -272,7 +272,7 @@ class TestTopologicalSafety:
         assert ids.index("A") < ids.index("B") < ids.index("C")
 
     def test_cascade_prunes_per_node_keeps_inter_node_order(
-        self, dag: VcadDag
+        self, dag: VCADDag
     ) -> None:
         """Overlapping cascade: per-node latest kept, inter-node order preserved."""
         self._make_dag_chain(dag)
@@ -309,7 +309,7 @@ class TestTopologicalSafety:
         assert executed_order.index("B") < executed_order.index("C")
 
     def test_cascade_supersede_metrics_for_duplicates(
-        self, dag: VcadDag
+        self, dag: VCADDag
     ) -> None:
         """Duplicate per-node jobs in batch increment supersede counters."""
         self._make_dag_chain(dag)
@@ -349,7 +349,7 @@ class TestTopologicalSafety:
         assert ids.index("Z") == 2
 
     def test_downstream_cascade_does_not_prune_upstream(
-        self, dag: VcadDag
+        self, dag: VCADDag
     ) -> None:
         """Changing downstream node does not affect upstream pending jobs."""
         self._make_dag_chain(dag)
@@ -664,13 +664,13 @@ class TestQueuePruningTelemetry:
         finally:
             tel_logger.removeHandler(handler)
 
-    def test_cascade_batch_emits_supersede_events(self, dag: VcadDag) -> None:
+    def test_cascade_batch_emits_supersede_events(self, dag: VCADDag) -> None:
         """cascade batch dedup emits supersede events for pruned duplicates."""
         import json
         import logging
 
-        dag.add_node(VcadNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VcadNode(node_id="B", source_file="/b.skp.oo"))
+        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(node_id="B", source_file="/b.skp.oo"))
         topo = dag.get_evaluation_order()
 
         captured: list[str] = []

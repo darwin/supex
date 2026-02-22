@@ -17,12 +17,12 @@ import time
 import pytest
 
 from supex_driver.connection.vcad_metrics import (
-    VcadMetrics,
+    VCADMetrics,
     _reset_vcad_metrics,
     get_vcad_metrics,
 )
 from supex_driver.connection.vcad_observer import (
-    VcadReactiveWatcher,
+    VCADReactiveWatcher,
     _reset_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_state import TriggerCoalescer
@@ -55,7 +55,7 @@ class TestMultiSourceBurst:
     def test_three_sources_one_cascade(self):
         """Events from all three sources within one window -> one cascade."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=30)
+        watcher = VCADReactiveWatcher(coalesce_ms=30)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -71,7 +71,7 @@ class TestMultiSourceBurst:
     def test_four_sources_one_cascade(self):
         """All four sources (incl. manual) merge into one cascade."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=30)
+        watcher = VCADReactiveWatcher(coalesce_ms=30)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -88,7 +88,7 @@ class TestMultiSourceBurst:
     def test_duplicate_node_across_sources_deduplicated(self):
         """Same node from different sources produces one entry in cascade."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=30)
+        watcher = VCADReactiveWatcher(coalesce_ms=30)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -105,7 +105,7 @@ class TestMultiSourceBurst:
     def test_trigger_many_coalesces(self):
         """trigger_many merges into same coalescing window."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=30)
+        watcher = VCADReactiveWatcher(coalesce_ms=30)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         watcher.mark_reconciled()
 
@@ -140,7 +140,7 @@ class TestMultiSourceBurst:
     def test_events_before_reconciliation_ignored(self):
         """Events before reconciliation do not trigger cascades."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=20)
+        watcher = VCADReactiveWatcher(coalesce_ms=20)
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))
         # NOT calling mark_reconciled()
 
@@ -407,9 +407,9 @@ class TestStarvationBound:
         assert len(all_nodes) == 40
 
     def test_starvation_bound_with_reactive_watcher(self):
-        """Bounded flush through VcadReactiveWatcher integration."""
+        """Bounded flush through VCADReactiveWatcher integration."""
         cascade_results: list[set[str]] = []
-        watcher = VcadReactiveWatcher(coalesce_ms=40)
+        watcher = VCADReactiveWatcher(coalesce_ms=40)
         # Set max_coalesce_ms on the underlying coalescer
         watcher.coalescer.max_coalesce_ms = 100
         watcher.set_cascade_callback(lambda nodes: cascade_results.append(nodes))

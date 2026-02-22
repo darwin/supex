@@ -20,8 +20,8 @@ from supex_driver.connection.vcad_connection import (
 )
 from supex_driver.connection.vcad_dag import (
     ImportRef,
-    VcadDag,
-    VcadNode,
+    VCADDag,
+    VCADNode,
 )
 from supex_driver.connection.vcad_exceptions import (
     VCADCapabilityError,
@@ -32,7 +32,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADTimeoutError,
 )
 from supex_driver.connection.vcad_file_watcher import (
-    VcadFileWatcher,
+    VCADFileWatcher,
     get_vcad_file_watcher,
 )
 from supex_driver.connection.vcad_sidecar import (
@@ -73,9 +73,9 @@ __all__ = [
     "VCADViewerTimeoutError",
     "VCADViewerProtocolError",
     "VCADViewerCapabilityError",
-    "VcadFileWatcher",
+    "VCADFileWatcher",
     "get_vcad_file_watcher",
     "ImportRef",
-    "VcadDag",
-    "VcadNode",
+    "VCADDag",
+    "VCADNode",
 ]

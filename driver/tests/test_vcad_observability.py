@@ -37,7 +37,7 @@ from supex_driver.connection.vcad_metrics import (
     COUNTER_METRICS,
     GAUGE_METRICS,
     METRIC_NAMES,
-    VcadMetrics,
+    VCADMetrics,
     _reset_vcad_metrics,
     get_vcad_metrics,
 )
@@ -53,7 +53,7 @@ from supex_driver.connection.vcad_state import (
     TriggerCoalescer,
     VCADPersistentState,
 )
-from supex_driver.connection.vcad_dag import VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 
 
 # ---------------------------------------------------------------------------
@@ -75,8 +75,8 @@ def reset_singletons():
 
 @pytest.fixture
 def metrics():
-    """Create a fresh VcadMetrics instance."""
-    return VcadMetrics()
+    """Create a fresh VCADMetrics instance."""
+    return VCADMetrics()
 
 
 @pytest.fixture
@@ -87,10 +87,10 @@ def tmp_state_path(tmp_path):
 
 @pytest.fixture
 def dag(tmp_state_path):
-    """Create a fresh VcadDag with temporary state path."""
+    """Create a fresh VCADDag with temporary state path."""
     state = VCADPersistentState(state_path=tmp_state_path)
     tracker = RevisionTracker()
-    return VcadDag(state=state, tracker=tracker)
+    return VCADDag(state=state, tracker=tracker)
 
 
 # ===========================================================================
@@ -151,14 +151,14 @@ class TestMetricsContract:
         for name in METRIC_NAMES:
             assert name in all_known, f"{name} is not classified as counter or gauge"
 
-    def test_snapshot_contains_all_metrics(self, metrics: VcadMetrics) -> None:
+    def test_snapshot_contains_all_metrics(self, metrics: VCADMetrics) -> None:
         """Snapshot must contain all metric names plus collected_at."""
         snap = metrics.snapshot()
         for name in METRIC_NAMES:
             assert name in snap, f"Snapshot missing metric: {name}"
         assert "collected_at" in snap
 
-    def test_snapshot_collected_at_is_timestamp(self, metrics: VcadMetrics) -> None:
+    def test_snapshot_collected_at_is_timestamp(self, metrics: VCADMetrics) -> None:
         """collected_at must be a valid Unix timestamp."""
         snap = metrics.snapshot()
         assert isinstance(snap["collected_at"], float)
@@ -173,21 +173,21 @@ class TestMetricsContract:
 class TestCounterMonotonicity:
     """Counters must be monotonically increasing."""
 
-    def test_increment_increases(self, metrics: VcadMetrics) -> None:
+    def test_increment_increases(self, metrics: VCADMetrics) -> None:
         metrics.increment("eval_timeout_total")
         assert metrics.get_counter("eval_timeout_total") == 1
         metrics.increment("eval_timeout_total")
         assert metrics.get_counter("eval_timeout_total") == 2
 
-    def test_increment_by_delta(self, metrics: VcadMetrics) -> None:
+    def test_increment_by_delta(self, metrics: VCADMetrics) -> None:
         metrics.increment("reconcile_drift_total", 5)
         assert metrics.get_counter("reconcile_drift_total") == 5
 
-    def test_counter_starts_at_zero(self, metrics: VcadMetrics) -> None:
+    def test_counter_starts_at_zero(self, metrics: VCADMetrics) -> None:
         for name in COUNTER_METRICS:
             assert metrics.get_counter(name) == 0
 
-    def test_invalid_counter_name_ignored(self, metrics: VcadMetrics) -> None:
+    def test_invalid_counter_name_ignored(self, metrics: VCADMetrics) -> None:
         metrics.increment("nonexistent_counter")  # Should not raise
         assert metrics.get_counter("nonexistent_counter") == 0
 
@@ -200,25 +200,25 @@ class TestCounterMonotonicity:
 class TestGaugeBehavior:
     """Gauges can move up and down."""
 
-    def test_set_gauge(self, metrics: VcadMetrics) -> None:
+    def test_set_gauge(self, metrics: VCADMetrics) -> None:
         metrics.set_gauge("queue_depth", 5.0)
         assert metrics.get_gauge("queue_depth") == 5.0
 
-    def test_gauge_can_decrease(self, metrics: VcadMetrics) -> None:
+    def test_gauge_can_decrease(self, metrics: VCADMetrics) -> None:
         metrics.set_gauge("queue_depth", 10.0)
         metrics.set_gauge("queue_depth", 3.0)
         assert metrics.get_gauge("queue_depth") == 3.0
 
-    def test_gauge_callback(self, metrics: VcadMetrics) -> None:
+    def test_gauge_callback(self, metrics: VCADMetrics) -> None:
         metrics.register_gauge_callback("queue_depth", lambda: 42.0)
         assert metrics.get_gauge("queue_depth") == 42.0
 
-    def test_gauge_callback_in_snapshot(self, metrics: VcadMetrics) -> None:
+    def test_gauge_callback_in_snapshot(self, metrics: VCADMetrics) -> None:
         metrics.register_gauge_callback("queue_depth", lambda: 7.0)
         snap = metrics.snapshot()
         assert snap["queue_depth"] == 7.0
 
-    def test_gauge_callback_exception_fallback(self, metrics: VcadMetrics) -> None:
+    def test_gauge_callback_exception_fallback(self, metrics: VCADMetrics) -> None:
         def bad_callback():
             raise RuntimeError("fail")
 
@@ -409,22 +409,22 @@ class TestCoalesceMetrics:
 class TestArtifactManifestMetrics:
     """Artifact manifest metrics track writes and retained count."""
 
-    def test_artifact_manifests_written_total(self, metrics: VcadMetrics) -> None:
+    def test_artifact_manifests_written_total(self, metrics: VCADMetrics) -> None:
         metrics.increment("artifact_manifests_written_total")
         metrics.increment("artifact_manifests_written_total")
         assert metrics.get_counter("artifact_manifests_written_total") == 2
 
-    def test_artifact_manifests_retained_current(self, metrics: VcadMetrics) -> None:
+    def test_artifact_manifests_retained_current(self, metrics: VCADMetrics) -> None:
         metrics.set_gauge("artifact_manifests_retained_current", 5.0)
         assert metrics.get_gauge("artifact_manifests_retained_current") == 5.0
         metrics.set_gauge("artifact_manifests_retained_current", 3.0)
         assert metrics.get_gauge("artifact_manifests_retained_current") == 3.0
 
-    def test_artifact_pair_recovery(self, metrics: VcadMetrics) -> None:
+    def test_artifact_pair_recovery(self, metrics: VCADMetrics) -> None:
         metrics.increment("artifact_pair_recovery_total", 2)
         assert metrics.get_counter("artifact_pair_recovery_total") == 2
 
-    def test_artifact_pair_incomplete_detected(self, metrics: VcadMetrics) -> None:
+    def test_artifact_pair_incomplete_detected(self, metrics: VCADMetrics) -> None:
         metrics.increment("artifact_pair_incomplete_detected_total", 3)
         assert metrics.get_counter("artifact_pair_incomplete_detected_total") == 3
 
@@ -625,9 +625,9 @@ class TestReconcileDriftThroughDag:
     def test_reconcile_drift_updates_metrics(self, tmp_state_path: str) -> None:
         metrics = get_vcad_metrics()
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,  # existing file
             revision=5,
@@ -643,9 +643,9 @@ class TestReconcileDriftThroughDag:
 
     def test_reconcile_updates_reconcile_state(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,
             revision=5,
@@ -669,9 +669,9 @@ class TestReconcileDriftThroughDag:
 
         metrics = get_vcad_metrics()
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=missing_path,
             revision=1,
@@ -692,9 +692,9 @@ class TestReconcileDriftThroughDag:
     def test_multiple_reconcile_runs(self, tmp_state_path: str) -> None:
         metrics = get_vcad_metrics()
         state = VCADPersistentState(state_path=tmp_state_path)
-        dag = VcadDag(state=state)
+        dag = VCADDag(state=state)
 
-        dag.add_node(VcadNode(
+        dag.add_node(VCADNode(
             node_id="node-1",
             source_file=__file__,
             revision=1,
@@ -716,7 +716,7 @@ class TestReconcileDriftThroughDag:
 class TestCommittedVisibility:
     """In-progress/staged artifacts never appear in committed outputs."""
 
-    def test_in_progress_excluded_from_snapshot(self, metrics: VcadMetrics) -> None:
+    def test_in_progress_excluded_from_snapshot(self, metrics: VCADMetrics) -> None:
         """Artifact counters only reflect committed (written) artifacts."""
         # Simulate: 3 manifests written, but gauge shows only 2 retained
         metrics.increment("artifact_manifests_written_total", 3)
@@ -726,7 +726,7 @@ class TestCommittedVisibility:
         assert snap["artifact_manifests_written_total"] == 3
         assert snap["artifact_manifests_retained_current"] == 2.0
 
-    def test_incomplete_pairs_tracked_separately(self, metrics: VcadMetrics) -> None:
+    def test_incomplete_pairs_tracked_separately(self, metrics: VCADMetrics) -> None:
         """Incomplete pairs are tracked via dedicated counter, not in written count."""
         metrics.increment("artifact_pair_incomplete_detected_total", 2)
         metrics.increment("artifact_pair_recovery_total", 1)
@@ -743,7 +743,7 @@ class TestCommittedVisibility:
 # ===========================================================================
 
 
-class TestVcadHealthTool:
+class TestVCADHealthTool:
     """Test vcad_health MCP tool."""
 
     def test_health_returns_valid_json(self) -> None:
@@ -778,7 +778,7 @@ class TestVcadHealthTool:
         assert parsed["viewer"]["status"] in ("not_started", "disconnected", "error")
 
 
-class TestVcadMetricsTool:
+class TestVCADMetricsTool:
     """Test vcad_metrics MCP tool."""
 
     def test_metrics_returns_valid_json(self) -> None:
@@ -807,7 +807,7 @@ class TestVcadMetricsTool:
         assert parsed["reconcile_runs_total"] == 2
 
 
-class TestVcadReconcileStatusTool:
+class TestVCADReconcileStatusTool:
     """Test vcad_reconcile_status MCP tool."""
 
     def test_reconcile_status_returns_valid_json(self) -> None:
@@ -847,12 +847,12 @@ class TestVcadReconcileStatusTool:
 class TestMetricsReset:
     """Test metrics reset for test isolation."""
 
-    def test_reset_clears_counters(self, metrics: VcadMetrics) -> None:
+    def test_reset_clears_counters(self, metrics: VCADMetrics) -> None:
         metrics.increment("eval_timeout_total", 10)
         metrics.reset()
         assert metrics.get_counter("eval_timeout_total") == 0
 
-    def test_reset_clears_gauges(self, metrics: VcadMetrics) -> None:
+    def test_reset_clears_gauges(self, metrics: VCADMetrics) -> None:
         metrics.set_gauge("queue_depth", 42.0)
         metrics.reset()
         assert metrics.get_gauge("queue_depth") == 0.0

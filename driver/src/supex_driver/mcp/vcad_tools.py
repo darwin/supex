@@ -9,14 +9,14 @@ from supex_driver.connection import (
     get_sketchup_connection,
     get_vcad_connection,
 )
-from supex_driver.connection.vcad_dag import ImportRef, VcadDag, VcadNode
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_file_watcher import (
-    VcadFileWatcher,
+    VCADFileWatcher,
     get_vcad_file_watcher,
     _reset_vcad_file_watcher,
 )
 from supex_driver.connection.vcad_observer import (
-    VcadReactiveWatcher,
+    VCADReactiveWatcher,
     get_vcad_reactive_watcher,
     _reset_vcad_reactive_watcher,
 )
@@ -42,14 +42,14 @@ logger = logging.getLogger("supex.mcp.vcad")
 # DAG singleton
 # ---------------------------------------------------------------------------
 
-_vcad_dag: VcadDag | None = None
+_vcad_dag: VCADDag | None = None
 
 
-def get_vcad_dag() -> VcadDag:
+def get_vcad_dag() -> VCADDag:
     """Get or create the global VCAD DAG instance."""
     global _vcad_dag
     if _vcad_dag is None:
-        _vcad_dag = VcadDag()
+        _vcad_dag = VCADDag()
     return _vcad_dag
 
 
@@ -161,7 +161,7 @@ def _vcad_update_single(
     node_id: str,
     source_file: str,
     revision: int,
-    dag: VcadDag,
+    dag: VCADDag,
 ) -> dict[str, Any]:
     """Internal helper: re-evaluate a single node with revision guard.
 
@@ -284,7 +284,7 @@ def vcad_place(
 
         # Register node in DAG (no imports for simple place)
         dag = get_vcad_dag()
-        dag_node = VcadNode(
+        dag_node = VCADNode(
             node_id=node_id,
             source_file=source_file,
             last_entity_id=result.get("entity_id"),
@@ -393,7 +393,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
             existing.last_entity_id = result.get("entity_id", existing.last_entity_id)
             dag.add_node(existing)
         else:
-            dag.add_node(VcadNode(
+            dag.add_node(VCADNode(
                 node_id=node_id,
                 source_file=source_file,
                 last_entity_id=result.get("entity_id"),
@@ -664,7 +664,7 @@ def vcad_place_with_imports(
         # Register node with imports in DAG
         dag = get_vcad_dag()
         dag_imports = _build_import_refs(import_decls, resolved_imports)
-        dag_node = VcadNode(
+        dag_node = VCADNode(
             node_id=node_id,
             source_file=source_file,
             imports=dag_imports,
