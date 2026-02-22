@@ -532,6 +532,32 @@ mod tests {
     }
 
     #[test]
+    fn test_commented_out_imports_ignored() {
+        let source = r#"; commented out import
+;[let cutout [import :solid "entity:37395"]]
+
+[cube 100.0 100.0 20.0]"#;
+
+        let result = extract_and_rewrite_imports(source).unwrap();
+        assert!(result.imports.is_empty());
+        assert_eq!(result.transformed_source, source);
+    }
+
+    #[test]
+    fn test_commented_import_with_active_import() {
+        let source = r#";[let old [import :solid "entity:111"]]
+[let dims [import :dimensions "entity:222"]]
+[cube 10.0 10.0 10.0]"#;
+
+        let result = extract_and_rewrite_imports(source).unwrap();
+        assert_eq!(result.imports.len(), 1, "only the uncommented import is extracted");
+        assert_eq!(result.imports[0].extract, "dimensions");
+        assert_eq!(result.imports[0].entity_ref, "entity:222");
+        // The commented line stays in source text but is not extracted as an import
+        assert!(result.transformed_source.contains(";[let old"));
+    }
+
+    #[test]
     fn test_build_data_preamble_skips_solid() {
         let mut imports = HashMap::new();
         imports.insert(
