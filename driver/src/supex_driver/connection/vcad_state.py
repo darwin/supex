@@ -11,6 +11,7 @@ import os
 import tempfile
 import threading
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -110,14 +111,30 @@ class RevisionTracker:
 
 @dataclass
 class EvalJob:
-    """A queued evaluation job."""
+    """A queued evaluation job.
+
+    Attributes:
+        job_id: Unique job identifier (auto-generated UUID).
+        node_id: Target VCAD node.
+        revision: Expected revision number (stale-result protection).
+        source: Code string or file path.
+        job_type: "eval_code" or "eval_file".
+        state: Job lifecycle state: pending, running, done, superseded.
+        created_at: Timestamp of job creation.
+    """
 
     node_id: str
     revision: int
     source: str  # code string or file path
     job_type: str = "eval_code"  # eval_code, eval_file
-    superseded: bool = False
+    state: str = "pending"  # pending, running, done, superseded
     created_at: float = field(default_factory=time.time)
+    job_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+
+    @property
+    def superseded(self) -> bool:
+        """Backward-compatible property: True when state is 'superseded'."""
+        return self.state == "superseded"
 
 
 class EvalQueue:
@@ -127,6 +144,9 @@ class EvalQueue:
     jobs for the same node_id are marked as superseded. The eval worker checks
     supersede status immediately before starting compute; superseded jobs are
     skipped without evaluation.
+
+    Running jobs are never cancelled; their results still pass through the
+    stale-result guard (RevisionTracker.should_apply) before being applied.
     """
 
     def __init__(self, max_size: int = VCAD_MAX_QUEUE):
@@ -144,6 +164,28 @@ class EvalQueue:
             from supex_driver.connection.vcad_metrics import get_vcad_metrics
 
             get_vcad_metrics().increment(name)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _emit_supersede_log(
+        event: str,
+        job: EvalJob,
+        *,
+        superseded_job: EvalJob | None = None,
+    ) -> None:
+        """Emit structured log for a queue-pruning event."""
+        try:
+            from supex_driver.connection.vcad_logging import emit_event
+
+            extra: dict[str, Any] = {
+                "job_id": job.job_id,
+                "revision": job.revision,
+            }
+            if superseded_job is not None:
+                extra["superseded_job_id"] = superseded_job.job_id
+                extra["superseded_revision"] = superseded_job.revision
+            emit_event(event, node_id=job.node_id, **extra)
         except Exception:
             pass
 
@@ -165,17 +207,24 @@ class EvalQueue:
                 return False
             # Mark older pending jobs for same node as superseded
             for existing in self._queue:
-                if existing.node_id == job.node_id and not existing.superseded:
-                    existing.superseded = True
+                if existing.node_id == job.node_id and existing.state == "pending":
+                    existing.state = "superseded"
                     self.superseded_dropped_total += 1
                     self._emit_metric("superseded_dropped_total")
+                    self._emit_supersede_log(
+                        "eval_superseded_on_enqueue",
+                        job,
+                        superseded_job=existing,
+                    )
+            job.state = "pending"
             self._queue.append(job)
             return True
 
     def get_next(self) -> EvalJob | None:
         """Get the next non-superseded job from the queue.
 
-        Superseded jobs are skipped and counted.
+        Superseded jobs are skipped and counted. The returned job is
+        transitioned to 'running' state.
 
         Returns:
             The next job to evaluate, or None if queue is empty.
@@ -183,22 +232,90 @@ class EvalQueue:
         with self._lock:
             while self._queue:
                 job = self._queue.pop(0)
-                if job.superseded:
+                if job.state == "superseded":
                     self.superseded_skipped_before_eval_total += 1
                     self._emit_metric("superseded_skipped_before_eval_total")
+                    self._emit_supersede_log(
+                        "eval_superseded_skipped",
+                        job,
+                    )
                     continue
+                job.state = "running"
                 return job
             return None
 
     def pending_count(self) -> int:
         """Number of pending (non-superseded) jobs in queue."""
         with self._lock:
-            return sum(1 for j in self._queue if not j.superseded)
+            return sum(1 for j in self._queue if j.state == "pending")
 
     def clear(self) -> None:
         """Clear all pending jobs."""
         with self._lock:
             self._queue.clear()
+
+    def enqueue_cascade_batch(
+        self,
+        jobs: list[EvalJob],
+        topo_order: list[str],
+    ) -> list[EvalJob]:
+        """Enqueue a topological cascade batch with per-node pruning.
+
+        For each node_id in the batch, only the latest-revision job is kept;
+        older revisions are marked superseded. Inter-node ordering follows
+        the provided topological order so that dependencies evaluate first.
+
+        Args:
+            jobs: List of eval jobs to enqueue (may contain multiple jobs
+                per node from overlapping cascade triggers).
+            topo_order: Node IDs in topological dependency order
+                (dependencies first).
+
+        Returns:
+            List of jobs actually enqueued (one per node, in topo order).
+        """
+        # Group by node_id, keep only latest revision per node
+        best: dict[str, EvalJob] = {}
+        superseded_in_batch: list[EvalJob] = []
+        for job in jobs:
+            existing = best.get(job.node_id)
+            if existing is not None:
+                if job.revision > existing.revision:
+                    existing.state = "superseded"
+                    superseded_in_batch.append(existing)
+                    best[job.node_id] = job
+                else:
+                    job.state = "superseded"
+                    superseded_in_batch.append(job)
+            else:
+                best[job.node_id] = job
+
+        # Emit metrics for batch-level supersede
+        for s_job in superseded_in_batch:
+            self.superseded_dropped_total += 1
+            self._emit_metric("superseded_dropped_total")
+            winner = best.get(s_job.node_id)
+            if winner:
+                self._emit_supersede_log(
+                    "eval_superseded_on_enqueue",
+                    winner,
+                    superseded_job=s_job,
+                )
+
+        # Order by topo_order, then append nodes not in topo_order at end
+        topo_index = {nid: i for i, nid in enumerate(topo_order)}
+        ordered_ids = sorted(
+            best.keys(),
+            key=lambda nid: topo_index.get(nid, len(topo_order)),
+        )
+
+        enqueued: list[EvalJob] = []
+        for nid in ordered_ids:
+            job = best[nid]
+            if self.enqueue(job):
+                enqueued.append(job)
+
+        return enqueued
 
 
 class TriggerCoalescer:
