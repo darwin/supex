@@ -1,6 +1,4 @@
 /.idea/
-/inspiration/
-/_adhoc/
 *.iml
 settings.local.json
 .mcp.json
@@ -8,6 +6,7 @@ settings.local.json
 /.tmp/
 .DS_Store
 /.code/
+.plan-runner/
 
 # vcad sidecar build artifacts
 /vcad/sidecar/Cargo.lock
