@@ -316,6 +316,37 @@ impl Evaluator {
         })
     }
 
+    /// Evaluate a Document and return only geometry metadata (no mesh export).
+    ///
+    /// Used by `eval_with_imports(inspect_only=true)` to skip tessellation,
+    /// DAE export, and disk I/O when only volume/bbox/surface_area are needed.
+    fn evaluate_metadata_only(&self, doc: &Document) -> Result<EvalResult, EvalError> {
+        let options = EvalOptions {
+            skip_clash_detection: true,
+            clock: None,
+        };
+        let scene = evaluate_document(doc, &options).map_err(EvalError::Kernel)?;
+        let part = select_single_part(&scene)?;
+        let solid = part
+            .solid
+            .as_ref()
+            .ok_or_else(|| EvalError::Internal("No BRep solid produced".to_string()))?;
+
+        let (bb_min, bb_max) = solid.bounding_box();
+
+        Ok(EvalResult {
+            obj_path: String::new(),
+            manifest_path: String::new(),
+            volume: solid.volume(),
+            surface_area: solid.surface_area(),
+            bbox: BBox {
+                min: bb_min,
+                max: bb_max,
+            },
+            is_empty: solid.is_empty(),
+        })
+    }
+
     /// Evaluate transformed source with both data and solid imports.
     ///
     /// Data imports (dimensions, bbox, transform) are injected as source-level
@@ -324,12 +355,16 @@ impl Evaluator {
     ///
     /// The combined ADT tree flows through `value_to_document()` -> `evaluate_document()`
     /// so the kernel optimizes the full CSG tree in one pass.
+    ///
+    /// When `inspect_only` is true, skips tessellation, DAE export, and disk I/O,
+    /// returning only geometry metadata (volume, surface_area, bbox).
     pub fn eval_with_imports(
         &mut self,
         transformed_source: &str,
         base_dir: Option<&Path>,
         imports: &HashMap<String, ResolvedImport>,
         node_id: Option<&str>,
+        inspect_only: bool,
     ) -> Result<EvalResult, EvalError> {
         // 1. Build Loon preamble for data imports only (solid skipped)
         let preamble = build_import_preamble(imports);
@@ -388,9 +423,13 @@ impl Evaluator {
             self.adt_cache.set(nid, result_value.clone());
         }
 
-        // 6. Convert to Document and evaluate to mesh
+        // 6. Convert to Document and evaluate
         let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
-        self.evaluate_and_export(&doc, "import-eval")
+        if inspect_only {
+            self.evaluate_metadata_only(&doc)
+        } else {
+            self.evaluate_and_export(&doc, "import-eval")
+        }
     }
 
     /// Evaluate transformed source with imports in REPL mode (display string, no mesh).

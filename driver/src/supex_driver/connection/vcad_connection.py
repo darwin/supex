@@ -535,6 +535,7 @@ class VCADConnection:
         base_dir: str | None = None,
         imports: dict[str, Any] | None = None,
         node_id: str | None = None,
+        inspect_only: bool = False,
     ) -> dict[str, Any]:
         """Evaluate transformed source with resolved imports (data and solid).
 
@@ -546,6 +547,7 @@ class VCADConnection:
             base_dir: Optional base directory for module resolution.
             imports: Dict of import_id -> resolved import data (ResolvedImport format).
             node_id: Optional node ID to cache the result ADT under.
+            inspect_only: If True, skip mesh export and return metadata only.
 
         Returns:
             Evaluation result from sidecar.
@@ -559,6 +561,8 @@ class VCADConnection:
             params["imports"] = imports
         if node_id is not None:
             params["node_id"] = node_id
+        if inspect_only:
+            params["inspect_only"] = True
         return self.send_command("vcad.eval_with_imports", params)
 
     def eval_repl_with_imports(

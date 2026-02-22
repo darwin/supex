@@ -240,6 +240,7 @@ def _eval_with_imports(
     details: dict[str, Any],
     base_dir: str | None = None,
     node_id: str | None = None,
+    inspect_only: bool = False,
 ) -> dict[str, Any]:
     """Evaluate transformed source with resolved imports via sidecar."""
     agent = get_agent_name(ctx)
@@ -250,6 +251,7 @@ def _eval_with_imports(
         base_dir=base_dir,
         imports=details["resolved_imports"],
         node_id=node_id,
+        inspect_only=inspect_only,
     )
 
 
@@ -639,7 +641,7 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
 
         if has_imports:
             base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
-            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir)
+            eval_result = _eval_with_imports(ctx, details, base_dir=base_dir, inspect_only=True)
             return json.dumps({
                 "success": True,
                 "volume": eval_result.get("volume", 0.0),

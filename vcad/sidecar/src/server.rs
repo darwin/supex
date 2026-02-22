@@ -82,6 +82,7 @@ pub enum EvalRequest {
         base_dir: Option<String>,
         imports: HashMap<String, ResolvedImport>,
         node_id: Option<String>,
+        inspect_only: bool,
     },
     /// REPL eval with data and solid imports (display string, no mesh).
     EvalReplWithImports {
@@ -600,12 +601,17 @@ fn dispatch_tools_call(
             let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
             let resolved_imports: HashMap<String, ResolvedImport> =
                 serde_json::from_value(raw_imports).unwrap_or_default();
+            let inspect_only = arguments
+                .get("inspect_only")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
             EvalRequest::EvalWithImports {
                 id: request.id.clone(),
                 transformed_source: transformed_source.to_string(),
                 base_dir,
                 imports: resolved_imports,
                 node_id,
+                inspect_only,
             }
         }
         "vcad.eval_repl_with_imports" => {
@@ -919,10 +925,16 @@ fn dispatch_eval(
             base_dir,
             imports,
             node_id,
+            inspect_only,
         } => {
             let base = base_dir.as_deref().map(std::path::Path::new);
-            match evaluator.eval_with_imports(transformed_source, base, imports, node_id.as_deref())
-            {
+            match evaluator.eval_with_imports(
+                transformed_source,
+                base,
+                imports,
+                node_id.as_deref(),
+                *inspect_only,
+            ) {
                 Ok(result) => eval_result_response(id.clone(), &result),
                 Err(e) => eval_error_response(id.clone(), &e),
             }
