@@ -381,6 +381,17 @@ def _vcad_update_single(
         node.last_entity_id = result.get("entity_id", node.last_entity_id)
     dag.persist_state()
 
+    # Push to viewer relay (best-effort, never breaks main flow)
+    try:
+        from supex_driver.connection.vcad_viewer_relay import _relay
+
+        if _relay is not None:
+            _relay.push_file_update(
+                node_id, revision, obj_path, eval_result.get("bbox"),
+            )
+    except Exception:
+        pass
+
     return {"success": True, "node_id": node_id, "revision": revision}
 
 
@@ -505,6 +516,17 @@ def vcad_place(
         watcher = get_vcad_file_watcher()
         vcad_conn = get_vcad_connection(agent=agent)
         watcher.auto_start_if_needed(source_file, vcad_conn)
+
+        # Push to viewer relay (best-effort, never breaks main flow)
+        try:
+            from supex_driver.connection.vcad_viewer_relay import _relay
+
+            if _relay is not None:
+                _relay.push_file_update(
+                    node_id, 1, obj_path, eval_result.get("bbox"),
+                )
+        except Exception:
+            pass
 
         return json.dumps(result)
     except (
@@ -649,6 +671,19 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
                 last_entity_id=result.get("entity_id"),
             ))
         dag.persist_state()
+
+        # Push to viewer relay (best-effort, never breaks main flow)
+        try:
+            from supex_driver.connection.vcad_viewer_relay import _relay
+
+            if _relay is not None:
+                dag_node = dag.get_node(node_id)
+                rev = dag_node.applied_revision if dag_node else 1
+                _relay.push_file_update(
+                    node_id, rev, obj_path, eval_result.get("bbox"),
+                )
+        except Exception:
+            pass
 
         return json.dumps(result)
     except (
