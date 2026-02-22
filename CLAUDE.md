@@ -13,6 +13,7 @@ Guidance for Claude Code when working on this repository.
 - **NEVER commit changes** unless explicitly asked
 - **NEVER read git-ignored files** unless explicitly asked
 - **NEVER use emojis** in documentation
+- **NEVER include `vcad/vendor/*` submodule pointer changes in regular commits** — use the `commit-vendor` skill instead, which pushes branches to GitHub first. Committing submodule pointers without pushing makes the repo uncloneable. If the user explicitly asks to commit vendor changes manually, warn them that they MUST push `supex-patches` branches to GitHub before or immediately after.
 - **Use `git ls-tree -r HEAD`** to find project files
 - **Use portable shebangs** - `#!/usr/bin/env bash`, `#!/usr/bin/env python3`, etc.
 
