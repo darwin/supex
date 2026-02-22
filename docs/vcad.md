@@ -249,6 +249,8 @@ Electronic CAD types for schematic and PCB design. Not supported by the supex si
 
 VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver resolves these references before evaluation. Imports are only available in `.skp.oo` files placed via `vcad_place_with_imports` — they do not work in `vcad_eval` or `vcad_inspect`.
 
+**Why imports cannot appear in `.oo` library modules:** The driver preprocesses `[import ...]` declarations by extracting them from the source, resolving them via SketchUp, and injecting the results before evaluation. Library modules loaded via `[use ...]` bypass this pipeline entirely — the Loon interpreter evaluates them directly. A raw `[import ...]` in a `.oo` file will fail at evaluation time because `import` is not a Loon built-in. Additionally, the module resolver maps `[use foo]` → `foo.oo` and `[use foo.bar]` → `foo/bar.oo`, so there is no module path that resolves to a `.skp.oo` file — the double extension acts as a natural boundary between geometry sources and reusable libraries.
+
 ### Import syntax
 
 ```loon
