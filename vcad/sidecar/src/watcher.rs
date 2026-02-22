@@ -15,7 +15,7 @@ pub struct FileChange {
 pub enum FileChangeKind {
     /// A .skp.oo file (VCAD node source).
     VcadLoon,
-    /// A .loon library file (handled in Phase mod-track).
+    /// A library .oo module file (legacy .loon still accepted).
     Loon,
 }
 
@@ -37,7 +37,7 @@ impl FileWatcher {
         }
     }
 
-    /// Start watching a project directory for .skp.oo and .loon file changes.
+    /// Start watching a project directory for .skp.oo and .oo module changes.
     pub fn watch(&mut self, dir: &Path) -> Result<(), String> {
         // Stop previous watch if any
         self.stop();
@@ -136,7 +136,7 @@ fn classify_path(path: &Path) -> Option<FileChange> {
             path: path.to_path_buf(),
             kind: FileChangeKind::VcadLoon,
         })
-    } else if name.ends_with(".loon") {
+    } else if name.ends_with(".oo") || name.ends_with(".loon") {
         Some(FileChange {
             path: path.to_path_buf(),
             kind: FileChangeKind::Loon,
@@ -159,7 +159,14 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_loon() {
+    fn test_classify_module_oo() {
+        let change = classify_path(Path::new("/project/src/build.oo"));
+        assert!(change.is_some());
+        assert_eq!(change.unwrap().kind, FileChangeKind::Loon);
+    }
+
+    #[test]
+    fn test_classify_module_loon_legacy() {
         let change = classify_path(Path::new("/project/src/build.loon"));
         assert!(change.is_some());
         assert_eq!(change.unwrap().kind, FileChangeKind::Loon);

@@ -519,7 +519,8 @@ fn dispatch_tools_call(
                     None,
                 );
             }
-            // If it looks like a file path, validate it
+            // If it looks like a file path, validate it.
+            // Preferred module extension is .oo (legacy .loon accepted).
             if code_or_path.ends_with(".oo") || code_or_path.ends_with(".loon") {
                 if let Err(resp) = validate_path_policy(code_or_path, ctx, &request.id) {
                     return resp;

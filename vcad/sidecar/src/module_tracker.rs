@@ -1,13 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-/// Tracks which `.loon` library files each vcad node depends on (via `[use ...]`).
+/// Tracks which `.oo` library files each vcad node depends on (via `[use ...]`).
 ///
 /// After each evaluation, the sidecar records the loaded module paths for the
 /// node. When a shared library file changes, `get_affected_nodes()` returns all
 /// vcad nodes that need re-evaluation.
 pub struct ModuleTracker {
-    /// Maps: node_id -> Set<file_path> (all .loon files loaded via [use ...])
+    /// Maps: node_id -> Set<file_path> (all .oo files loaded via [use ...])
     node_modules: HashMap<String, HashSet<PathBuf>>,
     /// Inverse: file_path -> Set<node_id> (which nodes depend on this file)
     file_dependents: HashMap<PathBuf, HashSet<String>>,
@@ -80,28 +80,28 @@ mod tests {
     fn test_record_and_query() {
         let mut tracker = ModuleTracker::new();
 
-        tracker.record_evaluation("node-a", vec![PathBuf::from("/project/src/dims.loon")]);
+        tracker.record_evaluation("node-a", vec![PathBuf::from("/project/src/dims.oo")]);
         tracker.record_evaluation(
             "node-b",
             vec![
-                PathBuf::from("/project/src/dims.loon"),
-                PathBuf::from("/project/src/helpers.loon"),
+                PathBuf::from("/project/src/dims.oo"),
+                PathBuf::from("/project/src/helpers.oo"),
             ],
         );
 
-        let affected = tracker.get_affected_nodes(Path::new("/project/src/dims.loon"));
+        let affected = tracker.get_affected_nodes(Path::new("/project/src/dims.oo"));
         assert_eq!(affected.len(), 2);
         assert!(affected.contains(&"node-a".to_string()));
         assert!(affected.contains(&"node-b".to_string()));
 
-        let affected = tracker.get_affected_nodes(Path::new("/project/src/helpers.loon"));
+        let affected = tracker.get_affected_nodes(Path::new("/project/src/helpers.oo"));
         assert_eq!(affected, vec!["node-b".to_string()]);
     }
 
     #[test]
     fn test_no_dependents() {
         let tracker = ModuleTracker::new();
-        let affected = tracker.get_affected_nodes(Path::new("/nonexistent.loon"));
+        let affected = tracker.get_affected_nodes(Path::new("/nonexistent.oo"));
         assert!(affected.is_empty());
     }
 
@@ -109,12 +109,12 @@ mod tests {
     fn test_clear_node() {
         let mut tracker = ModuleTracker::new();
 
-        tracker.record_evaluation("node-a", vec![PathBuf::from("/project/src/dims.loon")]);
-        tracker.record_evaluation("node-b", vec![PathBuf::from("/project/src/dims.loon")]);
+        tracker.record_evaluation("node-a", vec![PathBuf::from("/project/src/dims.oo")]);
+        tracker.record_evaluation("node-b", vec![PathBuf::from("/project/src/dims.oo")]);
 
         tracker.clear_node("node-a");
 
-        let affected = tracker.get_affected_nodes(Path::new("/project/src/dims.loon"));
+        let affected = tracker.get_affected_nodes(Path::new("/project/src/dims.oo"));
         assert_eq!(affected, vec!["node-b".to_string()]);
 
         // node-a should have no modules
@@ -128,20 +128,20 @@ mod tests {
         tracker.record_evaluation(
             "node-a",
             vec![
-                PathBuf::from("/project/src/old.loon"),
-                PathBuf::from("/project/src/dims.loon"),
+                PathBuf::from("/project/src/old.oo"),
+                PathBuf::from("/project/src/dims.oo"),
             ],
         );
 
         // Re-record with different paths
-        tracker.record_evaluation("node-a", vec![PathBuf::from("/project/src/dims.loon")]);
+        tracker.record_evaluation("node-a", vec![PathBuf::from("/project/src/dims.oo")]);
 
-        // old.loon should no longer have dependents
-        let affected = tracker.get_affected_nodes(Path::new("/project/src/old.loon"));
+        // old.oo should no longer have dependents
+        let affected = tracker.get_affected_nodes(Path::new("/project/src/old.oo"));
         assert!(affected.is_empty());
 
-        // dims.loon still has node-a
-        let affected = tracker.get_affected_nodes(Path::new("/project/src/dims.loon"));
+        // dims.oo still has node-a
+        let affected = tracker.get_affected_nodes(Path::new("/project/src/dims.oo"));
         assert_eq!(affected, vec!["node-a".to_string()]);
     }
 
@@ -150,8 +150,8 @@ mod tests {
         let mut tracker = ModuleTracker::new();
 
         let paths = vec![
-            PathBuf::from("/project/src/a.loon"),
-            PathBuf::from("/project/src/b.loon"),
+            PathBuf::from("/project/src/a.oo"),
+            PathBuf::from("/project/src/b.oo"),
         ];
         tracker.record_evaluation("node-a", paths.clone());
 

@@ -103,8 +103,8 @@ class VCADFileWatcher:
     ) -> list[str]:
         """Find DAG node IDs whose source_file matches changed paths.
 
-        Only matches vcad_loon changes (.skp.oo files), not loon library
-        changes. For .loon library changes, use find_nodes_for_loon_changes().
+        Only matches vcad_loon changes (.skp.oo files), not module library
+        changes. For `.oo` library changes, use find_nodes_for_loon_changes().
 
         Args:
             changes: List of change dicts from poll().
@@ -133,9 +133,9 @@ class VCADFileWatcher:
         changes: list[dict[str, Any]],
         vcad_connection: Any,
     ) -> list[str]:
-        """Find DAG node IDs affected by .loon library file changes.
+        """Find DAG node IDs affected by `.oo` library file changes.
 
-        Queries the sidecar's module tracker for each changed .loon file
+        Queries the sidecar's module tracker for each changed `.oo` file
         to find nodes that depend on it via [use ...].
 
         Args:
@@ -143,7 +143,7 @@ class VCADFileWatcher:
             vcad_connection: VCADConnection instance.
 
         Returns:
-            Deduplicated list of node_ids affected by .loon changes.
+            Deduplicated list of node_ids affected by module changes.
         """
         affected_node_ids: set[str] = set()
         for change in changes:

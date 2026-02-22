@@ -1,6 +1,6 @@
 """Tests for VCAD module tracking (Phase mod-track).
 
-Tests the module tracking system that tracks which .loon library files each
+Tests the module tracking system that tracks which .oo library files each
 vcad node depends on via [use ...]. When a shared library file changes,
 all affected nodes are identified for cascade re-evaluation.
 """
@@ -100,7 +100,7 @@ class TestEvalFileWithNodeId:
             return_value={
                 "obj_path": "/tmp/out.dae",
                 "volume": 1000.0,
-                "loaded_module_paths": ["/project/src/dims.loon"],
+                "loaded_module_paths": ["/project/src/dims.oo"],
             }
         )
 
@@ -110,7 +110,7 @@ class TestEvalFileWithNodeId:
             "vcad.eval_file",
             {"path": "/project/test.skp.oo", "node_id": "bracket"},
         )
-        assert result["loaded_module_paths"] == ["/project/src/dims.loon"]
+        assert result["loaded_module_paths"] == ["/project/src/dims.oo"]
 
     def test_eval_file_node_id_none_omitted(self):
         """eval_file with node_id=None does not include it in params."""
@@ -145,11 +145,11 @@ class TestGetAffectedNodes:
             return_value={"node_ids": ["bracket", "base-plate"]}
         )
 
-        result = conn.get_affected_nodes("/project/src/dims.loon")
+        result = conn.get_affected_nodes("/project/src/dims.oo")
 
         conn.send_command.assert_called_once_with(
             "vcad.get_affected_nodes",
-            {"path": "/project/src/dims.loon"},
+            {"path": "/project/src/dims.oo"},
         )
         assert result == ["bracket", "base-plate"]
 
@@ -160,7 +160,7 @@ class TestGetAffectedNodes:
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(return_value={"node_ids": []})
 
-        result = conn.get_affected_nodes("/project/src/unused.loon")
+        result = conn.get_affected_nodes("/project/src/unused.oo")
 
         assert result == []
 
@@ -171,7 +171,7 @@ class TestGetAffectedNodes:
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(return_value={})
 
-        result = conn.get_affected_nodes("/project/src/dims.loon")
+        result = conn.get_affected_nodes("/project/src/dims.oo")
 
         assert result == []
 
@@ -182,17 +182,17 @@ class TestGetAffectedNodes:
 
 
 class TestFindNodesForLoonChanges:
-    """Test matching .loon library changes to affected nodes via module tracker."""
+    """Test matching .oo library changes to affected nodes via module tracker."""
 
     def test_loon_change_finds_affected_nodes(self, watcher, mock_vcad):
         """Loon change queries sidecar for affected nodes."""
         mock_vcad.get_affected_nodes.return_value = ["bracket", "base-plate"]
 
-        changes = [{"path": "/project/src/dims.loon", "kind": "loon"}]
+        changes = [{"path": "/project/src/dims.oo", "kind": "loon"}]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
         mock_vcad.get_affected_nodes.assert_called_once_with(
-            "/project/src/dims.loon"
+            "/project/src/dims.oo"
         )
         assert set(affected) == {"bracket", "base-plate"}
 
@@ -207,15 +207,15 @@ class TestFindNodesForLoonChanges:
         mock_vcad.get_affected_nodes.assert_not_called()
 
     def test_multiple_loon_changes_deduplicated(self, watcher, mock_vcad):
-        """Multiple .loon changes are deduplicated by node_id."""
+        """Multiple .oo changes are deduplicated by node_id."""
         mock_vcad.get_affected_nodes.side_effect = [
-            ["bracket", "base-plate"],  # dims.loon affects these
-            ["bracket"],  # helpers.loon also affects bracket
+            ["bracket", "base-plate"],  # dims.oo affects these
+            ["bracket"],  # helpers.oo also affects bracket
         ]
 
         changes = [
-            {"path": "/project/src/dims.loon", "kind": "loon"},
-            {"path": "/project/src/helpers.loon", "kind": "loon"},
+            {"path": "/project/src/dims.oo", "kind": "loon"},
+            {"path": "/project/src/helpers.oo", "kind": "loon"},
         ]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
@@ -226,7 +226,7 @@ class TestFindNodesForLoonChanges:
         """Returns empty list when no nodes depend on changed file."""
         mock_vcad.get_affected_nodes.return_value = []
 
-        changes = [{"path": "/project/src/unused.loon", "kind": "loon"}]
+        changes = [{"path": "/project/src/unused.oo", "kind": "loon"}]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
         assert affected == []
@@ -242,7 +242,7 @@ class TestFindNodesForLoonChanges:
         """Connection errors are logged and swallowed."""
         mock_vcad.get_affected_nodes.side_effect = Exception("Connection lost")
 
-        changes = [{"path": "/project/src/dims.loon", "kind": "loon"}]
+        changes = [{"path": "/project/src/dims.oo", "kind": "loon"}]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
         # Should not raise, returns empty
@@ -262,14 +262,14 @@ class TestFindNodesForLoonChanges:
 
         changes = [
             {"path": "/project/test.skp.oo", "kind": "vcad_loon"},
-            {"path": "/project/src/dims.loon", "kind": "loon"},
+            {"path": "/project/src/dims.oo", "kind": "loon"},
         ]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
         assert affected == ["bracket"]
-        # Only called for the .loon change
+        # Only called for the .oo module change
         mock_vcad.get_affected_nodes.assert_called_once_with(
-            "/project/src/dims.loon"
+            "/project/src/dims.oo"
         )
 
 
@@ -304,7 +304,7 @@ class TestVCADPlaceModuleTracking:
             mock_vcad = MagicMock()
             mock_vcad.eval_file.return_value = {
                 "obj_path": "/tmp/out.dae",
-                "loaded_module_paths": ["/project/src/dims.loon"],
+                "loaded_module_paths": ["/project/src/dims.oo"],
             }
             mock_get_vcad.return_value = mock_vcad
 
@@ -412,7 +412,7 @@ class TestVCADUpdateModuleTracking:
             mock_vcad = MagicMock()
             mock_vcad.eval_file.return_value = {
                 "obj_path": "/tmp/out.dae",
-                "loaded_module_paths": ["/project/src/dims.loon"],
+                "loaded_module_paths": ["/project/src/dims.oo"],
             }
             mock_get_vcad.return_value = mock_vcad
 
@@ -437,15 +437,15 @@ class TestVCADUpdateModuleTracking:
 
 
 # ---------------------------------------------------------------------------
-# End-to-end: .loon change -> find affected -> cascade
+# End-to-end: .oo change -> find affected -> cascade
 # ---------------------------------------------------------------------------
 
 
 class TestLoonChangeCascadeFlow:
-    """Test end-to-end: .loon change detected -> affected nodes found -> cascade."""
+    """Test end-to-end: .oo change detected -> affected nodes found -> cascade."""
 
     def test_loon_change_cascade_flow(self, dag, tmp_path):
-        """Full flow: .loon change -> module tracker -> cascade update."""
+        """Full flow: .oo change -> module tracker -> cascade update."""
         source_a = str(tmp_path / "base-plate.skp.oo")
         source_b = str(tmp_path / "bracket.skp.oo")
 
@@ -454,14 +454,14 @@ class TestLoonChangeCascadeFlow:
 
         watcher = VCADFileWatcher()
 
-        # Simulate sidecar returning affected nodes for dims.loon change
+        # Simulate sidecar returning affected nodes for dims.oo change
         mock_vcad = MagicMock()
         mock_vcad.get_affected_nodes.return_value = [
             "base-plate", "bracket"
         ]
 
         changes = [
-            {"path": "/project/src/dims.loon", "kind": "loon"},
+            {"path": "/project/src/dims.oo", "kind": "loon"},
         ]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
@@ -473,7 +473,7 @@ class TestLoonChangeCascadeFlow:
             assert node is not None
 
     def test_mixed_changes_flow(self, dag, tmp_path):
-        """Mixed .skp.oo and .loon changes handled separately."""
+        """Mixed .skp.oo and .oo changes handled separately."""
         source_a = str(tmp_path / "base-plate.skp.oo")
         source_b = str(tmp_path / "bracket.skp.oo")
 
@@ -489,15 +489,15 @@ class TestLoonChangeCascadeFlow:
         changes = [
             # Direct .skp.oo change
             {"path": source_a, "kind": "vcad_loon"},
-            # Library .loon change
-            {"path": "/project/src/helpers.loon", "kind": "loon"},
+            # Library .oo change
+            {"path": "/project/src/helpers.oo", "kind": "loon"},
         ]
 
         # .skp.oo changes: find direct node matches
         skp_oo_nodes = watcher.find_nodes_for_changes(changes, dag)
         assert skp_oo_nodes == ["base-plate"]
 
-        # .loon changes: find affected via module tracker
+        # .oo changes: find affected via module tracker
         loon_nodes = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
         assert loon_nodes == ["bracket"]
 
@@ -516,7 +516,7 @@ class TestLoonChangeCascadeFlow:
         mock_vcad.get_affected_nodes.return_value = []
 
         changes = [
-            {"path": "/project/src/unused.loon", "kind": "loon"},
+            {"path": "/project/src/unused.oo", "kind": "loon"},
         ]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 

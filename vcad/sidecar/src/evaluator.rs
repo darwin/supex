@@ -253,7 +253,7 @@ impl Evaluator {
 
     /// Evaluate .skp.oo file with module tracking.
     ///
-    /// Uses `eval_program_with_module_tracking` to capture all `.loon` module
+    /// Uses `eval_program_with_module_tracking` to capture all `.oo` module
     /// paths loaded via `[use ...]` during evaluation. Returns both the
     /// evaluation result and the list of loaded module paths.
     pub fn eval_file_tracked(
@@ -289,8 +289,9 @@ impl Evaluator {
     /// Inspect: evaluate and return only geometry metadata (no OBJ export).
     pub fn inspect(&self, code_or_path: &str) -> Result<EvalResult, EvalError> {
         let doc = if code_or_path.ends_with(".skp.oo")
-            || code_or_path.ends_with(".skp.loon")
             || code_or_path.ends_with(".oo")
+            // Legacy extension accepted for backward compatibility.
+            || code_or_path.ends_with(".skp.loon")
         {
             eval_vcad_file(Path::new(code_or_path)).map_err(EvalError::Loon)?
         } else {

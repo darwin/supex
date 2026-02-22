@@ -105,7 +105,7 @@ class TestVCADFileWatcherLifecycle:
         mock_vcad.watch_poll.return_value = {
             "changes": [
                 {"path": "/project/test.skp.oo", "kind": "vcad_loon"},
-                {"path": "/project/src/lib.loon", "kind": "loon"},
+                {"path": "/project/src/lib.oo", "kind": "loon"},
             ]
         }
 
@@ -231,7 +231,7 @@ class TestFindNodesForChanges:
 
     def test_ignores_loon_changes(self, watcher, dag, tmp_path):
         """Only matches vcad_loon changes, not loon library changes."""
-        source = str(tmp_path / "lib.loon")
+        source = str(tmp_path / "lib.oo")
         dag.add_node(VCADNode(
             node_id="lib",
             source_file=source,

@@ -452,7 +452,7 @@ class VCADConnection:
         """Evaluate a Loon file and return the result.
 
         When node_id is provided, the sidecar uses module-tracking evaluation
-        and records which .loon library files were loaded via [use ...].
+        and records which .oo library files were loaded via [use ...].
         The response includes 'loaded_module_paths' (list of absolute paths).
 
         Args:
@@ -519,7 +519,7 @@ class VCADConnection:
         """Query the module tracker for nodes affected by a file change.
 
         Args:
-            path: Absolute path to the changed .loon file.
+            path: Absolute path to the changed module file.
 
         Returns:
             List of node_ids that depend on the changed file.

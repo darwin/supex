@@ -289,7 +289,7 @@ class TestBatchModeWorkflow:
         assert pause_result["status"] == "paused"
 
         # 2. Agent edits multiple files (triggers arrive from fs-watch)
-        watcher.trigger("dims-node", "fs-watch")      # dims.loon
+        watcher.trigger("dims-node", "fs-watch")      # dims.oo
         watcher.trigger("bracket-node", "fs-watch")    # bracket.skp.oo
         watcher.trigger("plate-node", "fs-watch")      # plate.skp.oo
 
