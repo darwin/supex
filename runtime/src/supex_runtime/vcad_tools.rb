@@ -199,8 +199,11 @@ module SupexRuntime
       when 'solid'
         if vcad_node_id
           { extract: 'solid', source: 'vcad', vcad_node_id: vcad_node_id }
+        elsif defn && defn.entities.manifold?
+          mesh_data = extract_solid_mesh(defn)
+          { extract: 'solid', source: 'native_mesh', mesh: mesh_data }
         else
-          raise "Entity #{entity_id} is not vcad-backed — :solid import unavailable (native mesh support in Phase native-mesh)"
+          raise "Entity #{entity_id} is not a solid — :solid import unavailable"
         end
       else
         raise "Unsupported extract type: #{extract_type}"
@@ -208,6 +211,33 @@ module SupexRuntime
     end
 
     private
+
+    # Extract triangulated mesh from a SketchUp solid (manifold ComponentDefinition).
+    # Returns { positions: [f64], indices: [u32], normals: [f64] } in mm units.
+    def extract_solid_mesh(defn)
+      positions = []
+      indices = []
+      normals = []
+      vertex_offset = 0
+
+      defn.entities.grep(Sketchup::Face).each do |face|
+        mesh = face.mesh(0)  # 0 = no UVs, just geometry
+        # PolygonMesh: vertices are 1-based
+        mesh.count_points.times do |i|
+          pt = mesh.point_at(i + 1)
+          positions.push(pt.x.to_mm, pt.y.to_mm, pt.z.to_mm)
+          n = mesh.normal_at(i + 1)
+          normals.push(n.x, n.y, n.z)
+        end
+        mesh.count_polygons.times do |i|
+          tri = mesh.polygon_at(i + 1)  # returns array of vertex indices (1-based, may be negative)
+          tri.each { |vi| indices.push(vi.abs - 1 + vertex_offset) }
+        end
+        vertex_offset += mesh.count_points
+      end
+
+      { positions: positions, indices: indices, normals: normals }
+    end
 
     def find_vcad_definition(model, node_id)
       model.definitions.find { |d| d.get_attribute(VCAD_DICT, 'node_id') == node_id }

@@ -619,14 +619,27 @@ def vcad_place_with_imports(
                 )
 
                 if imp["extract"] == "solid":
-                    # Solid import: ADT retrieved from sidecar cache by vcad_node_id
                     has_solid_imports = True
-                    resolved_imports[imp["import_id"]] = {
-                        "extract": "solid",
-                        "injected_symbol": imp["injected_symbol"],
-                        "data": None,
-                        "vcad_node_id": resolve_result.get("vcad_node_id"),
-                    }
+                    source = resolve_result.get("source", "vcad")
+                    if source == "native_mesh":
+                        # Native SketchUp solid: mesh data forwarded to sidecar
+                        resolved_imports[imp["import_id"]] = {
+                            "extract": "solid",
+                            "injected_symbol": imp["injected_symbol"],
+                            "source": "native_mesh",
+                            "data": None,
+                            "vcad_node_id": None,
+                            "native_mesh": resolve_result.get("mesh"),
+                            "resolved_type": "native_mesh",
+                        }
+                    else:
+                        # VCAD-backed: ADT retrieved from sidecar cache
+                        resolved_imports[imp["import_id"]] = {
+                            "extract": "solid",
+                            "injected_symbol": imp["injected_symbol"],
+                            "data": None,
+                            "vcad_node_id": resolve_result.get("vcad_node_id"),
+                        }
                 else:
                     # Data import: resolved data injected as Loon let-binding
                     resolved_imports[imp["import_id"]] = {
