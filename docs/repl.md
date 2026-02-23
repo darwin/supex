@@ -5,13 +5,13 @@ The REPL (Read-Eval-Print Loop) provides interactive Ruby development directly i
 ## Quick Start
 
 1. Launch SketchUp with the Supex extension (REPL server starts automatically)
-2. Connect from your terminal:
+1. Connect from your terminal:
 
 ```bash
 ./repl
 ```
 
-3. Start typing Ruby code:
+1. Start typing Ruby code:
 
 ```
 supex>> Sketchup.active_model.entities.length
@@ -22,7 +22,7 @@ supex>> model.selection.clear
 => []
 ```
 
-4. Exit with `exit` or Ctrl+D
+1. Exit with `exit` or Ctrl+D
 
 ## Client Modes
 

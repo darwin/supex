@@ -214,7 +214,7 @@ When VCAD nodes import from other entities, the driver maintains a dependency DA
 - `vcad_update_cascade` re-evaluates a node and all downstream dependents in topological order
 - ADT composition: each node's result is cached in the sidecar, so downstream nodes importing `:solid` get the fresh ADT directly
 
-### Example
+### Cascade Example
 
 ```
 base-plate.cmp.oo  →  bracket.cmp.oo (imports :solid from base-plate)

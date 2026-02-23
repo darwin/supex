@@ -30,11 +30,13 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 ## Key Features
 
 ### Direct Ruby API Access
+
 - **Full SketchUp Ruby API**: Execute any SketchUp operation via Ruby code
 - **eval_ruby & eval_ruby_file**: Run code inline or from project scripts
 - **Unlimited Flexibility**: No constraints on what you can create or modify
 
 ### Model Introspection
+
 - **Entity Inspection**: List and examine faces, edges, groups, components with details
 - **Visual Verification**: Take screenshots to verify modeling results
 - **Selection & Context**: Inspect currently selected entities
@@ -43,6 +45,7 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 - **Model Statistics**: Get comprehensive model state without writing code
 
 ### Project-Based Workflow
+
 - **Scripts in Your Repository**: Ruby files live in your project directory structure
 - **Version Control Ready**: Full git integration for modeling scripts
 - **IDE Support**: Edit scripts with syntax highlighting and RuboCop
@@ -109,7 +112,7 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 
 For more details, see [Architecture](docs/architecture.md).
 
-## Project-Based Workflow
+## Project Workflow
 
 Supex enables a **project-based workflow** where Ruby scripts live in your git-versioned project directories, treating 3D modeling code like application code:
 
@@ -168,15 +171,14 @@ This workflow is ideal for Claude Code:
 ### Requirements
 
 - **SketchUp 2026** - Download from [sketchup.com](https://www.sketchup.com)
-    - Only the latest SketchUp version is tested
-    - Project is experimental - no backward compatibility guarantees
+  - Only the latest SketchUp version is tested
+  - Project is experimental - no backward compatibility guarantees
 - **Claude Code** - AI-powered development environment from [claude.ai/code](https://claude.ai/code)
-    - Only tested with Claude Code (experimental project)
-    - Other MCP-compatible AI agents might work but are untested
+  - Only tested with Claude Code (experimental project)
+  - Other MCP-compatible AI agents might work but are untested
 - **macOS** - Currently the primary supported platform
 - **Python 3.14+** - For the MCP driver (managed via UV)
 - **Ruby 3.2.2** - Same as the Ruby version bundled with SketchUp 2026
-
 
 ### 1. Clone the Repository
 

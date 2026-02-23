@@ -275,7 +275,7 @@ Test Ruby execution:
 
 ## Getting Help
 
-1. Check the [Configuration](configuration.md) for all environment variables
-2. Review the [Protocol](protocol.md) for message format details
-3. See [Security](security.md) for authentication and path policy
-4. Report issues at: https://github.com/darwin/supex/issues
+1. Check Configuration docs for all environment variables
+2. Review Protocol docs for message format details
+3. See Security docs for authentication and path policy
+4. Report issues at: <https://github.com/darwin/supex/issues>
