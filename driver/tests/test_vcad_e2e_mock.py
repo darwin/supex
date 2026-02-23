@@ -31,10 +31,10 @@ from supex_driver.connection.vcad_state import (
 from tests.helpers.mock_vcad_sidecar import MockVCADSidecar
 
 # ---------------------------------------------------------------------------
-# Minimal OBJ content for mock import
+# Minimal mesh content for mock import (OBJ format, parsed by su-mock)
 # ---------------------------------------------------------------------------
 
-CUBE_OBJ = """\
+CUBE_MESH = """\
 # unit cube
 v 0.0 0.0 0.0
 v 10.0 0.0 0.0
@@ -53,11 +53,11 @@ f 4 1 5 8
 """
 
 
-def write_obj(directory, name="mesh.obj"):
-    """Write a minimal OBJ file and return its path."""
+def write_mesh(directory, name="mesh.obj"):
+    """Write a minimal mesh file (OBJ format for su-mock) and return its path."""
     path = os.path.join(directory, name)
     with open(path, "w") as f:
-        f.write(CUBE_OBJ)
+        f.write(CUBE_MESH)
     return path
 
 
@@ -84,9 +84,9 @@ def vcad_conn(mock_sidecar):
 
 
 @pytest.fixture
-def obj_dir(tmp_path):
-    """Temp directory with a pre-written OBJ file."""
-    write_obj(str(tmp_path))
+def mesh_dir(tmp_path):
+    """Temp directory with a pre-written mesh file."""
+    write_mesh(str(tmp_path))
     return str(tmp_path)
 
 
@@ -124,7 +124,7 @@ class TestVCADE2EMockSidecarEval:
 
     def test_vcad_e2e_mock_eval_mesh(self, mock_sidecar, tmp_path):
         """eval_with_imports with export_mesh=True returns mesh result."""
-        mesh_path = write_obj(str(tmp_path))
+        mesh_path = write_mesh(str(tmp_path))
 
         mock_sidecar.set_response(
             "tools/call",
@@ -287,7 +287,7 @@ class TestVCADE2EMockFullPipeline:
     def test_vcad_e2e_mock_place_and_list(self, su_mock, mock_sidecar, tmp_path):
         """Place a vcad node via su-mock and verify it appears in list."""
         # Write mesh file that su-mock can import
-        mesh_path = write_obj(str(tmp_path), "bracket.obj")
+        mesh_path = write_mesh(str(tmp_path), "bracket.obj")
 
         # Configure mock sidecar to return the mesh
         mock_sidecar.set_response(
@@ -332,8 +332,8 @@ class TestVCADE2EMockFullPipeline:
 
     def test_vcad_e2e_mock_update_node(self, su_mock, mock_sidecar, tmp_path):
         """Place a node, then update it with new geometry."""
-        mesh_path_v1 = write_obj(str(tmp_path), "v1.obj")
-        mesh_path_v2 = write_obj(str(tmp_path), "v2.obj")
+        mesh_path_v1 = write_mesh(str(tmp_path), "v1.obj")
+        mesh_path_v2 = write_mesh(str(tmp_path), "v2.obj")
         source_file = str(tmp_path / "part.skp.oo")
 
         mock_sidecar.set_response(
