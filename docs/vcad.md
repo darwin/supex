@@ -297,7 +297,7 @@ The `Entities#manifold?` API is not available in all SketchUp versions. The runt
 
 ## Troubleshooting
 
-For operational issues, use [Troubleshooting](troubleshooting.md#vcad-issues).
+For operational issues, use [Troubleshooting](agents/guide/troubleshooting.md#vcad-issues).
 
 Most common VCAD failures:
 

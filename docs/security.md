@@ -154,4 +154,4 @@ For shared environments:
 
 - [Configuration](configuration.md) - All environment variables
 - [Protocol](protocol.md) - Authentication in the hello handshake
-- [Troubleshooting](troubleshooting.md) - Authentication error handling
+- [Troubleshooting](agents/guide/troubleshooting.md) - Authentication error handling

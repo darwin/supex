@@ -9,7 +9,7 @@ Scope of this page:
 - Practical modeling pitfalls
 
 For workflow selection and hard execution rules, see `supex-guide/README.md`, `supex-guide/ruby.md`, and `supex-guide/vcad.md`.
-For runtime/tool error recovery, see `../../troubleshooting.md`.
+For runtime/tool error recovery, see `troubleshooting.md`.
 
 ## Profile-First Geometry
 
