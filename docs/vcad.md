@@ -103,7 +103,7 @@ One `.cmp.oo` file = one SketchUp ComponentDefinition. For multi-part assemblies
 project/
   AGENTS.md
   README.md
-  skp/
+  cmp/
     shared/
       params.oo          # Shared parameters and dimensions
       lib.oo             # Shared helper functions
@@ -121,146 +121,12 @@ project/
   [translate 0.0 0.0 10.0]]
 ```
 
-## Language Quick Reference
+## Language and API Reference
 
-Loon is a Lisp with algebraic data types, Hindley-Milner type inference, and square-bracket syntax.
+For Loon language syntax, CAD constructors, and API reference, see the agent documentation:
 
-### Basics
-
-```loon
-; Comments start with semicolon
-[let x 42]                  ; Variable binding
-[fn add [a b] [+ a b]]     ; Function definition
-[pub fn square [x] [* x x]] ; Public function (exported)
-[if condition then-expr else-expr] ; Conditional
-```
-
-### Pipe operator
-
-Thread-last macro for chaining:
-
-```loon
-[pipe [cube 10.0 10.0 10.0]
-  [fillet 2.0]
-  [translate 0.0 0.0 5.0]]
-; Equivalent to:
-; [translate 0.0 0.0 5.0 [fillet 2.0 [cube 10.0 10.0 10.0]]]
-```
-
-### Module system
-
-```loon
-[use shared/params :as p]   ; Import module, alias as p
-[use shared/lib]             ; Import module from shared/lib.oo
-[p.width]                    ; Access exported binding
-[lib.make-plate]             ; Call exported function
-```
-
-### Algebraic Data Types
-
-All geometry constructors produce ADT values (pure data, no BRep objects):
-
-```loon
-[cube 10.0 10.0 10.0]      ; -> Cube 10.0 10.0 10.0
-[fillet 2.0 solid]          ; -> Fillet solid 2.0
-```
-
-## Loon CAD API Reference
-
-### Primitives
-
-| Constructor | Signature | ADT |
-|------------|-----------|-----|
-| `cube` | `[cube x y z]` | `Cube f64 f64 f64` |
-| `cylinder` | `[cylinder r h]` | `Cylinder f64 f64` |
-| `sphere` | `[sphere r]` | `Sphere f64` |
-| `cone` | `[cone rb rt h]` | `Cone f64 f64 f64` |
-
-### Booleans (subject-last)
-
-| Constructor | Signature | Description |
-|------------|-----------|-------------|
-| `union` | `[union other s]` | Add solids together |
-| `difference` | `[difference tool s]` | Subtract tool from subject |
-| `intersection` | `[intersection other s]` | Keep common volume |
-
-### Transforms (subject-last)
-
-| Constructor | Signature | Description |
-|------------|-----------|-------------|
-| `translate` | `[translate x y z s]` | Move in mm |
-| `rotate` | `[rotate x y z s]` | Rotate in degrees |
-| `scale` | `[scale x y z s]` | Scale factors |
-
-### Features (subject-last)
-
-| Constructor | Signature | Description |
-|------------|-----------|-------------|
-| `fillet` | `[fillet r s]` | Round edges |
-| `chamfer` | `[chamfer d s]` | Bevel edges |
-| `shell` | `[shell t s]` | Hollow solid |
-
-### Patterns (subject-last)
-
-| Constructor | Signature |
-|------------|-----------|
-| `linear-pattern` | `[linear-pattern dx dy dz count spacing s]` |
-| `circular-pattern` | `[circular-pattern ox oy oz ax ay az count angle s]` |
-
-### Sketch and Extrude
-
-```loon
-[sketch ox oy oz xx xy xz yx yy yz segments]
-[extrude dx dy dz sk]
-[revolve aox aoy aoz adx ady adz angle sk]
-```
-
-### Sweep and Loft
-
-```loon
-[sweep-line sx sy sz ex ey ez sk]
-[sweep-helix radius pitch height turns sk]
-[loft sketches]
-[loft-closed sketches]
-```
-
-### Scene and Material
-
-```loon
-[root solid "material-name"]
-[material "name" r g b metallic roughness]
-```
-
-### Assembly (out of scope)
-
-The upstream VCAD cad-lib defines assembly, joint, and simulation types. These are not supported by the supex sidecar.
-
-```loon
-; Parts and instances
-[part "name" solid "material"]
-[instance "name" "part-name" x y z]
-
-; Joints
-[revolute-joint "name" ax ay az lo hi "parent" px py pz "child" cx cy cz]
-[prismatic-joint "name" ax ay az lo hi "parent" px py pz "child" cx cy cz]
-[fixed-joint "name" "parent" px py pz "child" cx cy cz]
-[ball-joint "name" "parent" px py pz "child" cx cy cz]
-
-; Assembly
-[assembly parts instances joints "ground-part"]
-```
-
-### ECAD (out of scope)
-
-Electronic CAD types for schematic and PCB design. Not supported by the supex sidecar.
-
-```loon
-[ecad-component "ref" "value" "footprint-id" x y rotation]
-[ecad-wire x1 y1 x2 y2]
-[ecad-trace x1 y1 x2 y2 width "layer" "net"]
-[ecad-via x y diameter drill "net"]
-[ecad-footprint "ref" "value" "footprint" x y rotation front]
-```
+- **Quick reference**: `docs/agents/guide/README.md` § "Core Loon CAD Constructors"
+- **Authoritative source**: `docs/agents/guide/cad-lib/src/lib.loon` — type definitions and constructor signatures
 
 ## Import System
 
