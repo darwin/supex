@@ -12,8 +12,7 @@ It covers both authoring workflows:
 - `guide/README.md` - Router and workflow selection rules
 - `guide/ruby.md` - Ruby workflow rules and patterns
 - `guide/vcad.md` - VCAD workflow rules and constraints
-- `guide/workflow.md` - Extended examples and practical snippets
-- `guide/best_practices.md` - Geometry QA checklist and modeling pitfalls
+- `guide/workflow.md` - Extended examples, visual QA, and practical snippets
 - `guide/mcp.md` - Canonical MCP tool inventory (names and scope)
 
 ## Structure
@@ -26,7 +25,6 @@ docs/agents/
     ├── ruby.md
     ├── vcad.md
     ├── workflow.md
-    ├── best_practices.md
     ├── api/      # SketchUp Ruby API docs (symlink)
     ├── stdlib/   # Ruby helper library docs (symlink)
     └── cad-lib/  # Loon CAD library source (symlink)
@@ -46,5 +44,5 @@ Then reference `supex-guide/README.md` in your agent/project instructions.
 
 - Keep tool names and behavior aligned with `guide/mcp.md`
 - Keep `guide/README.md` focused on rules; move long examples to `guide/workflow.md`
-- Keep geometry pitfalls and visual QA patterns in `guide/best_practices.md`
+- Keep geometry pitfalls in `guide/ruby.md`; visual QA patterns in `guide/workflow.md`
 - Do not edit generated API docs under `guide/api/`

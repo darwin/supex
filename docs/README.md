@@ -30,4 +30,3 @@ This page is the navigation hub for Supex docs.
 - [Ruby Workflow Guide](agents/guide/ruby.md)
 - [VCAD Workflow Guide](agents/guide/vcad.md)
 - [Extended Workflow Examples](agents/guide/workflow.md)
-- [Modeling Best Practices](agents/guide/best_practices.md)

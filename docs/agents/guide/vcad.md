@@ -84,5 +84,5 @@ Important: Loon has no runtime arithmetic operators (`+`, `-`, `*`, etc.). Use l
 
 - Router and chooser: `supex-guide/README.md`
 - Extended examples: `supex-guide/workflow.md`
-- Geometry QA: `supex-guide/best_practices.md`
+- Geometry QA: `supex-guide/ruby.md` § "Geometry Quality Rules"
 - VCAD architecture/details: `docs/vcad.md`

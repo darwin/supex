@@ -160,9 +160,57 @@ end
 
 Verify orientation early; swapped Y/Z is a common error.
 
+## Geometry Quality Rules
+
+### Profile-First Geometry
+
+Build 3D shapes by extruding 2D profiles rather than complex boolean operations:
+
+```ruby
+# Good: Draw profile, then extrude
+profile = entities.add_face(profile_points)
+profile.pushpull(depth)
+
+# Avoid: Complex 3D boolean operations
+# They often create broken geometry or unexpected results
+```
+
+### Pushpull Direction
+
+Face normals determine pushpull direction. If pushpull goes the wrong way:
+
+```ruby
+face.reverse! if face.normal.z < 0  # Flip normal before pushpull
+face.pushpull(-depth)               # Or use negative value
+```
+
+### Edge Treatment for Realism
+
+Real objects have slightly rounded edges. For clean geometry:
+
+- **Chamfer in profile** - Add angled corners to 2D profile before extrusion
+- **Octagonal sections** - For fully rounded rectangular parts, use 8-sided profile
+- **Avoid complex fillets** - SketchUp fillets often create overlapping/broken geometry
+
+### Material Timing
+
+Apply materials after geometry is verified:
+
+1. Create all geometry first
+2. Verify with `list_entities` or `take_screenshot`
+3. Apply materials only after structure is correct
+
+Materials on broken geometry are wasted effort.
+
+### Common Pitfalls
+
+- **Coplanar faces** - Faces on same plane merge unexpectedly. Offset by 0.1 mm
+- **Tiny edges** - Edges < 1mm can cause issues. Use reasonable minimums
+- **Reversed faces** - Back faces (blue) showing means normals are wrong
+- **Stray edges** - Leftover edges break face creation. Clean up with `entities.grep(Sketchup::Edge)`
+
 ## References
 
 - Extended snippets: `supex-guide/workflow.md`
-- Geometry QA: `supex-guide/best_practices.md`
 - SketchUp API: `supex-guide/api/INDEX.md`
 - Stdlib reference: `supex-guide/stdlib/README.md`

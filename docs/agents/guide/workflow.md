@@ -100,18 +100,27 @@ material.texture.size = [1.m, 1.m]
 
 ### Components
 
-```ruby
-# Create component definition
-definition = model.definitions.add('MyComponent')
-definition.entities.add_face(points)
+Use components and instances for identical repeated parts (legs, balusters, hardware):
 
-# Place instance
-instance = entities.add_instance(definition, transformation)
-instance.name = 'Instance 1'
+```ruby
+# Create component definition once
+leg_def = model.definitions.add('Table Leg')
+# Build leg geometry once in leg_def.entities...
+
+# Place 4 instances at different positions
+positions = [
+  Geom::Transformation.new([0, 0, 0]),
+  Geom::Transformation.new([width, 0, 0]),
+  Geom::Transformation.new([width, depth, 0]),
+  Geom::Transformation.new([0, depth, 0])
+]
+positions.each { |t| entities.add_instance(leg_def, t) }
 
 # Access definition from instance
 instance.definition.entities.each { |e| puts e }
 ```
+
+Benefits: smaller file size, edit-all-at-once, easy replacement via `swap_definition`.
 
 ### Curves and Arcs
 
@@ -228,3 +237,25 @@ puts counts.inspect
 # Verify face validity
 face.vertices.each { |v| puts v.position.to_a.inspect }
 ```
+
+## Visual Debugging with Batch Screenshots
+
+Use `take_batch_screenshots` for comprehensive geometry verification in both workflows:
+
+1. **Isolate the target** - Use the `isolate` parameter to show only the component/group being worked on
+2. **Multiple angles** - Capture several views to verify geometry from all sides
+3. **Use isometric view** - The `iso` view uses parallel projection, ideal for verifying proportions
+
+```ruby
+take_batch_screenshots(
+  shots=[
+    {"camera": {"type": "standard_view", "view": "front"}, "name": "front"},
+    {"camera": {"type": "standard_view", "view": "right"}, "name": "right"},
+    {"camera": {"type": "standard_view", "view": "top"}, "name": "top"},
+    {"camera": {"type": "standard_view", "view": "iso"}, "name": "iso"}
+  ],
+  isolate=entity_id  # ID of the group/component being developed
+)
+```
+
+Available standard views: `top`, `bottom`, `front`, `back`, `left`, `right`, `iso` — all use parallel projection.

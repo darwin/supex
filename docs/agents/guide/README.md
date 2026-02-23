@@ -16,8 +16,7 @@ This directory (`supex-guide/`) is intended to be symlinked into user projects.
 - `README.md` - Router and quick workflow chooser
 - `ruby.md` - Full Ruby workflow rules and patterns
 - `vcad.md` - Full VCAD workflow rules and constraints
-- `workflow.md` - Extended examples for both workflows
-- `best_practices.md` - Geometry QA checklist and common pitfalls
+- `workflow.md` - Extended examples and visual QA for both workflows
 - `api/` - SketchUp Ruby API docs (symlink)
 - `stdlib/` - Ruby helper library docs (symlink)
 - `cad-lib/` - Loon CAD library source and constructors (symlink)
@@ -62,4 +61,4 @@ For signatures and complete list, see `mcp.md`.
 
 - If using Ruby now: `supex-guide/ruby.md`
 - If using VCAD now: `supex-guide/vcad.md`
-- If debugging geometry quality: `supex-guide/best_practices.md`
+- If debugging geometry quality: `supex-guide/ruby.md` § "Geometry Quality Rules"
