@@ -247,9 +247,9 @@ class TestFindNodesForLoonChanges:
         assert set(affected) == {"bracket", "base-plate"}
 
     def test_ignores_vcad_loon_changes(self, watcher, mock_vcad):
-        """Only processes loon changes, not vcad_loon (.skp.oo) changes."""
+        """Only processes loon changes, not vcad_loon (.cmp.oo) changes."""
         changes = [
-            {"path": "/project/test.skp.oo", "kind": "vcad_loon"},
+            {"path": "/project/test.cmp.oo", "kind": "vcad_loon"},
         ]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
 
@@ -311,7 +311,7 @@ class TestFindNodesForLoonChanges:
         mock_vcad.get_affected_nodes.return_value = ["bracket"]
 
         changes = [
-            {"path": "/project/test.skp.oo", "kind": "vcad_loon"},
+            {"path": "/project/test.cmp.oo", "kind": "vcad_loon"},
             {"path": "/project/src/dims.oo", "kind": "loon"},
         ]
         affected = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
@@ -340,7 +340,7 @@ class TestVCADPlaceModuleTracking:
 
         _reset_vcad_dag()
 
-        source_file = str(tmp_path / "test.skp.oo")
+        source_file = str(tmp_path / "test.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
 
@@ -396,7 +396,7 @@ class TestVCADUpdateSingleModuleTracking:
         """_vcad_update_single passes node_id to eval_with_imports."""
         from supex_driver.mcp.vcad_tools import _vcad_update_single
 
-        source_file = str(tmp_path / "bracket.skp.oo")
+        source_file = str(tmp_path / "bracket.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
         dag.add_node(VCADNode(
@@ -457,7 +457,7 @@ class TestVCADUpdateModuleTracking:
         _reset_vcad_dag()
         dag = get_vcad_dag()
 
-        source_file = str(tmp_path / "bracket.skp.oo")
+        source_file = str(tmp_path / "bracket.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
 
@@ -507,8 +507,8 @@ class TestLoonChangeCascadeFlow:
 
     def test_loon_change_cascade_flow(self, dag, tmp_path):
         """Full flow: .oo change -> module tracker -> cascade update."""
-        source_a = str(tmp_path / "base-plate.skp.oo")
-        source_b = str(tmp_path / "bracket.skp.oo")
+        source_a = str(tmp_path / "base-plate.cmp.oo")
+        source_b = str(tmp_path / "bracket.cmp.oo")
 
         dag.add_node(VCADNode(node_id="base-plate", source_file=source_a))
         dag.add_node(VCADNode(node_id="bracket", source_file=source_b))
@@ -534,9 +534,9 @@ class TestLoonChangeCascadeFlow:
             assert node is not None
 
     def test_mixed_changes_flow(self, dag, tmp_path):
-        """Mixed .skp.oo and .oo changes handled separately."""
-        source_a = str(tmp_path / "base-plate.skp.oo")
-        source_b = str(tmp_path / "bracket.skp.oo")
+        """Mixed .cmp.oo and .oo changes handled separately."""
+        source_a = str(tmp_path / "base-plate.cmp.oo")
+        source_b = str(tmp_path / "bracket.cmp.oo")
 
         dag.add_node(VCADNode(node_id="base-plate", source_file=source_a))
         dag.add_node(VCADNode(node_id="bracket", source_file=source_b))
@@ -548,27 +548,27 @@ class TestLoonChangeCascadeFlow:
         mock_vcad.get_affected_nodes.return_value = ["bracket"]
 
         changes = [
-            # Direct .skp.oo change
+            # Direct .cmp.oo change
             {"path": source_a, "kind": "vcad_loon"},
             # Library .oo change
             {"path": "/project/src/helpers.oo", "kind": "loon"},
         ]
 
-        # .skp.oo changes: find direct node matches
-        skp_oo_nodes = watcher.find_nodes_for_changes(changes, dag)
-        assert skp_oo_nodes == ["base-plate"]
+        # .cmp.oo changes: find direct node matches
+        cmp_oo_nodes = watcher.find_nodes_for_changes(changes, dag)
+        assert cmp_oo_nodes == ["base-plate"]
 
         # .oo changes: find affected via module tracker
         loon_nodes = watcher.find_nodes_for_loon_changes(changes, mock_vcad)
         assert loon_nodes == ["bracket"]
 
         # Combined: all affected nodes (deduplicated)
-        all_affected = set(skp_oo_nodes) | set(loon_nodes)
+        all_affected = set(cmp_oo_nodes) | set(loon_nodes)
         assert all_affected == {"base-plate", "bracket"}
 
     def test_loon_change_no_affected_nodes(self, dag, tmp_path):
         """Loon change with no affected nodes produces no cascades."""
-        source = str(tmp_path / "base-plate.skp.oo")
+        source = str(tmp_path / "base-plate.cmp.oo")
         dag.add_node(VCADNode(node_id="base-plate", source_file=source))
 
         watcher = VCADFileWatcher()

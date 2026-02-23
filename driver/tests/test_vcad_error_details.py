@@ -159,14 +159,14 @@ class TestRequiredDetailsPresent:
             "error_code": SOURCE_FILE_MISSING,
             "details": {
                 "node_id": "bracket",
-                "source_file": "/project/bracket.skp.oo",
+                "source_file": "/project/bracket.cmp.oo",
             },
         }
         result = normalize_error_response(response, "vcad_update:eval")
 
         assert result["error_code"] == SOURCE_FILE_MISSING
         assert result["details"]["node_id"] == "bracket"
-        assert result["details"]["source_file"] == "/project/bracket.skp.oo"
+        assert result["details"]["source_file"] == "/project/bracket.cmp.oo"
         assert result["details"]["operation"] == "vcad_update:eval"
 
     def test_state_reconcile_required_has_all_keys(self) -> None:
@@ -315,7 +315,7 @@ class TestPassthrough:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
         )
 
         assert result["error_code"] == CAPABILITY_UNAVAILABLE
@@ -326,7 +326,7 @@ class TestPassthrough:
             "success": False,
             "error": "No geometry",
             "error_code": "NO_GEOMETRY",
-            "details": {"source_file": "/f.skp.oo"},
+            "details": {"source_file": "/f.cmp.oo"},
         }
         result = normalize_error_response(response, "vcad_place")
 
@@ -474,7 +474,7 @@ class TestNegativeOneMissingKey:
                 SOURCE_FILE_MISSING,
                 {
                     "node_id": "bracket",
-                    "source_file": "/f.skp.oo",
+                    "source_file": "/f.cmp.oo",
                     "operation": "op",
                 },
                 "node_id",
@@ -483,7 +483,7 @@ class TestNegativeOneMissingKey:
                 SOURCE_FILE_MISSING,
                 {
                     "node_id": "bracket",
-                    "source_file": "/f.skp.oo",
+                    "source_file": "/f.cmp.oo",
                     "operation": "op",
                 },
                 "source_file",

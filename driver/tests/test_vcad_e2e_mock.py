@@ -316,7 +316,7 @@ class TestVCADE2EMockFullPipeline:
             params={
                 "mesh_path": mesh_path,
                 "node_id": "e2e-bracket",
-                "source_file": str(tmp_path / "bracket.skp.oo"),
+                "source_file": str(tmp_path / "bracket.cmp.oo"),
                 "position": [0, 0, 0],
             },
         )
@@ -334,7 +334,7 @@ class TestVCADE2EMockFullPipeline:
         """Place a node, then update it with new geometry."""
         mesh_path_v1 = write_mesh(str(tmp_path), "v1.obj")
         mesh_path_v2 = write_mesh(str(tmp_path), "v2.obj")
-        source_file = str(tmp_path / "part.skp.oo")
+        source_file = str(tmp_path / "part.cmp.oo")
 
         mock_sidecar.set_response(
             "tools/call",
@@ -498,7 +498,7 @@ class TestVCADE2EMockRecovery:
         state.set_node(
             NodeState(
                 node_id="node-gone",
-                source_file="/nonexistent/gone.skp.oo",
+                source_file="/nonexistent/gone.cmp.oo",
                 revision=2,
                 applied_revision=2,
                 status="active",

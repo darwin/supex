@@ -86,7 +86,7 @@ class TestObserverDagCascadeFlow:
         # Setup: two nodes import from entity:100
         dag.add_node(VCADNode(
             node_id="bracket",
-            source_file="/project/bracket.skp.oo",
+            source_file="/project/bracket.cmp.oo",
             imports=[ImportRef(
                 binding_name="table_dims",
                 selector="entity:100",
@@ -95,7 +95,7 @@ class TestObserverDagCascadeFlow:
         ))
         dag.add_node(VCADNode(
             node_id="plate",
-            source_file="/project/plate.skp.oo",
+            source_file="/project/plate.cmp.oo",
             imports=[ImportRef(
                 binding_name="table_bbox",
                 selector="entity:100",
@@ -105,7 +105,7 @@ class TestObserverDagCascadeFlow:
         # This node does NOT import entity:100
         dag.add_node(VCADNode(
             node_id="bolt",
-            source_file="/project/bolt.skp.oo",
+            source_file="/project/bolt.cmp.oo",
         ))
 
         # Simulate observer poll returning entity 100
@@ -117,7 +117,7 @@ class TestObserverDagCascadeFlow:
         # Setup DAG
         dag.add_node(VCADNode(
             node_id="node-a",
-            source_file="/project/a.skp.oo",
+            source_file="/project/a.cmp.oo",
             imports=[ImportRef(
                 binding_name="dims",
                 selector="entity:42",
@@ -153,11 +153,11 @@ class TestObserverDagCascadeFlow:
         # A -> B -> C (dependency chain)
         dag.add_node(VCADNode(
             node_id="A",
-            source_file="/project/a.skp.oo",
+            source_file="/project/a.cmp.oo",
         ))
         dag.add_node(VCADNode(
             node_id="B",
-            source_file="/project/b.skp.oo",
+            source_file="/project/b.cmp.oo",
             imports=[ImportRef(
                 binding_name="a_solid",
                 selector="entity:1",
@@ -168,7 +168,7 @@ class TestObserverDagCascadeFlow:
         ))
         dag.add_node(VCADNode(
             node_id="C",
-            source_file="/project/c.skp.oo",
+            source_file="/project/c.cmp.oo",
             imports=[ImportRef(
                 binding_name="b_solid",
                 selector="entity:2",
@@ -201,15 +201,15 @@ class TestMultiSourceCoalescing:
         """fs-watch + mod-track + su-observer within one window -> one cascade."""
         dag.add_node(VCADNode(
             node_id="node-fs",
-            source_file="/project/fs.skp.oo",
+            source_file="/project/fs.cmp.oo",
         ))
         dag.add_node(VCADNode(
             node_id="node-mod",
-            source_file="/project/mod.skp.oo",
+            source_file="/project/mod.cmp.oo",
         ))
         dag.add_node(VCADNode(
             node_id="node-obs",
-            source_file="/project/obs.skp.oo",
+            source_file="/project/obs.cmp.oo",
             imports=[ImportRef(
                 binding_name="x",
                 selector="entity:50",
@@ -290,8 +290,8 @@ class TestBatchModeWorkflow:
 
         # 2. Agent edits multiple files (triggers arrive from fs-watch)
         watcher.trigger("dims-node", "fs-watch")      # dims.oo
-        watcher.trigger("bracket-node", "fs-watch")    # bracket.skp.oo
-        watcher.trigger("plate-node", "fs-watch")      # plate.skp.oo
+        watcher.trigger("bracket-node", "fs-watch")    # bracket.cmp.oo
+        watcher.trigger("plate-node", "fs-watch")      # plate.cmp.oo
 
         # No cascade during pause
         time.sleep(0.1)
@@ -377,7 +377,7 @@ class TestStaleResultRaceIntegration:
         """Two rapid updates for same node: only newer revision wins."""
         dag.add_node(VCADNode(
             node_id="widget",
-            source_file="/project/widget.skp.oo",
+            source_file="/project/widget.cmp.oo",
         ))
 
         # Simulate two rapid file edits
@@ -401,7 +401,7 @@ class TestStaleResultRaceIntegration:
         """Stale drops increment the counter for monitoring."""
         dag.add_node(VCADNode(
             node_id="node-x",
-            source_file="/project/x.skp.oo",
+            source_file="/project/x.cmp.oo",
         ))
 
         # Generate 3 revisions, only apply the last
@@ -423,11 +423,11 @@ class TestStaleResultRaceIntegration:
         """Cascade respects revision guard: bumps before eval, checks before apply."""
         dag.add_node(VCADNode(
             node_id="part-a",
-            source_file="/project/part-a.skp.oo",
+            source_file="/project/part-a.cmp.oo",
         ))
         dag.add_node(VCADNode(
             node_id="part-b",
-            source_file="/project/part-b.skp.oo",
+            source_file="/project/part-b.cmp.oo",
             imports=[ImportRef(
                 binding_name="a_solid",
                 selector="entity:1",
@@ -471,7 +471,7 @@ class TestObserverBatchCombined:
         """Entity changes during pause are accumulated and flushed on resume."""
         dag.add_node(VCADNode(
             node_id="panel",
-            source_file="/project/panel.skp.oo",
+            source_file="/project/panel.cmp.oo",
             imports=[ImportRef(
                 binding_name="frame_dims",
                 selector="entity:200",
@@ -512,7 +512,7 @@ class TestObserverBatchCombined:
         """All three sources during pause -> one cascade on resume."""
         dag.add_node(VCADNode(
             node_id="bracket",
-            source_file="/project/bracket.skp.oo",
+            source_file="/project/bracket.cmp.oo",
             imports=[ImportRef(
                 binding_name="plate_dims",
                 selector="entity:300",
@@ -521,7 +521,7 @@ class TestObserverBatchCombined:
         ))
         dag.add_node(VCADNode(
             node_id="plate",
-            source_file="/project/plate.skp.oo",
+            source_file="/project/plate.cmp.oo",
         ))
 
         cascade_results: list[set[str]] = []

@@ -217,11 +217,11 @@ class TestTopologicalSafety:
 
     def _make_dag_chain(self, dag: VCADDag) -> None:
         """Create A -> B -> C dependency chain."""
-        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
+        dag.add_node(VCADNode(node_id="A", source_file="/a.cmp.oo"))
         dag.add_node(
             VCADNode(
                 node_id="B",
-                source_file="/b.skp.oo",
+                source_file="/b.cmp.oo",
                 imports=[
                     ImportRef(
                         binding_name="a_solid",
@@ -236,7 +236,7 @@ class TestTopologicalSafety:
         dag.add_node(
             VCADNode(
                 node_id="C",
-                source_file="/c.skp.oo",
+                source_file="/c.cmp.oo",
                 imports=[
                     ImportRef(
                         binding_name="b_solid",
@@ -669,8 +669,8 @@ class TestQueuePruningTelemetry:
         import json
         import logging
 
-        dag.add_node(VCADNode(node_id="A", source_file="/a.skp.oo"))
-        dag.add_node(VCADNode(node_id="B", source_file="/b.skp.oo"))
+        dag.add_node(VCADNode(node_id="A", source_file="/a.cmp.oo"))
+        dag.add_node(VCADNode(node_id="B", source_file="/b.cmp.oo"))
         topo = dag.get_evaluation_order()
 
         captured: list[str] = []

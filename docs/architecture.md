@@ -131,11 +131,11 @@ supex_runtime/
 
 **Purpose**: Parametric BRep CAD engine for declarative geometry authoring in Loon
 
-VCAD extends supex with a parametric modeling pipeline. The agent writes `.skp.oo` source files in Loon (a Lisp with algebraic data types), and the sidecar evaluates them to produce BRep geometry that is imported into SketchUp as components.
+VCAD extends supex with a parametric modeling pipeline. The agent writes `.cmp.oo` source files in Loon (a Lisp with algebraic data types), and the sidecar evaluates them to produce BRep geometry that is imported into SketchUp as components.
 
 **Evaluation Pipeline**:
 ```
-.skp.oo source → Loon parse → Value::Adt tree → vcad_ir::Document
+.cmp.oo source → Loon parse → Value::Adt tree → vcad_ir::Document
     → vcad_kernel::Solid (BRep) → TriangleMesh → DAE → SketchUp import
 ```
 
@@ -144,7 +144,7 @@ VCAD extends supex with a parametric modeling pipeline. The agent writes `.skp.o
 - Loon interpreter with VCAD standard library
 - BRep kernel (primitives, booleans, transforms, fillets, patterns)
 - DAE mesh export
-- Filesystem watcher for `.skp.oo` and `.oo` module changes
+- Filesystem watcher for `.cmp.oo` and `.oo` module changes
 - ADT cache for solid import composition
 - Auth token support for non-loopback binds
 

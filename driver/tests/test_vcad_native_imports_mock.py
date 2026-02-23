@@ -86,7 +86,7 @@ def mock_sketchup():
 
 
 def _make_source(tmp_path, name, content):
-    """Helper to create a .skp.oo source file."""
+    """Helper to create a .cmp.oo source file."""
     src = tmp_path / name
     src.write_text(content)
     return str(src)
@@ -140,7 +140,7 @@ class TestNativeMeshCSG:
         """Difference: subtract native mesh from parametric cube."""
         src = _make_source(
             tmp_path,
-            "diff.skp.oo",
+            "diff.cmp.oo",
             '[let wall [import :host "entity:55555" :solid]]\n'
             "[pipe [cube 200.0 200.0 200.0]\n"
             "  [difference wall]]",
@@ -173,7 +173,7 @@ class TestNativeMeshCSG:
         """Union: combine native mesh with parametric cube."""
         src = _make_source(
             tmp_path,
-            "union.skp.oo",
+            "union.cmp.oo",
             '[let wall [import :host "entity:55555" :solid]]\n'
             "[pipe [cube 200.0 200.0 200.0]\n"
             "  [union wall]]",
@@ -200,7 +200,7 @@ class TestNativeMeshCSG:
         """Intersection: intersect native mesh with parametric cube."""
         src = _make_source(
             tmp_path,
-            "intersect.skp.oo",
+            "intersect.cmp.oo",
             '[let wall [import :host "entity:55555" :solid]]\n'
             "[pipe [cube 200.0 200.0 200.0]\n"
             "  [intersection wall]]",
@@ -236,7 +236,7 @@ class TestNativeMeshDataIntegrity:
         """All position values are forwarded exactly."""
         src = _make_source(
             tmp_path,
-            "preserve.skp.oo",
+            "preserve.cmp.oo",
             '[let obj [import :host "entity:55555" :solid]]\n[obj]',
         )
 
@@ -261,7 +261,7 @@ class TestNativeMeshDataIntegrity:
         """Mesh with empty normals array is still forwarded."""
         src = _make_source(
             tmp_path,
-            "no-normals.skp.oo",
+            "no-normals.cmp.oo",
             '[let obj [import :host "entity:55555" :solid]]\n[obj]',
         )
 
@@ -298,7 +298,7 @@ class TestNativeMeshErrors:
         """Non-manifold (non-solid) entity raises error from SketchUp bridge."""
         src = _make_source(
             tmp_path,
-            "non-solid.skp.oo",
+            "non-solid.cmp.oo",
             '[let wall [import :host "entity:99999" :solid]]\n[wall]',
         )
 
@@ -336,7 +336,7 @@ class TestNativeMeshErrors:
         """Sidecar returns error if mesh data is invalid."""
         src = _make_source(
             tmp_path,
-            "bad-mesh.skp.oo",
+            "bad-mesh.cmp.oo",
             '[let obj [import :host "entity:55555" :solid]]\n[obj]',
         )
 
@@ -362,7 +362,7 @@ class TestNativeMeshErrors:
         """Multiple native mesh imports in same source all forwarded correctly."""
         src = _make_source(
             tmp_path,
-            "multi-native.skp.oo",
+            "multi-native.cmp.oo",
             '[let a [import :host "entity:11111" :solid]]\n'
             '[let b [import :host "entity:22222" :solid]]\n'
             "[pipe [cube 100.0 100.0 100.0]\n"

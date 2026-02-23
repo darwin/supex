@@ -4,7 +4,7 @@
   "entity_id": 42,
   "definition_name": "vcad_bracket",
   "mesh_path": "/tmp/vcad-sidecar/bracket.dae",
-  "source_file": "/project/bracket.skp.oo",
+  "source_file": "/project/bracket.cmp.oo",
   "revision": 1,
   "bbox": {
     "min": [0.0, 0.0, 0.0],

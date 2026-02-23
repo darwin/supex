@@ -16,13 +16,13 @@ VCAD is a BRep (Boundary Representation) kernel integrated into SketchUp via sup
   SketchUp Ruby Runtime  VCAD Viewer        VCAD Rust Sidecar
   (bridge_server.rb)     (Tauri app)        (loon-lang + vcad-eval + vcad-kernel)
          |                                          |
-  SketchUp Application                       .skp.oo files (source of truth)
+  SketchUp Application                       .cmp.oo files (source of truth)
 ```
 
 ### Evaluation Pipeline
 
 ```
-.skp.oo source
+.cmp.oo source
     | (loon-lang: parse + interpret)
 Value::Adt tree (pure data)
     | (vcad-loon: value_to_document)
@@ -40,7 +40,7 @@ TriangleMesh
 | Component | Location | Language | Role |
 |-----------|----------|----------|------|
 | MCP Driver | `driver/src/supex_driver/` | Python | Exposes MCP tools, mediates sidecar and SketchUp |
-| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates `.skp.oo` source (tracks `.oo` modules), produces BRep geometry + DAE |
+| VCAD Sidecar | `vcad/sidecar/` | Rust | Evaluates `.cmp.oo` source (tracks `.oo` modules), produces BRep geometry + DAE |
 | Ruby Bridge | `runtime/src/supex_runtime/` | Ruby | Imports DAE into SketchUp, manages VCAD nodes |
 | Viewer | `vcad/viewer/` | Rust/TypeScript | Standalone Tauri BRep preview |
 | Viewer Relay | `driver/src/supex_driver/connection/vcad_viewer_relay.py` | Python | WebSocket bridge (:9878) between MCP driver and viewer |
@@ -85,19 +85,19 @@ Note: The Vite dev server serves the same React frontend that Tauri uses. All vi
 1. Start sidecar: `./vcad-sidecar`
 2. Start SketchUp with supex runtime: `./scripts/launch-sketchup.sh`
 3. Via MCP tools:
-   - Create a `.skp.oo` file with a solid
-   - Call `vcad_place("test-bracket", "bracket.skp.oo")`
+   - Create a `.cmp.oo` file with a solid
+   - Call `vcad_place("test-bracket", "bracket.cmp.oo")`
    - Verify the component appears: `vcad_list_nodes()`
    - Modify the source file
    - Call `vcad_update("test-bracket")`
 
-## Writing .skp.oo Files
+## Writing .cmp.oo Files
 
-Each `.skp.oo` file must produce exactly one solid. The last expression is evaluated and converted to geometry.
+Each `.cmp.oo` file must produce exactly one solid. The last expression is evaluated and converted to geometry.
 
 ### Data model
 
-One `.skp.oo` file = one SketchUp ComponentDefinition. For multi-part assemblies, use multiple files with shared modules:
+One `.cmp.oo` file = one SketchUp ComponentDefinition. For multi-part assemblies, use multiple files with shared modules:
 
 ```
 project/
@@ -107,14 +107,14 @@ project/
     shared/
       params.oo          # Shared parameters and dimensions
       lib.oo             # Shared helper functions
-    base-plate.skp.oo   # One solid output
-    bracket.skp.oo      # One solid output
+    base-plate.cmp.oo   # One solid output
+    bracket.cmp.oo      # One solid output
 ```
 
 ### Example
 
 ```loon
-; bracket.skp.oo
+; bracket.cmp.oo
 [pipe [cube 50.0 30.0 5.0]
   [difference [cylinder 3.0 10.0]]
   [fillet 1.0]
@@ -328,7 +328,7 @@ Import a solid for CSG composition. Works with both VCAD-backed nodes and native
 ### Import resolution flow
 
 ```
-.skp.oo source with [import ...] declarations
+.cmp.oo source with [import ...] declarations
     | (sidecar: extract_and_rewrite_imports)
 Import declarations + transformed source (imports replaced by __vcad_import_N symbols)
     | (driver: resolve each import via SketchUp Ruby bridge)
@@ -351,15 +351,15 @@ When VCAD nodes import from other entities, the driver maintains a dependency DA
 ### Example
 
 ```
-base-plate.skp.oo  →  bracket.skp.oo (imports :solid from base-plate)
-                   →  mount.skp.oo (imports :dims from base-plate)
+base-plate.cmp.oo  →  bracket.cmp.oo (imports :solid from base-plate)
+                   →  mount.cmp.oo (imports :dims from base-plate)
 ```
 
 Calling `vcad_update_cascade("base-plate")` re-evaluates base-plate first, then bracket and mount in dependency order.
 
 ## File Watching
 
-The sidecar watcher classifies changes in `.skp.oo` source files and `.oo` library modules.
+The sidecar watcher classifies changes in `.cmp.oo` source files and `.oo` library modules.
 
 ### Source file watching
 
@@ -369,7 +369,7 @@ The sidecar watcher classifies changes in `.skp.oo` source files and `.oo` libra
 
 ### Module tracking
 
-- When a `.skp.oo` file uses `[use module-name]`, the sidecar tracks which `.oo` files are loaded
+- When a `.cmp.oo` file uses `[use module-name]`, the sidecar tracks which `.oo` files are loaded
 - Library change events can be used to re-evaluate all dependent nodes
 
 ### Batch editing
@@ -378,7 +378,7 @@ Use `vcad_watch_pause` / `vcad_watch_resume` to batch multiple file edits into a
 
 ```
 vcad_watch_pause()
-# Edit multiple .skp.oo files...
+# Edit multiple .cmp.oo files...
 vcad_watch_resume()  # Flushes all accumulated changes as one cascade
 ```
 
@@ -386,12 +386,12 @@ vcad_watch_resume()  # Flushes all accumulated changes as one cascade
 
 ### vcad_place
 
-Evaluate a `.skp.oo` file and place the resulting mesh in SketchUp.
+Evaluate a `.cmp.oo` file and place the resulting mesh in SketchUp.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `node_id` | string | Unique identifier for this VCAD node |
-| `source_file` | string | Path to the `.skp.oo` file |
+| `source_file` | string | Path to the `.cmp.oo` file |
 | `position` | [x,y,z] | Position in mm (default [0,0,0]) |
 | `component_name` | string | Optional SketchUp component name |
 
@@ -452,7 +452,7 @@ Returns array of `{node_id, source_file, version, name, instances}`.
 
 ### vcad_watch_pause
 
-Pause reactive file watching. File changes accumulate but don't trigger re-evaluation. Use before editing multiple `.skp.oo` files in sequence. No parameters.
+Pause reactive file watching. File changes accumulate but don't trigger re-evaluation. Use before editing multiple `.cmp.oo` files in sequence. No parameters.
 
 ### vcad_watch_resume
 

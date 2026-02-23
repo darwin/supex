@@ -147,7 +147,7 @@ class VCADReactiveWatcher:
 
     Integrates:
     - SketchUp entity observer (poll-based via VCADObserverPoller)
-    - Filesystem watcher (.skp.oo files)
+    - Filesystem watcher (.cmp.oo files)
     - Module tracker (.oo library files)
 
     Supports pause/resume for agent batch operations. While paused,

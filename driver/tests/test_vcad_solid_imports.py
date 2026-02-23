@@ -54,8 +54,8 @@ def mock_sketchup():
 
 @pytest.fixture
 def solid_source_file(tmp_path):
-    """Create a .skp.oo source file with a :solid import."""
-    src = tmp_path / "consumer.skp.oo"
+    """Create a .cmp.oo source file with a :solid import."""
+    src = tmp_path / "consumer.cmp.oo"
     src.write_text(
         '[let bracket [import :host "entity:67890" :solid]]\n'
         "[pipe [cube 20.0 20.0 50.0]\n"
@@ -68,7 +68,7 @@ def solid_source_file(tmp_path):
 @pytest.fixture
 def mixed_source_file(tmp_path):
     """Create a source file with both data and solid imports."""
-    src = tmp_path / "mixed.skp.oo"
+    src = tmp_path / "mixed.cmp.oo"
     src.write_text(
         '[let dims [import :host "entity:100" :dims]]\n'
         '[let bracket [import :host "entity:200" :solid]]\n'
@@ -226,7 +226,7 @@ class TestSolidImportSuccess:
         self, mock_ctx, mock_vcad, mock_sketchup, tmp_path
     ):
         """Data-only imports use the original eval_with_imports path."""
-        src = tmp_path / "data-only.skp.oo"
+        src = tmp_path / "data-only.cmp.oo"
         src.write_text(
             '[let dims [import :host "entity:100" :dims]]\n'
             "[cube 1.0 1.0 1.0]"

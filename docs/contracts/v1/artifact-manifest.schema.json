@@ -26,7 +26,7 @@
     },
     "source_file": {
       "type": "string",
-      "description": "Path to the source .skp.oo file."
+      "description": "Path to the source .cmp.oo file."
     },
     "source_hash": {
       "type": "string",

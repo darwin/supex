@@ -54,7 +54,7 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 VCAD is a BRep (Boundary Representation) kernel that brings parametric CAD modeling to SketchUp. The AI agent writes geometry code in [Loon](https://loonlang.com/) (a Lisp with algebraic data types and type inference), a Rust sidecar evaluates it into solid geometry, and SketchUp imports the resulting mesh as a native component.
 
 ```
-.skp.oo source  ->  Loon interpreter  ->  VCAD IR  ->  BRep kernel  ->  mesh  ->  SketchUp component
+.cmp.oo source  ->  Loon interpreter  ->  VCAD IR  ->  BRep kernel  ->  mesh  ->  SketchUp component
 ```
 
 ### Current Capabilities

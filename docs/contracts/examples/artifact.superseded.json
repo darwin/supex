@@ -4,7 +4,7 @@
   "mesh_path": "/tmp/vcad-sidecar/bracket.dae",
   "finished_at": "2026-02-22T10:30:03Z",
   "node_id": "bracket",
-  "source_file": "/project/bracket.skp.oo",
+  "source_file": "/project/bracket.cmp.oo",
   "supersede_reason": "newer evaluation enqueued before completion",
   "superseded_by_revision": 6
 }

@@ -785,7 +785,7 @@ class TestVCADToolsIntegration < Minitest::Test
 
     defn.name = 'vcad_node-1'
     defn.set_attribute('vcad', 'node_id', 'node-1')
-    defn.set_attribute('vcad', 'source_file', '/path/to/source.skp.oo')
+    defn.set_attribute('vcad', 'source_file', '/path/to/source.cmp.oo')
     defn.set_attribute('vcad', 'version', 1)
 
     pt = Geom::Point3d.new(100.0.mm, 200.0.mm, 0.0.mm)

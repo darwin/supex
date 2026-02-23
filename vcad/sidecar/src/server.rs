@@ -1355,7 +1355,7 @@ mod tests {
             &tools_call_request(
                 2,
                 "vcad.eval_file",
-                serde_json::json!({ "path": "/some/file.skp.oo" }),
+                serde_json::json!({ "path": "/some/file.cmp.oo" }),
             ),
         );
         assert!(resp.get("error").is_some(), "vcad.eval_file should be unknown");

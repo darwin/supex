@@ -416,7 +416,7 @@ class TestStormDedup:
         # Setup: node-a imports entity:12345
         node_a = VCADNode(
             node_id="node-a",
-            source_file="/project/part-a.skp.oo",
+            source_file="/project/part-a.cmp.oo",
             imports=[ImportRef(
                 binding_name="table_dims",
                 selector="entity:12345",
@@ -458,7 +458,7 @@ class TestStaleResultRace:
 
     def test_stale_revision_dropped(self, dag):
         """Older revision result is rejected when newer revision exists."""
-        node = VCADNode(node_id="node-a", source_file="/project/part-a.skp.oo")
+        node = VCADNode(node_id="node-a", source_file="/project/part-a.cmp.oo")
         dag.add_node(node)
 
         # Bump revision twice (simulating two rapid updates)
@@ -477,7 +477,7 @@ class TestStaleResultRace:
 
     def test_only_latest_revision_applied(self, dag):
         """Only the result from the latest revision is applied."""
-        node = VCADNode(node_id="node-a", source_file="/project/part-a.skp.oo")
+        node = VCADNode(node_id="node-a", source_file="/project/part-a.cmp.oo")
         dag.add_node(node)
 
         rev1 = dag.bump_revision("node-a")
@@ -496,7 +496,7 @@ class TestStaleResultRace:
 
     def test_stale_drop_counter_increments(self, dag):
         """Stale dropped counter increments for each stale result."""
-        node = VCADNode(node_id="node-a", source_file="/project/part-a.skp.oo")
+        node = VCADNode(node_id="node-a", source_file="/project/part-a.cmp.oo")
         dag.add_node(node)
 
         dag.bump_revision("node-a")

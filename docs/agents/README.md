@@ -4,7 +4,7 @@ This directory contains documentation and prompts for AI agents that interact wi
 
 It covers two authoring workflows:
 - Ruby workflow for direct SketchUp API automation
-- VCAD workflow for parametric CAD in Loon (`.skp.oo` + `.oo` modules)
+- VCAD workflow for parametric CAD in Loon (`.cmp.oo` + `.oo` modules)
 
 ### Purpose
 
@@ -12,7 +12,7 @@ When an AI agent (Claude, etc.) works on a SketchUp project using Supex, it need
 - How to choose Ruby vs VCAD for the task
 - How to use the MCP tools (`eval_ruby_file`, `vcad_place`, `vcad_update`, etc.)
 - SketchUp Ruby API patterns and best practices
-- Loon `.skp.oo` authoring constraints and VCAD update workflow
+- Loon `.cmp.oo` authoring constraints and VCAD update workflow
 - Reusing existing CAD library modules instead of writing ad-hoc geometry helpers
 - Common pitfalls and how to avoid them
 

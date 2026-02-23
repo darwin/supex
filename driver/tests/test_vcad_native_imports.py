@@ -72,8 +72,8 @@ def mock_sketchup():
 
 @pytest.fixture
 def native_solid_source(tmp_path):
-    """Create a .skp.oo source file importing a native SketchUp solid."""
-    src = tmp_path / "cut-from-native.skp.oo"
+    """Create a .cmp.oo source file importing a native SketchUp solid."""
+    src = tmp_path / "cut-from-native.cmp.oo"
     src.write_text(
         '[let wall [import :host "entity:11111" :solid]]\n'
         "[pipe [cube 200.0 100.0 300.0]\n"
@@ -85,7 +85,7 @@ def native_solid_source(tmp_path):
 @pytest.fixture
 def mixed_native_vcad_source(tmp_path):
     """Source with both native mesh and vcad-backed solid imports."""
-    src = tmp_path / "mixed-native-vcad.skp.oo"
+    src = tmp_path / "mixed-native-vcad.cmp.oo"
     src.write_text(
         '[let wall [import :host "entity:11111" :solid]]\n'
         '[let bracket [import :host "entity:22222" :solid]]\n'
@@ -247,7 +247,7 @@ class TestNativeMeshImportSuccess:
         self, mock_ctx, mock_vcad, mock_sketchup, tmp_path
     ):
         """Native mesh + data imports coexist correctly."""
-        src = tmp_path / "native-with-data.skp.oo"
+        src = tmp_path / "native-with-data.cmp.oo"
         src.write_text(
             '[let dims [import :host "entity:100" :dims]]\n'
             '[let wall [import :host "entity:11111" :solid]]\n'
@@ -466,7 +466,7 @@ class TestBuildImportRefsWithNativeMesh:
 
         consumer = VCADNode(
             node_id="consumer",
-            source_file="/tmp/consumer.skp.oo",
+            source_file="/tmp/consumer.cmp.oo",
             imports=[
                 ImportRef(
                     binding_name="wall",

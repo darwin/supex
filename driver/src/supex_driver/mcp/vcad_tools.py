@@ -408,7 +408,7 @@ def vcad_place(
     position: list[float] | None = None,
     component_name: str | None = None,
 ) -> str:
-    """Evaluate a .skp.oo file and place the resulting mesh in SketchUp.
+    """Evaluate a .cmp.oo file and place the resulting mesh in SketchUp.
 
     1. Send source file to VCAD sidecar for evaluation -> DAE mesh file
     2. Send mesh path to SketchUp -> definitions.import -> ComponentDefinition
@@ -417,7 +417,7 @@ def vcad_place(
     Args:
         ctx: MCP context
         node_id: Unique identifier for this VCAD node
-        source_file: Path to the .skp.oo file
+        source_file: Path to the .cmp.oo file
         position: Optional [x, y, z] position in mm (default [0, 0, 0])
         component_name: Optional name for the SketchUp component
     """
@@ -701,11 +701,11 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
 def vcad_inspect(ctx: McpContext, source: str) -> str:
     """Inspect VCAD geometry: volume, surface area, bounding box.
 
-    Source can be a .skp.oo file path or inline Loon code.
+    Source can be a .cmp.oo file path or inline Loon code.
 
     Args:
         ctx: MCP context
-        source: A .skp.oo file path or inline Loon code
+        source: A .cmp.oo file path or inline Loon code
     """
     try:
         # Read source text if it's a file path
@@ -764,7 +764,7 @@ def vcad_export(
 
     Args:
         ctx: MCP context
-        source: A .skp.oo file path or inline Loon code
+        source: A .cmp.oo file path or inline Loon code
         format: Export format - "obj", "dae", or "step" (default "obj")
         output_path: Optional output file path. Auto-generated if empty.
     """
@@ -936,7 +936,7 @@ def vcad_update_cascade(ctx: McpContext, node_id: str) -> str:
 def vcad_watch_pause(ctx: McpContext) -> str:
     """Pause reactive watching. Changes accumulate but don't trigger re-evaluation.
 
-    Use this before editing multiple .skp.oo files in sequence, then call
+    Use this before editing multiple .cmp.oo files in sequence, then call
     vcad_watch_resume to flush all changes as a single cascade.
     """
     watcher = get_vcad_reactive_watcher()

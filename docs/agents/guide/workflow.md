@@ -9,13 +9,13 @@ For strict rules and constraints, see `supex-guide/README.md`.
 | Goal | Primary workflow | Why |
 |------|------------------|-----|
 | Manipulate existing SketchUp entities and settings | Ruby | Direct SketchUp API control |
-| Build repeatable parametric solids from source | VCAD | `.skp.oo` source-of-truth and deterministic updates |
-| Drive geometry from host entity imports | VCAD | Use `[import ...]` in `.skp.oo` source — auto-resolved |
+| Build repeatable parametric solids from source | VCAD | `.cmp.oo` source-of-truth and deterministic updates |
+| Drive geometry from host entity imports | VCAD | Use `[import ...]` in `.cmp.oo` source — auto-resolved |
 
 ## VCAD Workflow Loop
 
 1. Check existing `.oo` modules first and reuse CAD library helpers.
-2. Keep each `.skp.oo` file as one node that evaluates to exactly one solid.
+2. Keep each `.cmp.oo` file as one node that evaluates to exactly one solid.
 3. Use `vcad_place` to place nodes (imports are auto-detected and resolved).
 5. Re-evaluate with `vcad_update` for one node or `vcad_update_cascade` for dependent graphs.
 6. Verify with `vcad_list_nodes()` and screenshots.
@@ -23,7 +23,7 @@ For strict rules and constraints, see `supex-guide/README.md`.
 ### VCAD Node Example
 
 ```loon
-; skp/bracket.skp.oo
+; skp/bracket.cmp.oo
 [use shared/params :as p]
 [use shared/lib :as lib]
 
@@ -41,13 +41,13 @@ For strict rules and constraints, see `supex-guide/README.md`.
 [cube [get host :width] 10.0 [get host :height]]
 ```
 
-`[import ...]` declarations must stay in `.skp.oo` files (or inline code). They do not work in `.oo` modules loaded via `[use ...]`.
+`[import ...]` declarations must stay in `.cmp.oo` files (or inline code). They do not work in `.oo` modules loaded via `[use ...]`.
 
 ### Batch Editing Pattern
 
 ```text
 vcad_watch_pause()
-# edit multiple .skp.oo and .oo files
+# edit multiple .cmp.oo and .oo files
 vcad_watch_resume()  # flushes as one merged cascade update
 ```
 

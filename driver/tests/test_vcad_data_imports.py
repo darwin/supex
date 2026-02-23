@@ -53,8 +53,8 @@ def mock_sketchup():
 
 @pytest.fixture
 def source_file(tmp_path):
-    """Create a temporary .skp.oo source file with imports."""
-    src = tmp_path / "part.skp.oo"
+    """Create a temporary .cmp.oo source file with imports."""
+    src = tmp_path / "part.cmp.oo"
     src.write_text(
         '[let host-dims [import :host "entity:12345" :dims]]\n'
         "[pipe [cube [get host-dims :width] 10.0 [get host-dims :height]]\n"
@@ -66,7 +66,7 @@ def source_file(tmp_path):
 @pytest.fixture
 def source_file_no_imports(tmp_path):
     """Create a source file without imports."""
-    src = tmp_path / "simple.skp.oo"
+    src = tmp_path / "simple.cmp.oo"
     src.write_text("[cube 10.0 10.0 10.0]")
     return str(src)
 
@@ -182,7 +182,7 @@ class TestVCADPlaceImports:
         self, mock_ctx, mock_vcad, mock_sketchup, tmp_path
     ):
         """Multiple imports resolved in order."""
-        src = tmp_path / "multi.skp.oo"
+        src = tmp_path / "multi.cmp.oo"
         src.write_text(
             '[let dims [import :host "entity:100" :dims]]\n'
             '[let bb [import :host "entity:200" :bbox]]\n'
@@ -256,7 +256,7 @@ class TestVCADPlaceImportsErrors:
             vcad_place(
                 mock_ctx,
                 node_id="n1",
-                source_file="/nonexistent/file.skp.oo",
+                source_file="/nonexistent/file.cmp.oo",
             )
         )
         assert result["success"] is False

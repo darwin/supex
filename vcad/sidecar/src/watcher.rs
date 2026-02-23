@@ -13,7 +13,7 @@ pub struct FileChange {
 /// Classification of changed file type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileChangeKind {
-    /// A .skp.oo file (VCAD node source).
+    /// A .cmp.oo file (VCAD node source).
     VcadLoon,
     /// A library .oo module file (legacy .loon still accepted).
     Loon,
@@ -37,7 +37,7 @@ impl FileWatcher {
         }
     }
 
-    /// Start watching a project directory for .skp.oo and .oo module changes.
+    /// Start watching a project directory for .cmp.oo and .oo module changes.
     pub fn watch(&mut self, dir: &Path) -> Result<(), String> {
         // Stop previous watch if any
         self.stop();
@@ -131,7 +131,7 @@ impl FileWatcher {
 fn classify_path(path: &Path) -> Option<FileChange> {
     let name = path.file_name()?.to_str()?;
 
-    if name.ends_with(".skp.oo") {
+    if name.ends_with(".cmp.oo") {
         Some(FileChange {
             path: path.to_path_buf(),
             kind: FileChangeKind::VcadLoon,
@@ -152,8 +152,8 @@ mod tests {
     use std::fs;
 
     #[test]
-    fn test_classify_skp_oo() {
-        let change = classify_path(Path::new("/project/test.skp.oo"));
+    fn test_classify_cmp_oo() {
+        let change = classify_path(Path::new("/project/test.cmp.oo"));
         assert!(change.is_some());
         assert_eq!(change.unwrap().kind, FileChangeKind::VcadLoon);
     }
@@ -200,13 +200,13 @@ mod tests {
     }
 
     #[test]
-    fn test_watcher_detects_skp_oo_change() {
+    fn test_watcher_detects_cmp_oo_change() {
         let dir = tempfile::tempdir().unwrap();
         let mut watcher = FileWatcher::new();
         watcher.watch(dir.path()).unwrap();
 
-        // Create a .skp.oo file
-        let file_path = dir.path().join("test.skp.oo");
+        // Create a .cmp.oo file
+        let file_path = dir.path().join("test.cmp.oo");
         fs::write(&file_path, "[cube 10.0 10.0 10.0]").unwrap();
 
         // Give the watcher time to pick up the event

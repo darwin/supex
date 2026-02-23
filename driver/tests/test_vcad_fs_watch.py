@@ -104,7 +104,7 @@ class TestVCADFileWatcherLifecycle:
         """Poll returns change list from sidecar."""
         mock_vcad.watch_poll.return_value = {
             "changes": [
-                {"path": "/project/test.skp.oo", "kind": "vcad_loon"},
+                {"path": "/project/test.cmp.oo", "kind": "vcad_loon"},
                 {"path": "/project/src/lib.oo", "kind": "loon"},
             ]
         }
@@ -112,7 +112,7 @@ class TestVCADFileWatcherLifecycle:
         changes = watcher.poll(mock_vcad)
 
         assert len(changes) == 2
-        assert changes[0]["path"] == "/project/test.skp.oo"
+        assert changes[0]["path"] == "/project/test.cmp.oo"
         assert changes[0]["kind"] == "vcad_loon"
         assert changes[1]["kind"] == "loon"
 
@@ -127,7 +127,7 @@ class TestVCADFileWatcherAutoStart:
 
     def test_auto_start_from_source_file(self, watcher, mock_vcad, tmp_path):
         """Auto-start detects project root from source file."""
-        source_file = str(tmp_path / "test.skp.oo")
+        source_file = str(tmp_path / "test.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
 
@@ -139,7 +139,7 @@ class TestVCADFileWatcherAutoStart:
 
     def test_auto_start_idempotent(self, watcher, mock_vcad, tmp_path):
         """Auto-start does not re-start if already watching."""
-        source_file = str(tmp_path / "test.skp.oo")
+        source_file = str(tmp_path / "test.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
 
@@ -151,7 +151,7 @@ class TestVCADFileWatcherAutoStart:
 
     def test_auto_start_handles_error(self, watcher, mock_vcad, tmp_path):
         """Auto-start swallows errors gracefully."""
-        source_file = str(tmp_path / "test.skp.oo")
+        source_file = str(tmp_path / "test.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
 
@@ -172,7 +172,7 @@ class TestProjectRootDetection:
 
     def test_detect_from_file(self, tmp_path):
         """Detects parent directory of source file."""
-        source = str(tmp_path / "bracket.skp.oo")
+        source = str(tmp_path / "bracket.cmp.oo")
         with open(source, "w") as f:
             f.write("")
 
@@ -183,7 +183,7 @@ class TestProjectRootDetection:
         """Detects parent directory even for nested files."""
         subdir = tmp_path / "parts"
         subdir.mkdir()
-        source = str(subdir / "bracket.skp.oo")
+        source = str(subdir / "bracket.cmp.oo")
         with open(source, "w") as f:
             f.write("")
 
@@ -192,7 +192,7 @@ class TestProjectRootDetection:
 
     def test_detect_from_nonexistent_dir(self):
         """Returns None for nonexistent directory."""
-        root = _detect_project_root("/nonexistent/path/file.skp.oo")
+        root = _detect_project_root("/nonexistent/path/file.cmp.oo")
         assert root is None
 
 
@@ -206,7 +206,7 @@ class TestFindNodesForChanges:
 
     def test_match_by_source_file(self, watcher, dag, tmp_path):
         """Finds node whose source_file matches changed path."""
-        source = str(tmp_path / "bracket.skp.oo")
+        source = str(tmp_path / "bracket.cmp.oo")
         dag.add_node(VCADNode(
             node_id="bracket",
             source_file=source,
@@ -221,10 +221,10 @@ class TestFindNodesForChanges:
         """Returns empty list when no node matches."""
         dag.add_node(VCADNode(
             node_id="bracket",
-            source_file=str(tmp_path / "bracket.skp.oo"),
+            source_file=str(tmp_path / "bracket.cmp.oo"),
         ))
 
-        changes = [{"path": str(tmp_path / "other.skp.oo"), "kind": "vcad_loon"}]
+        changes = [{"path": str(tmp_path / "other.cmp.oo"), "kind": "vcad_loon"}]
         node_ids = watcher.find_nodes_for_changes(changes, dag)
 
         assert node_ids == []
@@ -244,8 +244,8 @@ class TestFindNodesForChanges:
 
     def test_multiple_matches(self, watcher, dag, tmp_path):
         """Finds multiple nodes when multiple files change."""
-        source_a = str(tmp_path / "a.skp.oo")
-        source_b = str(tmp_path / "b.skp.oo")
+        source_a = str(tmp_path / "a.cmp.oo")
+        source_b = str(tmp_path / "b.cmp.oo")
         dag.add_node(VCADNode(node_id="node-a", source_file=source_a))
         dag.add_node(VCADNode(node_id="node-b", source_file=source_b))
 
@@ -352,7 +352,7 @@ class TestVCADPlaceAutoStart:
         _reset_vcad_dag()
         _reset_vcad_file_watcher()
 
-        source_file = str(tmp_path / "test.skp.oo")
+        source_file = str(tmp_path / "test.cmp.oo")
         with open(source_file, "w") as f:
             f.write("[cube 10.0 10.0 10.0]")
 
@@ -402,8 +402,8 @@ class TestPollAndCascade:
 
     def test_poll_finds_changed_nodes_and_cascade(self, dag, tmp_path):
         """End-to-end: poll changes, find nodes, trigger cascade."""
-        source_a = str(tmp_path / "a.skp.oo")
-        source_b = str(tmp_path / "b.skp.oo")
+        source_a = str(tmp_path / "a.cmp.oo")
+        source_b = str(tmp_path / "b.cmp.oo")
 
         dag.add_node(VCADNode(node_id="node-a", source_file=source_a))
         dag.add_node(VCADNode(
@@ -437,7 +437,7 @@ class TestPollAndCascade:
 
     def test_poll_no_changes_no_cascade(self, dag, tmp_path):
         """No changes means no cascade needed."""
-        source = str(tmp_path / "a.skp.oo")
+        source = str(tmp_path / "a.cmp.oo")
         dag.add_node(VCADNode(node_id="node-a", source_file=source))
 
         watcher = VCADFileWatcher()
@@ -446,8 +446,8 @@ class TestPollAndCascade:
 
     def test_poll_change_to_leaf_node_no_downstream(self, dag, tmp_path):
         """Change to a leaf node has no downstream cascade."""
-        source_a = str(tmp_path / "a.skp.oo")
-        source_b = str(tmp_path / "b.skp.oo")
+        source_a = str(tmp_path / "a.cmp.oo")
+        source_b = str(tmp_path / "b.cmp.oo")
 
         dag.add_node(VCADNode(node_id="node-a", source_file=source_a))
         dag.add_node(VCADNode(

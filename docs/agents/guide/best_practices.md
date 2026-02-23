@@ -7,20 +7,20 @@ For source-of-truth behavior, see `supex-guide/README.md`.
 ## Choose the Right Workflow First
 
 - Use the Ruby workflow for SketchUp-native operations (editing existing entities, tags/materials, camera, metadata)
-- Use the VCAD workflow for repeatable parametric solids authored in `.skp.oo`
+- Use the VCAD workflow for repeatable parametric solids authored in `.cmp.oo`
 - In mixed tasks, keep geometry authoring in VCAD and use Ruby for post-placement organization
 
 ## VCAD CAD Library Reuse
 
 - Inspect existing project `.oo` modules before writing new geometry logic
 - Prefer existing exported helpers from the CAD library
-- Keep `.skp.oo` files thin: compose parameters and library calls
+- Keep `.cmp.oo` files thin: compose parameters and library calls
 - Do not invent unsupported primitives or custom DSL forms
 
 ## VCAD Import Rules
 
 - `[import ...]` is supported in all VCAD tools — imports are auto-detected and resolved
-- Keep `[import ...]` declarations in `.skp.oo` files (or inline code) only
+- Keep `[import ...]` declarations in `.cmp.oo` files (or inline code) only
 - Do not put `[import ...]` in `.oo` modules loaded via `[use ...]`
 
 ## VCAD Update Safety
@@ -32,7 +32,7 @@ For source-of-truth behavior, see `supex-guide/README.md`.
 
 ## VCAD Geometry Constraints
 
-- One `.skp.oo` file must evaluate to one solid
+- One `.cmp.oo` file must evaluate to one solid
 - Prefer BRep-on-BRep booleans for reliable CSG behavior
 - Mixed native-mesh + BRep booleans can have limitations; verify with `vcad_list_nodes` and screenshots
 - Validate results with `vcad_list_nodes` and screenshots after each update

@@ -689,7 +689,7 @@ class TestVCADConnectionPersistentState:
         state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
-            source_file="/test/bracket.skp.oo",
+            source_file="/test/bracket.cmp.oo",
             revision=5,
             applied_revision=5,
             last_entity_id="ent-123",
@@ -697,7 +697,7 @@ class TestVCADConnectionPersistentState:
         ))
         state.set_node(NodeState(
             node_id="node-2",
-            source_file="/test/plate.skp.oo",
+            source_file="/test/plate.cmp.oo",
             revision=3,
             applied_revision=2,
             status="active",
@@ -712,7 +712,7 @@ class TestVCADConnectionPersistentState:
 
         nodes = loaded.all_nodes()
         assert len(nodes) == 2
-        assert nodes["node-1"].source_file == "/test/bracket.skp.oo"
+        assert nodes["node-1"].source_file == "/test/bracket.cmp.oo"
         assert nodes["node-1"].revision == 5
         assert nodes["node-2"].applied_revision == 2
 
@@ -723,7 +723,7 @@ class TestVCADConnectionPersistentState:
     def test_atomic_write(self, tmp_state_path: str) -> None:
         """Verify save uses atomic write (no partial state on crash)."""
         state = VCADPersistentState(state_path=tmp_state_path)
-        state.set_node(NodeState(node_id="n1", source_file="/a.skp.oo"))
+        state.set_node(NodeState(node_id="n1", source_file="/a.cmp.oo"))
         state.save()
 
         # File should be valid JSON
@@ -734,8 +734,8 @@ class TestVCADConnectionPersistentState:
 
     def test_remove_node(self, tmp_state_path: str) -> None:
         state = VCADPersistentState(state_path=tmp_state_path)
-        state.set_node(NodeState(node_id="n1", source_file="/a.skp.oo"))
-        state.set_node(NodeState(node_id="n2", source_file="/b.skp.oo"))
+        state.set_node(NodeState(node_id="n1", source_file="/a.cmp.oo"))
+        state.set_node(NodeState(node_id="n2", source_file="/b.cmp.oo"))
 
         state.remove_node("n1")
 
@@ -797,7 +797,7 @@ class TestVCADConnectionRecovery:
     def test_source_missing_marks_degraded(self, tmp_state_path: str) -> None:
         """Remove a source file and verify node is marked degraded."""
         # Create a temp file then delete it to simulate missing source
-        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".cmp.oo", delete=False) as f:
             missing_path = f.name
         os.unlink(missing_path)
 
@@ -852,13 +852,13 @@ class TestVCADConnectionRecovery:
         state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
             node_id="node-1",
-            source_file="/test/a.skp.oo",
+            source_file="/test/a.cmp.oo",
             revision=7,
             applied_revision=7,
         ))
         state.set_node(NodeState(
             node_id="node-2",
-            source_file="/test/b.skp.oo",
+            source_file="/test/b.cmp.oo",
             revision=3,
             applied_revision=3,
         ))
@@ -890,7 +890,7 @@ class TestVCADConnectionRecovery:
         ))
         state.set_node(NodeState(
             node_id="node-2",
-            source_file="/nonexistent/missing.skp.oo",
+            source_file="/nonexistent/missing.cmp.oo",
             revision=3,
             applied_revision=3,
         ))
@@ -1094,7 +1094,7 @@ class TestReconcilerWithDag:
         verify all drift buckets are classified correctly.
         """
         # Create and delete a file for source_missing
-        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".cmp.oo", delete=False) as f:
             missing_path = f.name
         os.unlink(missing_path)
 
@@ -1154,7 +1154,7 @@ class TestReconcilerWithDag:
         """Verify source_missing nodes are marked degraded and return
         SOURCE_FILE_MISSING deterministically.
         """
-        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".cmp.oo", delete=False) as f:
             missing_path = f.name
         os.unlink(missing_path)
 

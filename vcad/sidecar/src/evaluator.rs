@@ -801,7 +801,7 @@ mod tests {
 
     #[test]
     fn test_raw_import_fails_without_preprocessing() {
-        // Imports are only supported in .skp.oo files where they are
+        // Imports are only supported in .cmp.oo files where they are
         // preprocessed by extract_and_rewrite_imports before evaluation.
         // In plain .oo modules (loaded via [use ...]), raw [import ...]
         // reaches the Loon interpreter directly and must fail.

@@ -1,7 +1,7 @@
 """Filesystem watcher integration for VCAD nodes.
 
 Polls the sidecar for file changes and triggers cascade updates
-through the DAG when .skp.oo source files change on disk.
+through the DAG when .cmp.oo source files change on disk.
 """
 
 import logging
@@ -85,7 +85,7 @@ class VCADFileWatcher:
         watching it. Called from vcad_place to enable automatic file watching.
 
         Args:
-            source_file: Path to a .skp.oo file being placed.
+            source_file: Path to a .cmp.oo file being placed.
             vcad_connection: VCADConnection instance.
         """
         if self.is_watching:
@@ -103,7 +103,7 @@ class VCADFileWatcher:
     ) -> list[str]:
         """Find DAG node IDs whose source_file matches changed paths.
 
-        Only matches vcad_loon changes (.skp.oo files), not module library
+        Only matches vcad_loon changes (.cmp.oo files), not module library
         changes. For `.oo` library changes, use find_nodes_for_loon_changes().
 
         Args:
@@ -166,11 +166,11 @@ def _detect_project_root(source_file: str) -> str | None:
     """Detect project root from a source file path.
 
     Walks up from the source file's directory looking for project markers:
-    - A directory containing .skp.oo files at the top level
+    - A directory containing .cmp.oo files at the top level
     - Falls back to the source file's parent directory
 
     Args:
-        source_file: Path to a .skp.oo file.
+        source_file: Path to a .cmp.oo file.
 
     Returns:
         Absolute path to the project root, or None.

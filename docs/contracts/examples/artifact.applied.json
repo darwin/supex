@@ -4,7 +4,7 @@
   "mesh_path": "/tmp/vcad-sidecar/bracket.dae",
   "finished_at": "2026-02-22T10:30:00Z",
   "node_id": "bracket",
-  "source_file": "/project/bracket.skp.oo",
+  "source_file": "/project/bracket.cmp.oo",
   "revision": 5,
   "bbox": {
     "min": [0.0, 0.0, 0.0],

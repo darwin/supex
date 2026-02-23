@@ -129,7 +129,7 @@ class TestBuilderValidatesRequiredKeys:
         result = build_error(
             SOURCE_FILE_MISSING,
             "Source file not found",
-            {"node_id": "bracket", "source_file": "/project/bracket.skp.oo"},
+            {"node_id": "bracket", "source_file": "/project/bracket.cmp.oo"},
             operation="vcad_update:eval",
         )
         assert result["error_code"] == SOURCE_FILE_MISSING
@@ -248,7 +248,7 @@ class TestNoBoundaryPathMessageOnly:
             negotiated_capabilities=["eval"],
             operation="vcad_place",
         )
-        result = json.loads(vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo"))
+        result = json.loads(vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo"))
         assert result["error_code"] == CAPABILITY_UNAVAILABLE
         assert "details" in result
         assert result["details"]["required_capability"] == "adt_cache"

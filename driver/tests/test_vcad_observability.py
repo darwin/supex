@@ -283,16 +283,16 @@ class TestQueueOverflowMetrics:
 
     def test_queue_overflow_counted(self) -> None:
         queue = EvalQueue(max_size=2)
-        assert queue.enqueue(EvalJob("n1", 1, "/a.skp.oo")) is True
-        assert queue.enqueue(EvalJob("n2", 1, "/b.skp.oo")) is True
-        assert queue.enqueue(EvalJob("n3", 1, "/c.skp.oo")) is False
+        assert queue.enqueue(EvalJob("n1", 1, "/a.cmp.oo")) is True
+        assert queue.enqueue(EvalJob("n2", 1, "/b.cmp.oo")) is True
+        assert queue.enqueue(EvalJob("n3", 1, "/c.cmp.oo")) is False
         assert queue.queue_rejected_total == 1
 
     def test_multiple_overflow_counted(self) -> None:
         queue = EvalQueue(max_size=1)
-        queue.enqueue(EvalJob("n1", 1, "/a.skp.oo"))
-        assert queue.enqueue(EvalJob("n2", 1, "/b.skp.oo")) is False
-        assert queue.enqueue(EvalJob("n3", 1, "/c.skp.oo")) is False
+        queue.enqueue(EvalJob("n1", 1, "/a.cmp.oo"))
+        assert queue.enqueue(EvalJob("n2", 1, "/b.cmp.oo")) is False
+        assert queue.enqueue(EvalJob("n3", 1, "/c.cmp.oo")) is False
         assert queue.queue_rejected_total == 2
 
 
@@ -306,17 +306,17 @@ class TestSupersedeMetrics:
 
     def test_superseded_dropped_total(self) -> None:
         queue = EvalQueue(max_size=10)
-        queue.enqueue(EvalJob("node-1", 1, "/a.skp.oo"))
-        queue.enqueue(EvalJob("node-1", 2, "/a.skp.oo"))
-        queue.enqueue(EvalJob("node-1", 3, "/a.skp.oo"))
+        queue.enqueue(EvalJob("node-1", 1, "/a.cmp.oo"))
+        queue.enqueue(EvalJob("node-1", 2, "/a.cmp.oo"))
+        queue.enqueue(EvalJob("node-1", 3, "/a.cmp.oo"))
 
         assert queue.superseded_dropped_total == 2
 
     def test_superseded_skipped_before_eval(self) -> None:
         queue = EvalQueue(max_size=10)
-        queue.enqueue(EvalJob("node-1", 1, "/a.skp.oo"))
-        queue.enqueue(EvalJob("node-1", 2, "/a.skp.oo"))
-        queue.enqueue(EvalJob("node-1", 3, "/a.skp.oo"))
+        queue.enqueue(EvalJob("node-1", 1, "/a.cmp.oo"))
+        queue.enqueue(EvalJob("node-1", 2, "/a.cmp.oo"))
+        queue.enqueue(EvalJob("node-1", 3, "/a.cmp.oo"))
 
         job = queue.get_next()
         assert job is not None
@@ -325,9 +325,9 @@ class TestSupersedeMetrics:
 
     def test_supersede_different_nodes_independent(self) -> None:
         queue = EvalQueue(max_size=10)
-        queue.enqueue(EvalJob("node-1", 1, "/a.skp.oo"))
-        queue.enqueue(EvalJob("node-2", 1, "/b.skp.oo"))
-        queue.enqueue(EvalJob("node-1", 2, "/a.skp.oo"))
+        queue.enqueue(EvalJob("node-1", 1, "/a.cmp.oo"))
+        queue.enqueue(EvalJob("node-2", 1, "/b.cmp.oo"))
+        queue.enqueue(EvalJob("node-1", 2, "/a.cmp.oo"))
 
         assert queue.superseded_dropped_total == 1
 
@@ -663,7 +663,7 @@ class TestReconcileDriftThroughDag:
 
     def test_source_missing_reports_degraded(self, tmp_state_path: str) -> None:
         # Create and delete a file
-        with tempfile.NamedTemporaryFile(suffix=".skp.oo", delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".cmp.oo", delete=False) as f:
             missing_path = f.name
         os.unlink(missing_path)
 
@@ -881,9 +881,9 @@ class TestEndToEndMetricFlow:
         queue = EvalQueue(max_size=2)
 
         # Fill queue and overflow — metrics are emitted automatically
-        queue.enqueue(EvalJob("n1", 1, "/a.skp.oo"))
-        queue.enqueue(EvalJob("n2", 1, "/b.skp.oo"))
-        queue.enqueue(EvalJob("n3", 1, "/c.skp.oo"))  # rejected
+        queue.enqueue(EvalJob("n1", 1, "/a.cmp.oo"))
+        queue.enqueue(EvalJob("n2", 1, "/b.cmp.oo"))
+        queue.enqueue(EvalJob("n3", 1, "/c.cmp.oo"))  # rejected
 
         snap = metrics.snapshot()
         assert snap["queue_rejected_total"] == 1
