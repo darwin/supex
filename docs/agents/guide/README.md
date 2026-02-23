@@ -14,6 +14,7 @@ This directory (`supex-guide/`) contains symlinks to shared documentation. When 
 
 - `api/` → SketchUp Ruby API docs (symlink)
 - `stdlib/` → Standard library reference (symlink)
+- `cad-lib/` → Loon CAD library source (symlink) — type definitions and constructors used by `.cmp.oo` files
 
 **Important**: To read `stdlib/README.md`, use the path `supex-guide/stdlib/README.md` (not a glob search). Symlinks may point outside the project directory.
 
@@ -300,6 +301,10 @@ Do not invent unsupported primitives or ad-hoc DSL forms.
 - **Sketch-based**: `sketch`, `extrude`, `revolve`, `sweep-line`, `sweep-helix`, `loft`, `loft-closed`
 - **Scene/material**: `root`, `material`
 
+**Authoritative source**: `supex-guide/cad-lib/src/lib.loon` — contains all type definitions (`Solid`, `Sketch`, `Material`, etc.) and the exact constructor signatures. Read this file when you need to verify parameter order or discover available constructors.
+
+**Important**: Loon has no runtime arithmetic (`+`, `-`, `*` etc.). All numeric values must be literals. Use `let` bindings for named constants and `fn` for reusable patterns.
+
 Prefer reusing existing project `.oo` modules and their exported CAD helpers before writing new geometry forms.
 
 ## Essential Best Practices
@@ -408,3 +413,4 @@ For deeper information:
 - `supex-guide/best_practices.md` - Cross-workflow troubleshooting guide
 - `supex-guide/stdlib/README.md` - Ruby standard library helper reference
 - `supex-guide/api/INDEX.md` - SketchUp API entry point
+- `supex-guide/cad-lib/src/lib.loon` - Loon CAD type definitions and constructor signatures
