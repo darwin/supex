@@ -178,12 +178,12 @@ class TestRequiredDetailsPresent:
                 "pending_nodes": ["bracket", "plate"],
             },
         }
-        result = normalize_error_response(response, "vcad_update_cascade")
+        result = normalize_error_response(response, "vcad_update")
 
         assert result["error_code"] == STATE_RECONCILE_REQUIRED
         assert result["details"]["drift"] == "3 nodes diverged"
         assert result["details"]["pending_nodes"] == ["bracket", "plate"]
-        assert result["details"]["operation"] == "vcad_update_cascade"
+        assert result["details"]["operation"] == "vcad_update"
 
     def test_artifact_read_failed_has_all_keys(self) -> None:
         """ARTIFACT_READ_FAILED includes manifest_path, reason, operation."""
@@ -261,7 +261,7 @@ class TestMessageOnlyErrorsFail:
             "error": "Reconciliation needed",
             "error_code": STATE_RECONCILE_REQUIRED,
         }
-        result = normalize_error_response(response, "vcad_update_cascade")
+        result = normalize_error_response(response, "vcad_update")
 
         assert result["error_code"] == SCHEMA_VALIDATION_FAILED
         assert "drift" in result["details"]["missing_keys"]

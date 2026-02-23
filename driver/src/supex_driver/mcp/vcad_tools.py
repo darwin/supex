@@ -537,7 +537,7 @@ def vcad_place(  # noqa: PLR0911
 
 
 @mcp.tool()
-def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -> str:  # noqa: PLR0911
+def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None, cascade: bool = False) -> str:  # noqa: PLR0911
     """Re-evaluate VCAD node and update SketchUp geometry.
 
     If source_file is not provided, queries SketchUp for the node's
@@ -547,6 +547,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
         ctx: MCP context
         node_id: The VCAD node identifier to update
         source_file: Optional new source file path (uses existing if omitted)
+        cascade: When True, also re-evaluate all downstream dependents in topological order
     """
     agent = get_agent_name(ctx)
 
@@ -681,7 +682,44 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
         except Exception:
             pass
 
-        return json.dumps(result)
+        if not cascade:
+            return json.dumps(result)
+
+        # Cascade: re-evaluate downstream dependents in topological order
+        downstream = dag.get_downstream(node_id)
+        if not downstream:
+            return json.dumps(result)
+
+        affected = [node_id] + downstream
+        order = dag._topological_sort(affected)
+
+        cascade_results = [result]
+        for nid in order:
+            if nid == node_id:
+                continue  # root already updated above
+            node = dag.get_node(nid)
+            if not node:
+                cascade_results.append(
+                    build_error("NODE_NOT_FOUND", "Node not found in DAG", {"node_id": nid})
+                )
+                continue
+            if node.status == "degraded":
+                cascade_results.append(
+                    build_error("SOURCE_FILE_MISSING", "Node is degraded", {
+                        "node_id": nid,
+                        "source_file": node.source_file,
+                    }, operation="vcad_update")
+                )
+                continue
+            revision = dag.bump_revision(nid)
+            cascade_results.append(_vcad_update_single(ctx, nid, node.source_file, revision, dag))
+
+        return json.dumps({
+            "success": all(r.get("success") for r in cascade_results),
+            "updated": [r["node_id"] for r in cascade_results if r.get("success")],
+            "failed": [r["node_id"] for r in cascade_results if not r.get("success")],
+            "results": cascade_results,
+        })
     except (
         SketchUpRemoteError,
         SketchUpConnectionError,
@@ -869,63 +907,6 @@ def vcad_list_nodes(ctx: McpContext) -> str:
         return _handle_sketchup_error(e, "vcad_list_nodes")
     except Exception as e:
         return _handle_sketchup_error(e, "vcad_list_nodes")
-
-
-@mcp.tool()
-def vcad_update_cascade(ctx: McpContext, node_id: str) -> str:
-    """Re-evaluate node and all downstream dependents in topological order.
-
-    ADT composition: each node's ADT tree is cached in the sidecar,
-    so downstream nodes that import :solid get the fresh ADT directly.
-
-    This is a manually triggered tool -- the agent (or user) calls it
-    explicitly after editing a source file.
-
-    Args:
-        ctx: MCP context
-        node_id: The root VCAD node to re-evaluate
-    """
-    dag = get_vcad_dag()
-
-    root_node = dag.get_node(node_id)
-    if not root_node:
-        return json.dumps(
-            build_error("NODE_NOT_FOUND", f"Node {node_id} not found in DAG", {"node_id": node_id})
-        )
-
-    # Build affected set: root + all downstream
-    downstream = dag.get_downstream(node_id)
-    affected = [node_id] + downstream
-    order = dag._topological_sort(affected)
-
-    results = []
-    for nid in order:
-        node = dag.get_node(nid)
-        if not node:
-            results.append(
-                build_error("NODE_NOT_FOUND", "Node not found in DAG", {"node_id": nid})
-            )
-            continue
-
-        if node.status == "degraded":
-            results.append(
-                build_error("SOURCE_FILE_MISSING", "Node is degraded", {
-                    "node_id": nid,
-                    "source_file": node.source_file,
-                }, operation="vcad_update_cascade")
-            )
-            continue
-
-        revision = dag.bump_revision(nid)
-        result = _vcad_update_single(ctx, nid, node.source_file, revision, dag)
-        results.append(result)
-
-    return json.dumps({
-        "success": all(r.get("success") for r in results),
-        "updated": [r["node_id"] for r in results if r.get("success")],
-        "failed": [r["node_id"] for r in results if not r.get("success")],
-        "results": results,
-    })
 
 
 @mcp.tool()

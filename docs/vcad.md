@@ -211,7 +211,7 @@ When VCAD nodes import from other entities, the driver maintains a dependency DA
 
 - Each `vcad_place` call registers the node and its import dependencies in the DAG
 - DAG state is persisted to `.supex/vcad-state.json`
-- `vcad_update_cascade` re-evaluates a node and all downstream dependents in topological order
+- `vcad_update` with `cascade=true` re-evaluates a node and all downstream dependents in topological order
 - ADT composition: each node's result is cached in the sidecar, so downstream nodes importing `:solid` get the fresh ADT directly
 
 ### Cascade Example
@@ -221,7 +221,7 @@ base-plate.cmp.oo  →  bracket.cmp.oo (imports :solid from base-plate)
                    →  mount.cmp.oo (imports :dims from base-plate)
 ```
 
-Calling `vcad_update_cascade("base-plate")` re-evaluates base-plate first, then bracket and mount in dependency order.
+Calling `vcad_update("base-plate", cascade=true)` re-evaluates base-plate first, then bracket and mount in dependency order.
 
 ## File Watching
 
@@ -256,7 +256,7 @@ Practical VCAD tool flow:
 
 1. `vcad_place(node_id, source_file, ...)` places or updates a node
 2. `vcad_update(node_id, source_file?)` re-evaluates one node
-3. `vcad_update_cascade(node_id)` re-evaluates downstream dependents in DAG order
+3. `vcad_update(node_id, cascade=true)` re-evaluates downstream dependents in DAG order
 4. `vcad_list_nodes()` verifies node IDs, source files, versions, and instance counts
 5. `vcad_inspect(source)` returns `volume`, `surface_area`, `bbox`, and `is_empty` without placement
 6. `vcad_watch_pause()` / `vcad_watch_resume()` batches multi-file edits into one cascade

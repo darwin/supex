@@ -5,7 +5,7 @@
   "description": "Canonical success payloads for vcad_* MCP tools.",
   "oneOf": [
     { "$ref": "#/$defs/vcad_place_result" },
-    { "$ref": "#/$defs/vcad_update_cascade_result" },
+    { "$ref": "#/$defs/vcad_update_result" },
     { "$ref": "#/$defs/vcad_inspect_result" },
     { "$ref": "#/$defs/vcad_eval_result" }
   ],
@@ -31,9 +31,9 @@
       },
       "additionalProperties": true
     },
-    "vcad_update_cascade_result": {
+    "vcad_update_result": {
       "type": "object",
-      "title": "vcad_update_cascade success",
+      "title": "vcad_update (cascade) success",
       "required": ["success", "updated", "failed", "results"],
       "properties": {
         "success": { "type": "boolean" },

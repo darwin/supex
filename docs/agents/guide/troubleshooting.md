@@ -228,7 +228,7 @@ If neither applies, import fails.
 When importing `:solid` from another VCAD node, the source node must be evaluated first.
 
 - Run `vcad_update(<source-node>)`
-- Or use `vcad_update_cascade(<upstream-node>)`
+- Or use `vcad_update(<upstream-node>, cascade=true)` to also update downstream dependents
 
 ## Common Ruby Errors
 

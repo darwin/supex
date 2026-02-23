@@ -57,8 +57,7 @@ For full workflow and semantics, see [VCAD Integration](vcad.md).
 | Tool | Description |
 |------|-------------|
 | `vcad_place` | Evaluate `.cmp.oo` and place/update node in SketchUp (imports auto-resolved) |
-| `vcad_update` | Re-evaluate a single node |
-| `vcad_update_cascade` | Re-evaluate node and downstream dependents in DAG order |
+| `vcad_update` | Re-evaluate node; with `cascade=true` also updates downstream dependents in DAG order |
 | `vcad_inspect` | Evaluate and return geometry metadata |
 | `vcad_eval` | REPL-like Loon evaluation |
 | `vcad_list_nodes` | List VCAD nodes present in the model |

@@ -526,7 +526,7 @@ class TestLoonChangeCascadeFlow:
 
         assert set(affected) == {"base-plate", "bracket"}
 
-        # Each affected node would trigger vcad_update_cascade
+        # Each affected node would trigger vcad_update with cascade=True
         for node_id in affected:
             node = dag.get_node(node_id)
             assert node is not None

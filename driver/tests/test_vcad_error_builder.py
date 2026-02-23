@@ -139,7 +139,7 @@ class TestBuilderValidatesRequiredKeys:
             STATE_RECONCILE_REQUIRED,
             "Reconciliation required",
             {"drift": "3 nodes diverged", "pending_nodes": ["bracket", "plate"]},
-            operation="vcad_update_cascade",
+            operation="vcad_update",
         )
         assert result["error_code"] == STATE_RECONCILE_REQUIRED
         assert result["details"]["drift"] == "3 nodes diverged"

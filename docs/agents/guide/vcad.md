@@ -17,14 +17,13 @@ For mixed tasks, keep geometry in VCAD and do scene/model post-processing with R
 1. Author `.cmp.oo` node files and shared `.oo` modules.
 2. Reuse existing CAD library modules before writing new geometry helpers.
 3. Place nodes with `vcad_place` (imports are auto-detected and resolved).
-4. Update with `vcad_update` (single node) or `vcad_update_cascade` (dependent graph).
+4. Update with `vcad_update` (single node) or `vcad_update(..., cascade=true)` (dependent graph).
 5. Verify with `vcad_list_nodes` and screenshots.
 
 ## Execution Rules
 
 - `vcad_place(node_id, source_file, ...)` - place/update one node
-- `vcad_update(node_id, source_file?)` - re-evaluate one node
-- `vcad_update_cascade(node_id)` - re-evaluate downstream dependents in DAG order
+- `vcad_update(node_id, source_file?, cascade?)` - re-evaluate one node; `cascade=true` includes downstream dependents in DAG order
 - `vcad_watch_pause()` / `vcad_watch_resume()` - batch multi-file edits
 - `vcad_eval(code)` - REPL-style Loon evaluation only (no placement)
 - `vcad_inspect(source)` - inspect without placement

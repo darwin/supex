@@ -50,7 +50,7 @@ For mixed tasks, use VCAD for authored geometry and Ruby for scene/model operati
 ## Quick Tool Shortlist
 
 - Execution: `eval_ruby_file`, `eval_ruby`
-- VCAD authoring: `vcad_place`, `vcad_update`, `vcad_update_cascade`, `vcad_list_nodes`
+- VCAD authoring: `vcad_place`, `vcad_update`, `vcad_list_nodes`
 - VCAD batching: `vcad_watch_pause`, `vcad_watch_resume`
 - Introspection: `get_model_info`, `list_entities`, `get_selection`
 - Visual QA: `take_screenshot`, `take_batch_screenshots`

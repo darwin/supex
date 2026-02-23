@@ -218,6 +218,50 @@ class TestVCADUpdate:
         assert result["error_code"] == "CONNECTION_ERROR"
         assert result["details"]["error_type"] == "connection"
 
+    def test_update_cascade(self, mock_ctx, mock_vcad, mock_sketchup):
+        """cascade=True re-evaluates root and downstream nodes."""
+        from supex_driver.connection.vcad_dag import VCADDag, VCADNode
+
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
+        mock_sketchup.send_command.return_value = {
+            "success": True,
+            "node_id": "base",
+            "version": 2,
+        }
+
+        dag = VCADDag()
+        dag.add_node(VCADNode(
+            node_id="base",
+            source_file="/project/base.cmp.oo",
+            imports=[],
+        ))
+        dag.add_node(VCADNode(
+            node_id="child",
+            source_file="/project/child.cmp.oo",
+            imports=[MagicMock(source_node_id="base")],
+        ))
+
+        with patch("supex_driver.mcp.vcad_tools.get_vcad_dag", return_value=dag), \
+             patch("supex_driver.mcp.vcad_tools._vcad_update_single") as mock_single:
+            mock_single.return_value = {
+                "success": True,
+                "node_id": "child",
+            }
+
+            result = json.loads(
+                vcad_update(
+                    mock_ctx,
+                    node_id="base",
+                    source_file="/project/base.cmp.oo",
+                    cascade=True,
+                )
+            )
+
+            assert result["success"] is True
+            assert "base" in result["updated"]
+            assert "child" in result["updated"]
+            mock_single.assert_called_once()
+
 
 # ---------------------------------------------------------------------------
 # vcad_inspect

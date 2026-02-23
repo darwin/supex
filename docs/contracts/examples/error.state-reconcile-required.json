@@ -5,6 +5,6 @@
   "details": {
     "drift": "3 nodes in DAG missing from SketchUp model",
     "pending_nodes": ["bracket", "plate", "bolt-pattern"],
-    "operation": "vcad_update_cascade"
+    "operation": "vcad_update"
   }
 }
