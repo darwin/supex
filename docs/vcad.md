@@ -248,109 +248,22 @@ vcad_watch_pause()
 vcad_watch_resume()  # Flushes all accumulated changes as one cascade
 ```
 
-## MCP Tools Reference
+## MCP Tool Surface (VCAD)
 
-### vcad_place
+Canonical tool inventory and signatures live in [MCP Reference](mcp.md).
 
-Evaluate a `.cmp.oo` file and place the resulting mesh in SketchUp.
+Practical VCAD tool flow:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `node_id` | string | Unique identifier for this VCAD node |
-| `source_file` | string | Path to the `.cmp.oo` file |
-| `position` | [x,y,z] | Position in mm (default [0,0,0]) |
-| `component_name` | string | Optional SketchUp component name |
+1. `vcad_place(node_id, source_file, ...)` places or updates a node
+2. `vcad_update(node_id, source_file?)` re-evaluates one node
+3. `vcad_update_cascade(node_id)` re-evaluates downstream dependents in DAG order
+4. `vcad_list_nodes()` verifies node IDs, source files, versions, and instance counts
+5. `vcad_inspect(source)` returns `volume`, `surface_area`, `bbox`, and `is_empty` without placement
+6. `vcad_watch_pause()` / `vcad_watch_resume()` batches multi-file edits into one cascade
+7. `vcad_viewer_state`, `vcad_viewer_screenshot`, `vcad_viewer_focus` support viewer diagnostics
+8. `vcad_health`, `vcad_metrics`, `vcad_reconcile_status` provide operational diagnostics
 
-### vcad_update
-
-Re-evaluate a VCAD node and update SketchUp geometry. Atomic definition swap preserves instance placements.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `node_id` | string | The VCAD node to update |
-| `source_file` | string | Optional new source file (uses existing if omitted) |
-
-### vcad_update_cascade
-
-Re-evaluate a node and all downstream dependents in topological order. The driver walks the dependency DAG and updates each node sequentially.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `node_id` | string | The root VCAD node to re-evaluate |
-
-Returns `{success, updated: [node_ids], failed: [node_ids], results: [...]}`.
-
-### vcad_inspect
-
-Inspect geometry properties without placing in SketchUp.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `source` | string | File path or inline Loon code |
-
-Returns: volume, surface_area, bounding_box.
-
-### vcad_export
-
-Export geometry via sidecar export API.
-
-Note: this MCP surface exists in the driver. Treat end-to-end export behavior as experimental unless verified in your current setup.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `source` | string | File path or inline Loon code |
-| `format` | string | Export format requested by sidecar |
-| `output_path` | string | Optional output path |
-
-### vcad_eval
-
-REPL mode evaluation of Loon code. Returns display string, no geometry output.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `code` | string | Loon source code |
-
-### vcad_list_nodes
-
-List all VCAD nodes in the current SketchUp model. No parameters.
-
-Returns array of `{node_id, source_file, version, name, instances}`.
-
-### vcad_watch_pause
-
-Pause reactive file watching. File changes accumulate but don't trigger re-evaluation. Use before editing multiple `.cmp.oo` files in sequence. No parameters.
-
-### vcad_watch_resume
-
-Resume file watching and flush all accumulated changes. Merges, deduplicates, and topologically sorts pending changes, then executes as a single cascade. No parameters.
-
-### vcad_viewer_state
-
-Get current VCAD viewer state: camera position, selection, visible nodes. No parameters.
-
-### vcad_viewer_screenshot
-
-Capture screenshot from the VCAD viewer. Returns metadata with workspace-relative file path. The PNG is saved to `.tmp/vcad-viewer/`. No parameters.
-
-### vcad_viewer_focus
-
-Focus viewer camera on a specific VCAD node.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `node_id` | string | The VCAD node identifier to focus on |
-
-### vcad_health
-
-Return sidecar/viewer liveness and negotiated capability summary.
-
-### vcad_metrics
-
-Return operational telemetry snapshot (counters, gauges, optional artifact metadata).
-
-### vcad_reconcile_status
-
-Return status of last reconciliation run (drift buckets, pending nodes, outcome).
+`vcad_export(source, format?, output_path?)` is available, but import-aware export paths can behave differently from direct sidecar export. Validate behavior in your target environment.
 
 ## Known Limitations
 
@@ -384,64 +297,10 @@ The `Entities#manifold?` API is not available in all SketchUp versions. The runt
 
 ## Troubleshooting
 
-### Sidecar not starting
+For operational issues, use [Troubleshooting](troubleshooting.md#vcad-issues).
 
-Check the binary exists:
-```bash
-ls vcad/sidecar/target/release/supex-vcad-sidecar
-```
-If missing, build it:
-```bash
-cargo build --release --manifest-path vcad/sidecar/Cargo.toml
-```
+Most common VCAD failures:
 
-### Connection refused on port 9877
-
-The sidecar is not running. Start it:
-```bash
-./vcad-sidecar
-```
-Or check if it crashed -- review logs:
-```bash
-cat .tmp/logs/vcad-sidecar-stderr.log
-```
-
-### PATH_NOT_ALLOWED errors
-
-The sidecar enforces workspace path containment. Ensure:
-- `SUPEX_WORKSPACE` is set to your project root
-- Source files are inside the workspace
-- No `..` path components in file references
-
-### AUTH_INVALID errors
-
-Token mismatch between driver and sidecar. Ensure `SUPEX_VCAD_AUTH_TOKEN` is set consistently in both environments.
-
-### Non-loopback bind fails on startup
-
-The sidecar requires both `SUPEX_VCAD_ALLOW_REMOTE=1` and `SUPEX_VCAD_AUTH_TOKEN` to bind to non-loopback addresses. This is a security measure to prevent unauthenticated remote access.
-
-### DAE import fails in SketchUp
-
-- Verify the DAE file exists and is not empty
-- Check that SketchUp 2026 is running (uses `definitions.import` which returns ComponentDefinition directly)
-- Review SketchUp console output for Ruby errors
-
-### Stale geometry after update
-
-The driver uses revision tracking to prevent stale results. If geometry appears outdated:
-1. Check `vcad_list_nodes()` for version numbers
-2. Call `vcad_update()` explicitly
-3. Review `.supex/vcad-state.json` for revision gaps
-
-### SOLID_IMPORT_UNAVAILABLE
-
-The `:solid` import requires either:
-- A VCAD-backed entity (has `vcad_node_id` attribute) — ADT retrieved from sidecar cache
-- A native SketchUp solid with face geometry — mesh triangulated and forwarded as `ImportedMesh`
-
-If neither condition is met, the import fails. Verify the target entity is a Group or ComponentInstance with geometry.
-
-### ADT_CACHE_MISS
-
-When importing `:solid` from a VCAD-backed entity, the source node must be evaluated before it can be imported. Call `vcad_update` on the source node first, or use `vcad_update_cascade` to ensure correct evaluation order.
+- Sidecar startup/connectivity issues (`port 9877`, missing binary, crashed sidecar)
+- Path/auth policy errors (`PATH_NOT_ALLOWED`, `AUTH_INVALID`)
+- Import/update issues (`SOLID_IMPORT_UNAVAILABLE`, `ADT_CACHE_MISS`, stale geometry)

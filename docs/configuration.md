@@ -37,6 +37,8 @@ Workspace defaults differ by entrypoint script:
 | `SUPEX_NO_AUTOSTART` | (unset) | Disable extension autostart when set to `1` |
 | `SUPEX_CHECK_INTERVAL` | `0.25` | Runtime request poll interval (seconds) |
 | `SUPEX_RESPONSE_DELAY` | `0` | Artificial response delay (seconds) |
+| `SUPEX_PLAIN` | (unset) | Force plain-text CLI output when set to `1` |
+| `SUPEX_COLOR` | (unset) | Force rich/color CLI output when set to `1` |
 
 ## REPL
 
@@ -59,6 +61,14 @@ Workspace defaults differ by entrypoint script:
 | `SUPEX_VCAD_IDLE_TIMEOUT` | `300` | VCAD reconnect after idle seconds |
 | `SUPEX_VCAD_MAX_RESPONSE` | `10485760` | Max VCAD response payload bytes |
 | `SUPEX_VCAD_SIDECAR_PATH` | auto-detected | Sidecar binary path override |
+| `SUPEX_VCAD_VIEWER_RELAY_PORT` | `9878` | Driver-side WebSocket relay port for VCAD viewer |
+
+## VCAD Reactive Update Tuning
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_VCAD_TRIGGER_COALESCE_MS` | `150` | Coalescing window for merged reactive VCAD updates |
+| `SUPEX_VCAD_OBSERVER_POLL_MS` | `250` | SketchUp observer polling interval for reactive updates |
 
 ## VCAD Sidecar Runtime
 

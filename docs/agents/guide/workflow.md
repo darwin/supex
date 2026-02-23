@@ -2,7 +2,7 @@
 
 Practical playbook for both authoring workflows.
 
-For strict rules and constraints, see `supex-guide/README.md`.
+For strict rules and constraints, see `supex-guide/ruby.md` and `supex-guide/vcad.md`.
 
 ## Workflow Chooser
 
@@ -17,8 +17,8 @@ For strict rules and constraints, see `supex-guide/README.md`.
 1. Check existing `.oo` modules first and reuse CAD library helpers.
 2. Keep each `.cmp.oo` file as one node that evaluates to exactly one solid.
 3. Use `vcad_place` to place nodes (imports are auto-detected and resolved).
-5. Re-evaluate with `vcad_update` for one node or `vcad_update_cascade` for dependent graphs.
-6. Verify with `vcad_list_nodes()` and screenshots.
+4. Re-evaluate with `vcad_update` for one node or `vcad_update_cascade` for dependent graphs.
+5. Verify with `vcad_list_nodes()` and screenshots.
 
 ### VCAD Node Example
 

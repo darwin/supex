@@ -146,6 +146,90 @@ Use one of:
 - `jpg`
 - `jpeg`
 
+## VCAD Issues
+
+### Sidecar Not Starting
+
+Check the binary exists:
+
+```bash
+ls vcad/sidecar/target/release/supex-vcad-sidecar
+```
+
+If missing, build it:
+
+```bash
+cargo build --release --manifest-path vcad/sidecar/Cargo.toml
+```
+
+### Connection Refused on Port 9877
+
+The sidecar is not running. Start it:
+
+```bash
+./vcad-sidecar
+```
+
+If it crashes, inspect logs:
+
+```bash
+cat .tmp/logs/vcad-sidecar-stderr.log
+```
+
+### PATH_NOT_ALLOWED
+
+The sidecar enforces workspace path containment.
+
+- Set `SUPEX_WORKSPACE` to your project root
+- Keep VCAD source files inside the workspace
+- Avoid `..` traversal segments in source file paths
+
+### AUTH_INVALID
+
+Token mismatch between driver and sidecar.
+
+- Ensure `SUPEX_VCAD_AUTH_TOKEN` is set consistently in both environments
+- If binding remotely, also set `SUPEX_VCAD_ALLOW_REMOTE=1`
+
+### Non-Loopback Bind Fails
+
+The sidecar requires both:
+
+- `SUPEX_VCAD_ALLOW_REMOTE=1`
+- `SUPEX_VCAD_AUTH_TOKEN` (non-empty)
+
+Without both values, remote bind is rejected.
+
+### DAE Import Fails in SketchUp
+
+- Verify the generated DAE exists and is non-empty
+- Confirm SketchUp is running and runtime is loaded
+- Check SketchUp console output for Ruby import errors
+
+### Stale Geometry After Update
+
+If geometry looks outdated after edit/update:
+
+1. Check `vcad_list_nodes()` versions
+2. Run `vcad_update()` explicitly
+3. Review `.supex/vcad-state.json` for revision drift
+
+### SOLID_IMPORT_UNAVAILABLE
+
+`:solid` imports require either:
+
+- A VCAD-backed entity (`vcad_node_id` attribute)
+- A native SketchUp Group/ComponentInstance with valid face geometry
+
+If neither applies, import fails.
+
+### ADT_CACHE_MISS
+
+When importing `:solid` from another VCAD node, the source node must be evaluated first.
+
+- Run `vcad_update(<source-node>)`
+- Or use `vcad_update_cascade(<upstream-node>)`
+
 ## Common Ruby Errors
 
 ### NoMethodError

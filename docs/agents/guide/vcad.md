@@ -1,0 +1,88 @@
+# VCAD Workflow Guide
+
+Use this guide when the task is parametric CAD authoring in Loon.
+
+## When To Choose VCAD
+
+Use VCAD for:
+
+- repeatable solids authored from source files (`.cmp.oo`)
+- geometry built from reusable `.oo` modules
+- dependency-aware updates between nodes
+
+For mixed tasks, keep geometry in VCAD and do scene/model post-processing with Ruby.
+
+## Workflow Loop
+
+1. Author `.cmp.oo` node files and shared `.oo` modules.
+2. Reuse existing CAD library modules before writing new geometry helpers.
+3. Place nodes with `vcad_place` (imports are auto-detected and resolved).
+4. Update with `vcad_update` (single node) or `vcad_update_cascade` (dependent graph).
+5. Verify with `vcad_list_nodes` and screenshots.
+
+## Execution Rules
+
+- `vcad_place(node_id, source_file, ...)` - place/update one node
+- `vcad_update(node_id, source_file?)` - re-evaluate one node
+- `vcad_update_cascade(node_id)` - re-evaluate downstream dependents in DAG order
+- `vcad_watch_pause()` / `vcad_watch_resume()` - batch multi-file edits
+- `vcad_eval(code)` - REPL-style Loon evaluation only (no placement)
+- `vcad_inspect(source)` - inspect without placement
+
+## Authoring Rules
+
+### 1. One Solid Per Node
+
+- Each `.cmp.oo` file must evaluate to exactly one solid
+- Keep shared logic in `.oo` modules loaded via `[use ...]`
+- Use multiple `.cmp.oo` files for multi-part assemblies
+
+### 2. Reuse Existing CAD Library First
+
+- Inspect existing project `.oo` modules first
+- Prefer existing exported constructors/helpers
+- Keep `.cmp.oo` files thin (parameter composition + library calls)
+
+### 3. Import Semantics Are Strict
+
+- `[import ...]` works in VCAD tools and `.cmp.oo` source
+- `[import ...]` does not work in `.oo` modules loaded through `[use ...]`
+
+### 4. Update and Dependency Safety
+
+- Keep `node_id` stable for predictable updates and instance continuity
+- Use cascade updates when downstream nodes depend on imports
+- Pause/resume watch when editing multiple VCAD files
+
+### 5. Supported Surface Only
+
+- Use supported CAD constructors only
+- Treat assembly/joint/simulation and ECAD forms as out of scope
+- For mixed native-mesh + BRep booleans, verify carefully with screenshots and node inspection
+
+### 6. Core Loon CAD Constructors
+
+- Primitives: `cube`, `cylinder`, `sphere`, `cone`
+- Booleans (subject-last): `union`, `difference`, `intersection`
+- Transforms (subject-last): `translate`, `rotate`, `scale`
+- Features (subject-last): `fillet`, `chamfer`, `shell`
+- Patterns: `linear-pattern`, `circular-pattern`
+- Sketch-based: `sketch`, `extrude`, `revolve`, `sweep-line`, `sweep-helix`, `loft`, `loft-closed`
+- Scene/material: `root`, `material`
+
+Authoritative constructor signatures: `supex-guide/cad-lib/src/lib.loon`.
+
+Important: Loon has no runtime arithmetic operators (`+`, `-`, `*`, etc.). Use literals, `let`, and `fn` patterns.
+
+## Imports and Exports Notes
+
+- Keep import declarations in `.cmp.oo` files.
+- Prefer stable entity references and stable `node_id` naming.
+- `vcad_export(source, format?, output_path?)` is available; import-aware export behavior can differ from direct sidecar export, so validate in your environment.
+
+## References
+
+- Router and chooser: `supex-guide/README.md`
+- Extended examples: `supex-guide/workflow.md`
+- Geometry QA: `supex-guide/best_practices.md`
+- VCAD architecture/details: `docs/vcad.md`

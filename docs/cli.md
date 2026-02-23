@@ -4,6 +4,8 @@ The `./supex` command is the direct CLI interface for SketchUp automation.
 
 For interactive Ruby console usage, see [Interactive REPL](repl.md).
 
+`./supex reload` is CLI-only; there is no MCP tool named `reload_extension`.
+
 ## Commands
 
 | Command | Description |

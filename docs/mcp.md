@@ -8,6 +8,8 @@ Source of truth in code:
 - `driver/src/supex_driver/mcp/vcad_tools.py`
 - `driver/src/supex_driver/mcp/vcad_diagnostics.py`
 
+Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
+
 ## Core Status
 
 | Tool | Description |
