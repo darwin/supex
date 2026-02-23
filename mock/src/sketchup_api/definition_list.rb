@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module SketchupMock
-  # MockDefinitionList with OBJ import.
-  # Parses OBJ minimally (vertex positions + face indices) for BoundingBox computation.
+  # MockDefinitionList with mesh import.
+  # Parses mesh file minimally (vertex positions + face indices) for BoundingBox computation.
   class MockDefinitionList
     include Enumerable
 
@@ -35,12 +35,12 @@ module SketchupMock
     end
 
     # SketchUp 2026: import returns ComponentDefinition directly.
-    # Minimal OBJ parsing for vertex positions and face indices.
-    def import(obj_path)
-      raise "File not found: #{obj_path}" unless File.exist?(obj_path)
+    # Minimal mesh parsing for vertex positions and face indices.
+    def import(mesh_path)
+      raise "File not found: #{mesh_path}" unless File.exist?(mesh_path)
 
       defn = Sketchup::ComponentDefinition.new("imported_#{@definitions.length}")
-      parse_obj_into_definition(defn, obj_path)
+      parse_mesh_into_definition(defn, mesh_path)
       @definitions << defn
       defn
     end
@@ -70,11 +70,11 @@ module SketchupMock
 
     private
 
-    def parse_obj_into_definition(defn, obj_path)
+    def parse_mesh_into_definition(defn, mesh_path)
       vertices = []
       faces = []
 
-      File.readlines(obj_path).each do |line|
+      File.readlines(mesh_path).each do |line|
         parts = line.strip.split
         next if parts.empty?
 
@@ -97,7 +97,7 @@ module SketchupMock
       # Store mesh data on the definition for later retrieval
       defn.set_attribute('_mock', 'vertices', vertices.map(&:to_a))
       defn.set_attribute('_mock', 'faces', faces)
-      defn.set_attribute('_mock', 'obj_path', obj_path)
+      defn.set_attribute('_mock', 'mesh_path', mesh_path)
     end
   end
 end

@@ -27,7 +27,7 @@ pub struct Evaluator {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EvalResult {
-    pub obj_path: String,
+    pub mesh_path: String,
     pub manifest_path: String,
     pub volume: f64,
     pub surface_area: f64,
@@ -47,7 +47,7 @@ pub struct ArtifactManifest {
     pub request_id: Option<String>,
     pub source_file: Option<String>,
     pub source_hash: String,
-    pub obj_path: String,
+    pub mesh_path: String,
     pub volume: f64,
     pub surface_area: f64,
     pub bbox: BBox,
@@ -89,8 +89,8 @@ impl Evaluator {
         let now = std::time::SystemTime::now();
         let ttl = std::time::Duration::from_secs(self.retention.ttl_sec);
 
-        // Collect all artifact pairs (obj + manifest)
-        let mut obj_files: Vec<(PathBuf, std::time::SystemTime)> = Vec::new();
+        // Collect all mesh artifact pairs (mesh + manifest)
+        let mut mesh_files: Vec<(PathBuf, std::time::SystemTime)> = Vec::new();
         let mut expired: Vec<PathBuf> = Vec::new();
 
         for entry in entries.flatten() {
@@ -111,7 +111,7 @@ impl Evaluator {
             if now.duration_since(mtime).unwrap_or_default() > ttl {
                 expired.push(path);
             } else {
-                obj_files.push((path, mtime));
+                mesh_files.push((path, mtime));
             }
         }
 
@@ -123,13 +123,13 @@ impl Evaluator {
         }
 
         // Sort remaining by mtime (oldest first) and trim to max_files
-        obj_files.sort_by_key(|(_, t)| *t);
-        while obj_files.len() > self.retention.max_files {
-            if let Some((path, _)) = obj_files.first() {
+        mesh_files.sort_by_key(|(_, t)| *t);
+        while mesh_files.len() > self.retention.max_files {
+            if let Some((path, _)) = mesh_files.first() {
                 std::fs::remove_file(path).ok();
                 let manifest = path.with_extension("manifest.json");
                 std::fs::remove_file(manifest).ok();
-                obj_files.remove(0);
+                mesh_files.remove(0);
             } else {
                 break;
             }
@@ -166,7 +166,7 @@ impl Evaluator {
     }
 
     fn next_artifact_path(&mut self, name: &str, ext: &str) -> Result<PathBuf, String> {
-        let safe_name = Self::sanitize_obj_name(name);
+        let safe_name = Self::sanitize_artifact_name(name);
 
         loop {
             let next_seq = self
@@ -184,7 +184,7 @@ impl Evaluator {
         }
     }
 
-    fn sanitize_obj_name(name: &str) -> String {
+    fn sanitize_artifact_name(name: &str) -> String {
         name.chars()
             .map(|c| {
                 if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
@@ -215,7 +215,7 @@ impl Evaluator {
         let (bb_min, bb_max) = solid.bounding_box();
 
         Ok(EvalResult {
-            obj_path: String::new(),
+            mesh_path: String::new(),
             manifest_path: String::new(),
             volume: solid.volume(),
             surface_area: solid.surface_area(),
@@ -341,7 +341,7 @@ impl Evaluator {
         } else {
             // Display-only / REPL path — no BRep conversion
             Ok(EvalResult {
-                obj_path: String::new(),
+                mesh_path: String::new(),
                 manifest_path: String::new(),
                 volume: 0.0,
                 surface_area: 0.0,
@@ -388,15 +388,15 @@ impl Evaluator {
             (0.0, 0.0, bb, false)
         };
 
-        let (obj_content, ext) = if let Some(brep) = part.solid.as_ref().and_then(|s| s.brep()) {
+        let (mesh_content, ext) = if let Some(brep) = part.solid.as_ref().and_then(|s| s.brep()) {
             let params = TessellationParams::from_segments(32);
             let dae = brep_to_dae(brep, &params);
             (dae.into_bytes(), "dae")
         } else {
             (mesh_to_dae(&part.mesh).into_bytes(), "dae")
         };
-        let obj_path = self.next_artifact_path(name, ext)?;
-        let manifest_path = Self::manifest_path_for_obj(&obj_path, &self.temp_dir)?;
+        let mesh_path = self.next_artifact_path(name, ext)?;
+        let manifest_path = Self::manifest_path_for_mesh(&mesh_path, &self.temp_dir)?;
         let manifest = ArtifactManifest {
             status: "applied".to_string(),
             node_id: None,
@@ -404,7 +404,7 @@ impl Evaluator {
             request_id: None,
             source_file: None,
             source_hash: Self::hash_document(doc),
-            obj_path: obj_path.to_string_lossy().into_owned(),
+            mesh_path: mesh_path.to_string_lossy().into_owned(),
             volume,
             surface_area,
             bbox: BBox {
@@ -418,8 +418,8 @@ impl Evaluator {
 
         Self::write_artifact_pair_atomic(
             &self.temp_dir,
-            &obj_path,
-            &obj_content,
+            &mesh_path,
+            &mesh_content,
             &manifest_path,
             &manifest,
         )
@@ -428,7 +428,7 @@ impl Evaluator {
         self.cleanup_temp_dir();
 
         Ok(EvalResult {
-            obj_path: obj_path.to_string_lossy().into_owned(),
+            mesh_path: mesh_path.to_string_lossy().into_owned(),
             manifest_path: manifest_path.to_string_lossy().into_owned(),
             volume,
             surface_area,
@@ -441,15 +441,15 @@ impl Evaluator {
 
     fn write_artifact_pair_atomic(
         allowed_root: &Path,
-        obj_path: &Path,
-        obj_content: &[u8],
+        mesh_path: &Path,
+        mesh_content: &[u8],
         manifest_path: &Path,
         manifest: &ArtifactManifest,
     ) -> Result<(), String> {
         let canonical_root = allowed_root
             .canonicalize()
             .map_err(|e| format!("PATH_NOT_ALLOWED: root canonicalize failed: {}", e))?;
-        for p in [obj_path, manifest_path] {
+        for p in [mesh_path, manifest_path] {
             let parent = p
                 .parent()
                 .ok_or_else(|| "PATH_NOT_ALLOWED: missing parent".to_string())?;
@@ -461,16 +461,16 @@ impl Evaluator {
             }
         }
 
-        let ext = obj_path
+        let ext = mesh_path
             .extension()
             .and_then(|s| s.to_str())
             .unwrap_or("dae");
-        let obj_tmp = obj_path.with_extension(format!("{ext}.tmp"));
+        let mesh_tmp = mesh_path.with_extension(format!("{ext}.tmp"));
         let manifest_tmp = manifest_path.with_extension("json.tmp");
-        let pair_marker = obj_path.with_extension("pair.pending");
+        let pair_marker = mesh_path.with_extension("pair.pending");
 
         let marker = serde_json::json!({
-            "obj_path": obj_path.to_string_lossy(),
+            "mesh_path": mesh_path.to_string_lossy(),
             "manifest_path": manifest_path.to_string_lossy(),
             "created_at": Self::now_rfc3339(),
         });
@@ -479,16 +479,16 @@ impl Evaluator {
         std::fs::write(&pair_marker, marker_body)
             .map_err(|e| format!("Pair marker write error: {}", e))?;
 
-        std::fs::write(&obj_tmp, obj_content)
-            .map_err(|e| format!("OBJ temp write error: {}", e))?;
+        std::fs::write(&mesh_tmp, mesh_content)
+            .map_err(|e| format!("Mesh temp write error: {}", e))?;
 
         let body = serde_json::to_vec_pretty(manifest)
             .map_err(|e| format!("Manifest serialize error: {}", e))?;
         std::fs::write(&manifest_tmp, body)
             .map_err(|e| format!("Manifest temp write error: {}", e))?;
 
-        std::fs::rename(&obj_tmp, obj_path)
-            .map_err(|e| format!("OBJ publish rename error: {}", e))?;
+        std::fs::rename(&mesh_tmp, mesh_path)
+            .map_err(|e| format!("Mesh publish rename error: {}", e))?;
         std::fs::rename(&manifest_tmp, manifest_path)
             .map_err(|e| format!("Manifest publish rename error: {}", e))?;
         std::fs::remove_file(&pair_marker).ok();
@@ -508,12 +508,12 @@ impl Evaluator {
                 if let Ok(content) = std::fs::read_to_string(&path) {
                     if let Ok(marker) = serde_json::from_str::<serde_json::Value>(&content) {
                         // Clean up tmp files referenced in the marker
-                        if let Some(obj_path) = marker.get("obj_path").and_then(|v| v.as_str()) {
-                            let obj = PathBuf::from(obj_path);
-                            let tmp_ext = obj.extension().and_then(|s| s.to_str()).unwrap_or("dae");
-                            std::fs::remove_file(obj.with_extension(format!("{tmp_ext}.tmp"))).ok();
+                        if let Some(mesh_path) = marker.get("mesh_path").and_then(|v| v.as_str()) {
+                            let mesh = PathBuf::from(mesh_path);
+                            let tmp_ext = mesh.extension().and_then(|s| s.to_str()).unwrap_or("dae");
+                            std::fs::remove_file(mesh.with_extension(format!("{tmp_ext}.tmp"))).ok();
                             // Remove half-published files too
-                            std::fs::remove_file(&obj).ok();
+                            std::fs::remove_file(&mesh).ok();
                         }
                         if let Some(manifest_path) =
                             marker.get("manifest_path").and_then(|v| v.as_str())
@@ -532,22 +532,22 @@ impl Evaluator {
         Ok(())
     }
 
-    fn manifest_path_for_obj(obj_path: &Path, allowed_root: &Path) -> Result<PathBuf, String> {
+    fn manifest_path_for_mesh(mesh_path: &Path, allowed_root: &Path) -> Result<PathBuf, String> {
         let canonical_root = allowed_root
             .canonicalize()
             .map_err(|e| format!("PATH_NOT_ALLOWED: root canonicalize failed: {}", e))?;
-        let parent = obj_path
+        let parent = mesh_path
             .parent()
-            .ok_or_else(|| "PATH_NOT_ALLOWED: obj parent missing".to_string())?;
+            .ok_or_else(|| "PATH_NOT_ALLOWED: mesh parent missing".to_string())?;
         let canonical_parent = parent
             .canonicalize()
             .map_err(|e| format!("PATH_NOT_ALLOWED: parent canonicalize failed: {}", e))?;
         if !canonical_parent.starts_with(&canonical_root) {
             return Err("PATH_NOT_ALLOWED: manifest path outside allowed root".to_string());
         }
-        let stem = obj_path
+        let stem = mesh_path
             .file_stem()
-            .ok_or_else(|| "PATH_NOT_ALLOWED: obj filename missing".to_string())?;
+            .ok_or_else(|| "PATH_NOT_ALLOWED: mesh filename missing".to_string())?;
         Ok(canonical_parent.join(format!("{}.manifest.json", stem.to_string_lossy())))
     }
 
@@ -663,11 +663,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sanitize_obj_name() {
-        assert_eq!(Evaluator::sanitize_obj_name("hello"), "hello");
-        assert_eq!(Evaluator::sanitize_obj_name("my file"), "my_file");
-        assert_eq!(Evaluator::sanitize_obj_name("a/b/../c"), "a_b____c");
-        assert_eq!(Evaluator::sanitize_obj_name("test-file_1"), "test-file_1");
+    fn test_sanitize_artifact_name() {
+        assert_eq!(Evaluator::sanitize_artifact_name("hello"), "hello");
+        assert_eq!(Evaluator::sanitize_artifact_name("my file"), "my_file");
+        assert_eq!(Evaluator::sanitize_artifact_name("a/b/../c"), "a_b____c");
+        assert_eq!(Evaluator::sanitize_artifact_name("test-file_1"), "test-file_1");
     }
 
     #[test]
@@ -700,10 +700,10 @@ mod tests {
     }
 
     #[test]
-    fn test_manifest_path_for_obj() {
+    fn test_manifest_path_for_mesh() {
         let temp = tempfile::tempdir().unwrap();
-        let obj_path = temp.path().join("test-00000000000000000001.obj");
-        let result = Evaluator::manifest_path_for_obj(&obj_path, temp.path());
+        let mesh_path = temp.path().join("test-00000000000000000001.dae");
+        let result = Evaluator::manifest_path_for_mesh(&mesh_path, temp.path());
         assert!(result.is_ok());
         let manifest_path = result.unwrap();
         assert!(manifest_path
@@ -720,8 +720,8 @@ mod tests {
     #[test]
     fn test_load_retention_seq_with_files() {
         let temp = tempfile::tempdir().unwrap();
-        std::fs::write(temp.path().join("eval-00000000000000000005.obj"), "dummy").unwrap();
-        std::fs::write(temp.path().join("eval-00000000000000000010.obj"), "dummy").unwrap();
+        std::fs::write(temp.path().join("eval-00000000000000000005.dae"), "dummy").unwrap();
+        std::fs::write(temp.path().join("eval-00000000000000000010.dae"), "dummy").unwrap();
         assert_eq!(Evaluator::load_retention_seq(temp.path()), 10);
     }
 
@@ -738,9 +738,9 @@ mod tests {
     #[test]
     fn test_cleanup_respects_max_files() {
         let temp = tempfile::tempdir().unwrap();
-        // Create 5 OBJ files
+        // Create 5 mesh files
         for i in 1..=5 {
-            std::fs::write(temp.path().join(format!("eval-{:020}.obj", i)), "dummy obj").unwrap();
+            std::fs::write(temp.path().join(format!("eval-{:020}.dae", i)), "dummy dae").unwrap();
             std::fs::write(
                 temp.path().join(format!("eval-{:020}.manifest.json", i)),
                 "{}",
@@ -753,13 +753,13 @@ mod tests {
         let evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 3, 256);
         evaluator.cleanup_temp_dir();
 
-        // Count remaining OBJ files
-        let obj_count = std::fs::read_dir(temp.path())
+        // Count remaining mesh files
+        let mesh_count = std::fs::read_dir(temp.path())
             .unwrap()
             .flatten()
-            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("obj"))
+            .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("dae"))
             .count();
-        assert!(obj_count <= 3, "Expected <= 3 OBJ files, got {}", obj_count);
+        assert!(mesh_count <= 3, "Expected <= 3 mesh files, got {}", mesh_count);
     }
 
     #[test]
@@ -767,11 +767,11 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
 
         // Create a pending marker with associated tmp files
-        let obj_path = temp.path().join("eval-00000000000000000001.obj");
+        let mesh_path = temp.path().join("eval-00000000000000000001.dae");
         let manifest_path = temp.path().join("eval-00000000000000000001.manifest.json");
 
         let marker = serde_json::json!({
-            "obj_path": obj_path.to_string_lossy(),
+            "mesh_path": mesh_path.to_string_lossy(),
             "manifest_path": manifest_path.to_string_lossy(),
             "created_at": "2025-01-01T00:00:00Z",
         });
@@ -780,10 +780,10 @@ mod tests {
             serde_json::to_vec_pretty(&marker).unwrap(),
         )
         .unwrap();
-        std::fs::write(obj_path.with_extension("obj.tmp"), "tmp obj").unwrap();
+        std::fs::write(mesh_path.with_extension("dae.tmp"), "tmp mesh").unwrap();
         std::fs::write(manifest_path.with_extension("json.tmp"), "tmp manifest").unwrap();
-        // Also create a half-published obj
-        std::fs::write(&obj_path, "half published obj").unwrap();
+        // Also create a half-published mesh
+        std::fs::write(&mesh_path, "half published mesh").unwrap();
 
         let _evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
 
@@ -793,10 +793,10 @@ mod tests {
             .join("eval-00000000000000000001.pair.pending")
             .exists());
         // Tmp files should be gone
-        assert!(!obj_path.with_extension("obj.tmp").exists());
+        assert!(!mesh_path.with_extension("dae.tmp").exists());
         assert!(!manifest_path.with_extension("json.tmp").exists());
-        // Half-published obj should be gone
-        assert!(!obj_path.exists());
+        // Half-published mesh should be gone
+        assert!(!mesh_path.exists());
     }
 
     #[test]
@@ -817,12 +817,12 @@ mod tests {
     }
 
     #[test]
-    fn test_no_overwrite_existing_obj_after_restart() {
+    fn test_no_overwrite_existing_mesh_after_restart() {
         let temp = tempfile::tempdir().unwrap();
 
-        // Pre-seed an OBJ file with seq 5
+        // Pre-seed a mesh file with seq 5
         std::fs::write(
-            temp.path().join("eval-00000000000000000005.obj"),
+            temp.path().join("eval-00000000000000000005.dae"),
             "existing",
         )
         .unwrap();
@@ -836,6 +836,6 @@ mod tests {
             path.display()
         );
         // Existing file should still be there
-        assert!(temp.path().join("eval-00000000000000000005.obj").exists());
+        assert!(temp.path().join("eval-00000000000000000005.dae").exists());
     }
 }

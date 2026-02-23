@@ -5,7 +5,7 @@ Tests are named with 'vcad_e2e_mock' to match the verification filter:
 
 Coverage:
     - Sidecar eval_with_imports via MockVCADSidecar
-    - Full pipeline: eval -> OBJ -> SketchUp import via su-mock
+    - Full pipeline: eval -> mesh -> SketchUp import via su-mock
     - Security: auth token, path traversal
     - State reconciliation and recovery
     - Error propagation with standardized error_code values
@@ -124,12 +124,12 @@ class TestVCADE2EMockSidecarEval:
 
     def test_vcad_e2e_mock_eval_mesh(self, mock_sidecar, tmp_path):
         """eval_with_imports with export_mesh=True returns mesh result."""
-        obj_path = write_obj(str(tmp_path))
+        mesh_path = write_obj(str(tmp_path))
 
         mock_sidecar.set_response(
             "tools/call",
             result={
-                "obj_path": obj_path,
+                "mesh_path": mesh_path,
                 "volume": 14800.0,
                 "surface_area": 5200.0,
                 "is_empty": False,
@@ -143,7 +143,7 @@ class TestVCADE2EMockSidecarEval:
         )
 
         assert result["volume"] > 0
-        assert os.path.exists(result["obj_path"])
+        assert os.path.exists(result["mesh_path"])
         conn.disconnect()
 
     def test_vcad_e2e_mock_eval_error(self, mock_sidecar):
@@ -272,7 +272,7 @@ class TestVCADE2EMockSecurity:
 
 
 # ---------------------------------------------------------------------------
-# Full pipeline: eval -> OBJ -> SketchUp import (su-mock)
+# Full pipeline: eval -> mesh -> SketchUp import (su-mock)
 # ---------------------------------------------------------------------------
 
 
@@ -286,14 +286,14 @@ class TestVCADE2EMockFullPipeline:
 
     def test_vcad_e2e_mock_place_and_list(self, su_mock, mock_sidecar, tmp_path):
         """Place a vcad node via su-mock and verify it appears in list."""
-        # Write OBJ file that su-mock can import
-        obj_path = write_obj(str(tmp_path), "bracket.obj")
+        # Write mesh file that su-mock can import
+        mesh_path = write_obj(str(tmp_path), "bracket.obj")
 
-        # Configure mock sidecar to return the OBJ
+        # Configure mock sidecar to return the mesh
         mock_sidecar.set_response(
             "tools/call",
             result={
-                "obj_path": obj_path,
+                "mesh_path": mesh_path,
                 "volume": 1500.0,
                 "surface_area": 900.0,
                 "is_empty": False,
@@ -308,13 +308,13 @@ class TestVCADE2EMockFullPipeline:
             transformed_source="[cube 10.0 10.0 10.0]",
             export_mesh=True,
         )
-        assert eval_result["obj_path"] == obj_path
+        assert eval_result["mesh_path"] == mesh_path
 
         # Place in SketchUp via su-mock (real Ruby bridge)
         place_result = su_mock.send_command(
             method="place_vcad_node",
             params={
-                "obj_path": obj_path,
+                "mesh_path": mesh_path,
                 "node_id": "e2e-bracket",
                 "source_file": str(tmp_path / "bracket.skp.oo"),
                 "position": [0, 0, 0],
@@ -332,13 +332,13 @@ class TestVCADE2EMockFullPipeline:
 
     def test_vcad_e2e_mock_update_node(self, su_mock, mock_sidecar, tmp_path):
         """Place a node, then update it with new geometry."""
-        obj_path_v1 = write_obj(str(tmp_path), "v1.obj")
-        obj_path_v2 = write_obj(str(tmp_path), "v2.obj")
+        mesh_path_v1 = write_obj(str(tmp_path), "v1.obj")
+        mesh_path_v2 = write_obj(str(tmp_path), "v2.obj")
         source_file = str(tmp_path / "part.skp.oo")
 
         mock_sidecar.set_response(
             "tools/call",
-            result={"obj_path": obj_path_v1, "volume": 1000.0, "is_empty": False},
+            result={"mesh_path": mesh_path_v1, "volume": 1000.0, "is_empty": False},
         )
 
         # Place initial version
@@ -353,7 +353,7 @@ class TestVCADE2EMockFullPipeline:
         place_result = su_mock.send_command(
             method="place_vcad_node",
             params={
-                "obj_path": obj_path_v1,
+                "mesh_path": mesh_path_v1,
                 "node_id": "e2e-part",
                 "source_file": source_file,
             },
@@ -366,11 +366,11 @@ class TestVCADE2EMockFullPipeline:
         )
         assert node["version"] == 1
 
-        # Update with new OBJ
+        # Update with new mesh
         update_result = su_mock.send_command(
             method="update_vcad_node",
             params={
-                "obj_path": obj_path_v2,
+                "mesh_path": mesh_path_v2,
                 "node_id": "e2e-part",
                 "source_file": source_file,
             },

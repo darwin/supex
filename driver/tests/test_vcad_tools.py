@@ -69,8 +69,8 @@ class TestVCADPlace:
     """Test vcad_place tool."""
 
     def test_place_success(self, mock_ctx, mock_vcad, mock_sketchup):
-        """Place evaluates file, imports OBJ, returns result."""
-        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/out.obj"}
+        """Place evaluates file, imports mesh, returns result."""
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {
             "success": True,
             "node_id": "bracket",
@@ -96,14 +96,14 @@ class TestVCADPlace:
         call_args = mock_sketchup.send_command.call_args
         assert call_args.kwargs["method"] == "place_vcad_node"
         params = call_args.kwargs["params"]
-        assert params["obj_path"] == "/tmp/out.obj"
+        assert params["mesh_path"] == "/tmp/out.obj"
         assert params["node_id"] == "bracket"
         assert params["position"] == [10.0, 20.0, 0.0]
         assert params["component_name"] == "my_bracket"
 
     def test_place_default_position(self, mock_ctx, mock_vcad, mock_sketchup):
         """Place without position omits it from params."""
-        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/out.obj"}
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {"success": True, "node_id": "n1"}
 
         vcad_place(mock_ctx, node_id="n1", source_file="/f.skp.oo")
@@ -125,8 +125,8 @@ class TestVCADPlace:
         assert result["error_code"] == -32000
         assert "Parse error" in result["error"]
 
-    def test_place_no_obj_path(self, mock_ctx, mock_vcad):
-        """Sidecar returns result without obj_path."""
+    def test_place_no_mesh_path(self, mock_ctx, mock_vcad):
+        """Sidecar returns result without mesh_path."""
         mock_vcad.eval_with_imports.return_value = {"result": "no mesh"}
 
         result = json.loads(
@@ -134,11 +134,11 @@ class TestVCADPlace:
         )
 
         assert result["success"] is False
-        assert "obj_path" in result["error"]
+        assert "mesh_path" in result["error"]
 
     def test_place_sketchup_error(self, mock_ctx, mock_vcad, mock_sketchup):
         """SketchUp import failure propagated."""
-        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/out.obj"}
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
         mock_sketchup.send_command.side_effect = SketchUpConnectionError(
             "Connection refused"
         )
@@ -162,7 +162,7 @@ class TestVCADUpdate:
 
     def test_update_with_source(self, mock_ctx, mock_vcad, mock_sketchup):
         """Update with explicit source_file."""
-        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/updated.obj"}
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/updated.obj"}
         mock_sketchup.send_command.return_value = {
             "success": True,
             "node_id": "bracket",
@@ -189,7 +189,7 @@ class TestVCADUpdate:
             {"source_file": "/project/plate.skp.oo", "node_id": "plate"},
             {"success": True, "node_id": "plate", "version": 4},
         ]
-        mock_vcad.eval_with_imports.return_value = {"obj_path": "/tmp/plate.obj"}
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/plate.obj"}
 
         result = json.loads(vcad_update(mock_ctx, node_id="plate"))
 

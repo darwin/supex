@@ -3,7 +3,7 @@
   "node_id": "bracket",
   "entity_id": 42,
   "definition_name": "vcad_bracket",
-  "obj_path": "/tmp/vcad-sidecar/bracket.dae",
+  "mesh_path": "/tmp/vcad-sidecar/bracket.dae",
   "source_file": "/project/bracket.skp.oo",
   "revision": 1,
   "bbox": {

@@ -4,7 +4,7 @@ Handles writing, reading, retention, and crash recovery for eval artifact
 pairs (mesh file + manifest JSON). An artifact is "committed" only when both
 files exist and no pending marker is present.
 
-Path policy: manifest paths are derived internally from accepted obj_path;
+Path policy: manifest paths are derived internally from accepted mesh_path;
 traversal and symlink escapes are rejected with PATH_NOT_ALLOWED.
 """
 
@@ -44,14 +44,14 @@ def compute_source_hash(source: str) -> str:
     return hashlib.sha256(source.encode("utf-8")).hexdigest()
 
 
-def manifest_path_for(obj_path: str) -> str:
-    """Derive the manifest path from an obj_path (mesh artifact path)."""
-    return obj_path + MANIFEST_EXT
+def manifest_path_for(mesh_path: str) -> str:
+    """Derive the manifest path from an mesh_path (mesh artifact path)."""
+    return mesh_path + MANIFEST_EXT
 
 
-def pending_marker_for(obj_path: str) -> str:
-    """Derive the pending pair marker path from an obj_path."""
-    return obj_path + PAIR_PENDING_EXT
+def pending_marker_for(mesh_path: str) -> str:
+    """Derive the pending pair marker path from an mesh_path."""
+    return mesh_path + PAIR_PENDING_EXT
 
 
 def _canonical_real_path(path: str) -> str:
@@ -93,7 +93,7 @@ class ArtifactManifest:
     request_id: str | None
     source_file: str
     source_hash: str
-    obj_path: str
+    mesh_path: str
     finished_at: str  # RFC3339 UTC
 
     # Optional fields depending on status
@@ -123,7 +123,7 @@ class ArtifactManifest:
         d["source_hash"] = self.source_hash
         if self.imports:
             d["imports"] = self.imports
-        d["obj_path"] = self.obj_path
+        d["mesh_path"] = self.mesh_path
 
         if self.bbox is not None:
             d["bbox"] = self.bbox
@@ -159,7 +159,7 @@ class ArtifactManifest:
             request_id=d.get("request_id"),
             source_file=d.get("source_file", ""),
             source_hash=d["source_hash"],
-            obj_path=d["obj_path"],
+            mesh_path=d["mesh_path"],
             finished_at=d["finished_at"],
             imports=d.get("imports", []),
             bbox=d.get("bbox"),
@@ -181,7 +181,7 @@ def build_applied_manifest(
     request_id: str | None,
     source_file: str,
     source_hash: str,
-    obj_path: str,
+    mesh_path: str,
     imports: list[dict[str, Any]] | None = None,
     bbox: dict[str, list[float]] | None = None,
     volume: float | None = None,
@@ -199,7 +199,7 @@ def build_applied_manifest(
         request_id=request_id,
         source_file=source_file,
         source_hash=source_hash,
-        obj_path=obj_path,
+        mesh_path=mesh_path,
         imports=imports or [],
         bbox=bbox,
         volume=volume,
@@ -218,7 +218,7 @@ def build_stale_dropped_manifest(
     request_id: str | None,
     source_file: str,
     source_hash: str,
-    obj_path: str,
+    mesh_path: str,
     drop_reason: str,
     finished_at: float | None = None,
 ) -> ArtifactManifest:
@@ -230,7 +230,7 @@ def build_stale_dropped_manifest(
         request_id=request_id,
         source_file=source_file,
         source_hash=source_hash,
-        obj_path=obj_path,
+        mesh_path=mesh_path,
         finished_at=_rfc3339_utc(finished_at),
         drop_reason=drop_reason,
     )
@@ -243,7 +243,7 @@ def build_superseded_manifest(
     request_id: str | None,
     source_file: str,
     source_hash: str,
-    obj_path: str,
+    mesh_path: str,
     supersede_reason: str,
     superseded_by_revision: int | None = None,
     finished_at: float | None = None,
@@ -256,7 +256,7 @@ def build_superseded_manifest(
         request_id=request_id,
         source_file=source_file,
         source_hash=source_hash,
-        obj_path=obj_path,
+        mesh_path=mesh_path,
         finished_at=_rfc3339_utc(finished_at),
         supersede_reason=supersede_reason,
         superseded_by_revision=superseded_by_revision,
@@ -303,21 +303,21 @@ class ArtifactStore:
         Args:
             manifest: The artifact manifest.
             mesh_content: Optional mesh file content (if None, mesh file
-                is expected to exist already at obj_path).
+                is expected to exist already at mesh_path).
 
         Returns:
             The manifest path.
         """
-        obj_path = manifest.obj_path
-        m_path = manifest_path_for(obj_path)
-        marker_path = pending_marker_for(obj_path)
+        mesh_path = manifest.mesh_path
+        m_path = manifest_path_for(mesh_path)
+        marker_path = pending_marker_for(mesh_path)
 
         # Validate paths
-        self._validate_path(obj_path)
+        self._validate_path(mesh_path)
         self._validate_path(m_path)
 
-        obj_dir = os.path.dirname(obj_path)
-        os.makedirs(obj_dir, exist_ok=True)
+        mesh_dir = os.path.dirname(mesh_path)
+        os.makedirs(mesh_dir, exist_ok=True)
 
         manifest_data = json.dumps(
             manifest.to_dict(), indent=2, sort_keys=False
@@ -325,7 +325,7 @@ class ArtifactStore:
 
         with self._lock:
             # Stage files
-            mesh_tmp = obj_path + TMP_SUFFIX
+            mesh_tmp = mesh_path + TMP_SUFFIX
             manifest_tmp = m_path + TMP_SUFFIX
 
             try:
@@ -344,7 +344,7 @@ class ArtifactStore:
 
                 # Publish: rename staged files
                 if mesh_content is not None:
-                    os.replace(mesh_tmp, obj_path)
+                    os.replace(mesh_tmp, mesh_path)
                 os.replace(manifest_tmp, m_path)
 
                 # Remove pending marker (commit complete)
@@ -366,25 +366,25 @@ class ArtifactStore:
 
         return m_path
 
-    def is_committed(self, obj_path: str) -> bool:
+    def is_committed(self, mesh_path: str) -> bool:
         """Check if an artifact pair is committed (fully visible).
 
         Committed = mesh exists + manifest exists + no pending marker.
         """
-        m_path = manifest_path_for(obj_path)
-        marker_path = pending_marker_for(obj_path)
+        m_path = manifest_path_for(mesh_path)
+        marker_path = pending_marker_for(mesh_path)
 
         return (
-            os.path.exists(obj_path)
+            os.path.exists(mesh_path)
             and os.path.exists(m_path)
             and not os.path.exists(marker_path)
         )
 
     def list_committed_artifacts(self) -> list[str]:
-        """List all committed artifact obj_paths under the root.
+        """List all committed artifact mesh_paths under the root.
 
         Returns:
-            Sorted list of obj_paths that have committed pairs.
+            Sorted list of mesh_paths that have committed pairs.
         """
         committed = []
         if not os.path.isdir(self.artifact_root):
@@ -406,15 +406,15 @@ class ArtifactStore:
 
         return committed
 
-    def read_manifest(self, obj_path: str) -> ArtifactManifest | None:
+    def read_manifest(self, mesh_path: str) -> ArtifactManifest | None:
         """Read and parse a committed artifact manifest.
 
         Returns None if the artifact is not committed.
         """
-        if not self.is_committed(obj_path):
+        if not self.is_committed(mesh_path):
             return None
 
-        m_path = manifest_path_for(obj_path)
+        m_path = manifest_path_for(mesh_path)
         try:
             with open(m_path) as f:
                 data = json.load(f)
@@ -443,12 +443,12 @@ class ArtifactStore:
         except Exception:
             return None
 
-    def remove_artifact_pair(self, obj_path: str) -> None:
+    def remove_artifact_pair(self, mesh_path: str) -> None:
         """Remove a mesh + manifest pair together."""
-        m_path = manifest_path_for(obj_path)
-        marker_path = pending_marker_for(obj_path)
+        m_path = manifest_path_for(mesh_path)
+        marker_path = pending_marker_for(mesh_path)
 
-        for p in (obj_path, m_path, marker_path):
+        for p in (mesh_path, m_path, marker_path):
             with contextlib.suppress(OSError):
                 os.unlink(p)
 
@@ -477,12 +477,12 @@ class ArtifactStore:
         stats["pending_found"] = len(pending_markers)
 
         for marker_path in pending_markers:
-            # Derive obj_path from marker
-            obj_path = marker_path[: -len(PAIR_PENDING_EXT)]
-            m_path = manifest_path_for(obj_path)
+            # Derive mesh_path from marker
+            mesh_path = marker_path[: -len(PAIR_PENDING_EXT)]
+            m_path = manifest_path_for(mesh_path)
 
             # Check what state the pair is in
-            has_mesh = os.path.exists(obj_path)
+            has_mesh = os.path.exists(mesh_path)
             has_manifest = os.path.exists(m_path)
 
             if has_mesh and has_manifest:
@@ -492,7 +492,7 @@ class ArtifactStore:
                 stats["recovered"] += 1
             else:
                 # Incomplete — remove all artifacts for this pair
-                for p in (obj_path, m_path, marker_path):
+                for p in (mesh_path, m_path, marker_path):
                     with contextlib.suppress(OSError):
                         os.unlink(p)
                 stats["cleaned"] += 1
@@ -627,8 +627,8 @@ class ArtifactStore:
         committed.sort(key=lambda p: os.path.getmtime(p))
         to_remove = len(committed) - self.max_retained
 
-        for obj_path in committed[:to_remove]:
-            self.remove_artifact_pair(obj_path)
+        for mesh_path in committed[:to_remove]:
+            self.remove_artifact_pair(mesh_path)
 
         self._update_retained_gauge(self.max_retained)
 

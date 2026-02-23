@@ -1217,7 +1217,7 @@ mod tests {
             resp
         );
         let result = resp.get("result").unwrap();
-        assert!(result.get("obj_path").is_some());
+        assert!(result.get("mesh_path").is_some());
         assert!(result.get("volume").unwrap().as_f64().unwrap() > 0.0);
         assert!(!result.get("is_empty").unwrap().as_bool().unwrap());
 

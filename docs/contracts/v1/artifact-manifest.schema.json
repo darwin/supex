@@ -4,7 +4,7 @@
   "title": "Artifact Manifest",
   "description": "Deterministic artifact manifest shape for VCAD evaluation results.",
   "type": "object",
-  "required": ["status", "source_hash", "obj_path", "finished_at"],
+  "required": ["status", "source_hash", "mesh_path", "finished_at"],
   "properties": {
     "status": {
       "type": "string",
@@ -37,9 +37,9 @@
       "items": { "$ref": "#/$defs/import_entry" },
       "description": "Import metadata snapshot (references/types only)."
     },
-    "obj_path": {
+    "mesh_path": {
       "type": "string",
-      "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
+      "description": "Path to exported mesh file (DAE)."
     },
     "bbox": {
       "$ref": "#/$defs/bbox",

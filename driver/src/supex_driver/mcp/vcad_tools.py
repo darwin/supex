@@ -338,10 +338,10 @@ def _vcad_update_single(
     except Exception as e:
         return build_error("INTERNAL_ERROR", str(e), {"node_id": node_id})
 
-    obj_path = eval_result.get("obj_path")
-    if not obj_path:
+    mesh_path = eval_result.get("mesh_path")
+    if not mesh_path:
         return build_error(
-            "UNEXPECTED_ERROR", "Sidecar did not return obj_path", {"node_id": node_id}
+            "UNEXPECTED_ERROR", "Sidecar did not return mesh_path", {"node_id": node_id}
         )
 
     # Check revision freshness before applying
@@ -357,7 +357,7 @@ def _vcad_update_single(
         result = sketchup.send_command(
             method="update_vcad_node",
             params={
-                "obj_path": obj_path,
+                "mesh_path": mesh_path,
                 "node_id": node_id,
                 "source_file": source_file,
             },
@@ -387,7 +387,7 @@ def _vcad_update_single(
 
         if _relay is not None:
             _relay.push_file_update(
-                node_id, revision, obj_path, eval_result.get("bbox"),
+                node_id, revision, mesh_path, eval_result.get("bbox"),
             )
     except Exception:
         pass
@@ -410,8 +410,8 @@ def vcad_place(
 ) -> str:
     """Evaluate a .skp.oo file and place the resulting mesh in SketchUp.
 
-    1. Send source file to VCAD sidecar for evaluation -> OBJ file
-    2. Send OBJ path to SketchUp -> definitions.import -> ComponentDefinition
+    1. Send source file to VCAD sidecar for evaluation -> DAE mesh file
+    2. Send mesh path to SketchUp -> definitions.import -> ComponentDefinition
     3. Store VCAD metadata in attribute dictionary
 
     Args:
@@ -472,17 +472,17 @@ def vcad_place(
     except Exception as e:
         return _handle_vcad_error(e, "vcad_place:eval")
 
-    obj_path = eval_result.get("obj_path")
-    if not obj_path:
+    mesh_path = eval_result.get("mesh_path")
+    if not mesh_path:
         return json.dumps(
-            build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_place:eval")
+            build_error("UNEXPECTED_ERROR", "Sidecar did not return mesh_path", operation="vcad_place:eval")
         )
 
     # Step 3: Place in SketchUp via Ruby bridge
     try:
         sketchup = get_sketchup_connection(agent=agent)
         place_params: dict[str, Any] = {
-            "obj_path": obj_path,
+            "mesh_path": mesh_path,
             "node_id": node_id,
             "source_file": source_file,
         }
@@ -523,7 +523,7 @@ def vcad_place(
 
             if _relay is not None:
                 _relay.push_file_update(
-                    node_id, 1, obj_path, eval_result.get("bbox"),
+                    node_id, 1, mesh_path, eval_result.get("bbox"),
                 )
         except Exception:
             pass
@@ -632,10 +632,10 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
     except Exception as e:
         return _handle_vcad_error(e, "vcad_update:eval")
 
-    obj_path = eval_result.get("obj_path")
-    if not obj_path:
+    mesh_path = eval_result.get("mesh_path")
+    if not mesh_path:
         return json.dumps(
-            build_error("UNEXPECTED_ERROR", "Sidecar did not return obj_path", operation="vcad_update:eval")
+            build_error("UNEXPECTED_ERROR", "Sidecar did not return mesh_path", operation="vcad_update:eval")
         )
 
     # Update in SketchUp via Ruby bridge
@@ -644,7 +644,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
         result = sketchup.send_command(
             method="update_vcad_node",
             params={
-                "obj_path": obj_path,
+                "mesh_path": mesh_path,
                 "node_id": node_id,
                 "source_file": source_file,
             },
@@ -680,7 +680,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -
                 dag_node = dag.get_node(node_id)
                 rev = dag_node.applied_revision if dag_node else 1
                 _relay.push_file_update(
-                    node_id, rev, obj_path, eval_result.get("bbox"),
+                    node_id, rev, mesh_path, eval_result.get("bbox"),
                 )
         except Exception:
             pass
@@ -760,12 +760,12 @@ def vcad_export(
     format: str = "obj",
     output_path: str = "",
 ) -> str:
-    """Export VCAD geometry to OBJ or STEP.
+    """Export VCAD geometry to DAE or STEP.
 
     Args:
         ctx: MCP context
         source: A .skp.oo file path or inline Loon code
-        format: Export format - "obj" or "step" (default "obj")
+        format: Export format - "obj", "dae", or "step" (default "obj")
         output_path: Optional output file path. Auto-generated if empty.
     """
     try:
@@ -785,10 +785,10 @@ def vcad_export(
         has_imports, details = _resolve_imports(ctx, source_text, source if is_file else None)
 
         if has_imports:
-            # Eval with imports first, then use the resulting obj_path
+            # Eval with imports first, then use the resulting mesh_path
             base_dir = os.path.dirname(os.path.abspath(source)) if is_file else None
             eval_result = _eval_with_imports(ctx, details, base_dir=base_dir)
-            # The eval_result already contains obj_path with the mesh
+            # The eval_result already contains mesh_path with the mesh
             return json.dumps({"success": True, **eval_result})
         else:
             vcad = get_vcad_connection(agent=get_agent_name(ctx))

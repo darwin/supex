@@ -148,7 +148,7 @@ class TestNativeMeshCSG:
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/diff-native.dae",
+            "mesh_path": "/tmp/diff-native.dae",
             "volume": 7000000.0,
             "surface_area": 240000.0,
         }
@@ -181,7 +181,7 @@ class TestNativeMeshCSG:
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/union-native.dae",
+            "mesh_path": "/tmp/union-native.dae",
             "volume": 9000000.0,
         }
 
@@ -208,7 +208,7 @@ class TestNativeMeshCSG:
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/intersect-native.dae",
+            "mesh_path": "/tmp/intersect-native.dae",
             "volume": 1000000.0,
         }
 
@@ -242,7 +242,7 @@ class TestNativeMeshDataIntegrity:
 
         _setup_native_mesh_flow(mock_vcad, mock_sketchup)
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/preserve.dae",
+            "mesh_path": "/tmp/preserve.dae",
         }
 
         vcad_place(
@@ -272,7 +272,7 @@ class TestNativeMeshDataIntegrity:
         }
         _setup_native_mesh_flow(mock_vcad, mock_sketchup, mesh=mesh_no_normals)
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/no-normals.dae",
+            "mesh_path": "/tmp/no-normals.dae",
         }
 
         vcad_place(
@@ -418,7 +418,7 @@ class TestNativeMeshErrors:
         ]
 
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/multi-native.dae",
+            "mesh_path": "/tmp/multi-native.dae",
             "volume": 500000.0,
         }
 

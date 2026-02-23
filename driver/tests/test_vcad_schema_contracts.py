@@ -138,7 +138,7 @@ class TestGoldenToolPayloads:
         assert isinstance(fixture["node_id"], str)
         assert isinstance(fixture["entity_id"], int)
         assert isinstance(fixture["definition_name"], str)
-        assert isinstance(fixture["obj_path"], str)
+        assert isinstance(fixture["mesh_path"], str)
         assert isinstance(fixture["revision"], int)
         assert "min" in fixture["bbox"]
         assert "max" in fixture["bbox"]
@@ -176,7 +176,7 @@ class TestGoldenToolPayloads:
         assert isinstance(fixture["volume"], (int, float))
         assert isinstance(fixture["surface_area"], (int, float))
         assert isinstance(fixture["source_hash"], str)
-        assert isinstance(fixture["obj_path"], str)
+        assert isinstance(fixture["mesh_path"], str)
         assert isinstance(fixture["finished_at"], str)
 
     def test_artifact_stale_dropped_golden_fields(self) -> None:
@@ -256,7 +256,7 @@ class TestNegativeValidationMissingFields:
         """Missing status in artifact manifest -> validation error."""
         payload = {
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(payload)
@@ -266,7 +266,7 @@ class TestNegativeValidationMissingFields:
         """Missing source_hash in artifact manifest -> validation error."""
         payload = {
             "status": "applied",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "revision": 1,
             "bbox": {"min": [0, 0, 0], "max": [1, 1, 1]},
@@ -281,7 +281,7 @@ class TestNegativeValidationMissingFields:
         payload = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "bbox": {"min": [0, 0, 0], "max": [1, 1, 1]},
             "volume": 1.0,
@@ -295,7 +295,7 @@ class TestNegativeValidationMissingFields:
         payload = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "revision": 1,
             "volume": 1.0,
@@ -309,7 +309,7 @@ class TestNegativeValidationMissingFields:
         payload = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "revision": 1,
             "bbox": {"min": [0, 0, 0], "max": [1, 1, 1]},
@@ -323,7 +323,7 @@ class TestNegativeValidationMissingFields:
         payload = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "revision": 1,
             "bbox": {"min": [0, 0, 0], "max": [1, 1, 1]},
@@ -337,7 +337,7 @@ class TestNegativeValidationMissingFields:
         payload = {
             "status": "stale_dropped",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(payload)
@@ -348,7 +348,7 @@ class TestNegativeValidationMissingFields:
         payload = {
             "status": "superseded",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(payload)
@@ -412,7 +412,7 @@ class TestNegativeValidationWrongTypes:
         payload = {
             "status": "invalid_status",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(payload)
@@ -423,7 +423,7 @@ class TestNegativeValidationWrongTypes:
         payload = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "revision": "not-int",
             "bbox": {"min": [0, 0, 0], "max": [1, 1, 1]},
@@ -505,7 +505,7 @@ class TestPartialDiagnostics:
         invalid_manifest = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             # Missing revision, bbox, volume, surface_area
         }
@@ -746,7 +746,7 @@ class TestCompatibilityBreaking:
         payload = {
             "status": "new_v2_status",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(payload)
@@ -788,7 +788,7 @@ class TestCompatibilityBreaking:
         applied_no_volume = {
             "status": "applied",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
             "revision": 1,
             "bbox": {"min": [0, 0, 0], "max": [1, 1, 1]},
@@ -802,7 +802,7 @@ class TestCompatibilityBreaking:
         stale_no_reason = {
             "status": "stale_dropped",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(stale_no_reason)
@@ -812,7 +812,7 @@ class TestCompatibilityBreaking:
         superseded_no_reason = {
             "status": "superseded",
             "source_hash": "sha256:abc",
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
             "finished_at": "2026-02-22T10:00:00Z",
         }
         errors = validate_artifact_manifest(superseded_no_reason)

@@ -126,7 +126,7 @@ class VCADSidecar:
             if key in os.environ:
                 env[key] = os.environ[key]
 
-        # Default VCAD_TEMP_DIR to workspace .tmp/vcad-sidecar/ so OBJ files
+        # Default VCAD_TEMP_DIR to workspace .tmp/vcad-sidecar/ so mesh files
         # are within SketchUp PathPolicy allowed roots
         if "VCAD_TEMP_DIR" not in env:
             workspace = os.environ.get("SUPEX_WORKSPACE")

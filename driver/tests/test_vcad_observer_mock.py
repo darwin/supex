@@ -59,7 +59,7 @@ def mock_sketchup():
 def mock_vcad():
     """Create a mock VCADConnection."""
     conn = MagicMock()
-    conn.eval_file.return_value = {"obj_path": "/tmp/out.dae"}
+    conn.eval_file.return_value = {"mesh_path": "/tmp/out.dae"}
     conn.watch_poll.return_value = {"changes": []}
     conn.get_affected_nodes.return_value = []
     return conn

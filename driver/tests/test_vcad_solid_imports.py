@@ -122,7 +122,7 @@ class TestSolidImportSuccess:
 
         # Sidecar eval_with_imports
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/import-eval-001.dae",
+            "mesh_path": "/tmp/import-eval-001.dae",
             "volume": 500.0,
             "surface_area": 300.0,
         }
@@ -197,7 +197,7 @@ class TestSolidImportSuccess:
         ]
 
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/mixed.dae",
+            "mesh_path": "/tmp/mixed.dae",
             "volume": 800.0,
         }
 
@@ -260,7 +260,7 @@ class TestSolidImportSuccess:
         ]
 
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/data-only.dae",
+            "mesh_path": "/tmp/data-only.dae",
         }
 
         result = json.loads(
@@ -464,7 +464,7 @@ class TestVCADConnectionSolidImports:
         from supex_driver.connection.vcad_connection import VCADConnection
 
         conn = VCADConnection.__new__(VCADConnection)
-        conn.send_command = MagicMock(return_value={"obj_path": "/tmp/out.dae"})
+        conn.send_command = MagicMock(return_value={"mesh_path": "/tmp/out.dae"})
 
         conn.eval_with_imports(
             transformed_source="[cube 10.0 10.0 10.0]",

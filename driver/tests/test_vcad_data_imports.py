@@ -115,7 +115,7 @@ class TestVCADPlaceImports:
 
         # Sidecar eval_with_imports
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/import-eval-001.dae",
+            "mesh_path": "/tmp/import-eval-001.dae",
             "volume": 1000.0,
             "surface_area": 600.0,
         }
@@ -157,7 +157,7 @@ class TestVCADPlaceImports:
             "transformed_source": "[cube 10.0 10.0 10.0]",
         }
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/eval-001.dae",
+            "mesh_path": "/tmp/eval-001.dae",
         }
         mock_sketchup.send_command.return_value = {
             "success": True,
@@ -228,7 +228,7 @@ class TestVCADPlaceImports:
             },
         ]
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/multi.dae",
+            "mesh_path": "/tmp/multi.dae",
         }
 
         result = json.loads(
@@ -328,10 +328,10 @@ class TestVCADPlaceImportsErrors:
         assert result["success"] is False
         assert result["error_code"] == -32000
 
-    def test_no_obj_path_in_eval_result(
+    def test_no_mesh_path_in_eval_result(
         self, mock_ctx, mock_vcad, mock_sketchup, source_file
     ):
-        """Sidecar eval returns no obj_path."""
+        """Sidecar eval returns no mesh_path."""
         mock_vcad.extract_imports.return_value = {
             "imports": [],
             "transformed_source": "[cube 1.0 1.0 1.0]",
@@ -344,7 +344,7 @@ class TestVCADPlaceImportsErrors:
             )
         )
         assert result["success"] is False
-        assert "obj_path" in result["error"]
+        assert "mesh_path" in result["error"]
 
     def test_sketchup_place_error(
         self, mock_ctx, mock_vcad, mock_sketchup, source_file
@@ -355,7 +355,7 @@ class TestVCADPlaceImportsErrors:
             "transformed_source": "[cube 1.0 1.0 1.0]",
         }
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/out.dae",
+            "mesh_path": "/tmp/out.dae",
         }
         mock_sketchup.send_command.side_effect = SketchUpConnectionError(
             "Connection refused"

@@ -56,7 +56,7 @@ def mock_vcad():
     conn.watch_poll.return_value = {"changes": []}
     conn.get_affected_nodes.return_value = []
     conn.eval_with_imports.return_value = {
-        "obj_path": "/tmp/out.dae",
+        "mesh_path": "/tmp/out.dae",
         "loaded_module_paths": [],
     }
     return conn
@@ -84,7 +84,7 @@ class TestEvalWithImports:
 
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(
-            return_value={"obj_path": "/tmp/out.dae", "volume": 1000.0}
+            return_value={"mesh_path": "/tmp/out.dae", "volume": 1000.0}
         )
 
         result = conn.eval_with_imports("[cube 10.0 10.0 10.0]")
@@ -93,7 +93,7 @@ class TestEvalWithImports:
             "vcad.eval_with_imports",
             {"transformed_source": "[cube 10.0 10.0 10.0]"},
         )
-        assert result["obj_path"] == "/tmp/out.dae"
+        assert result["mesh_path"] == "/tmp/out.dae"
 
     def test_eval_with_imports_with_node_id(self):
         """eval_with_imports with node_id includes it in params."""
@@ -102,7 +102,7 @@ class TestEvalWithImports:
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(
             return_value={
-                "obj_path": "/tmp/out.dae",
+                "mesh_path": "/tmp/out.dae",
                 "volume": 1000.0,
                 "loaded_module_paths": ["/project/src/dims.oo"],
             }
@@ -132,7 +132,7 @@ class TestEvalWithImports:
 
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(
-            return_value={"obj_path": "/tmp/out.dae"}
+            return_value={"mesh_path": "/tmp/out.dae"}
         )
 
         conn.eval_with_imports("[cube 10.0 10.0 10.0]", node_id=None)
@@ -147,7 +147,7 @@ class TestEvalWithImports:
 
         conn = VCADConnection.__new__(VCADConnection)
         conn.send_command = MagicMock(
-            return_value={"obj_path": "/tmp/out.dae"}
+            return_value={"mesh_path": "/tmp/out.dae"}
         )
 
         conn.eval_with_imports(
@@ -353,7 +353,7 @@ class TestVCADPlaceModuleTracking:
 
             mock_vcad = MagicMock()
             mock_vcad.eval_with_imports.return_value = {
-                "obj_path": "/tmp/out.dae",
+                "mesh_path": "/tmp/out.dae",
                 "loaded_module_paths": ["/project/src/dims.oo"],
             }
             mock_get_vcad.return_value = mock_vcad
@@ -412,7 +412,7 @@ class TestVCADUpdateSingleModuleTracking:
 
             mock_vcad = MagicMock()
             mock_vcad.eval_with_imports.return_value = {
-                "obj_path": "/tmp/out.dae",
+                "mesh_path": "/tmp/out.dae",
                 "loaded_module_paths": [],
             }
             mock_get_vcad.return_value = mock_vcad
@@ -469,7 +469,7 @@ class TestVCADUpdateModuleTracking:
 
             mock_vcad = MagicMock()
             mock_vcad.eval_with_imports.return_value = {
-                "obj_path": "/tmp/out.dae",
+                "mesh_path": "/tmp/out.dae",
                 "loaded_module_paths": ["/project/src/dims.oo"],
             }
             mock_get_vcad.return_value = mock_vcad

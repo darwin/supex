@@ -138,7 +138,7 @@ class TestNativeMeshImportSuccess:
         ]
 
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/native-mesh-001.dae",
+            "mesh_path": "/tmp/native-mesh-001.dae",
             "volume": 6000000.0,
         }
 
@@ -217,7 +217,7 @@ class TestNativeMeshImportSuccess:
         ]
 
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/mixed-native-vcad.dae",
+            "mesh_path": "/tmp/mixed-native-vcad.dae",
             "volume": 1000.0,
         }
 
@@ -295,7 +295,7 @@ class TestNativeMeshImportSuccess:
         ]
 
         mock_vcad.eval_with_imports.return_value = {
-            "obj_path": "/tmp/native-data.dae",
+            "mesh_path": "/tmp/native-data.dae",
         }
 
         result = json.loads(

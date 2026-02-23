@@ -347,8 +347,8 @@ class TestDefinitionList < Minitest::Test
   end
 
   def test_import_obj
-    obj_path = File.join(@tmpdir, 'test.obj')
-    File.write(obj_path, <<~OBJ)
+    mesh_path = File.join(@tmpdir, 'test.obj')
+    File.write(mesh_path, <<~OBJ)
       v 0.0 0.0 0.0
       v 10.0 0.0 0.0
       v 10.0 10.0 0.0
@@ -358,7 +358,7 @@ class TestDefinitionList < Minitest::Test
     OBJ
 
     defs = SketchupMock::MockDefinitionList.new
-    defn = defs.import(obj_path)
+    defn = defs.import(mesh_path)
 
     assert_kind_of Sketchup::ComponentDefinition, defn
     assert defn.is_a?(Sketchup::ComponentDefinition)
@@ -759,9 +759,9 @@ class TestVCADToolsIntegration < Minitest::Test
     # Simulate what vcad_tools.rb#place_vcad_node does
     model = Sketchup.active_model
 
-    # Create test OBJ file
-    obj_path = File.join(@tmpdir, 'cube.obj')
-    File.write(obj_path, <<~OBJ)
+    # Create test mesh file
+    mesh_path = File.join(@tmpdir, 'cube.obj')
+    File.write(mesh_path, <<~OBJ)
       v 0.0 0.0 0.0
       v 1.0 0.0 0.0
       v 1.0 1.0 0.0
@@ -780,7 +780,7 @@ class TestVCADToolsIntegration < Minitest::Test
 
     model.start_operation('Place vcad node', true)
 
-    defn = model.definitions.import(obj_path)
+    defn = model.definitions.import(mesh_path)
     assert defn.is_a?(Sketchup::ComponentDefinition)
 
     defn.name = 'vcad_node-1'
@@ -806,12 +806,12 @@ class TestVCADToolsIntegration < Minitest::Test
     # Simulate what vcad_tools.rb#update_vcad_node does
     model = Sketchup.active_model
 
-    obj_path = File.join(@tmpdir, 'v1.obj')
-    File.write(obj_path, "v 0 0 0\nv 1 0 0\nv 1 1 0\nf 1 2 3\n")
+    mesh_path = File.join(@tmpdir, 'v1.obj')
+    File.write(mesh_path, "v 0 0 0\nv 1 0 0\nv 1 1 0\nf 1 2 3\n")
 
     # Place initial node
     model.start_operation('Place', true)
-    old_defn = model.definitions.import(obj_path)
+    old_defn = model.definitions.import(mesh_path)
     old_defn.name = 'bracket'
     old_defn.set_attribute('vcad', 'node_id', 'b1')
     old_defn.set_attribute('vcad', 'version', 1)
@@ -820,8 +820,8 @@ class TestVCADToolsIntegration < Minitest::Test
     model.commit_operation
 
     # Update: atomic definition swap
-    obj_v2 = File.join(@tmpdir, 'v2.obj')
-    File.write(obj_v2, "v 0 0 0\nv 2 0 0\nv 2 2 0\nf 1 2 3\n")
+    mesh_v2 = File.join(@tmpdir, 'v2.obj')
+    File.write(mesh_v2, "v 0 0 0\nv 2 0 0\nv 2 2 0\nf 1 2 3\n")
 
     model.start_operation('Update vcad node', true)
 
@@ -835,7 +835,7 @@ class TestVCADToolsIntegration < Minitest::Test
       }
     end
 
-    new_defn = model.definitions.import(obj_v2)
+    new_defn = model.definitions.import(mesh_v2)
     new_defn.name = 'bracket__updating'
     new_defn.set_attribute('vcad', 'node_id', 'b1')
     new_defn.set_attribute('vcad', 'version', 2)
@@ -889,8 +889,8 @@ class TestVCADToolsIntegration < Minitest::Test
   def test_vcad_bounds_in_mm
     model = Sketchup.active_model
 
-    obj_path = File.join(@tmpdir, 'box.obj')
-    File.write(obj_path, <<~OBJ)
+    mesh_path = File.join(@tmpdir, 'box.obj')
+    File.write(mesh_path, <<~OBJ)
       v 0.0 0.0 0.0
       v 2.0 0.0 0.0
       v 2.0 3.0 0.0
@@ -898,7 +898,7 @@ class TestVCADToolsIntegration < Minitest::Test
       f 1 2 3 4
     OBJ
 
-    defn = model.definitions.import(obj_path)
+    defn = model.definitions.import(mesh_path)
     bb = defn.bounds
 
     # bounds in internal units, .to_mm converts

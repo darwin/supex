@@ -13,15 +13,15 @@
     "vcad_place_result": {
       "type": "object",
       "title": "vcad_place success",
-      "required": ["success", "node_id", "entity_id", "definition_name", "obj_path"],
+      "required": ["success", "node_id", "entity_id", "definition_name", "mesh_path"],
       "properties": {
         "success": { "const": true },
         "node_id": { "type": "string" },
         "entity_id": { "type": "integer" },
         "definition_name": { "type": "string" },
-        "obj_path": {
+        "mesh_path": {
           "type": "string",
-          "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
+          "description": "Path to exported mesh file (DAE)."
         },
         "source_file": { "type": "string" },
         "revision": { "type": "integer" },
@@ -72,12 +72,12 @@
     "vcad_eval_result": {
       "type": "object",
       "title": "vcad_eval success",
-      "required": ["success", "obj_path"],
+      "required": ["success", "mesh_path"],
       "properties": {
         "success": { "const": true },
-        "obj_path": {
+        "mesh_path": {
           "type": "string",
-          "description": "Path to exported mesh file (DAE). Field name kept for wire compatibility."
+          "description": "Path to exported mesh file (DAE)."
         },
         "volume": { "type": "number" },
         "surface_area": { "type": "number" },

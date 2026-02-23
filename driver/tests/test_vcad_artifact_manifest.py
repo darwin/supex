@@ -86,14 +86,14 @@ def _make_applied_manifest(
     finished_at: float | None = None,
 ) -> ArtifactManifest:
     """Build an applied manifest for testing."""
-    obj_path = os.path.join(store.artifact_root, f"{node_id}-r{revision}.dae")
+    mesh_path = os.path.join(store.artifact_root, f"{node_id}-r{revision}.dae")
     return build_applied_manifest(
         node_id=node_id,
         revision=revision,
         request_id=f"req-{label}",
         source_file=f"/project/{node_id}.skp.oo",
         source_hash=compute_source_hash(source),
-        obj_path=obj_path,
+        mesh_path=mesh_path,
         imports=[],
         bbox={"min": [0.0, 0.0, 0.0], "max": [10.0, 10.0, 10.0]},
         volume=1000.0,
@@ -175,14 +175,14 @@ class TestStatusPaths:
         assert "surface_area" in d
 
     def test_stale_dropped_status(self, artifact_root: str) -> None:
-        obj_path = os.path.join(artifact_root, "node-1-r1.dae")
+        mesh_path = os.path.join(artifact_root, "node-1-r1.dae")
         manifest = build_stale_dropped_manifest(
             node_id="node-1",
             revision=1,
             request_id="req-1",
             source_file="/project/node-1.skp.oo",
             source_hash=compute_source_hash("[cube 10.0 10.0 10.0]"),
-            obj_path=obj_path,
+            mesh_path=mesh_path,
             drop_reason="revision 2 is current, result for revision 1 is stale",
             finished_at=1700000002.0,
         )
@@ -192,14 +192,14 @@ class TestStatusPaths:
         assert "stale" in d["drop_reason"]
 
     def test_superseded_status(self, artifact_root: str) -> None:
-        obj_path = os.path.join(artifact_root, "node-1-r1.dae")
+        mesh_path = os.path.join(artifact_root, "node-1-r1.dae")
         manifest = build_superseded_manifest(
             node_id="node-1",
             revision=1,
             request_id="req-1",
             source_file="/project/node-1.skp.oo",
             source_hash=compute_source_hash("[cube 10.0 10.0 10.0]"),
-            obj_path=obj_path,
+            mesh_path=mesh_path,
             supersede_reason="newer revision enqueued",
             superseded_by_revision=3,
             finished_at=1700000002.0,
@@ -210,14 +210,14 @@ class TestStatusPaths:
         assert d["superseded_by_revision"] == 3
 
     def test_stale_manifest_validates_against_schema(self, artifact_root: str) -> None:
-        obj_path = os.path.join(artifact_root, "stale.dae")
+        mesh_path = os.path.join(artifact_root, "stale.dae")
         manifest = build_stale_dropped_manifest(
             node_id="node-1",
             revision=1,
             request_id="req-1",
             source_file="/project/node-1.skp.oo",
             source_hash=compute_source_hash("[cube 10.0 10.0 10.0]"),
-            obj_path=obj_path,
+            mesh_path=mesh_path,
             drop_reason="stale revision",
         )
         errors = validate_artifact_manifest(manifest.to_dict())
@@ -226,14 +226,14 @@ class TestStatusPaths:
     def test_superseded_manifest_validates_against_schema(
         self, artifact_root: str
     ) -> None:
-        obj_path = os.path.join(artifact_root, "superseded.dae")
+        mesh_path = os.path.join(artifact_root, "superseded.dae")
         manifest = build_superseded_manifest(
             node_id="node-1",
             revision=1,
             request_id="req-1",
             source_file="/project/node-1.skp.oo",
             source_hash=compute_source_hash("[cube 10.0 10.0 10.0]"),
-            obj_path=obj_path,
+            mesh_path=mesh_path,
             supersede_reason="newer revision enqueued",
             superseded_by_revision=2,
         )
@@ -271,7 +271,7 @@ class TestRetentionPairing:
                 request_id=f"req-{i}",
                 source_file=f"/project/node-{i}.skp.oo",
                 source_hash=compute_source_hash(f"[cube {i}.0 10.0 10.0]"),
-                obj_path=os.path.join(root, f"node-{i}-r1.dae"),
+                mesh_path=os.path.join(root, f"node-{i}-r1.dae"),
                 bbox={"min": [0.0, 0.0, 0.0], "max": [10.0, 10.0, 10.0]},
                 volume=1000.0,
                 surface_area=600.0,
@@ -289,11 +289,11 @@ class TestRetentionPairing:
         manifest = _make_applied_manifest(store)
         store.write_artifact_pair(manifest, _make_mesh_content())
 
-        obj_path = manifest.obj_path
-        store.remove_artifact_pair(obj_path)
+        mesh_path = manifest.mesh_path
+        store.remove_artifact_pair(mesh_path)
 
-        assert not os.path.exists(obj_path)
-        assert not os.path.exists(manifest_path_for(obj_path))
+        assert not os.path.exists(mesh_path)
+        assert not os.path.exists(manifest_path_for(mesh_path))
 
     def test_no_orphan_mesh_files(self, store: ArtifactStore) -> None:
         """After pair removal, no mesh files without manifest files."""
@@ -301,11 +301,11 @@ class TestRetentionPairing:
         store.write_artifact_pair(manifest, _make_mesh_content())
 
         # Manually delete only the manifest
-        m_path = manifest_path_for(manifest.obj_path)
+        m_path = manifest_path_for(manifest.mesh_path)
         os.unlink(m_path)
 
         # Not committed anymore
-        assert not store.is_committed(manifest.obj_path)
+        assert not store.is_committed(manifest.mesh_path)
 
 
 # ===========================================================================
@@ -319,52 +319,52 @@ class TestAtomicPairCommit:
     def test_pending_marker_blocks_committed(self, store: ArtifactStore) -> None:
         """Artifact with pending marker is not committed."""
         manifest = _make_applied_manifest(store)
-        obj_path = manifest.obj_path
+        mesh_path = manifest.mesh_path
 
         # Write mesh and manifest manually
-        with open(obj_path, "wb") as f:
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
-        m_path = manifest_path_for(obj_path)
+        m_path = manifest_path_for(mesh_path)
         with open(m_path, "w") as f:
             json.dump(manifest.to_dict(), f)
 
         # Create pending marker
-        marker = pending_marker_for(obj_path)
+        marker = pending_marker_for(mesh_path)
         with open(marker, "w") as f:
             f.write("pending")
 
-        assert not store.is_committed(obj_path)
-        assert obj_path not in store.list_committed_artifacts()
+        assert not store.is_committed(mesh_path)
+        assert mesh_path not in store.list_committed_artifacts()
 
     def test_committed_after_marker_removed(self, store: ArtifactStore) -> None:
         """Artifact becomes committed after pending marker is removed."""
         manifest = _make_applied_manifest(store)
         store.write_artifact_pair(manifest, _make_mesh_content())
 
-        assert store.is_committed(manifest.obj_path)
-        assert manifest.obj_path in store.list_committed_artifacts()
+        assert store.is_committed(manifest.mesh_path)
+        assert manifest.mesh_path in store.list_committed_artifacts()
 
     def test_mesh_without_manifest_not_committed(
         self, store: ArtifactStore
     ) -> None:
         """Mesh file alone (without manifest) is not committed."""
-        obj_path = os.path.join(store.artifact_root, "orphan.dae")
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "orphan.dae")
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
-        assert not store.is_committed(obj_path)
+        assert not store.is_committed(mesh_path)
 
     def test_manifest_without_mesh_not_committed(
         self, store: ArtifactStore
     ) -> None:
         """Manifest file alone (without mesh) is not committed."""
-        obj_path = os.path.join(store.artifact_root, "orphan.dae")
-        m_path = manifest_path_for(obj_path)
+        mesh_path = os.path.join(store.artifact_root, "orphan.dae")
+        m_path = manifest_path_for(mesh_path)
         manifest = _make_applied_manifest(store)
         with open(m_path, "w") as f:
             json.dump(manifest.to_dict(), f)
 
-        assert not store.is_committed(obj_path)
+        assert not store.is_committed(mesh_path)
 
     def test_successful_write_creates_both_files(
         self, store: ArtifactStore
@@ -373,9 +373,9 @@ class TestAtomicPairCommit:
         manifest = _make_applied_manifest(store)
         m_path = store.write_artifact_pair(manifest, _make_mesh_content())
 
-        assert os.path.exists(manifest.obj_path)
+        assert os.path.exists(manifest.mesh_path)
         assert os.path.exists(m_path)
-        assert not os.path.exists(pending_marker_for(manifest.obj_path))
+        assert not os.path.exists(pending_marker_for(manifest.mesh_path))
 
     def test_no_tmp_files_after_successful_write(
         self, store: ArtifactStore
@@ -404,11 +404,11 @@ class TestCrashRecovery:
         self, store: ArtifactStore
     ) -> None:
         """Incomplete pair (mesh only + pending marker) is cleaned up."""
-        obj_path = os.path.join(store.artifact_root, "incomplete.dae")
-        marker = pending_marker_for(obj_path)
+        mesh_path = os.path.join(store.artifact_root, "incomplete.dae")
+        marker = pending_marker_for(mesh_path)
 
         # Simulate crash: mesh written, manifest not, marker exists
-        with open(obj_path, "wb") as f:
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
         with open(marker, "w") as f:
             f.write("pending")
@@ -416,7 +416,7 @@ class TestCrashRecovery:
         stats = store.recovery_scan()
         assert stats["pending_found"] == 1
         assert stats["cleaned"] == 1
-        assert not os.path.exists(obj_path)
+        assert not os.path.exists(mesh_path)
         assert not os.path.exists(marker)
 
     def test_recovery_completes_finished_pairs(
@@ -424,12 +424,12 @@ class TestCrashRecovery:
     ) -> None:
         """Pair with both files + stale marker: just removes marker."""
         manifest = _make_applied_manifest(store)
-        obj_path = manifest.obj_path
-        m_path = manifest_path_for(obj_path)
-        marker = pending_marker_for(obj_path)
+        mesh_path = manifest.mesh_path
+        m_path = manifest_path_for(mesh_path)
+        marker = pending_marker_for(mesh_path)
 
         # Simulate crash after both files written but before marker removed
-        with open(obj_path, "wb") as f:
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
         with open(m_path, "w") as f:
             json.dump(manifest.to_dict(), f)
@@ -438,10 +438,10 @@ class TestCrashRecovery:
 
         stats = store.recovery_scan()
         assert stats["recovered"] == 1
-        assert os.path.exists(obj_path)
+        assert os.path.exists(mesh_path)
         assert os.path.exists(m_path)
         assert not os.path.exists(marker)
-        assert store.is_committed(obj_path)
+        assert store.is_committed(mesh_path)
 
     def test_recovery_cleans_orphan_tmp_files(
         self, store: ArtifactStore
@@ -460,9 +460,9 @@ class TestCrashRecovery:
         metrics = get_vcad_metrics()
 
         # Create incomplete pair
-        obj_path = os.path.join(store.artifact_root, "incomplete.dae")
-        marker = pending_marker_for(obj_path)
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "incomplete.dae")
+        marker = pending_marker_for(mesh_path)
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
         with open(marker, "w") as f:
             f.write("pending")
@@ -478,9 +478,9 @@ class TestCrashRecovery:
         """After recovery, no half-visible state remains in committed outputs."""
         # Create various incomplete states
         for i in range(3):
-            obj_path = os.path.join(store.artifact_root, f"crash-{i}.dae")
-            marker = pending_marker_for(obj_path)
-            with open(obj_path, "wb") as f:
+            mesh_path = os.path.join(store.artifact_root, f"crash-{i}.dae")
+            marker = pending_marker_for(mesh_path)
+            with open(mesh_path, "wb") as f:
                 f.write(_make_mesh_content())
             with open(marker, "w") as f:
                 f.write("pending")
@@ -502,9 +502,9 @@ class TestCrashRecovery:
         store.write_artifact_pair(manifest, _make_mesh_content("good"))
 
         # Create an incomplete pair
-        obj_path = os.path.join(store.artifact_root, "bad.dae")
-        marker = pending_marker_for(obj_path)
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "bad.dae")
+        marker = pending_marker_for(mesh_path)
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content("bad"))
         with open(marker, "w") as f:
             f.write("pending")
@@ -515,7 +515,7 @@ class TestCrashRecovery:
         committed = store.list_committed_artifacts()
         assert any("good" in p for p in committed)
         # Bad pair cleaned
-        assert not os.path.exists(obj_path)
+        assert not os.path.exists(mesh_path)
 
 
 # ===========================================================================
@@ -554,14 +554,14 @@ class TestPathHardening:
 
     def test_store_rejects_traversal_on_write(self, store: ArtifactStore) -> None:
         """Store rejects writing manifest with traversal path."""
-        evil_obj_path = os.path.join(store.artifact_root, "..", "evil.dae")
+        evil_mesh_path = os.path.join(store.artifact_root, "..", "evil.dae")
         manifest = build_applied_manifest(
             node_id="evil",
             revision=1,
             request_id=None,
             source_file="/evil.skp.oo",
             source_hash=compute_source_hash("evil"),
-            obj_path=evil_obj_path,
+            mesh_path=evil_mesh_path,
             bbox={"min": [0, 0, 0], "max": [1, 1, 1]},
             volume=1.0,
             surface_area=6.0,
@@ -575,8 +575,8 @@ class TestPathHardening:
     ) -> None:
         """Diagnostics reader reports PATH_NOT_ALLOWED for symlink escapes."""
         # Create a valid mesh file
-        obj_path = os.path.join(store.artifact_root, "normal.dae")
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "normal.dae")
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
         # Create a symlink for the manifest that points outside
@@ -586,7 +586,7 @@ class TestPathHardening:
         with open(evil_manifest, "w") as f:
             json.dump({"status": "applied"}, f)
 
-        m_link = manifest_path_for(obj_path)
+        m_link = manifest_path_for(mesh_path)
         os.symlink(evil_manifest, m_link)
 
         # Diagnostics should report PATH_NOT_ALLOWED
@@ -619,7 +619,7 @@ class TestCommittedVisibility:
             f.write("pending")
 
         committed = store.list_committed_artifacts()
-        assert m1.obj_path in committed
+        assert m1.mesh_path in committed
         assert obj2 not in committed
 
     def test_committed_appears_exactly_once(
@@ -630,7 +630,7 @@ class TestCommittedVisibility:
         store.write_artifact_pair(manifest, _make_mesh_content())
 
         committed = store.list_committed_artifacts()
-        count = committed.count(manifest.obj_path)
+        count = committed.count(manifest.mesh_path)
         assert count == 1
 
     def test_staged_tmp_files_excluded(self, store: ArtifactStore) -> None:
@@ -656,11 +656,11 @@ class TestCommittedVisibility:
         self, store: ArtifactStore
     ) -> None:
         """read_manifest returns None for uncommitted artifacts."""
-        obj_path = os.path.join(store.artifact_root, "uncommitted.dae")
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "uncommitted.dae")
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
-        result = store.read_manifest(obj_path)
+        result = store.read_manifest(mesh_path)
         assert result is None
 
 
@@ -684,16 +684,16 @@ class TestDiagnosticsReader:
 
     def test_invalid_schema_returns_error(self, store: ArtifactStore) -> None:
         """Invalid schema => SCHEMA_VALIDATION_FAILED."""
-        obj_path = os.path.join(store.artifact_root, "invalid.dae")
-        m_path = manifest_path_for(obj_path)
+        mesh_path = os.path.join(store.artifact_root, "invalid.dae")
+        m_path = manifest_path_for(mesh_path)
 
         # Write mesh
-        with open(obj_path, "wb") as f:
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
         # Write invalid manifest (missing required fields)
         with open(m_path, "w") as f:
-            json.dump({"status": "applied"}, f)  # missing source_hash, obj_path, finished_at
+            json.dump({"status": "applied"}, f)  # missing source_hash, mesh_path, finished_at
 
         manifests, errors = store.read_manifests_for_diagnostics()
         assert len(errors) >= 1
@@ -704,8 +704,8 @@ class TestDiagnosticsReader:
 
     def test_missing_manifest_returns_error(self, store: ArtifactStore) -> None:
         """Missing manifest file => ARTIFACT_READ_FAILED."""
-        obj_path = os.path.join(store.artifact_root, "no-manifest.dae")
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "no-manifest.dae")
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
         manifests, errors = store.read_manifests_for_diagnostics()
@@ -717,10 +717,10 @@ class TestDiagnosticsReader:
 
     def test_corrupt_manifest_returns_error(self, store: ArtifactStore) -> None:
         """Corrupt (non-JSON) manifest file => ARTIFACT_READ_FAILED."""
-        obj_path = os.path.join(store.artifact_root, "corrupt.dae")
-        m_path = manifest_path_for(obj_path)
+        mesh_path = os.path.join(store.artifact_root, "corrupt.dae")
+        m_path = manifest_path_for(mesh_path)
 
-        with open(obj_path, "wb") as f:
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
         with open(m_path, "w") as f:
             f.write("not valid json{{{")
@@ -762,9 +762,9 @@ class TestDiagnosticsReader:
         """Processing continues even with malformed manifest files."""
         # Create multiple artifacts, some malformed
         for i in range(3):
-            obj_path = os.path.join(store.artifact_root, f"file-{i}.dae")
-            m_path = manifest_path_for(obj_path)
-            with open(obj_path, "wb") as f:
+            mesh_path = os.path.join(store.artifact_root, f"file-{i}.dae")
+            m_path = manifest_path_for(mesh_path)
+            with open(mesh_path, "wb") as f:
                 f.write(_make_mesh_content(f"file-{i}"))
             if i == 1:
                 with open(m_path, "w") as f:
@@ -773,9 +773,9 @@ class TestDiagnosticsReader:
                 manifest = _make_applied_manifest(
                     store, node_id=f"node-{i}", revision=i + 1, label=f"l{i}"
                 )
-                # Override obj_path in the manifest dict
+                # Override mesh_path in the manifest dict
                 d = manifest.to_dict()
-                d["obj_path"] = obj_path
+                d["mesh_path"] = mesh_path
                 with open(m_path, "w") as f:
                     json.dump(d, f)
 
@@ -788,8 +788,8 @@ class TestDiagnosticsReader:
         """manifest_read_errors sorted by (manifest_path, error_code)."""
         # Create multiple errors
         for name in ["z-missing", "a-missing", "m-missing"]:
-            obj_path = os.path.join(store.artifact_root, f"{name}.dae")
-            with open(obj_path, "wb") as f:
+            mesh_path = os.path.join(store.artifact_root, f"{name}.dae")
+            with open(mesh_path, "wb") as f:
                 f.write(_make_mesh_content())
 
         _manifests, errors = store.read_manifests_for_diagnostics()
@@ -801,8 +801,8 @@ class TestDiagnosticsReader:
 
     def test_per_item_error_payload_shape(self, store: ArtifactStore) -> None:
         """Each error has manifest_path, error_code, message, details."""
-        obj_path = os.path.join(store.artifact_root, "error-shape.dae")
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "error-shape.dae")
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
         _manifests, errors = store.read_manifests_for_diagnostics()
@@ -817,11 +817,11 @@ class TestDiagnosticsReader:
 
     def test_in_progress_artifacts_skipped(self, store: ArtifactStore) -> None:
         """Artifacts with pending markers are skipped in diagnostics."""
-        obj_path = os.path.join(store.artifact_root, "pending.dae")
-        m_path = manifest_path_for(obj_path)
-        marker = pending_marker_for(obj_path)
+        mesh_path = os.path.join(store.artifact_root, "pending.dae")
+        m_path = manifest_path_for(mesh_path)
+        marker = pending_marker_for(mesh_path)
 
-        with open(obj_path, "wb") as f:
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
         with open(m_path, "w") as f:
             json.dump(
@@ -866,7 +866,7 @@ class TestDiagnosticsIntegration:
             request_id="diag-req",
             source_file="/project/diag.skp.oo",
             source_hash=compute_source_hash("[cube 1 1 1]"),
-            obj_path=os.path.join(store.artifact_root, "diag-r1.dae"),
+            mesh_path=os.path.join(store.artifact_root, "diag-r1.dae"),
             bbox={"min": [0, 0, 0], "max": [1, 1, 1]},
             volume=1.0,
             surface_area=6.0,
@@ -912,8 +912,8 @@ class TestDiagnosticsIntegration:
         )
 
         # Create a mesh without manifest
-        obj_path = os.path.join(store.artifact_root, "error-test.dae")
-        with open(obj_path, "wb") as f:
+        mesh_path = os.path.join(store.artifact_root, "error-test.dae")
+        with open(mesh_path, "wb") as f:
             f.write(_make_mesh_content())
 
         old_store = am_module._store
@@ -944,7 +944,7 @@ class TestCompatibility:
             "request_id": "req-1",
             "source_file": "/project/node-1.skp.oo",
             "source_hash": compute_source_hash("[cube 10 10 10]"),
-            "obj_path": "/artifacts/node-1.dae",
+            "mesh_path": "/artifacts/node-1.dae",
             "finished_at": "2024-01-01T00:00:00.000Z",
             "bbox": {"min": [0, 0, 0], "max": [10, 10, 10]},
             "volume": 1000.0,
@@ -966,7 +966,7 @@ class TestCompatibility:
             "request_id": "req-1",
             "source_file": "/project/node-1.skp.oo",
             "source_hash": "abc123",
-            "obj_path": "/artifacts/node-1.dae",
+            "mesh_path": "/artifacts/node-1.dae",
             "finished_at": "2024-01-01T00:00:00.000Z",
             "future_field": "should_be_ignored",
         }
@@ -999,7 +999,7 @@ class TestCompatibility:
             "node_id": "node-1",
             "revision": 1,
             "source_hash": compute_source_hash("[cube 10 10 10]"),
-            "obj_path": "/artifacts/node-1.dae",
+            "mesh_path": "/artifacts/node-1.dae",
             "finished_at": "2024-01-01T00:00:00.000Z",
             "imports": imports,
             "bbox": {"min": [0, 0, 0], "max": [10, 10, 10]},
@@ -1017,7 +1017,7 @@ class TestCompatibility:
             "node_id": "node-1",
             "revision": 1,
             "source_hash": compute_source_hash("[cube 10 10 10]"),
-            "obj_path": "/artifacts/node-1.dae",
+            "mesh_path": "/artifacts/node-1.dae",
             "queued_at": "2024-01-01T00:00:00.000Z",
             "started_at": "2024-01-01T00:00:01.000Z",
             "finished_at": "2024-01-01T00:00:02.000Z",

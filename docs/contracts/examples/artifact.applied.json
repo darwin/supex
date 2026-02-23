@@ -1,7 +1,7 @@
 {
   "status": "applied",
   "source_hash": "sha256:abc123def456",
-  "obj_path": "/tmp/vcad-sidecar/bracket.dae",
+  "mesh_path": "/tmp/vcad-sidecar/bracket.dae",
   "finished_at": "2026-02-22T10:30:00Z",
   "node_id": "bracket",
   "source_file": "/project/bracket.skp.oo",

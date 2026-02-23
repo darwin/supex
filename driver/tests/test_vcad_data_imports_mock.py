@@ -161,11 +161,11 @@ class TestDataImportsEval:
 
     def test_eval_with_imports_success(self, mock_sidecar, tmp_path):
         """eval_with_imports evaluates source with injected data."""
-        obj_path = str(tmp_path / "result.dae")
+        mesh_path = str(tmp_path / "result.dae")
         mock_sidecar.set_response(
             "tools/call",
             result={
-                "obj_path": obj_path,
+                "mesh_path": mesh_path,
                 "volume": 1000.0,
                 "surface_area": 600.0,
                 "is_empty": False,
@@ -187,7 +187,7 @@ class TestDataImportsEval:
         )
 
         assert result["volume"] == 1000.0
-        assert result["obj_path"] == obj_path
+        assert result["mesh_path"] == mesh_path
         conn.disconnect()
 
     def test_eval_with_imports_no_imports(self, mock_sidecar, tmp_path):
@@ -195,7 +195,7 @@ class TestDataImportsEval:
         mock_sidecar.set_response(
             "tools/call",
             result={
-                "obj_path": str(tmp_path / "result.dae"),
+                "mesh_path": str(tmp_path / "result.dae"),
                 "volume": 500.0,
             },
         )
@@ -259,7 +259,7 @@ class TestDataImportsFullFlow:
 
         # Step 2: eval_with_imports response
         eval_response = {
-            "obj_path": str(tmp_path / "output.dae"),
+            "mesh_path": str(tmp_path / "output.dae"),
             "volume": 1000.0,
             "surface_area": 600.0,
             "is_empty": False,
@@ -391,7 +391,7 @@ class TestVCADConnectionImportMethods:
         """eval_with_imports sends correct JSON-RPC request."""
         mock_sidecar.set_response(
             "tools/call",
-            result={"obj_path": "/tmp/out.dae", "volume": 100.0},
+            result={"mesh_path": "/tmp/out.dae", "volume": 100.0},
         )
 
         conn = VCADConnection(host="127.0.0.1", port=mock_sidecar.port, agent="e2e")

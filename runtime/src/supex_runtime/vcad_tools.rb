@@ -10,27 +10,27 @@ module SupexRuntime
 
     VCAD_DICT = 'vcad'
 
-    # Import OBJ as ComponentDefinition, set VCAD attributes, place instance
-    # @param params [Hash] parameters: obj_path, node_id, source_file, component_name, position
+    # Import mesh (DAE) as ComponentDefinition, set VCAD attributes, place instance
+    # @param params [Hash] parameters: mesh_path, node_id, source_file, component_name, position
     # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] result with entity_id, definition_name
     def place_vcad_node(params, workspace: nil)
-      obj_path = params['obj_path']
+      mesh_path = params['mesh_path']
       node_id = params['node_id']
       source_file = params['source_file']
       component_name = params['component_name'] || "vcad_#{node_id}"
       position = params['position'] || [0, 0, 0]
 
-      PathPolicy.validate!(obj_path, operation: 'VCAD import', workspace: workspace)
+      PathPolicy.validate!(mesh_path, operation: 'VCAD import', workspace: workspace)
       PathPolicy.validate!(source_file, operation: 'VCAD source', workspace: workspace) if source_file
 
       model = Sketchup.active_model
       model.start_operation('Place VCAD node', true)
 
       # SketchUp 2026: definitions.import returns ComponentDefinition.
-      defn = model.definitions.import(obj_path)
+      defn = model.definitions.import(mesh_path)
       unless defn.is_a?(Sketchup::ComponentDefinition)
-        raise "IMPORT_DEFINITION_NOT_FOUND: #{obj_path}"
+        raise "IMPORT_DEFINITION_NOT_FOUND: #{mesh_path}"
       end
       defn.name = component_name
 
@@ -56,17 +56,17 @@ module SupexRuntime
       }
     end
 
-    # Re-import OBJ using atomic definition swap + rollback on failure.
+    # Re-import mesh (DAE) using atomic definition swap + rollback on failure.
     # Never mutate the existing definition in place.
-    # @param params [Hash] parameters: obj_path, node_id, source_file
+    # @param params [Hash] parameters: mesh_path, node_id, source_file
     # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] result with version, replaced_instances count
     def update_vcad_node(params, workspace: nil)
-      obj_path = params['obj_path']
+      mesh_path = params['mesh_path']
       node_id = params['node_id']
       source_file = params['source_file']
 
-      PathPolicy.validate!(obj_path, operation: 'VCAD import', workspace: workspace)
+      PathPolicy.validate!(mesh_path, operation: 'VCAD import', workspace: workspace)
       PathPolicy.validate!(source_file, operation: 'VCAD source', workspace: workspace) if source_file
 
       model = Sketchup.active_model
@@ -90,9 +90,9 @@ module SupexRuntime
         version = old_defn.get_attribute(VCAD_DICT, 'version', 0).to_i + 1
 
         # SketchUp 2026: import returns the new ComponentDefinition directly.
-        new_defn = model.definitions.import(obj_path)
+        new_defn = model.definitions.import(mesh_path)
         unless new_defn.is_a?(Sketchup::ComponentDefinition)
-          raise "IMPORT_DEFINITION_NOT_FOUND: #{obj_path}"
+          raise "IMPORT_DEFINITION_NOT_FOUND: #{mesh_path}"
         end
         # Keep the new definition hidden from UI naming collisions until swap is complete.
         new_defn.name = "#{old_name}__updating"

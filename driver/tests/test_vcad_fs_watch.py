@@ -364,7 +364,7 @@ class TestVCADPlaceAutoStart:
              patch("supex_driver.mcp.vcad_tools.get_vcad_file_watcher") as mock_get_watcher:
 
             mock_vcad = MagicMock()
-            mock_vcad.eval_file.return_value = {"obj_path": "/tmp/out.dae"}
+            mock_vcad.eval_file.return_value = {"mesh_path": "/tmp/out.dae"}
             mock_get_vcad.return_value = mock_vcad
 
             mock_su = MagicMock()
