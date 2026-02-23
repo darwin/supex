@@ -70,7 +70,7 @@ For mixed tasks, keep geometry in VCAD and do scene/model post-processing with R
 - Sketch-based: `sketch`, `extrude`, `revolve`, `sweep-line`, `sweep-helix`, `loft`, `loft-closed`
 - Scene/material: `root`, `material`
 
-Authoritative constructor signatures: `supex-guide/cad-lib/src/lib.loon`.
+Authoritative constructor signatures: `cad-lib/src/lib.loon`.
 
 Important: Loon has no runtime arithmetic operators (`+`, `-`, `*`, etc.). Use literals, `let`, and `fn` patterns.
 
@@ -115,6 +115,6 @@ vcad_watch_resume()  # flushes as one merged cascade update
 
 ## References
 
-- Router and chooser: `supex-guide/README.md`
-- Geometry QA: `supex-guide/ruby.md` § "Geometry Quality Rules"
+- Router and chooser: `README.md`
+- Geometry QA: `ruby.md` § "Geometry Quality Rules"
 - VCAD architecture/details: `docs/vcad.md`

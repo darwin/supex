@@ -2,7 +2,7 @@
 
 General patterns applicable to both Ruby and VCAD workflows.
 
-For workflow-specific rules and snippets, see `supex-guide/ruby.md` and `supex-guide/vcad.md`.
+For workflow-specific rules and snippets, see `ruby.md` and `vcad.md`.
 
 ## Workflow Chooser
 

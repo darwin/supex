@@ -77,7 +77,7 @@ Rules:
 
 ### 4. Standard Library (Prefer Over Custom Helpers)
 
-Check `supex-guide/stdlib/README.md` before writing utility code.
+Check `stdlib/README.md` before writing utility code.
 
 Common modules:
 
@@ -398,5 +398,5 @@ face.vertices.each { |v| puts v.position.to_a.inspect }
 
 ## References
 
-- SketchUp API: `supex-guide/api/INDEX.md`
-- Stdlib reference: `supex-guide/stdlib/README.md`
+- SketchUp API: `api/INDEX.md`
+- Stdlib reference: `stdlib/README.md`

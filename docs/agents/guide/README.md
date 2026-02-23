@@ -11,7 +11,7 @@ Choose the workflow first, state the choice briefly, then read the matching guid
 
 ## Documentation Map
 
-This directory (`supex-guide/`) is intended to be symlinked into user projects.
+This directory is intended to be symlinked into user projects.
 
 - `README.md` - Router and quick workflow chooser
 - `ruby.md` - Full Ruby workflow rules and patterns
@@ -21,7 +21,7 @@ This directory (`supex-guide/`) is intended to be symlinked into user projects.
 - `stdlib/` - Ruby helper library docs (symlink)
 - `cad-lib/` - Loon CAD library source and constructors (symlink)
 
-When reading symlinked content, prefer direct paths (for example `supex-guide/stdlib/README.md`) instead of broad glob searches.
+When reading symlinked content, prefer direct paths (for example `stdlib/README.md`) instead of broad glob searches.
 
 ## Workflow Chooser
 
@@ -59,6 +59,6 @@ For signatures and complete list, see `mcp.md`.
 
 ## Next Reads
 
-- If using Ruby now: `supex-guide/ruby.md`
-- If using VCAD now: `supex-guide/vcad.md`
-- If debugging geometry quality: `supex-guide/ruby.md` § "Geometry Quality Rules"
+- If using Ruby now: `ruby.md`
+- If using VCAD now: `vcad.md`
+- If debugging geometry quality: `ruby.md` § "Geometry Quality Rules"
