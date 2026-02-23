@@ -39,5 +39,10 @@ echo ""
 echo "--- Python: driver (mypy) ---"
 uv run mypy src/
 
+# Markdown docs
+echo ""
+echo "--- Markdown: docs ---"
+bash "$SCRIPT_DIR/check-docs.sh"
+
 echo ""
 echo "=== All linters passed ==="

@@ -1,0 +1,15 @@
+{
+  // Line length — docs have long lines
+  "MD013": false,
+  // Inline HTML — not relevant
+  "MD033": false,
+  // Blanks around fences / lists — too many false positives
+  "MD031": false,
+  "MD032": false,
+  // Table column style — too strict for hand-written tables
+  "MD060": false,
+  // Fenced code language — many snippets are plain text
+  "MD040": false,
+  // First line heading — not all files start with h1
+  "MD041": false
+}

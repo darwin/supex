@@ -1,0 +1,14 @@
+.tmp/
+assets/
+docgen/
+docs/agents/guide/api/
+docs/agents/guide/cad-lib/
+docs/agents/guide/stdlib/
+driver/
+examples/
+mock/
+runtime/
+scripts/
+stdlib/
+tests/
+vcad/
