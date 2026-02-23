@@ -1,14 +1,20 @@
 ; Mounting plate with bolt pattern
-; (from vcad/crates/vcad/examples/plate.rs)
+;
+; Demonstrates: fn, let, circular-pattern, difference
 
+[let m5 [cylinder 2.7 7.0]]  ; M5 clearance hole tool
+
+; helper: drill a through-hole at (x, y) through the plate
+[fn drill [x y tool s]
+  [difference [translate x y -1.0 tool] s]]
+
+; plate 120×80×5mm
 [pipe [cube 120.0 80.0 5.0]
   ; center bore (r=15)
-  [difference [translate 60.0 40.0 -1.0 [cylinder 15.0 7.0]]]
-  ; corner M5 holes (r=2.7)
-  [difference [translate 15.0 15.0 -1.0 [cylinder 2.7 7.0]]]
-  [difference [translate 105.0 15.0 -1.0 [cylinder 2.7 7.0]]]
-  [difference [translate 15.0 65.0 -1.0 [cylinder 2.7 7.0]]]
-  [difference [translate 105.0 65.0 -1.0 [cylinder 2.7 7.0]]]
-  ; bolt circle: 6 holes (r=4.5) on radius 25 from center
-  [difference [circular-pattern 60.0 40.0 0.0 0.0 0.0 1.0 6 360.0
+  [drill 60.0 40.0 [cylinder 15.0 7.0]]
+  ; four corner M5 mounting holes
+  [drill 15.0 15.0 m5]  [drill 105.0 15.0 m5]
+  [drill 15.0 65.0 m5]  [drill 105.0 65.0 m5]
+  ; bolt circle: 6 holes (r=4.5) evenly spaced on radius 25 from center
+  [difference [circular-pattern 60.0 40.0 0.0  0.0 0.0 1.0  6 360.0
     [translate 85.0 40.0 -1.0 [cylinder 4.5 7.0]]]]]

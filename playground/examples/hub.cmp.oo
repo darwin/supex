@@ -1,11 +1,13 @@
 ; Flanged hub with bolt holes
-; (from vcad/crates/vcad/examples/generate_renders.rs)
+;
+; Demonstrates: union, difference, circular-pattern on cylindrical geometry
 
+; hub body: r=15, h=20
 [pipe [cylinder 15.0 20.0]
-  ; flange at bottom
+  ; flange disk at bottom (r=30, 4mm thick)
   [union [translate 0.0 0.0 -4.0 [cylinder 30.0 4.0]]]
-  ; center bore
+  ; center bore (r=5, through entire part)
   [difference [translate 0.0 0.0 -5.0 [cylinder 5.0 26.0]]]
-  ; bolt holes on flange: 6 holes on radius 22.5
-  [difference [circular-pattern 0.0 0.0 0.0 0.0 0.0 1.0 6 360.0
+  ; 6 bolt holes on flange (r=3, on radius 22.5)
+  [difference [circular-pattern 0.0 0.0 0.0  0.0 0.0 1.0  6 360.0
     [translate 22.5 0.0 -5.0 [cylinder 3.0 10.0]]]]]

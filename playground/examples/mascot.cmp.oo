@@ -1,56 +1,40 @@
 ; Robot mascot — CSG primitives only
-; (from vcad/crates/vcad/examples/mascot.rs)
+;
+; Demonstrates: intersection, scale, sphere, union of many parts
+; All geometry is built from basic primitives — no imports.
+; Feet sit on z=0, total height ~75mm.
 
-; Body: cube intersected with stretched sphere for rounded edges
-[let body [translate 0.0 0.0 27.0
-  [intersection
-    [scale 1.0 1.0 1.1 [sphere 24.0]]
-    [translate -16.0 -12.0 -20.0 [cube 32.0 24.0 40.0]]]]]
+; horizontal cylinder template for arms (centered, rotated to X axis)
+[let arm [rotate 0.0 90.0 0.0
+  [translate 0.0 0.0 -9.0 [cylinder 3.5 18.0]]]]
 
-; Head: squished sphere
-[let head [translate 0.0 0.0 51.0
-  [scale 1.0 0.9 0.95 [sphere 16.0]]]]
-
-; Eyes and pupils
-[let eye-l [translate -7.0 -12.0 54.0 [sphere 3.5]]]
-[let eye-r [translate 7.0 -12.0 54.0 [sphere 3.5]]]
-[let pupil-l [translate -7.0 -14.5 54.0 [sphere 2.0]]]
-[let pupil-r [translate 7.0 -14.5 54.0 [sphere 2.0]]]
-
-; Antenna
-[let stalk [translate 0.0 0.0 57.0 [cylinder 1.5 14.0]]]
-[let ball [translate 0.0 0.0 72.0 [sphere 3.5]]]
-
-; Arms (horizontal cylinders)
-[let arm-l [translate -24.0 0.0 31.0
-  [rotate 0.0 90.0 0.0 [translate 0.0 0.0 -9.0 [cylinder 3.5 18.0]]]]]
-[let arm-r [translate 24.0 0.0 31.0
-  [rotate 0.0 90.0 0.0 [translate 0.0 0.0 -9.0 [cylinder 3.5 18.0]]]]]
-
-; Hands
-[let hand-l [translate -34.0 0.0 31.0 [sphere 4.5]]]
-[let hand-r [translate 34.0 0.0 31.0 [sphere 4.5]]]
-
-; Legs
-[let leg-l [translate -8.0 0.0 -3.0 [cylinder 4.5 12.0]]]
-[let leg-r [translate 8.0 0.0 -3.0 [cylinder 4.5 12.0]]]
-
-; Feet
-[let foot-l [translate -14.0 -8.0 0.0 [cube 12.0 14.0 4.0]]]
-[let foot-r [translate 2.0 -8.0 0.0 [cube 12.0 14.0 4.0]]]
-
-; Chest detail (disk facing forward)
-[let chest [translate 0.0 -13.0 29.0
-  [rotate 90.0 0.0 0.0 [translate 0.0 0.0 -1.0 [cylinder 6.0 2.0]]]]]
-
-; Assemble all parts
-[pipe body
-  [union head]
-  [union eye-l] [union eye-r]
-  [union pupil-l] [union pupil-r]
-  [union stalk] [union ball]
-  [union arm-l] [union arm-r]
-  [union hand-l] [union hand-r]
-  [union leg-l] [union leg-r]
-  [union foot-l] [union foot-r]
-  [union chest]]
+; body: cube ∩ stretched sphere → rounded box shape
+[pipe [translate 0.0 0.0 27.0
+    [intersection
+      [scale 1.0 1.0 1.1 [sphere 24.0]]
+      [translate -16.0 -12.0 -20.0 [cube 32.0 24.0 40.0]]]]
+  ; head — slightly squished sphere
+  [union [translate 0.0 0.0 51.0 [scale 1.0 0.9 0.95 [sphere 16.0]]]]
+  ; eyes (left, right)
+  [union [translate -7.0 -12.0 54.0 [sphere 3.5]]]
+  [union [translate 7.0 -12.0 54.0 [sphere 3.5]]]
+  ; pupils — smaller, pushed forward
+  [union [translate -7.0 -14.5 54.0 [sphere 2.0]]]
+  [union [translate 7.0 -14.5 54.0 [sphere 2.0]]]
+  ; antenna stalk + ball
+  [union [translate 0.0 0.0 57.0 [cylinder 1.5 14.0]]]
+  [union [translate 0.0 0.0 72.0 [sphere 3.5]]]
+  ; arms (reusing template) + spherical hands
+  [union [translate -24.0 0.0 31.0 arm]]
+  [union [translate 24.0 0.0 31.0 arm]]
+  [union [translate -34.0 0.0 31.0 [sphere 4.5]]]
+  [union [translate 34.0 0.0 31.0 [sphere 4.5]]]
+  ; legs
+  [union [translate -8.0 0.0 -3.0 [cylinder 4.5 12.0]]]
+  [union [translate 8.0 0.0 -3.0 [cylinder 4.5 12.0]]]
+  ; feet — flat rounded cubes
+  [union [translate -14.0 -8.0 0.0 [cube 12.0 14.0 4.0]]]
+  [union [translate 2.0 -8.0 0.0 [cube 12.0 14.0 4.0]]]
+  ; chest detail — small disk facing forward
+  [union [translate 0.0 -13.0 29.0
+    [rotate 90.0 0.0 0.0 [translate 0.0 0.0 -1.0 [cylinder 6.0 2.0]]]]]]

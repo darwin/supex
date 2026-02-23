@@ -1,7 +1,9 @@
 ; Circular vent panel with radial slots
-; (from vcad/crates/vcad/examples/generate_renders.rs)
+;
+; Demonstrates: circular-pattern with rectangular tool (cube as cutter)
 
+; panel disk: r=35, 3mm thick
 [pipe [cylinder 35.0 3.0]
-  ; 8 radial slots at radius 20 from center
-  [difference [circular-pattern 0.0 0.0 0.0 0.0 0.0 1.0 8 360.0
+  ; 8 radial slots evenly spaced, each 15×2mm, centered at radius 20
+  [difference [circular-pattern 0.0 0.0 0.0  0.0 0.0 1.0  8 360.0
     [translate 12.5 -1.0 -1.0 [cube 15.0 2.0 5.0]]]]]
