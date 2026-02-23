@@ -1,0 +1,12 @@
+; L-bracket with mounting holes
+; (from vcad/crates/vcad/examples/bracket.rs)
+
+[pipe [cube 60.0 40.0 4.0]
+  ; upright wall at back edge
+  [union [translate 0.0 0.0 4.0 [cube 60.0 4.0 36.0]]]
+  ; base plate holes
+  [difference [translate 10.0 20.0 -1.0 [cylinder 3.0 6.0]]]
+  [difference [translate 50.0 20.0 -1.0 [cylinder 3.0 6.0]]]
+  ; wall holes
+  [difference [translate 10.0 -1.0 26.0 [rotate 90.0 0.0 0.0 [cylinder 3.0 6.0]]]]
+  [difference [translate 50.0 -1.0 26.0 [rotate 90.0 0.0 0.0 [cylinder 3.0 6.0]]]]]

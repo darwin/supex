@@ -1,0 +1,14 @@
+; Mounting plate with bolt pattern
+; (from vcad/crates/vcad/examples/plate.rs)
+
+[pipe [cube 120.0 80.0 5.0]
+  ; center bore (r=15)
+  [difference [translate 60.0 40.0 -1.0 [cylinder 15.0 7.0]]]
+  ; corner M5 holes (r=2.7)
+  [difference [translate 15.0 15.0 -1.0 [cylinder 2.7 7.0]]]
+  [difference [translate 105.0 15.0 -1.0 [cylinder 2.7 7.0]]]
+  [difference [translate 15.0 65.0 -1.0 [cylinder 2.7 7.0]]]
+  [difference [translate 105.0 65.0 -1.0 [cylinder 2.7 7.0]]]
+  ; bolt circle: 6 holes (r=4.5) on radius 25 from center
+  [difference [circular-pattern 60.0 40.0 0.0 0.0 0.0 1.0 6 360.0
+    [translate 85.0 40.0 -1.0 [cylinder 4.5 7.0]]]]]
