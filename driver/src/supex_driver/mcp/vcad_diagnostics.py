@@ -1,8 +1,9 @@
 """MCP diagnostics tools for VCAD operational telemetry.
 
-Exposes vcad_health, vcad_metrics, and vcad_reconcile_status as MCP tools
-for runtime liveness/readiness, telemetry snapshots, and reconciliation
-diagnostics.
+Exposes vcad_metrics and vcad_reconcile_status as MCP tools for telemetry
+snapshots and reconciliation diagnostics.  VCAD health is exposed via the
+unified ``check_status`` tool in ``mcp_server.py``; this module provides
+the ``get_vcad_health_snapshot()`` helper consumed by that tool.
 """
 
 import json
@@ -15,20 +16,13 @@ from supex_driver.mcp.mcp_server import McpContext, mcp
 logger = logging.getLogger("supex.mcp.vcad.diagnostics")
 
 
-@mcp.tool()
-def vcad_health(ctx: McpContext) -> str:
-    """Return liveness/readiness + negotiated protocol/capability summary for sidecar and viewer relay.
+def get_vcad_health_snapshot() -> dict[str, Any]:
+    """Return VCAD sidecar + viewer health as a plain dict.
 
-    Checks sidecar connectivity and protocol version, viewer relay status,
-    and reports any recent errors.
+    This is a helper consumed by ``check_status``; it is **not** an MCP tool.
     """
-    result: dict[str, Any] = {
-        "status": "ok",
-        "sidecar": {"status": "unknown"},
-        "viewer": {"status": "unknown"},
-        "capabilities": [],
-        "last_error": None,
-    }
+    sidecar: dict[str, Any] = {"status": "unknown"}
+    viewer: dict[str, Any] = {"status": "unknown"}
 
     # Sidecar health
     try:
@@ -37,20 +31,16 @@ def vcad_health(ctx: McpContext) -> str:
         )
 
         if _vcad_connection is not None and _vcad_connection.sock is not None:
-            result["sidecar"] = {
+            sidecar = {
                 "status": "connected",
                 "protocol_version": _vcad_connection._protocol_version,
                 "capabilities": list(_vcad_connection._capabilities),
                 "limits": dict(_vcad_connection._limits),
             }
-            result["capabilities"] = list(_vcad_connection._capabilities)
         else:
-            result["sidecar"] = {"status": "disconnected", "protocol_version": None}
-            result["status"] = "degraded"
+            sidecar = {"status": "disconnected", "protocol_version": None}
     except Exception as e:
-        result["sidecar"] = {"status": "error", "error": str(e)}
-        result["status"] = "degraded"
-        result["last_error"] = str(e)
+        sidecar = {"status": "error", "error": str(e)}
 
     # Viewer relay health
     try:
@@ -58,23 +48,22 @@ def vcad_health(ctx: McpContext) -> str:
 
         if _relay is not None:
             if _relay.is_viewer_connected:
-                result["viewer"] = {
+                viewer = {
                     "status": "connected",
                     "protocol_version": _relay.viewer_protocol_version,
                     "features": _relay.viewer_features,
                 }
             else:
-                result["viewer"] = {
+                viewer = {
                     "status": "disconnected",
                     "protocol_version": None,
                 }
         else:
-            result["viewer"] = {"status": "not_started", "protocol_version": None}
+            viewer = {"status": "not_started", "protocol_version": None}
     except Exception as e:
-        result["viewer"] = {"status": "error", "error": str(e)}
-        result["last_error"] = str(e)
+        viewer = {"status": "error", "error": str(e)}
 
-    return json.dumps(result)
+    return {"vcad_sidecar": sidecar, "vcad_viewer": viewer}
 
 
 @mcp.tool()

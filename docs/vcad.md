@@ -261,7 +261,7 @@ Practical VCAD tool flow:
 5. `vcad_inspect(source)` returns `volume`, `surface_area`, `bbox`, and `is_empty` without placement
 6. `vcad_watch_pause()` / `vcad_watch_resume()` batches multi-file edits into one cascade
 7. `vcad_viewer_state`, `vcad_viewer_screenshot`, `vcad_viewer_focus` support viewer diagnostics
-8. `vcad_health`, `vcad_metrics`, `vcad_reconcile_status` provide operational diagnostics
+8. `check_status` provides unified health check; `vcad_metrics`, `vcad_reconcile_status` provide operational diagnostics
 
 `vcad_export(source, format?, output_path?)` is available, but import-aware export paths can behave differently from direct sidecar export. Validate behavior in your target environment.
 

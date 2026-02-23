@@ -140,7 +140,7 @@ After any code change that affects the sidecar:
    SUPEX_WORKSPACE=$WORKSPACE scripts/launch-vcad-sidecar.sh &
    ```
    `$WORKSPACE` is the user's project directory (e.g. an `example-*` project).
-3. **Verify** with `check_sketchup_status` or `vcad_place`.
+3. **Verify** with `check_status` or `vcad_place`.
 
 Temp directory is resolved as: `SUPEX_VCAD_TEMP_DIR` (explicit) > `SUPEX_WORKSPACE/.tmp/vcad-sidecar` (derived). If neither env var is set, the sidecar panics at startup.
 

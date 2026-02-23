@@ -14,8 +14,7 @@ Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 
 | Tool | Description |
 |------|-------------|
-| `check_sketchup_status` | Check SketchUp bridge connectivity and version |
-| `console_capture_status` | Show runtime console capture status/log path |
+| `check_status` | Unified health check: SketchUp bridge, console capture, VCAD sidecar, VCAD viewer |
 
 ## Ruby Execution
 
@@ -77,6 +76,5 @@ For full workflow and semantics, see [VCAD Integration](vcad.md).
 
 | Tool | Description |
 |------|-------------|
-| `vcad_health` | Liveness/readiness and negotiated capability summary |
 | `vcad_metrics` | Operational telemetry snapshot |
 | `vcad_reconcile_status` | Last reconciliation run state |

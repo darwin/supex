@@ -154,60 +154,95 @@ def call_tool(
         )
 
 
-# Status and connection tools
-@mcp.tool()
-def check_sketchup_status(ctx: McpContext) -> str:
-    """Check if SketchUp is connected and responding"""
+# ---------------------------------------------------------------------------
+# Unified status tool
+# ---------------------------------------------------------------------------
+
+
+def _check_sketchup(ctx: McpContext) -> dict[str, Any]:
+    """Probe SketchUp bridge connectivity. Returns a subsystem dict."""
     try:
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
         result = sketchup.send_command(
             method="ping", params={}, request_id=ctx.request_id
         )
-        return json.dumps(
-            {
-                "status": "connected",
-                "version": result.get("version", "unknown"),
-                "message": "SketchUp is connected and responding",
-            }
-        )
+        return {
+            "status": "connected",
+            "version": result.get("version", "unknown"),
+            "message": "SketchUp is connected and responding",
+        }
     except (SketchUpConnectionError, SketchUpTimeoutError) as e:
-        return json.dumps(
-            {
-                "status": "disconnected",
-                "error": str(e),
-                "error_type": "connection",
-                "message": "Make sure the SketchUp extension is running",
-            }
-        )
-    except SketchUpProtocolError as e:
-        return json.dumps(
-            {
-                "status": "error",
-                "error": str(e),
-                "error_type": "protocol",
-                "message": "Communication error with SketchUp",
-            }
-        )
-    except SketchUpRemoteError as e:
-        return json.dumps(
-            {
-                "status": "error",
-                "error": e.message,
-                "error_type": "remote",
-                "error_code": e.code,
-                "message": "SketchUp execution error",
-            }
-        )
+        return {
+            "status": "disconnected",
+            "version": None,
+            "message": str(e),
+        }
+    except (SketchUpProtocolError, SketchUpRemoteError) as e:
+        msg = e.message if isinstance(e, SketchUpRemoteError) else str(e)
+        return {
+            "status": "error",
+            "version": None,
+            "message": msg,
+        }
     except Exception as e:
-        logger.exception(f"Unexpected error checking status: {e}")
-        return json.dumps(
-            {
-                "status": "error",
-                "error": str(e),
-                "error_type": "unexpected",
-                "message": "Unexpected error occurred",
-            }
+        logger.exception(f"Unexpected error checking SketchUp status: {e}")
+        return {
+            "status": "error",
+            "version": None,
+            "message": str(e),
+        }
+
+
+def _check_console_capture(ctx: McpContext, sketchup_connected: bool) -> dict[str, Any]:
+    """Probe console capture status. Skipped when SketchUp is unreachable."""
+    if not sketchup_connected:
+        return {"capturing": False, "log_file": None}
+    try:
+        sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
+        result = sketchup.send_command(
+            method="console_capture_status", params={}, request_id=ctx.request_id
         )
+        return {
+            "capturing": result.get("capturing", False),
+            "log_file": result.get("log_file"),
+        }
+    except Exception:
+        return {"capturing": False, "log_file": None}
+
+
+@mcp.tool()
+def check_status(ctx: McpContext) -> str:
+    """Check overall system health: SketchUp bridge, console capture, VCAD sidecar, and VCAD viewer.
+
+    Returns a single JSON object with per-subsystem status and a top-level
+    ``status`` field: ``"ok"`` (all reachable), ``"degraded"`` (SketchUp ok
+    but VCAD issue), or ``"error"`` (SketchUp unreachable).
+    """
+    sketchup = _check_sketchup(ctx)
+    su_connected = sketchup["status"] == "connected"
+
+    console_capture = _check_console_capture(ctx, su_connected)
+
+    # VCAD health (lazy import to avoid circular dependency)
+    from supex_driver.mcp.vcad_diagnostics import get_vcad_health_snapshot
+
+    vcad = get_vcad_health_snapshot()
+
+    # Derive top-level status
+    if not su_connected:
+        top_status = "error"
+    elif vcad["vcad_sidecar"].get("status") not in ("connected", "unknown"):
+        top_status = "degraded"
+    else:
+        top_status = "ok"
+
+    return json.dumps({
+        "status": top_status,
+        "sketchup": sketchup,
+        "console_capture": console_capture,
+        "vcad_sidecar": vcad["vcad_sidecar"],
+        "vcad_viewer": vcad["vcad_viewer"],
+    })
 
 
 # Export functionality
@@ -273,13 +308,6 @@ def eval_ruby(ctx: McpContext, code: str) -> str:
         return json.dumps(
             {"success": False, "error": str(e), "error_type": "unexpected"}
         )
-
-
-# Console capture functionality
-@mcp.tool()
-def console_capture_status(ctx: McpContext) -> str:
-    """Get console capture status and log file information"""
-    return call_tool(ctx, "console_capture_status", {}, "console_capture_status")
 
 
 # File-based Ruby evaluation tools

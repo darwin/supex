@@ -5,7 +5,7 @@ Covers:
 - Deterministic metrics for stale drops, queue overflow, supersede, coalesce
 - Correlation ID propagation
 - Structured logging events
-- Diagnostics MCP tools: vcad_health, vcad_metrics, vcad_reconcile_status
+- Diagnostics helpers & MCP tools: get_vcad_health_snapshot, vcad_metrics, vcad_reconcile_status
 - Recovery diagnostics: reconcile drift, artifact pairs
 - Committed visibility: in-progress artifacts excluded from committed outputs
 """
@@ -742,39 +742,32 @@ class TestCommittedVisibility:
 # ===========================================================================
 
 
-class TestVCADHealthTool:
-    """Test vcad_health MCP tool."""
+class TestVCADHealthSnapshot:
+    """Test get_vcad_health_snapshot helper (used by check_status)."""
 
-    def test_health_returns_valid_json(self) -> None:
-        # Import inside test to avoid side effects
-        from supex_driver.mcp.vcad_diagnostics import vcad_health
+    def test_snapshot_returns_dict_with_subsystems(self) -> None:
+        from supex_driver.mcp.vcad_diagnostics import get_vcad_health_snapshot
 
-        # Create a minimal mock context
-        result = vcad_health(ctx=None)
-        parsed = json.loads(result)
+        result = get_vcad_health_snapshot()
 
-        assert "status" in parsed
-        assert "sidecar" in parsed
-        assert "viewer" in parsed
-        assert "capabilities" in parsed
-        assert "last_error" in parsed
+        assert isinstance(result, dict)
+        assert "vcad_sidecar" in result
+        assert "vcad_viewer" in result
 
-    def test_health_sidecar_disconnected(self) -> None:
-        from supex_driver.mcp.vcad_diagnostics import vcad_health
+    def test_snapshot_sidecar_disconnected(self) -> None:
+        from supex_driver.mcp.vcad_diagnostics import get_vcad_health_snapshot
 
-        result = vcad_health(ctx=None)
-        parsed = json.loads(result)
+        result = get_vcad_health_snapshot()
 
-        # Without a running sidecar, should report disconnected or degraded
-        assert parsed["sidecar"]["status"] in ("disconnected", "error", "unknown")
+        # Without a running sidecar, should report disconnected or error
+        assert result["vcad_sidecar"]["status"] in ("disconnected", "error", "unknown")
 
-    def test_health_viewer_not_started(self) -> None:
-        from supex_driver.mcp.vcad_diagnostics import vcad_health
+    def test_snapshot_viewer_not_started(self) -> None:
+        from supex_driver.mcp.vcad_diagnostics import get_vcad_health_snapshot
 
-        result = vcad_health(ctx=None)
-        parsed = json.loads(result)
+        result = get_vcad_health_snapshot()
 
-        assert parsed["viewer"]["status"] in ("not_started", "disconnected", "error")
+        assert result["vcad_viewer"]["status"] in ("not_started", "disconnected", "error")
 
 
 class TestVCADMetricsTool:

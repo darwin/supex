@@ -62,8 +62,7 @@ Environment variables (all optional):
 
 | Tool | Description |
 |------|-------------|
-| `check_sketchup_status()` | Verify connection health |
-| `console_capture_status()` | Ruby console capture info |
+| `check_status()` | Unified health check (SketchUp, console capture, VCAD sidecar, viewer) |
 
 ## CLI Commands
 

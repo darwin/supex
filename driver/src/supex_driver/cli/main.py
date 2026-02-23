@@ -145,6 +145,49 @@ def status(
         )
         out.info("Make sure SketchUp is running with the Supex runtime.", dim=True)
 
+    # Console capture (only when SketchUp is connected)
+    if sketchup_connected:
+        try:
+            cap = conn.send_command("console_capture_status")
+            capturing = cap.get("capturing", False)
+            log_file = cap.get("log_file")
+            cap_status = "[green]Active[/green]" if capturing else "[yellow]Inactive[/yellow]"
+            cap_detail = f"\nLog: {log_file}" if log_file else ""
+            out.panel(f"{cap_status}{cap_detail}", title="Console Capture")
+        except Exception:
+            out.panel("[dim]Unknown[/dim]", title="Console Capture")
+
+    # VCAD sidecar
+    try:
+        from supex_driver.connection.vcad_connection import _vcad_connection
+
+        if _vcad_connection is not None and _vcad_connection.sock is not None:
+            proto = _vcad_connection._protocol_version or "unknown"
+            caps = ", ".join(_vcad_connection._capabilities) if _vcad_connection._capabilities else "none"
+            out.panel(
+                f"[green]Connected[/green]\nProtocol: {proto}\nCapabilities: {caps}",
+                title="VCAD Sidecar",
+            )
+        else:
+            out.panel("[yellow]Disconnected[/yellow]", title="VCAD Sidecar")
+    except Exception:
+        out.panel("[dim]Not available[/dim]", title="VCAD Sidecar")
+
+    # VCAD viewer relay
+    try:
+        from supex_driver.connection.vcad_viewer_relay import _relay
+
+        if _relay is not None:
+            if _relay.is_viewer_connected:
+                proto = _relay.viewer_protocol_version or "unknown"
+                out.panel(f"[green]Connected[/green]\nProtocol: {proto}", title="VCAD Viewer")
+            else:
+                out.panel("[yellow]Disconnected[/yellow]", title="VCAD Viewer")
+        else:
+            out.panel("[dim]Not started[/dim]", title="VCAD Viewer")
+    except Exception:
+        out.panel("[dim]Not available[/dim]", title="VCAD Viewer")
+
     # Documentation status
     docs_available, docs_path = check_docs_available()
     if docs_available:

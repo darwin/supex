@@ -30,9 +30,8 @@ class TestMCPServer:
             "open_model",
             "save_model",
             "export_scene",
-            # Status and connection
-            "check_sketchup_status",
-            "console_capture_status",
+            # Status
+            "check_status",
         ]
 
         # Since FastMCP doesn't expose internal tools directly,
