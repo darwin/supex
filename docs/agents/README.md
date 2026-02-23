@@ -14,7 +14,7 @@ It covers both authoring workflows:
 - `guide/vcad.md` - VCAD workflow rules and constraints
 - `guide/workflow.md` - Extended examples and practical snippets
 - `guide/best_practices.md` - Geometry QA checklist and modeling pitfalls
-- `../mcp.md` - Canonical MCP tool inventory (names and scope)
+- `guide/mcp.md` - Canonical MCP tool inventory (names and scope)
 
 ## Structure
 
@@ -44,7 +44,7 @@ Then reference `supex-guide/README.md` in your agent/project instructions.
 
 ## Maintenance
 
-- Keep tool names and behavior aligned with `docs/mcp.md`
+- Keep tool names and behavior aligned with `guide/mcp.md`
 - Keep `guide/README.md` focused on rules; move long examples to `guide/workflow.md`
 - Keep geometry pitfalls and visual QA patterns in `guide/best_practices.md`
 - Do not edit generated API docs under `guide/api/`

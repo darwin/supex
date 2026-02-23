@@ -250,7 +250,7 @@ vcad_watch_resume()  # Flushes all accumulated changes as one cascade
 
 ## MCP Tool Surface (VCAD)
 
-Canonical tool inventory and signatures live in [MCP Reference](mcp.md).
+Canonical tool inventory and signatures live in [MCP Reference](agents/guide/mcp.md).
 
 Practical VCAD tool flow:
 

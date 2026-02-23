@@ -45,7 +45,7 @@ For mixed tasks, use VCAD for authored geometry and Ruby for scene/model operati
 - Prefer file-based workflows (`.rb`, `.cmp.oo`, `.oo`) over long inline snippets.
 - For Ruby, prefer `eval_ruby_file` over `eval_ruby`.
 - Verify geometry visually after changes (`take_screenshot` or `take_batch_screenshots`).
-- Treat `docs/mcp.md` as the canonical MCP tool inventory.
+- Treat `mcp.md` as the canonical MCP tool inventory.
 - `reload_extension` is CLI-only (`./supex reload`), not an MCP tool.
 
 ## Quick Tool Shortlist
@@ -56,7 +56,7 @@ For mixed tasks, use VCAD for authored geometry and Ruby for scene/model operati
 - Introspection: `get_model_info`, `list_entities`, `get_selection`
 - Visual QA: `take_screenshot`, `take_batch_screenshots`
 
-For signatures and complete list, see `docs/mcp.md`.
+For signatures and complete list, see `mcp.md`.
 
 ## Next Reads
 

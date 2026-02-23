@@ -5,7 +5,7 @@
 For authoritative command/tool/env lists, use:
 
 - [CLI Reference](cli.md)
-- [MCP Reference](mcp.md)
+- [MCP Reference](agents/guide/mcp.md)
 - [Configuration](configuration.md)
 - [Protocol](protocol.md)
 
@@ -80,7 +80,7 @@ The driver serves two roles: as an MCP server for AI agents, and as a CLI (`./su
 Tool catalogs are maintained in dedicated reference docs:
 
 - [CLI Reference](cli.md)
-- [MCP Reference](mcp.md)
+- [MCP Reference](agents/guide/mcp.md)
 - [VCAD Integration](vcad.md)
 
 #### Connection Layer (`connection/`)
@@ -163,7 +163,7 @@ VCAD extends supex with a parametric modeling pipeline. The agent writes `.cmp.o
 
 For the complete VCAD tool inventory (including diagnostics/viewer tools), see:
 
-- [MCP Reference](mcp.md)
+- [MCP Reference](agents/guide/mcp.md)
 - [VCAD Integration](vcad.md)
 
 ## Communication Protocol

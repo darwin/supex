@@ -6,7 +6,7 @@ This page is the navigation hub for Supex docs.
 
 - New to Supex: read the project [README](../README.md), then [Architecture](architecture.md)
 - Using the CLI directly: [CLI Reference](cli.md)
-- Using MCP tools from an agent: [MCP Reference](mcp.md)
+- Using MCP tools from an agent: [MCP Reference](agents/guide/mcp.md)
 - Building parametric geometry with VCAD: [VCAD Integration](vcad.md)
 - Debugging setup/runtime issues: [Troubleshooting](agents/guide/troubleshooting.md)
 
@@ -14,7 +14,7 @@ This page is the navigation hub for Supex docs.
 
 - [Architecture](architecture.md)
 - [CLI Reference](cli.md)
-- [MCP Reference](mcp.md)
+- [MCP Reference](agents/guide/mcp.md)
 - [VCAD Integration](vcad.md)
 - [Configuration](configuration.md)
 - [Security](security.md)
