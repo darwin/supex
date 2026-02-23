@@ -4,6 +4,12 @@
 
 Example project demonstrating the Supex workflow for SketchUp automation. Creates a simple wooden table with four legs using modular Ruby scripts.
 
+## Git Conventions
+
+- Commit messages in English
+- Imperative mood, capitalized first letter, no trailing period
+- Example: `Add decorative trim to table edges`
+
 ## SketchUp Modeling with Supex
 
 For modeling guidance, workflow rules, and tool reference see `supex-guide/` (start with `supex-guide/README.md`).
