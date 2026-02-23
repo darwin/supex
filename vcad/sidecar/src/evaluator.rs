@@ -98,7 +98,7 @@ impl Evaluator {
             let ext = path.extension().and_then(|s| s.to_str());
 
             // Only manage mesh artifacts; manifests follow their mesh file
-            if ext != Some("obj") && ext != Some("dae") {
+            if ext != Some("dae") {
                 continue;
             }
 
@@ -145,7 +145,7 @@ impl Evaluator {
         for entry in entries.flatten() {
             let path = entry.path();
             let ext = path.extension().and_then(|s| s.to_str());
-            if ext != Some("obj") && ext != Some("dae") {
+            if ext != Some("dae") {
                 continue;
             }
             let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
