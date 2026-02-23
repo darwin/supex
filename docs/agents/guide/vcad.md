@@ -74,6 +74,68 @@ Authoritative constructor signatures: `cad-lib/src/lib.loon`.
 
 Important: Loon has no runtime arithmetic operators (`+`, `-`, `*`, etc.). Use literals, `let`, and `fn` patterns.
 
+## Functional Style
+
+Loon geometries are immutable ADT trees. Every CAD operation returns a new tree — nothing is mutated in place. This makes composition safe and predictable: you build complex solids by threading a value through a sequence of pure transformations.
+
+### `let` — Name and Reuse
+
+Define constants and reusable tool shapes once with `let`, then reference them throughout the file:
+
+```loon
+[let t 4.0]                    ; material thickness
+[let hole [cylinder 3.0 6.0]]  ; reusable bolt hole tool
+
+[pipe [cube 60.0 40.0 t]
+  [difference [translate 10.0 20.0 -1.0 hole]]
+  [difference [translate 50.0 20.0 -1.0 hole]]]
+```
+
+This avoids duplicated literals and makes intent clear. When a dimension changes, update one `let` binding.
+
+### `pipe` — Read Top to Bottom
+
+All CAD functions take geometry as their **last** argument (subject-last design). `pipe` threads the result of each step as the last argument to the next:
+
+```loon
+[pipe [cylinder 15.0 20.0]
+  [union [translate 0.0 0.0 -4.0 [cylinder 30.0 4.0]]]
+  [difference [translate 0.0 0.0 -5.0 [cylinder 5.0 26.0]]]
+  [difference [circular-pattern 0.0 0.0 0.0  0.0 0.0 1.0  6 360.0
+    [translate 22.5 0.0 -5.0 [cylinder 3.0 10.0]]]]]
+```
+
+Reading top-to-bottom matches the order of operations: start with a cylinder, add a flange, bore the center, drill bolt holes.
+
+### `fn` — Helpers for Repeated Operations
+
+When the same operation appears multiple times (e.g. drilling holes at different positions), extract an `fn`. The function **must** take subject as its last parameter to work inside `pipe`:
+
+```loon
+[fn drill [x y tool s]
+  [difference [translate x y -1.0 tool] s]]
+
+[pipe [cube 120.0 80.0 5.0]
+  [drill 60.0 40.0 [cylinder 15.0 7.0]]
+  [drill 15.0 15.0 m5]
+  [drill 105.0 15.0 m5]]
+```
+
+### Composition Pattern
+
+A well-structured `.cmp.oo` file follows this order:
+
+1. **`use`** — load shared modules
+2. **`let`** — define constants and reusable tool shapes
+3. **`fn`** — define helper functions (subject-last)
+4. **`pipe`** — compose the final solid top-to-bottom
+
+### Anti-patterns
+
+- **Deeply nested calls instead of `pipe`:** Hard to read, easy to misplace brackets. Flatten with `pipe`.
+- **Duplicated geometry instead of `let`/`fn`:** If the same shape or value appears twice, bind it.
+- **Wrong argument order in `fn`:** Subject must be the last parameter, otherwise `pipe` threading breaks.
+
 ## Imports and Exports Notes
 
 - Keep import declarations in `.cmp.oo` files.
