@@ -80,9 +80,41 @@ Important: Loon has no runtime arithmetic operators (`+`, `-`, `*`, etc.). Use l
 - Prefer stable entity references and stable `node_id` naming.
 - `vcad_export(source, format?, output_path?)` is available; import-aware export behavior can differ from direct sidecar export, so validate in your environment.
 
+## Examples
+
+### Node with Shared Modules
+
+```loon
+; cmp/bracket.cmp.oo
+[use shared/params :as p]
+[use shared/lib :as lib]
+
+[pipe [lib.base-bracket p.width p.depth p.height]
+  [difference
+    [translate p.hole_x p.hole_y 0.0
+      [cylinder p.hole_radius p.height]]]
+  [fillet p.edge_radius]]
+```
+
+### Import from Host Entity
+
+```loon
+[let host [import :host "entity:12345" :dims]]
+[cube [get host :width] 10.0 [get host :height]]
+```
+
+`[import ...]` declarations must stay in `.cmp.oo` files (or inline code). They do not work in `.oo` modules loaded via `[use ...]`.
+
+### Batch Editing Pattern
+
+```text
+vcad_watch_pause()
+# edit multiple .cmp.oo and .oo files
+vcad_watch_resume()  # flushes as one merged cascade update
+```
+
 ## References
 
 - Router and chooser: `supex-guide/README.md`
-- Extended examples: `supex-guide/workflow.md`
 - Geometry QA: `supex-guide/ruby.md` § "Geometry Quality Rules"
 - VCAD architecture/details: `docs/vcad.md`
