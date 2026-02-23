@@ -159,7 +159,7 @@ Both agents automatically start the MCP server - you don't need to run anything 
 To verify it's working:
 1. Open your AI agent in this project directory
 2. The MCP server should automatically connect
-3. You should have access to Supex tools like `check_sketchup_status`
+3. You should have access to Supex tools like `check_status`
 
 ## Step 3: Create Your First Model
 
