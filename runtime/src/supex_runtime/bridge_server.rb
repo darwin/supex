@@ -570,25 +570,24 @@ module SupexRuntime
     # @param workspace [String, nil] workspace path for file operations
     # @return [Hash, nil] result or nil if not a VCAD tool
     def execute_vcad_tool(tool_name, args, workspace)
-      result = case tool_name
-               when 'place_vcad_node'
-                 VCADTools.place_vcad_node(args, workspace: workspace)
-               when 'update_vcad_node'
-                 VCADTools.update_vcad_node(args, workspace: workspace)
-               when 'list_vcad_nodes'
-                 VCADTools.list_vcad_nodes(args, workspace: workspace)
-               when 'get_vcad_node'
-                 VCADTools.get_vcad_node(args, workspace: workspace)
-               when 'resolve_vcad_import'
-                 VCADTools.resolve_vcad_import(args, workspace: workspace)
-               when 'vcad.observer_start'
-                 VcadObserverManager.start
-               when 'vcad.observer_stop'
-                 VcadObserverManager.stop
-               when 'vcad.observer_poll'
-                 VcadObserverManager.poll
-               end
-      result
+      case tool_name
+      when 'place_vcad_node'
+        VCADTools.place_vcad_node(args, workspace: workspace)
+      when 'update_vcad_node'
+        VCADTools.update_vcad_node(args, workspace: workspace)
+      when 'list_vcad_nodes'
+        VCADTools.list_vcad_nodes(args, workspace: workspace)
+      when 'get_vcad_node'
+        VCADTools.get_vcad_node(args, workspace: workspace)
+      when 'resolve_vcad_import'
+        VCADTools.resolve_vcad_import(args, workspace: workspace)
+      when 'vcad.observer_start'
+        VcadObserverManager.start
+      when 'vcad.observer_stop'
+        VcadObserverManager.stop
+      when 'vcad.observer_poll'
+        VcadObserverManager.poll
+      end
     rescue PathPolicy::PathAccessDenied => e
       { success: false, error_code: 'PATH_NOT_ALLOWED', error: e.message }
     end

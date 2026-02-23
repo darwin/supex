@@ -73,19 +73,19 @@ module SupexRuntime
 
     # Called after a transaction (undo group) is committed.
     # Scan for changed entities and enqueue their IDs.
-    def onTransactionCommit(model)
+    def onTransactionCommit(model) # rubocop:disable Naming/MethodName
       changed_ids = collect_vcad_entity_ids(model)
       @queue.push(changed_ids) unless changed_ids.empty?
     end
 
     # Called after undo — treat the same as commit for change detection.
-    def onTransactionUndo(model)
+    def onTransactionUndo(model) # rubocop:disable Naming/MethodName
       changed_ids = collect_vcad_entity_ids(model)
       @queue.push(changed_ids) unless changed_ids.empty?
     end
 
     # Called after redo.
-    def onTransactionRedo(model)
+    def onTransactionRedo(model) # rubocop:disable Naming/MethodName
       changed_ids = collect_vcad_entity_ids(model)
       @queue.push(changed_ids) unless changed_ids.empty?
     end
@@ -109,7 +109,7 @@ module SupexRuntime
 
   # Manages observer attachment/detachment lifecycle.
   module VcadObserverManager
-    extend self
+    extend self # rubocop:disable Style/ModuleFunction
 
     @observer = nil
     @queue = nil
@@ -120,9 +120,7 @@ module SupexRuntime
       model = Sketchup.active_model
       raise 'No active model' unless model
 
-      if @observer
-        return { success: true, status: 'already_running', message: 'Observer already attached' }
-      end
+      return { success: true, status: 'already_running', message: 'Observer already attached' } if @observer
 
       @queue = VcadObserverQueue.new
       @observer = VcadModelObserver.new(@queue)
@@ -136,9 +134,7 @@ module SupexRuntime
     def stop
       model = Sketchup.active_model
 
-      unless @observer
-        return { success: true, status: 'not_running', message: 'Observer was not attached' }
-      end
+      return { success: true, status: 'not_running', message: 'Observer was not attached' } unless @observer
 
       model&.remove_observer(@observer)
       @queue&.clear
@@ -151,9 +147,7 @@ module SupexRuntime
     # Poll for changes since last poll.
     # @return [Hash] changed_entity_ids, dropped, queue_size
     def poll
-      unless @queue
-        return { changed_entity_ids: [], dropped: 0, queue_size: 0 }
-      end
+      return { changed_entity_ids: [], dropped: 0, queue_size: 0 } unless @queue
 
       @queue.drain
     end

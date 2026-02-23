@@ -594,7 +594,7 @@ module Sketchup
   end
 
   # Sketchup::ModelObserver base class for vcad_observer tests
-  class ModelObserver
+  class ModelObserver # rubocop:disable Lint/EmptyClass
   end
 
   # Sketchup::Camera class for batch_screenshot tests

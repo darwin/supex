@@ -18,6 +18,7 @@ import time
 
 import pytest
 
+from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 from supex_driver.connection.vcad_logging import (
     EVENT_EVAL_ENQUEUED,
     EVENT_EVAL_FINISHED,
@@ -53,8 +54,6 @@ from supex_driver.connection.vcad_state import (
     TriggerCoalescer,
     VCADPersistentState,
 )
-from supex_driver.connection.vcad_dag import VCADDag, VCADNode
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -932,7 +931,7 @@ class TestCorrelationFlow:
 
     def test_same_request_id_across_events(self) -> None:
         """Single request flow: same request_id in all events."""
-        request_id = set_correlation_id("flow-001")
+        set_correlation_id("flow-001")
 
         events = [
             emit_event(EVENT_EVAL_ENQUEUED, node_id="node-1"),

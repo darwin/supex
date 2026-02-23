@@ -16,7 +16,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from supex_driver.connection.vcad_exceptions import PATH_NOT_ALLOWED
@@ -33,7 +33,7 @@ def _rfc3339_utc(ts: float | None = None) -> str:
     """Format a Unix timestamp (or now) as RFC3339 UTC."""
     if ts is None:
         ts = time.time()
-    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    dt = datetime.fromtimestamp(ts, tz=UTC)
     return dt.strftime("%Y-%m-%dT%H:%M:%S") + "." + f"{dt.microsecond:06d}"[
         :3
     ] + "Z"
@@ -150,7 +150,7 @@ class ArtifactManifest:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "ArtifactManifest":
+    def from_dict(cls, d: dict[str, Any]) -> ArtifactManifest:
         """Deserialize from dict."""
         return cls(
             status=d["status"],
@@ -386,7 +386,7 @@ class ArtifactStore:
         Returns:
             Sorted list of mesh_paths that have committed pairs.
         """
-        committed = []
+        committed: list[str] = []
         if not os.path.isdir(self.artifact_root):
             return committed
 
@@ -439,7 +439,7 @@ class ArtifactStore:
         try:
             self._validate_path(m_path)
             with open(m_path) as f:
-                return json.load(f)
+                return dict(json.load(f))
         except Exception:
             return None
 
@@ -556,7 +556,7 @@ class ArtifactStore:
                 errors.append({
                     "manifest_path": m_path,
                     "error_code": PATH_NOT_ALLOWED,
-                    "message": f"Manifest path escapes allowed root",
+                    "message": "Manifest path escapes allowed root",
                     "details": {
                         "operation": "read_manifest",
                         "path": m_path,
@@ -569,7 +569,7 @@ class ArtifactStore:
                 errors.append({
                     "manifest_path": m_path,
                     "error_code": "ARTIFACT_READ_FAILED",
-                    "message": f"Manifest file not found",
+                    "message": "Manifest file not found",
                     "details": {
                         "operation": "read_manifest",
                         "reason": "file_not_found",

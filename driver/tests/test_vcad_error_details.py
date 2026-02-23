@@ -35,11 +35,9 @@ from supex_driver.connection.vcad_schema import (
     validate_error_envelope,
 )
 from supex_driver.mcp.vcad_tools import (
-    _handle_vcad_error,
     vcad_eval,
     vcad_place,
 )
-
 
 # ---------------------------------------------------------------------------
 # Paths

@@ -295,7 +295,7 @@ class VCADDag:
 
         # Build in-degree map for subset: count how many subset-nodes
         # each node depends on
-        in_degree: dict[str, int] = {nid: 0 for nid in subset}
+        in_degree: dict[str, int] = dict.fromkeys(subset, 0)
         # adjacency: source -> list of dependents
         adj: dict[str, list[str]] = {nid: [] for nid in subset}
 

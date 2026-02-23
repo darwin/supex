@@ -9,29 +9,25 @@ from supex_driver.connection import (
     get_sketchup_connection,
     get_vcad_connection,
 )
-from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
-from supex_driver.connection.vcad_file_watcher import (
-    VCADFileWatcher,
-    get_vcad_file_watcher,
-    _reset_vcad_file_watcher,
-)
-from supex_driver.connection.vcad_observer import (
-    VCADReactiveWatcher,
-    get_vcad_reactive_watcher,
-    _reset_vcad_reactive_watcher,
-)
 from supex_driver.connection.sketchup_exceptions import (
     SketchUpConnectionError,
     SketchUpProtocolError,
     SketchUpRemoteError,
     SketchUpTimeoutError,
 )
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_exceptions import (
     VCADCapabilityError,
     VCADConnectionError,
     VCADProtocolError,
     VCADRemoteError,
     VCADTimeoutError,
+)
+from supex_driver.connection.vcad_file_watcher import (
+    get_vcad_file_watcher,
+)
+from supex_driver.connection.vcad_observer import (
+    get_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_schema import build_error
 from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
@@ -300,7 +296,7 @@ def _eval_with_imports(
     )
 
 
-def _vcad_update_single(
+def _vcad_update_single(  # noqa: PLR0911
     ctx: McpContext,
     node_id: str,
     source_file: str,
@@ -401,7 +397,7 @@ def _vcad_update_single(
 
 
 @mcp.tool()
-def vcad_place(
+def vcad_place(  # noqa: PLR0911
     ctx: McpContext,
     node_id: str,
     source_file: str,
@@ -541,7 +537,7 @@ def vcad_place(
 
 
 @mcp.tool()
-def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -> str:
+def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None) -> str:  # noqa: PLR0911
     """Re-evaluate VCAD node and update SketchUp geometry.
 
     If source_file is not provided, queries SketchUp for the node's

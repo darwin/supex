@@ -12,7 +12,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import jsonschema
+import jsonschema  # type: ignore[import-untyped]
 
 logger = logging.getLogger("supex.vcad.schema")
 
@@ -64,7 +64,7 @@ def load_schema(version: str, name: str) -> dict[str, Any]:
         schema = json.load(f)
 
     _schema_cache[cache_key] = schema
-    return schema
+    return schema  # type: ignore[no-any-return]
 
 
 def validate_payload(
@@ -223,10 +223,7 @@ def build_error(
     }
 
     # Build details (copy to avoid mutating caller's dict)
-    if details is not None:
-        envelope_details = dict(details)
-    else:
-        envelope_details = {}
+    envelope_details = dict(details) if details is not None else {}
 
     # Auto-fill operation from context
     if operation and "operation" not in envelope_details:
@@ -311,7 +308,7 @@ def normalize_error_response(
             ),
             "error_code": SCHEMA_VALIDATION_FAILED,
             "details": {
-                "path": f"$.details",
+                "path": "$.details",
                 "expected": f"required keys for {error_code}: {required_keys}",
                 "missing_keys": missing,
                 "original_error_code": error_code,

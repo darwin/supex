@@ -2,7 +2,6 @@
 
 from typing import Any
 
-
 # Error codes (driver-local, transport/protocol level)
 PROTOCOL_MISMATCH = "PROTOCOL_MISMATCH"
 CAPABILITY_UNAVAILABLE = "CAPABILITY_UNAVAILABLE"

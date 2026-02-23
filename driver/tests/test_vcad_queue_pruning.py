@@ -24,7 +24,6 @@ from supex_driver.connection.vcad_logging import (
     set_correlation_id,
 )
 from supex_driver.connection.vcad_metrics import (
-    VCADMetrics,
     _reset_vcad_metrics,
     get_vcad_metrics,
 )
@@ -34,7 +33,6 @@ from supex_driver.connection.vcad_state import (
     RevisionTracker,
     VCADPersistentState,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

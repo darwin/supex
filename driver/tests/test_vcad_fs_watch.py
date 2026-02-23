@@ -5,18 +5,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from supex_driver.connection.vcad_dag import VCADDag, VCADNode, ImportRef
+from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_file_watcher import (
     VCADFileWatcher,
     _detect_project_root,
-    get_vcad_file_watcher,
     _reset_vcad_file_watcher,
+    get_vcad_file_watcher,
 )
 from supex_driver.connection.vcad_state import (
     RevisionTracker,
     VCADPersistentState,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -343,10 +342,12 @@ class TestVCADPlaceAutoStart:
 
     def test_vcad_place_auto_starts_watcher(self, tmp_path):
         """vcad_place calls auto_start_if_needed after DAG registration."""
-        from supex_driver.mcp.vcad_tools import (
-            vcad_place,
-            _reset_vcad_dag,
+        from supex_driver.connection.vcad_file_watcher import (
             _reset_vcad_file_watcher,
+        )
+        from supex_driver.mcp.vcad_tools import (
+            _reset_vcad_dag,
+            vcad_place,
         )
 
         _reset_vcad_dag()

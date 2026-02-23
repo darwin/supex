@@ -5,9 +5,8 @@ trigger coalescing across multiple sources, revision guards, and
 stale-result protection.
 """
 
-import threading
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,15 +14,13 @@ from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_observer import (
     VCADObserverPoller,
     VCADReactiveWatcher,
-    get_vcad_reactive_watcher,
     _reset_vcad_reactive_watcher,
+    get_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_state import (
     RevisionTracker,
-    TriggerCoalescer,
     VCADPersistentState,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -110,7 +107,7 @@ class TestObserverPollerBasic:
             "success": True,
             "status": "stopped",
         }
-        result = poller.stop_observer(mock_sketchup)
+        poller.stop_observer(mock_sketchup)
 
         assert not poller.observer_started
         mock_sketchup.send_command.assert_called_once_with(

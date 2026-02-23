@@ -12,7 +12,6 @@ from importlib.metadata import version as get_version
 from typing import Any
 
 from supex_driver.connection.vcad_exceptions import (
-    CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
     VCADCapabilityError,
     VCADConnectionError,
@@ -55,7 +54,7 @@ def _next_request_id() -> int:
         return _vcad_request_id_counter
 
 
-def _parse_major_version(version) -> int:
+def _parse_major_version(version: object) -> int:
     """Extract major version number from version string or int."""
     try:
         return int(str(version).split(".")[0])
@@ -457,7 +456,7 @@ class VCADConnection:
             List of node_ids that depend on the changed file.
         """
         result = self.send_command("vcad.get_affected_nodes", {"path": path})
-        return result.get("node_ids", [])
+        return list(result.get("node_ids", []))
 
     def watch_start(self, dir: str) -> dict[str, Any]:
         """Start watching a project directory for file changes.

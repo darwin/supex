@@ -14,7 +14,7 @@ from supex_driver.connection.vcad_connection import (
     VCADConnection,
     _parse_major_version,
 )
-from supex_driver.connection.vcad_dag import VCADDag, VCADNode
+from supex_driver.connection.vcad_dag import VCADDag
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
@@ -34,7 +34,6 @@ from supex_driver.connection.vcad_state import (
     VCADReconciler,
 )
 from tests.helpers.mock_vcad_sidecar import MockVCADSidecar
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -1060,7 +1059,7 @@ class TestReconcilerWithDag:
     def tmp_state_path(self, tmp_path):
         return str(tmp_path / "vcad-state.json")
 
-    def test_Reconciler_seed_and_load(self, tmp_state_path: str) -> None:
+    def test_reconciler_seed_and_load(self, tmp_state_path: str) -> None:
         """Seed persisted vcad-state.json, restart driver, verify state loads."""
         state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(
@@ -1089,7 +1088,7 @@ class TestReconcilerWithDag:
         assert dag.current_revision("node-1") == 5
         assert dag.current_revision("node-2") == 3
 
-    def test_Reconciler_drift_buckets(self, tmp_state_path: str) -> None:
+    def test_reconciler_drift_buckets(self, tmp_state_path: str) -> None:
         """Seed state, reconcile with list_vcad_nodes snapshot,
         verify all drift buckets are classified correctly.
         """
@@ -1150,7 +1149,7 @@ class TestReconcilerWithDag:
         assert "node-2" in buckets["source_missing"]
         assert "node-4" in buckets["revision_gap"]
 
-    def test_Reconciler_source_missing_degraded(self, tmp_state_path: str) -> None:
+    def test_reconciler_source_missing_degraded(self, tmp_state_path: str) -> None:
         """Verify source_missing nodes are marked degraded and return
         SOURCE_FILE_MISSING deterministically.
         """
@@ -1182,7 +1181,7 @@ class TestReconcilerWithDag:
             assert "node-1" in buckets["source_missing"]
             assert dag.nodes["node-1"].status == "degraded"
 
-    def test_Reconciler_cascade_after_reconcile(self, tmp_state_path: str) -> None:
+    def test_reconciler_cascade_after_reconcile(self, tmp_state_path: str) -> None:
         """After reconciliation, revision_gap nodes get cascade_update action,
         and revisions are properly rebuilt for subsequent operations.
         """
@@ -1211,7 +1210,7 @@ class TestReconcilerWithDag:
         new_rev = dag.bump_revision("node-1")
         assert new_rev == 6
 
-    def test_Reconciler_orphan_tracked_in_dag(self, tmp_state_path: str) -> None:
+    def test_reconciler_orphan_tracked_in_dag(self, tmp_state_path: str) -> None:
         """Orphan definitions from SketchUp are added to the DAG."""
         state = VCADPersistentState(state_path=tmp_state_path)
         state.save()
@@ -1231,7 +1230,7 @@ class TestReconcilerWithDag:
         assert "orphan-2" in dag.nodes
         assert dag.nodes["orphan-2"].status == "orphan"
 
-    def test_Reconciler_missing_node_removed(self, tmp_state_path: str) -> None:
+    def test_reconciler_missing_node_removed(self, tmp_state_path: str) -> None:
         """Nodes persisted but absent in SketchUp are removed from state."""
         state = VCADPersistentState(state_path=tmp_state_path)
         state.set_node(NodeState(

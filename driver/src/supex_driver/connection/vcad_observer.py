@@ -9,7 +9,8 @@ import logging
 import os
 import threading
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from supex_driver.connection.vcad_state import TriggerCoalescer
 
@@ -63,7 +64,7 @@ class VCADObserverPoller:
         )
         self._observer_started = True
         logger.info("SketchUp observer started")
-        return result
+        return dict(result)
 
     def stop_observer(self, sketchup_connection: Any) -> dict[str, Any]:
         """Detach the observer in SketchUp via vcad.observer_stop.
@@ -80,7 +81,7 @@ class VCADObserverPoller:
         )
         self._observer_started = False
         logger.info("SketchUp observer stopped")
-        return result
+        return dict(result)
 
     def poll_once(self, sketchup_connection: Any) -> dict[str, Any]:
         """Single poll: call vcad.observer_poll on the bridge.
@@ -88,10 +89,10 @@ class VCADObserverPoller:
         Returns:
             Dict with changed_entity_ids, dropped, queue_size.
         """
-        return sketchup_connection.send_command(
+        return dict(sketchup_connection.send_command(
             method="vcad.observer_poll",
             params={},
-        )
+        ))
 
     def start_polling(
         self,

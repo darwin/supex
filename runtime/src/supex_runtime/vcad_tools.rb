@@ -29,9 +29,8 @@ module SupexRuntime
 
       # SketchUp 2026: definitions.import returns ComponentDefinition.
       defn = model.definitions.import(mesh_path)
-      unless defn.is_a?(Sketchup::ComponentDefinition)
-        raise "IMPORT_DEFINITION_NOT_FOUND: #{mesh_path}"
-      end
+      raise "IMPORT_DEFINITION_NOT_FOUND: #{mesh_path}" unless defn.is_a?(Sketchup::ComponentDefinition)
+
       defn.name = component_name
 
       defn.set_attribute(VCAD_DICT, 'node_id', node_id)
@@ -91,13 +90,13 @@ module SupexRuntime
 
         # SketchUp 2026: import returns the new ComponentDefinition directly.
         new_defn = model.definitions.import(mesh_path)
-        unless new_defn.is_a?(Sketchup::ComponentDefinition)
-          raise "IMPORT_DEFINITION_NOT_FOUND: #{mesh_path}"
-        end
+        raise "IMPORT_DEFINITION_NOT_FOUND: #{mesh_path}" unless new_defn.is_a?(Sketchup::ComponentDefinition)
+
         # Keep the new definition hidden from UI naming collisions until swap is complete.
         new_defn.name = "#{old_name}__updating"
         new_defn.set_attribute(VCAD_DICT, 'node_id', node_id)
-        new_defn.set_attribute(VCAD_DICT, 'source_file', source_file || old_defn.get_attribute(VCAD_DICT, 'source_file'))
+        new_defn.set_attribute(VCAD_DICT, 'source_file',
+                               source_file || old_defn.get_attribute(VCAD_DICT, 'source_file'))
         new_defn.set_attribute(VCAD_DICT, 'version', version)
 
         # Rebind every instance to the new definition at the same transform.
@@ -133,7 +132,7 @@ module SupexRuntime
     # @param _params [Hash] unused
     # @param workspace [String, nil] unused
     # @return [Array<Hash>] list of VCAD node metadata
-    def list_vcad_nodes(_params = {}, workspace: nil)
+    def list_vcad_nodes(_params = {}, workspace: nil) # rubocop:disable Lint/UnusedMethodArgument
       model = Sketchup.active_model
       nodes = model.definitions.select { |d| d.get_attribute(VCAD_DICT, 'node_id') }
       nodes.map do |d|
@@ -151,7 +150,7 @@ module SupexRuntime
     # @param params [Hash] parameters: node_id
     # @param workspace [String, nil] unused
     # @return [Hash] VCAD node metadata with bounds
-    def get_vcad_node(params, workspace: nil)
+    def get_vcad_node(params, workspace: nil) # rubocop:disable Lint/UnusedMethodArgument
       node_id = params['node_id']
       model = Sketchup.active_model
       defn = find_vcad_definition(model, node_id)
@@ -172,7 +171,7 @@ module SupexRuntime
     # @param params [Hash] parameters: entity_id, extract
     # @param workspace [String, nil] unused
     # @return [Hash] resolved data with vcad_node_id
-    def resolve_vcad_import(params, workspace: nil)
+    def resolve_vcad_import(params, workspace: nil) # rubocop:disable Lint/UnusedMethodArgument
       entity_id = params['entity_id'].to_i
       extract_type = params['extract']
 
@@ -203,6 +202,7 @@ module SupexRuntime
                   max: [bb.max.x.to_mm, bb.max.y.to_mm, bb.max.z.to_mm] } }
       when 'transform'
         raise "Entity #{entity_id} has no transformation" unless entity.respond_to?(:transformation)
+
         { extract: 'transform', vcad_node_id: vcad_node_id,
           data: { matrix: entity.transformation.to_a } }
       when 'solid'
@@ -230,7 +230,7 @@ module SupexRuntime
       vertex_offset = 0
 
       defn.entities.grep(Sketchup::Face).each do |face|
-        mesh = face.mesh(0)  # 0 = no UVs, just geometry
+        mesh = face.mesh(0) # 0 = no UVs, just geometry
         # PolygonMesh: vertices are 1-based
         mesh.count_points.times do |i|
           pt = mesh.point_at(i + 1)
@@ -239,7 +239,7 @@ module SupexRuntime
           normals.push(n.x, n.y, n.z)
         end
         mesh.count_polygons.times do |i|
-          tri = mesh.polygon_at(i + 1)  # returns array of vertex indices (1-based, may be negative)
+          tri = mesh.polygon_at(i + 1) # returns array of vertex indices (1-based, may be negative)
           tri.each { |vi| indices.push(vi.abs - 1 + vertex_offset) }
         end
         vertex_offset += mesh.count_points

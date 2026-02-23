@@ -7,22 +7,19 @@ Also tests batch mode (pause/resume) with multi-file edits.
 
 import threading
 import time
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock
 
 import pytest
 
 from supex_driver.connection.vcad_dag import ImportRef, VCADDag, VCADNode
 from supex_driver.connection.vcad_observer import (
-    VCADObserverPoller,
     VCADReactiveWatcher,
     _reset_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_state import (
     RevisionTracker,
-    TriggerCoalescer,
     VCADPersistentState,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

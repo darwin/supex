@@ -4,8 +4,7 @@ Unit tests using mocked sidecar and SketchUp connections.
 """
 
 import json
-import os
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,7 +17,6 @@ from supex_driver.connection.vcad_exceptions import (
     VCADRemoteError,
 )
 from supex_driver.mcp.vcad_tools import vcad_place
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

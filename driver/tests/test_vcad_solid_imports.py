@@ -20,7 +20,6 @@ from supex_driver.mcp.vcad_tools import (
     vcad_place,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -457,7 +456,7 @@ class TestVCADConnectionSolidImports:
         from supex_driver.connection.vcad_connection import VCADConnection
 
         assert hasattr(VCADConnection, "eval_with_imports")
-        assert callable(getattr(VCADConnection, "eval_with_imports"))
+        assert callable(VCADConnection.eval_with_imports)
 
     def test_eval_with_imports_params(self):
         """eval_with_imports builds correct params."""

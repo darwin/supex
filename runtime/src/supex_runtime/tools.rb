@@ -101,7 +101,10 @@ module SupexRuntime
       return { success: false, error: 'No active model' } unless model
 
       # Validate output_path if provided
-      PathPolicy.validate!(params['output_path'], operation: 'take_screenshot', workspace: workspace) if params['output_path']
+      if params['output_path']
+        PathPolicy.validate!(params['output_path'], operation: 'take_screenshot',
+                                                    workspace: workspace)
+      end
 
       screenshot_path = determine_screenshot_path(params['output_path'], workspace)
       write_screenshot(model, screenshot_path, params)

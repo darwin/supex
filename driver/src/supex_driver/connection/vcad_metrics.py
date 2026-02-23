@@ -12,7 +12,6 @@ import threading
 import time
 from typing import Any
 
-
 # Stable metric names (public contract, covered by tests)
 METRIC_NAMES = [
     "queue_depth",
@@ -68,8 +67,8 @@ class VCADMetrics:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._counters: dict[str, int] = {name: 0 for name in COUNTER_METRICS}
-        self._gauges: dict[str, float] = {name: 0.0 for name in GAUGE_METRICS}
+        self._counters: dict[str, int] = dict.fromkeys(COUNTER_METRICS, 0)
+        self._gauges: dict[str, float] = dict.fromkeys(GAUGE_METRICS, 0.0)
         self._gauge_callbacks: dict[str, Any] = {}
 
     def increment(self, name: str, delta: int = 1) -> None:

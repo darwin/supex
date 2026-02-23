@@ -117,10 +117,7 @@ def build_viewer_error(
         "message": message,
     }
 
-    if details is not None:
-        error_details = dict(details)
-    else:
-        error_details = {}
+    error_details = dict(details) if details is not None else {}
 
     if operation and "operation" not in error_details:
         error_details["operation"] = operation

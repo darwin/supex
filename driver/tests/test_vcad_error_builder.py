@@ -9,7 +9,6 @@ Covers:
 """
 
 import json
-from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -40,7 +39,6 @@ from supex_driver.mcp.vcad_tools import (
     vcad_eval,
     vcad_place,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

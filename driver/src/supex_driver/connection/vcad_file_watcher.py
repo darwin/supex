@@ -47,7 +47,7 @@ class VCADFileWatcher:
             result = vcad_connection.watch_start(dir)
             self._watch_dir = dir
             logger.info(f"Started watching directory: {dir}")
-            return result
+            return dict(result)
 
     def stop(self, vcad_connection: Any) -> dict[str, Any]:
         """Stop watching.
@@ -62,7 +62,7 @@ class VCADFileWatcher:
             result = vcad_connection.watch_stop()
             self._watch_dir = None
             logger.info("Stopped watching")
-            return result
+            return dict(result)
 
     def poll(self, vcad_connection: Any) -> list[dict[str, Any]]:
         """Poll for changed files since last poll.
@@ -74,7 +74,7 @@ class VCADFileWatcher:
             List of change dicts with 'path' and 'kind'.
         """
         result = vcad_connection.watch_poll()
-        return result.get("changes", [])
+        return list(result.get("changes", []))
 
     def auto_start_if_needed(
         self, source_file: str, vcad_connection: Any

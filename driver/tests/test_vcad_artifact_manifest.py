@@ -20,8 +20,6 @@ import time
 import pytest
 
 from supex_driver.connection.vcad_artifact_manifest import (
-    MANIFEST_EXT,
-    PAIR_PENDING_EXT,
     TMP_SUFFIX,
     ArtifactManifest,
     ArtifactStore,
@@ -41,7 +39,6 @@ from supex_driver.connection.vcad_metrics import (
 from supex_driver.connection.vcad_schema import (
     validate_artifact_manifest,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -850,7 +847,6 @@ class TestDiagnosticsIntegration:
         """vcad_metrics includes last_artifact_manifest."""
         from supex_driver.connection.vcad_artifact_manifest import (
             _reset_artifact_store,
-            get_artifact_store,
         )
         from supex_driver.mcp.vcad_diagnostics import (
             vcad_metrics as vcad_metrics_tool,

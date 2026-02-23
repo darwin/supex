@@ -5,6 +5,9 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
+from supex_driver.connection.sketchup_exceptions import (
+    SketchUpConnectionError,
+)
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
     PROTOCOL_MISMATCH,
@@ -14,10 +17,6 @@ from supex_driver.connection.vcad_exceptions import (
     VCADRemoteError,
     VCADTimeoutError,
 )
-from supex_driver.connection.sketchup_exceptions import (
-    SketchUpConnectionError,
-    SketchUpRemoteError,
-)
 from supex_driver.mcp.vcad_tools import (
     vcad_eval,
     vcad_export,
@@ -26,7 +25,6 @@ from supex_driver.mcp.vcad_tools import (
     vcad_place,
     vcad_update,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -537,7 +535,6 @@ class TestVCADToolsRegistration:
 
     def test_tools_registered_on_server(self):
         """vcad tools are registered via side-effect import in server.py."""
-        from supex_driver.mcp.mcp_server import mcp
 
         # After importing server.py, vcad_tools should be loaded
         # We can verify by checking the module is accessible

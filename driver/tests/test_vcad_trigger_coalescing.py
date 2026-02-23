@@ -17,7 +17,6 @@ import time
 import pytest
 
 from supex_driver.connection.vcad_metrics import (
-    VCADMetrics,
     _reset_vcad_metrics,
     get_vcad_metrics,
 )
@@ -26,7 +25,6 @@ from supex_driver.connection.vcad_observer import (
     _reset_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_state import TriggerCoalescer
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

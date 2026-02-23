@@ -13,14 +13,12 @@ import pytest
 from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 from supex_driver.connection.vcad_file_watcher import (
     VCADFileWatcher,
-    get_vcad_file_watcher,
     _reset_vcad_file_watcher,
 )
 from supex_driver.connection.vcad_state import (
     RevisionTracker,
     VCADPersistentState,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -334,8 +332,8 @@ class TestVCADPlaceModuleTracking:
     def test_vcad_place_passes_node_id(self, tmp_path):
         """vcad_place passes node_id to eval_with_imports for module tracking."""
         from supex_driver.mcp.vcad_tools import (
-            vcad_place,
             _reset_vcad_dag,
+            vcad_place,
         )
 
         _reset_vcad_dag()
@@ -449,13 +447,13 @@ class TestVCADUpdateModuleTracking:
     def test_vcad_update_passes_node_id(self, tmp_path):
         """vcad_update passes node_id to eval_with_imports."""
         from supex_driver.mcp.vcad_tools import (
-            vcad_update,
             _reset_vcad_dag,
             get_vcad_dag,
+            vcad_update,
         )
 
         _reset_vcad_dag()
-        dag = get_vcad_dag()
+        get_vcad_dag()
 
         source_file = str(tmp_path / "bracket.cmp.oo")
         with open(source_file, "w") as f:

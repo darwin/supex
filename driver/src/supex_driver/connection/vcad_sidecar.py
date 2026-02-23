@@ -146,7 +146,7 @@ class VCADSidecar:
             time.sleep(0.1)
 
             if self.process.poll() is not None:
-                stdout = self.process.stdout.read() if self.process.stdout else b""
+                _stdout = self.process.stdout.read() if self.process.stdout else b""
                 stderr = self.process.stderr.read() if self.process.stderr else b""
                 logger.error(
                     f"Sidecar exited immediately (code={self.process.returncode}). "

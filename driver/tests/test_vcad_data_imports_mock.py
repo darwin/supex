@@ -4,15 +4,12 @@ Tests the extract_imports and eval_with_imports JSON-RPC methods
 over real TCP connections to MockVCADSidecar.
 """
 
-import json
-import os
 
 import pytest
 
 from supex_driver.connection.vcad_connection import VCADConnection
 from supex_driver.connection.vcad_exceptions import VCADRemoteError
 from tests.helpers.mock_vcad_sidecar import MockVCADSidecar
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
