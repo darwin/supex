@@ -296,7 +296,7 @@ cd driver && uv run pytest tests/
 **Network Security**:
 - Localhost-only binding by default (no external network exposure)
 - Optional authentication via `SUPEX_AUTH_TOKEN` (SketchUp bridge)
-- VCAD sidecar requires `VCAD_AUTH_TOKEN` for non-loopback binds (`VCAD_ALLOW_REMOTE=1`)
+- VCAD sidecar requires `SUPEX_VCAD_AUTH_TOKEN` for non-loopback binds (`SUPEX_VCAD_ALLOW_REMOTE=1`)
 - JSON-RPC 2.0 with structured message validation
 
 **Code Execution**:

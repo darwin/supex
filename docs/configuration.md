@@ -52,31 +52,31 @@ Workspace defaults differ by entrypoint script:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VCAD_HOST` | `localhost` | VCAD sidecar host used by driver |
-| `VCAD_PORT` | `9877` | VCAD sidecar port used by driver |
-| `VCAD_TIMEOUT` | `30.0` | Driver-side VCAD timeout (seconds) |
-| `VCAD_RETRIES` | `2` | Driver-side VCAD reconnect attempts |
-| `VCAD_IDLE_TIMEOUT` | `300` | VCAD reconnect after idle seconds |
-| `VCAD_MAX_RESPONSE` | `10485760` | Max VCAD response payload bytes |
-| `VCAD_SIDECAR_PATH` | auto-detected | Sidecar binary path override |
+| `SUPEX_VCAD_HOST` | `localhost` | VCAD sidecar host used by driver |
+| `SUPEX_VCAD_PORT` | `9877` | VCAD sidecar port used by driver |
+| `SUPEX_VCAD_TIMEOUT` | `30.0` | Driver-side VCAD timeout (seconds) |
+| `SUPEX_VCAD_RETRIES` | `2` | Driver-side VCAD reconnect attempts |
+| `SUPEX_VCAD_IDLE_TIMEOUT` | `300` | VCAD reconnect after idle seconds |
+| `SUPEX_VCAD_MAX_RESPONSE` | `10485760` | Max VCAD response payload bytes |
+| `SUPEX_VCAD_SIDECAR_PATH` | auto-detected | Sidecar binary path override |
 
 ## VCAD Sidecar Runtime
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VCAD_HOST` | `127.0.0.1` | Sidecar bind host |
-| `VCAD_PORT` | `9877` | Sidecar bind port |
-| `VCAD_ALLOW_REMOTE` | `0` | Allow non-loopback bind (requires auth token) |
-| `VCAD_AUTH_TOKEN` | (unset) | Required for remote bind/authenticated usage |
-| `VCAD_TEMP_DIR` | `$SUPEX_WORKSPACE/.tmp/vcad-sidecar` | Artifact directory |
-| `VCAD_TEMP_TTL_SEC` | `3600` | Artifact TTL (seconds) |
-| `VCAD_TEMP_MAX_FILES` | `500` | Max retained artifacts |
-| `VCAD_MAX_QUEUE` | `64` | Eval queue capacity |
-| `VCAD_EVAL_TIMEOUT_MS` | `120000` | Eval timeout per request |
-| `VCAD_ADT_CACHE_MAX` | `256` | ADT cache capacity |
-| `VCAD_STATE_PATH` | `<workspace>/.supex/vcad-state.json` | Driver state persistence path |
+| `SUPEX_VCAD_HOST` | `127.0.0.1` | Sidecar bind host |
+| `SUPEX_VCAD_PORT` | `9877` | Sidecar bind port |
+| `SUPEX_VCAD_ALLOW_REMOTE` | `0` | Allow non-loopback bind (requires auth token) |
+| `SUPEX_VCAD_AUTH_TOKEN` | (unset) | Required for remote bind/authenticated usage |
+| `SUPEX_VCAD_TEMP_DIR` | `$SUPEX_WORKSPACE/.tmp/vcad-sidecar` | Artifact directory |
+| `SUPEX_VCAD_TEMP_TTL_SEC` | `3600` | Artifact TTL (seconds) |
+| `SUPEX_VCAD_TEMP_MAX_FILES` | `500` | Max retained artifacts |
+| `SUPEX_VCAD_MAX_QUEUE` | `64` | Eval queue capacity |
+| `SUPEX_VCAD_EVAL_TIMEOUT_MS` | `120000` | Eval timeout per request |
+| `SUPEX_VCAD_ADT_CACHE_MAX` | `256` | ADT cache capacity |
+| `SUPEX_VCAD_STATE_PATH` | `<workspace>/.supex/vcad-state.json` | Driver state persistence path |
 
-If neither `VCAD_TEMP_DIR` nor `SUPEX_WORKSPACE` is set, sidecar startup fails.
+If neither `SUPEX_VCAD_TEMP_DIR` nor `SUPEX_WORKSPACE` is set, sidecar startup fails.
 
 ## Log Files
 

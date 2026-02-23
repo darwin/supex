@@ -1032,7 +1032,7 @@ class TestVCADConnectionSidecarLifecycle:
         assert sidecar.sidecar_path == "/custom/path/binary"
 
     def test_init_from_env(self) -> None:
-        with patch.dict(os.environ, {"VCAD_SIDECAR_PATH": "/env/path/binary"}):
+        with patch.dict(os.environ, {"SUPEX_VCAD_SIDECAR_PATH": "/env/path/binary"}):
             sidecar = VCADSidecar()
             assert sidecar.sidecar_path == "/env/path/binary"
 

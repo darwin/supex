@@ -18,9 +18,9 @@ from typing import Any, Callable
 logger = logging.getLogger("supex.vcad.state")
 
 # Environment variable defaults
-VCAD_STATE_PATH_ENV = "VCAD_STATE_PATH"
-VCAD_MAX_QUEUE = int(os.environ.get("VCAD_MAX_QUEUE", "64"))
-VCAD_TRIGGER_COALESCE_MS = float(os.environ.get("VCAD_TRIGGER_COALESCE_MS", "150"))
+VCAD_STATE_PATH_ENV = "SUPEX_VCAD_STATE_PATH"
+VCAD_MAX_QUEUE = int(os.environ.get("SUPEX_VCAD_MAX_QUEUE", "64"))
+VCAD_TRIGGER_COALESCE_MS = float(os.environ.get("SUPEX_VCAD_TRIGGER_COALESCE_MS", "150"))
 
 
 @dataclass

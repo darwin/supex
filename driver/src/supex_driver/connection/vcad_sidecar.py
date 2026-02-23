@@ -42,7 +42,7 @@ class VCADSidecar:
     """
 
     def __init__(self, sidecar_path: str | None = None):
-        self.sidecar_path = sidecar_path or os.environ.get("VCAD_SIDECAR_PATH")
+        self.sidecar_path = sidecar_path or os.environ.get("SUPEX_VCAD_SIDECAR_PATH")
         self.process: subprocess.Popen | None = None
         self._lock = threading.Lock()
 
@@ -99,7 +99,7 @@ class VCADSidecar:
         if not self.sidecar_path:
             logger.warning(
                 "VCAD sidecar path not configured. "
-                "Set VCAD_SIDECAR_PATH or build the sidecar binary."
+                "Set SUPEX_VCAD_SIDECAR_PATH or build the sidecar binary."
             )
             return
 
@@ -112,28 +112,28 @@ class VCADSidecar:
         env = os.environ.copy()
         # Pass through VCAD-related env vars
         for key in (
-            "VCAD_HOST",
-            "VCAD_PORT",
-            "VCAD_MAX_QUEUE",
-            "VCAD_EVAL_TIMEOUT_MS",
-            "VCAD_ADT_CACHE_MAX",
-            "VCAD_ALLOW_REMOTE",
-            "VCAD_TEMP_TTL_SEC",
-            "VCAD_TEMP_MAX_FILES",
-            "VCAD_AUTH_TOKEN",
-            "VCAD_TEMP_DIR",
+            "SUPEX_VCAD_HOST",
+            "SUPEX_VCAD_PORT",
+            "SUPEX_VCAD_MAX_QUEUE",
+            "SUPEX_VCAD_EVAL_TIMEOUT_MS",
+            "SUPEX_VCAD_ADT_CACHE_MAX",
+            "SUPEX_VCAD_ALLOW_REMOTE",
+            "SUPEX_VCAD_TEMP_TTL_SEC",
+            "SUPEX_VCAD_TEMP_MAX_FILES",
+            "SUPEX_VCAD_AUTH_TOKEN",
+            "SUPEX_VCAD_TEMP_DIR",
         ):
             if key in os.environ:
                 env[key] = os.environ[key]
 
-        # Default VCAD_TEMP_DIR to workspace .tmp/vcad-sidecar/ so mesh files
+        # Default SUPEX_VCAD_TEMP_DIR to workspace .tmp/vcad-sidecar/ so mesh files
         # are within SketchUp PathPolicy allowed roots
-        if "VCAD_TEMP_DIR" not in env:
+        if "SUPEX_VCAD_TEMP_DIR" not in env:
             workspace = os.environ.get("SUPEX_WORKSPACE")
             if workspace:
                 temp_dir = os.path.join(workspace, ".tmp", "vcad-sidecar")
                 os.makedirs(temp_dir, exist_ok=True)
-                env["VCAD_TEMP_DIR"] = temp_dir
+                env["SUPEX_VCAD_TEMP_DIR"] = temp_dir
 
         try:
             self.process = subprocess.Popen(

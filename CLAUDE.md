@@ -142,7 +142,7 @@ After any code change that affects the sidecar:
    `$WORKSPACE` is the user's project directory (e.g. an `example-*` project).
 3. **Verify** with `check_sketchup_status` or `vcad_place`.
 
-Temp directory is resolved as: `VCAD_TEMP_DIR` (explicit) > `SUPEX_WORKSPACE/.tmp/vcad-sidecar` (derived). If neither env var is set, the sidecar panics at startup.
+Temp directory is resolved as: `SUPEX_VCAD_TEMP_DIR` (explicit) > `SUPEX_WORKSPACE/.tmp/vcad-sidecar` (derived). If neither env var is set, the sidecar panics at startup.
 
 ## Agent Prompts Convention
 

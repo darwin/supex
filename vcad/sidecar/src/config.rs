@@ -16,56 +16,56 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Self {
         Self {
-            host: std::env::var("VCAD_HOST").unwrap_or_else(|_| "127.0.0.1".into()),
-            port: std::env::var("VCAD_PORT")
+            host: std::env::var("SUPEX_VCAD_HOST").unwrap_or_else(|_| "127.0.0.1".into()),
+            port: std::env::var("SUPEX_VCAD_PORT")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(9877),
             temp_dir: Self::resolve_temp_dir(),
-            temp_ttl_sec: std::env::var("VCAD_TEMP_TTL_SEC")
+            temp_ttl_sec: std::env::var("SUPEX_VCAD_TEMP_TTL_SEC")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(3600),
-            temp_max_files: std::env::var("VCAD_TEMP_MAX_FILES")
+            temp_max_files: std::env::var("SUPEX_VCAD_TEMP_MAX_FILES")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .filter(|v: &usize| *v > 0)
                 .unwrap_or(500),
-            max_queue: std::env::var("VCAD_MAX_QUEUE")
+            max_queue: std::env::var("SUPEX_VCAD_MAX_QUEUE")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(64),
-            eval_timeout_ms: std::env::var("VCAD_EVAL_TIMEOUT_MS")
+            eval_timeout_ms: std::env::var("SUPEX_VCAD_EVAL_TIMEOUT_MS")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(120_000),
-            adt_cache_max: std::env::var("VCAD_ADT_CACHE_MAX")
+            adt_cache_max: std::env::var("SUPEX_VCAD_ADT_CACHE_MAX")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .filter(|v: &usize| *v > 0)
                 .unwrap_or(256),
-            allow_remote: std::env::var("VCAD_ALLOW_REMOTE")
+            allow_remote: std::env::var("SUPEX_VCAD_ALLOW_REMOTE")
                 .ok()
                 .map(|s| s == "1")
                 .unwrap_or(false),
-            auth_token: std::env::var("VCAD_AUTH_TOKEN").ok(),
+            auth_token: std::env::var("SUPEX_VCAD_AUTH_TOKEN").ok(),
         }
     }
 
-    /// Resolve temp directory: VCAD_TEMP_DIR > SUPEX_WORKSPACE/.tmp/vcad-sidecar.
+    /// Resolve temp directory: SUPEX_VCAD_TEMP_DIR > SUPEX_WORKSPACE/.tmp/vcad-sidecar.
     ///
     /// Panics if neither variable is set — silent fallback to system temp caused
     /// PATH_NOT_ALLOWED errors because SketchUp's path policy rejects imports
     /// from outside the workspace.
     fn resolve_temp_dir() -> PathBuf {
-        if let Ok(dir) = std::env::var("VCAD_TEMP_DIR") {
+        if let Ok(dir) = std::env::var("SUPEX_VCAD_TEMP_DIR") {
             return PathBuf::from(dir);
         }
         if let Ok(ws) = std::env::var("SUPEX_WORKSPACE") {
             return PathBuf::from(ws).join(".tmp").join("vcad-sidecar");
         }
         panic!(
-            "VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set. \
+            "SUPEX_VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set. \
              Without a workspace-relative temp directory, SketchUp will reject imported files."
         );
     }
@@ -88,16 +88,16 @@ mod tests {
     fn test_defaults() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // Clear env vars that might interfere
-        std::env::remove_var("VCAD_HOST");
-        std::env::remove_var("VCAD_PORT");
-        std::env::remove_var("VCAD_TEMP_DIR");
-        std::env::remove_var("VCAD_MAX_QUEUE");
-        std::env::remove_var("VCAD_EVAL_TIMEOUT_MS");
-        std::env::remove_var("VCAD_ADT_CACHE_MAX");
-        std::env::remove_var("VCAD_ALLOW_REMOTE");
-        std::env::remove_var("VCAD_AUTH_TOKEN");
-        std::env::remove_var("VCAD_TEMP_TTL_SEC");
-        std::env::remove_var("VCAD_TEMP_MAX_FILES");
+        std::env::remove_var("SUPEX_VCAD_HOST");
+        std::env::remove_var("SUPEX_VCAD_PORT");
+        std::env::remove_var("SUPEX_VCAD_TEMP_DIR");
+        std::env::remove_var("SUPEX_VCAD_MAX_QUEUE");
+        std::env::remove_var("SUPEX_VCAD_EVAL_TIMEOUT_MS");
+        std::env::remove_var("SUPEX_VCAD_ADT_CACHE_MAX");
+        std::env::remove_var("SUPEX_VCAD_ALLOW_REMOTE");
+        std::env::remove_var("SUPEX_VCAD_AUTH_TOKEN");
+        std::env::remove_var("SUPEX_VCAD_TEMP_TTL_SEC");
+        std::env::remove_var("SUPEX_VCAD_TEMP_MAX_FILES");
 
         // resolve_temp_dir requires at least SUPEX_WORKSPACE
         let tmp = tempfile::tempdir().unwrap();
@@ -121,10 +121,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set")]
+    #[should_panic(expected = "SUPEX_VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set")]
     fn test_temp_dir_panics_without_env() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        std::env::remove_var("VCAD_TEMP_DIR");
+        std::env::remove_var("SUPEX_VCAD_TEMP_DIR");
         std::env::remove_var("SUPEX_WORKSPACE");
         Config::resolve_temp_dir();
     }
@@ -134,13 +134,13 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let ws = tempfile::tempdir().unwrap();
-        std::env::set_var("VCAD_TEMP_DIR", tmp.path());
+        std::env::set_var("SUPEX_VCAD_TEMP_DIR", tmp.path());
         std::env::set_var("SUPEX_WORKSPACE", ws.path());
 
         let dir = Config::resolve_temp_dir();
         assert_eq!(dir, tmp.path());
 
-        std::env::remove_var("VCAD_TEMP_DIR");
+        std::env::remove_var("SUPEX_VCAD_TEMP_DIR");
         std::env::remove_var("SUPEX_WORKSPACE");
     }
 

@@ -549,11 +549,11 @@ The sidecar enforces workspace path containment. Ensure:
 
 ### AUTH_INVALID errors
 
-Token mismatch between driver and sidecar. Ensure `VCAD_AUTH_TOKEN` is set consistently in both environments.
+Token mismatch between driver and sidecar. Ensure `SUPEX_VCAD_AUTH_TOKEN` is set consistently in both environments.
 
 ### Non-loopback bind fails on startup
 
-The sidecar requires both `VCAD_ALLOW_REMOTE=1` and `VCAD_AUTH_TOKEN` to bind to non-loopback addresses. This is a security measure to prevent unauthenticated remote access.
+The sidecar requires both `SUPEX_VCAD_ALLOW_REMOTE=1` and `SUPEX_VCAD_AUTH_TOKEN` to bind to non-loopback addresses. This is a security measure to prevent unauthenticated remote access.
 
 ### DAE import fails in SketchUp
 

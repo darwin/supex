@@ -24,13 +24,13 @@ from supex_driver.connection.vcad_exceptions import (
 logger = logging.getLogger("supex.vcad.connection")
 
 # Configuration with environment variable support
-VCAD_HOST = os.environ.get("VCAD_HOST", "localhost")
-VCAD_PORT = int(os.environ.get("VCAD_PORT", "9877"))
-VCAD_TIMEOUT = float(os.environ.get("VCAD_TIMEOUT", "30.0"))
-VCAD_MAX_RETRIES = int(os.environ.get("VCAD_RETRIES", "2"))
-VCAD_MAX_RESPONSE_BYTES = int(os.environ.get("VCAD_MAX_RESPONSE", "10485760"))  # 10 MB
-VCAD_MAX_IDLE_TIME = float(os.environ.get("VCAD_IDLE_TIMEOUT", "300"))  # 5 min
-VCAD_AUTH_TOKEN = os.environ.get("VCAD_AUTH_TOKEN")
+VCAD_HOST = os.environ.get("SUPEX_VCAD_HOST", "localhost")
+VCAD_PORT = int(os.environ.get("SUPEX_VCAD_PORT", "9877"))
+VCAD_TIMEOUT = float(os.environ.get("SUPEX_VCAD_TIMEOUT", "30.0"))
+VCAD_MAX_RETRIES = int(os.environ.get("SUPEX_VCAD_RETRIES", "2"))
+VCAD_MAX_RESPONSE_BYTES = int(os.environ.get("SUPEX_VCAD_MAX_RESPONSE", "10485760"))  # 10 MB
+VCAD_MAX_IDLE_TIME = float(os.environ.get("SUPEX_VCAD_IDLE_TIMEOUT", "300"))  # 5 min
+VCAD_AUTH_TOKEN = os.environ.get("SUPEX_VCAD_AUTH_TOKEN")
 
 # Protocol version (major.minor)
 PROTOCOL_VERSION = "1.0"

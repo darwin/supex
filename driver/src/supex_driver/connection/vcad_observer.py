@@ -16,8 +16,8 @@ from supex_driver.connection.vcad_state import TriggerCoalescer
 logger = logging.getLogger("supex.vcad.observer")
 
 # Environment variable defaults
-VCAD_OBSERVER_POLL_MS = float(os.environ.get("VCAD_OBSERVER_POLL_MS", "250"))
-VCAD_TRIGGER_COALESCE_MS = float(os.environ.get("VCAD_TRIGGER_COALESCE_MS", "150"))
+VCAD_OBSERVER_POLL_MS = float(os.environ.get("SUPEX_VCAD_OBSERVER_POLL_MS", "250"))
+VCAD_TRIGGER_COALESCE_MS = float(os.environ.get("SUPEX_VCAD_TRIGGER_COALESCE_MS", "150"))
 
 
 class VCADObserverPoller:

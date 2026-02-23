@@ -24,7 +24,7 @@ logger = logging.getLogger("supex.vcad.viewer_relay")
 
 # Configuration
 VIEWER_RELAY_HOST = "127.0.0.1"
-VIEWER_RELAY_PORT = int(os.environ.get("VCAD_VIEWER_RELAY_PORT", "9878"))
+VIEWER_RELAY_PORT = int(os.environ.get("SUPEX_VCAD_VIEWER_RELAY_PORT", "9878"))
 
 # Protocol
 RELAY_PROTOCOL_VERSION = "1.0"

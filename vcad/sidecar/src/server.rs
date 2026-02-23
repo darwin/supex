@@ -95,14 +95,14 @@ impl ConnectionContext {
 
 /// Start the TCP JSON-RPC server. Blocks until shutdown.
 pub fn run(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    // Security: reject non-loopback bind without VCAD_ALLOW_REMOTE + VCAD_AUTH_TOKEN
+    // Security: reject non-loopback bind without SUPEX_VCAD_ALLOW_REMOTE + SUPEX_VCAD_AUTH_TOKEN
     if !config.is_loopback() {
         if !config.allow_remote {
-            eprintln!("Error: non-loopback bind requires VCAD_ALLOW_REMOTE=1");
+            eprintln!("Error: non-loopback bind requires SUPEX_VCAD_ALLOW_REMOTE=1");
             std::process::exit(1);
         }
         if config.auth_token.is_none() {
-            eprintln!("Error: non-loopback bind requires VCAD_AUTH_TOKEN to be set");
+            eprintln!("Error: non-loopback bind requires SUPEX_VCAD_AUTH_TOKEN to be set");
             std::process::exit(1);
         }
     }
