@@ -333,15 +333,17 @@ class RadarApp(App):
             pass
 
     def action_cursor_down(self) -> None:
+        was_streaming = self._mode == "streaming"
         self._enter_browse_mode()
-        log_list = self.query_one("#log-list", LogListView)
-        log_list.action_cursor_down()
+        if not was_streaming:
+            self.query_one("#log-list", LogListView).action_cursor_down()
         self._update_detail_for_cursor()
 
     def action_cursor_up(self) -> None:
+        was_streaming = self._mode == "streaming"
         self._enter_browse_mode()
-        log_list = self.query_one("#log-list", LogListView)
-        log_list.action_cursor_up()
+        if not was_streaming:
+            self.query_one("#log-list", LogListView).action_cursor_up()
         self._update_detail_for_cursor()
 
     def action_scroll_top(self) -> None:
@@ -413,6 +415,7 @@ class RadarApp(App):
         self._mode = "browsing"
         log_list = self.query_one("#log-list", LogListView)
         log_list.focus()
+        log_list.cursor_type = "row"
         # Place cursor at the last row
         if self._visible_events:
             log_list.move_cursor(row=len(self._visible_events) - 1)
@@ -420,6 +423,7 @@ class RadarApp(App):
     def _exit_browse_mode(self) -> None:
         self._mode = "streaming"
         log_list = self.query_one("#log-list", LogListView)
+        log_list.cursor_type = "none"
         log_list.scroll_end(animate=False)
 
     def _center_cursor(self, log_list: LogListView) -> None:
