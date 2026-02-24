@@ -65,6 +65,8 @@ module SupexRuntime
         restore_camera_state(view, original_camera) if params['restore_camera'] != false
 
         build_response(results, output_dir)
+      rescue PathPolicy::PathAccessDenied => e
+        { success: false, error: e.message, error_code: 'PATH_NOT_ALLOWED' }
       rescue StandardError => e
         { success: false, error: e.message, backtrace: e.backtrace.first(5) }
       end
@@ -129,9 +131,14 @@ module SupexRuntime
           # Apply camera for this shot
           apply_camera(view, model, camera_spec)
 
-          # Generate filename
+          # Generate filename and verify it stays within output_dir
           filename = "#{base_name}_#{shot_name}.png"
           filepath = File.join(output_dir, filename)
+          canonical = File.expand_path(filepath)
+          unless canonical.start_with?(output_dir + File::SEPARATOR) || canonical == output_dir
+            raise PathPolicy::PathAccessDenied,
+                  "Path access denied for batch_screenshot: shot path escapes output directory"
+          end
 
           # Take screenshot (offscreen render due to explicit dimensions)
           write_screenshot(view, filepath, width, height, defaults[:transparent])
@@ -385,13 +392,16 @@ module SupexRuntime
         view.write_image(options)
       end
 
-      # Prepare output directory
+      # Prepare and validate output directory
       # @param output_dir [String, nil] requested output directory
       # @param workspace [String, nil] workspace path for default directory
       # @return [String] resolved output directory path
+      # @raise [PathPolicy::PathAccessDenied] if output_dir is outside allowed roots
       def prepare_output_dir(output_dir, workspace)
         dir = if output_dir
-                File.expand_path(output_dir)
+                resolved = File.expand_path(output_dir)
+                PathPolicy.validate!(resolved, operation: 'batch_screenshot', workspace: workspace)
+                resolved
               else
                 timestamp = Time.now.strftime('%Y%m%d-%H%M%S')
                 File.join(PathPolicy.default_tmp_dir(workspace), 'batch_screenshots', timestamp)

@@ -16,9 +16,14 @@ class TestBatchScreenshot < Minitest::Test
     # Create temp directory for test outputs
     @test_output_dir = File.join(Dir.tmpdir, 'supex_test_screenshots')
     FileUtils.mkdir_p(@test_output_dir)
+
+    # Allow all paths by default (path policy tests override this)
+    @original_allowed_roots = SupexRuntime::PathPolicy::ALLOWED_ROOTS.dup
+    set_path_policy_constant(:ALLOWED_ROOTS, ['*'])
   end
 
   def teardown
+    set_path_policy_constant(:ALLOWED_ROOTS, @original_allowed_roots)
     FileUtils.rm_rf(@test_output_dir) if @test_output_dir && File.exist?(@test_output_dir)
     Sketchup.reset_mocks
   end
@@ -402,6 +407,64 @@ class TestBatchScreenshot < Minitest::Test
   end
 
   # ==========================================================================
+  # Path Policy Enforcement Tests
+  # ==========================================================================
+
+  def test_output_dir_outside_workspace_returns_path_not_allowed
+    # Set up restricted roots (no wildcard)
+    original_roots = SupexRuntime::PathPolicy::ALLOWED_ROOTS.dup
+    set_path_policy_constant(:ALLOWED_ROOTS, [])
+
+    params = {
+      'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' } }],
+      'output_dir' => '/etc/evil_screenshots'
+    }
+
+    result = SupexRuntime::BatchScreenshot.execute(params, workspace: @test_output_dir)
+
+    assert_equal false, result[:success]
+    assert_equal 'PATH_NOT_ALLOWED', result[:error_code]
+    assert_includes result[:error], '/etc/evil_screenshots'
+  ensure
+    set_path_policy_constant(:ALLOWED_ROOTS, original_roots)
+  end
+
+  def test_output_dir_inside_workspace_is_allowed
+    original_roots = SupexRuntime::PathPolicy::ALLOWED_ROOTS.dup
+    set_path_policy_constant(:ALLOWED_ROOTS, [])
+
+    subdir = File.join(@test_output_dir, 'batch_output')
+    params = {
+      'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'ok' }],
+      'output_dir' => subdir,
+      'base_name' => 'allowed'
+    }
+
+    result = SupexRuntime::BatchScreenshot.execute(params, workspace: @test_output_dir)
+
+    assert_equal true, result[:success]
+    assert_equal 1, result[:successful]
+  ensure
+    set_path_policy_constant(:ALLOWED_ROOTS, original_roots)
+  end
+
+  def test_shot_name_traversal_is_blocked
+    # Use a/../../escape — the 'a' creates a real path component for .. to traverse
+    params = {
+      'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'a/../../escape' }],
+      'output_dir' => @test_output_dir,
+      'base_name' => 'safe'
+    }
+
+    result = SupexRuntime::BatchScreenshot.execute(params)
+
+    # The traversal shot should fail, but batch continues
+    assert_equal 1, result[:total_shots]
+    assert_equal 1, result[:failed]
+    assert_includes result[:results][0][:error], 'escapes output directory'
+  end
+
+  # ==========================================================================
   # Error Handling Tests
   # ==========================================================================
 
@@ -536,5 +599,12 @@ class TestBatchScreenshot < Minitest::Test
     # Verify state was restored after batch
     assert_nil @mock_model.active_path
     assert_equal false, @mock_model.rendering_options['InactiveHidden']
+  end
+
+  private
+
+  def set_path_policy_constant(name, value)
+    SupexRuntime::PathPolicy.send(:remove_const, name) if SupexRuntime::PathPolicy.const_defined?(name)
+    SupexRuntime::PathPolicy.const_set(name, value)
   end
 end

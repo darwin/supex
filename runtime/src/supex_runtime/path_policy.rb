@@ -36,13 +36,13 @@ module SupexRuntime
         roots.any? { |root| path_within?(resolved_path, root) }
       end
 
-      # Get list of allowed roots
+      # Get list of allowed roots (canonicalized to match resolve_path output)
       # @param workspace [String, nil] optional workspace to include
       # @return [Array<String>]
       def allowed_roots(workspace: nil)
         roots = ALLOWED_ROOTS.dup
         roots << workspace if workspace && !workspace.empty?
-        roots.map { |r| File.expand_path(r) }.uniq
+        roots.map { |r| resolve_path(r) }.uniq
       end
 
       # Get default .tmp directory for a workspace
@@ -64,7 +64,34 @@ module SupexRuntime
       def resolve_path(path)
         expanded = File.expand_path(path)
         # Use realpath if file exists (resolves symlinks)
-        File.exist?(expanded) ? File.realpath(expanded) : expanded
+        return File.realpath(expanded) if File.exist?(expanded)
+
+        # For non-existing files (write targets): resolve symlinks in the
+        # nearest existing ancestor to prevent symlinked parent escape.
+        canonical_parent = resolve_nearest_ancestor(expanded)
+        remaining = expanded.sub(%r{^#{Regexp.escape(find_nearest_ancestor(expanded))}}, '')
+        File.join(canonical_parent, remaining)
+      end
+
+      # Walk up from path until we find an existing ancestor directory.
+      # Returns the expanded (non-canonical) path of that ancestor.
+      # @raise [PathAccessDenied] if no ancestor exists (e.g. broken root)
+      def find_nearest_ancestor(path)
+        current = File.dirname(path)
+        while current != '/'
+          return current if File.exist?(current)
+          current = File.dirname(current)
+        end
+        '/' # root always exists
+      end
+
+      # Canonicalize the nearest existing ancestor of a path.
+      # @raise [PathAccessDenied] if ancestor is a broken symlink
+      def resolve_nearest_ancestor(path)
+        ancestor = find_nearest_ancestor(path)
+        File.realpath(ancestor)
+      rescue Errno::ENOENT
+        raise PathAccessDenied, "Path denied: broken symlink in parent of #{path}"
       end
 
       def path_within?(path, root)

@@ -115,31 +115,41 @@ class TestPathPolicy < Minitest::Test
   # ==========================================================================
 
   def test_allowed_roots_returns_configured_roots
-    set_constant(:ALLOWED_ROOTS, ['/tmp/root1', '/tmp/root2'])
+    Dir.mktmpdir('root1') do |root1|
+      Dir.mktmpdir('root2') do |root2|
+        set_constant(:ALLOWED_ROOTS, [root1, root2])
 
-    roots = SupexRuntime::PathPolicy.allowed_roots
+        roots = SupexRuntime::PathPolicy.allowed_roots
 
-    assert_includes roots, '/tmp/root1'
-    assert_includes roots, '/tmp/root2'
+        # Roots are canonicalized (symlinks resolved)
+        assert_includes roots, File.realpath(root1)
+        assert_includes roots, File.realpath(root2)
+      end
+    end
   end
 
   def test_allowed_roots_includes_workspace_when_provided
-    set_constant(:ALLOWED_ROOTS, ['/tmp/allowed'])
-    workspace = '/tmp/my_workspace'
+    Dir.mktmpdir('allowed') do |allowed_dir|
+      Dir.mktmpdir('workspace') do |workspace_dir|
+        set_constant(:ALLOWED_ROOTS, [allowed_dir])
 
-    roots = SupexRuntime::PathPolicy.allowed_roots(workspace: workspace)
+        roots = SupexRuntime::PathPolicy.allowed_roots(workspace: workspace_dir)
 
-    assert_includes roots, '/tmp/allowed'
-    assert_includes roots, workspace
+        assert_includes roots, File.realpath(allowed_dir)
+        assert_includes roots, File.realpath(workspace_dir)
+      end
+    end
   end
 
   def test_allowed_roots_ignores_empty_workspace
-    set_constant(:ALLOWED_ROOTS, ['/tmp/allowed'])
+    Dir.mktmpdir('allowed') do |allowed_dir|
+      set_constant(:ALLOWED_ROOTS, [allowed_dir])
 
-    roots = SupexRuntime::PathPolicy.allowed_roots(workspace: '')
+      roots = SupexRuntime::PathPolicy.allowed_roots(workspace: '')
 
-    assert_includes roots, '/tmp/allowed'
-    assert_equal 1, roots.length
+      assert_includes roots, File.realpath(allowed_dir)
+      assert_equal 1, roots.length
+    end
   end
 
   # ==========================================================================
@@ -173,6 +183,79 @@ class TestPathPolicy < Minitest::Test
 
     assert result.start_with?('/')
     assert result.end_with?('/.tmp')
+  end
+
+  # ==========================================================================
+  # Symlink hardening tests
+  # ==========================================================================
+
+  def test_symlinked_parent_escapes_are_blocked
+    set_constant(:ALLOWED_ROOTS, [])
+
+    # Create a real directory and a symlink pointing outside allowed roots
+    Dir.mktmpdir('allowed') do |allowed_dir|
+      Dir.mktmpdir('outside') do |outside_dir|
+        symlink_path = File.join(allowed_dir, 'escape_link')
+        File.symlink(outside_dir, symlink_path)
+
+        # Workspace is the allowed dir
+        # Writing to escape_link/file.txt should resolve through the symlink
+        # to outside_dir/file.txt which is NOT within allowed_dir
+        assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
+          SupexRuntime::PathPolicy.validate!(
+            File.join(symlink_path, 'file.txt'),
+            operation: 'write_test',
+            workspace: allowed_dir
+          )
+        end
+      end
+    end
+  end
+
+  def test_symlinked_parent_within_allowed_root_works
+    set_constant(:ALLOWED_ROOTS, [])
+
+    Dir.mktmpdir('workspace') do |workspace_dir|
+      # Create a subdirectory and a symlink pointing to it (within workspace)
+      real_subdir = File.join(workspace_dir, 'real_sub')
+      FileUtils.mkdir_p(real_subdir)
+      link_path = File.join(workspace_dir, 'link_sub')
+      File.symlink(real_subdir, link_path)
+
+      # Writing via symlink that stays within workspace should be allowed
+      SupexRuntime::PathPolicy.validate!(
+        File.join(link_path, 'file.txt'),
+        operation: 'write_test',
+        workspace: workspace_dir
+      )
+    end
+  end
+
+  def test_nonexistent_file_in_real_directory_is_allowed
+    set_constant(:ALLOWED_ROOTS, [])
+
+    Dir.mktmpdir('workspace') do |workspace_dir|
+      # Non-existing file inside workspace (no symlinks involved)
+      SupexRuntime::PathPolicy.validate!(
+        File.join(workspace_dir, 'new_file.txt'),
+        operation: 'write_test',
+        workspace: workspace_dir
+      )
+    end
+  end
+
+  def test_nonexistent_nested_path_resolves_through_ancestor
+    set_constant(:ALLOWED_ROOTS, [])
+
+    Dir.mktmpdir('workspace') do |workspace_dir|
+      # Deep non-existing path: workspace/a/b/c/file.txt
+      # Only workspace exists, but path should resolve correctly
+      SupexRuntime::PathPolicy.validate!(
+        File.join(workspace_dir, 'a', 'b', 'c', 'file.txt'),
+        operation: 'write_test',
+        workspace: workspace_dir
+      )
+    end
   end
 
   private
