@@ -450,12 +450,38 @@ class RadarApp(App):
         log_list.scroll_end(animate=False)
 
     def _center_cursor(self, log_list: LogListView) -> None:
-        """Scroll so the cursor row is in the middle of the 3 visible rows.
+        """Scroll so the cursor row is vertically centered in the visible rows."""
+        detail = self.query_one("#detail-panel", DetailPanel)
+        if not detail.has_class("visible"):
+            return
 
-        TODO: scroll centering works in tmux but not reliably outside it.
-        Needs investigation into Textual DataTable scroll coordinate system.
-        """
-        pass
+        row_count = log_list.row_count
+        if row_count <= 0:
+            return
+
+        # After toggling detail-open, one extra refresh may be needed for height=4.
+        if log_list.has_class("detail-open") and log_list.size.height > 4:
+            self.call_after_refresh(self._center_cursor, log_list)
+            return
+
+        header_rows = log_list.header_height if log_list.show_header else 0
+        visible_rows = log_list.size.height - header_rows
+        if visible_rows <= 0:
+            return
+
+        cursor_row = max(0, min(log_list.cursor_row, row_count - 1))
+        target_top = self._centered_scroll_top(cursor_row, row_count, visible_rows)
+        # Scroll immediately to avoid another deferred step and terminal timing variance.
+        log_list.scroll_to(y=target_top, animate=False, immediate=True, force=True)
+
+    @staticmethod
+    def _centered_scroll_top(cursor_row: int, row_count: int, visible_rows: int) -> int:
+        """Compute top visible row so ``cursor_row`` appears in the viewport middle."""
+        if row_count <= visible_rows:
+            return 0
+        middle = visible_rows // 2
+        max_top = row_count - visible_rows
+        return max(0, min(max_top, cursor_row - middle))
 
     def _update_detail_for_cursor(self) -> None:
         detail = self.query_one("#detail-panel", DetailPanel)
@@ -464,7 +490,9 @@ class RadarApp(App):
         log_list = self.query_one("#log-list", LogListView)
         event = log_list.get_event_at_cursor()
         detail.set_event(event)
-        self.call_after_refresh(self._center_cursor, log_list)
+        # Cursor movement should re-center in the same frame to avoid visible
+        # "jump then recenter" flicker in detail mode.
+        self._center_cursor(log_list)
 
     # ------------------------------------------------------------------
     # DataTable row selection (Enter handled by DataTable in browse mode)
