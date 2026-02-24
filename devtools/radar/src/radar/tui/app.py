@@ -13,6 +13,7 @@ from textual.widgets import Input
 
 from radar.buffer import ObservableBuffer
 from radar.models import FilterSpec, LogEvent
+from radar.tui.renderers import RendererReloader, RENDERERS
 from radar.tui.views import DetailPanel, FilterBar, LogListView, RadarStatusBar
 
 if TYPE_CHECKING:
@@ -101,6 +102,9 @@ class RadarApp(App):
         # All events that passed the filter (mirrors what the DataTable shows)
         self._visible_events: list[LogEvent] = []
 
+        # Hot-reload for renderer modules
+        self._renderer_reloader = RendererReloader(registry=RENDERERS)
+
     # ------------------------------------------------------------------
     # Layout
     # ------------------------------------------------------------------
@@ -117,8 +121,10 @@ class RadarApp(App):
 
     def on_mount(self) -> None:
         self._set_tmux_pane_title()
+        self._renderer_reloader.snapshot_mtimes()
         self.run_worker(self._run_pipeline(), exclusive=True, name="ingest")
         self.set_interval(0.1, self._poll_events)
+        self.set_interval(1.0, self._poll_renderer_reload)
 
     def _set_tmux_pane_title(self) -> None:
         if os.environ.get("TMUX") and self._pane_name:
@@ -167,6 +173,20 @@ class RadarApp(App):
         # Update detail panel if in browsing mode (cursor might point to newly visible row)
         if self._mode == "browsing":
             self._update_detail_for_cursor()
+
+    def _poll_renderer_reload(self) -> None:
+        results = self._renderer_reloader.check()
+        if not results:
+            return
+        # Log warnings for any failures
+        for r in results:
+            if not r.success:
+                self.notify(
+                    f"Renderer reload failed: {r.error}",
+                    title="renderer",
+                    severity="warning",
+                    timeout=5,
+                )
 
     def _update_status_bar(self, *, new_count: int) -> None:
         status = self.query_one("#status-bar", RadarStatusBar)
