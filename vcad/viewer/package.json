@@ -27,13 +27,18 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.172",
-    "@vitejs/plugin-react": "^4",
+    "@vitejs/plugin-react": "^5",
     "autoprefixer": "^10",
-    "happy-dom": "^17",
+    "happy-dom": "^20",
     "postcss": "^8",
     "tailwindcss": "^3",
     "typescript": "^5.7",
-    "vite": "^6",
-    "vitest": "^3"
+    "vite": "^7",
+    "vitest": "^4"
+  },
+  "overrides": {
+    "stats-gl": {
+      "three": "$three"
+    }
   }
 }
