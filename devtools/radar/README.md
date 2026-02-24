@@ -17,13 +17,30 @@ Single-host log aggregator for supex. Tails all subsystem logs, parses them into
 └─────────────────────────────────────────────────────────┘
 ```
 
+## Prerequisites
+
+Radar requires the `SUPEX_WORKSPACE` environment variable pointing to the project workspace root (where `.tmp/logs/` lives). Without it, radar refuses to start.
+
+```bash
+export SUPEX_WORKSPACE=/path/to/your/project
+```
+
+A convenient way to set this is via [direnv](https://direnv.net/) with an `.envrc` file in your workspace:
+
+```bash
+# .envrc
+export SUPEX_WORKSPACE="$PWD"
+```
+
+The `mcp` wrapper sets `SUPEX_WORKSPACE` automatically for the MCP server process, but radar runs independently and needs the variable in its shell environment.
+
 ## Quick start
 
 ```bash
-# From supex workspace root
+# Watch default supex log sources
 ./radar watch
 
-# Ad-hoc files
+# Ad-hoc files (ignores default sources)
 ./radar watch .tmp/logs/runtime-console.log .tmp/logs/mcp-protocol.jsonl
 
 # Plain stdout (for piping or agent consumption)
@@ -33,7 +50,7 @@ Single-host log aggregator for supex. Tails all subsystem logs, parses them into
 ./radar watch -l WARN -s mcp-protocol,cli-driver
 ```
 
-The `radar` wrapper at the repo root resolves the project path and runs `uv run --project devtools/radar radar "$@"`.
+The `radar` wrapper at the repo root resolves the supex project path and runs `uv run --project devtools/radar radar "$@"`.
 
 ## Commands
 

@@ -41,9 +41,11 @@ _LEVEL_NAMES = [lv.name for lv in Level]
 
 
 def _resolve_workspace() -> Path:
-    """Effective workspace root: $SUPEX_WORKSPACE or cwd."""
+    """Workspace root from $SUPEX_WORKSPACE (required)."""
     ws = os.environ.get("SUPEX_WORKSPACE")
-    return Path(ws) if ws else Path.cwd()
+    if not ws:
+        raise typer.Exit(code=1)
+    return Path(ws)
 
 
 def _expand_glob(pattern: str, root: Path) -> list[Path]:
@@ -327,7 +329,8 @@ def watch(
         typer.echo(f"[radar] config mode: {config}")
     else:
         mode = "default"
-        typer.echo("[radar] default mode: watching standard supex logs")
+        ws = _resolve_workspace()
+        typer.echo(f"[radar] default mode: watching standard supex logs in {ws}")
 
     initial_filter = _build_initial_filter(level, source)
 
