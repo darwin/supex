@@ -87,6 +87,7 @@ class VCADConnection:
     sock: socket.socket | None = field(default=None, repr=False)
     _identified: bool = field(default=False, repr=False)
     _last_activity: float = field(default=0.0, repr=False)
+    _rpc_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     # Protocol negotiation state
     _protocol_version: str | None = field(default=None, repr=False)
     _capabilities: list[str] = field(default_factory=list, repr=False)
@@ -366,27 +367,49 @@ class VCADConnection:
 
         while retry_count <= VCAD_MAX_RETRIES:
             try:
-                logger.debug(f"[req:{request_id}] Sending {method}")
-
-                request_bytes = json.dumps(request).encode("utf-8") + b"\n"
-                self.sock.sendall(request_bytes)
-
-                response_data = self.receive_full_response(self.sock)
-                response = json.loads(response_data.decode("utf-8"))
-
-                logger.debug(f"[req:{request_id}] Response received")
-
-                if "error" in response:
-                    error = response["error"]
-                    raise VCADRemoteError(
-                        code=error.get("code", -1),
-                        message=error.get("message", "Unknown error from VCAD sidecar"),
-                        data=error.get("data"),
+                acquired = self._rpc_lock.acquire(timeout=self.timeout)
+                if not acquired:
+                    logger.warning(f"[req:{request_id}] RPC lock contention, timed out waiting")
+                    raise VCADTimeoutError(
+                        f"RPC lock contention: could not acquire lock within {self.timeout}s"
                     )
 
-                self._last_activity = time.time()
-                result: dict[str, Any] = response.get("result", {})
-                return result
+                try:
+                    logger.debug(f"[req:{request_id}] Sending {method}")
+
+                    request_bytes = json.dumps(request).encode("utf-8") + b"\n"
+                    self.sock.sendall(request_bytes)
+
+                    response_data = self.receive_full_response(self.sock)
+                    response = json.loads(response_data.decode("utf-8"))
+
+                    logger.debug(f"[req:{request_id}] Response received")
+
+                    # Validate response ID matches request
+                    response_id = response.get("id")
+                    if response_id != request_id:
+                        logger.error(
+                            f"[req:{request_id}] Response ID mismatch: "
+                            f"expected={request_id}, got={response_id}"
+                        )
+                        self.disconnect()
+                        raise VCADProtocolError(
+                            f"Response ID mismatch: expected={request_id}, got={response_id}"
+                        )
+
+                    if "error" in response:
+                        error = response["error"]
+                        raise VCADRemoteError(
+                            code=error.get("code", -1),
+                            message=error.get("message", "Unknown error from VCAD sidecar"),
+                            data=error.get("data"),
+                        )
+
+                    self._last_activity = time.time()
+                    result: dict[str, Any] = response.get("result", {})
+                    return result
+                finally:
+                    self._rpc_lock.release()
 
             except (
                 TimeoutError,
@@ -538,7 +561,7 @@ class VCADConnection:
 # Global connection management with thread safety
 _vcad_connection_lock = threading.Lock()
 _vcad_connection: VCADConnection | None = None
-_vcad_connection_agent: str | None = None
+_vcad_connection_identity: tuple[str, str, int, str | None] | None = None  # (agent, host, port, workspace)
 
 
 def get_vcad_connection(
@@ -551,6 +574,9 @@ def get_vcad_connection(
     Thread-safe singleton pattern. On first call, ensures the sidecar
     process is running via VCADSidecar.ensure_running().
 
+    Cache key includes (agent, host, port, workspace) — if any component
+    changes, the old connection is disconnected and a new one is created.
+
     Args:
         host: Host to connect to.
         port: Port to connect to.
@@ -559,13 +585,16 @@ def get_vcad_connection(
     Returns:
         A VCADConnection instance.
     """
-    global _vcad_connection, _vcad_connection_agent
+    global _vcad_connection, _vcad_connection_identity
+
+    workspace = os.environ.get("SUPEX_WORKSPACE")
+    new_identity = (agent, host, port, workspace)
 
     with _vcad_connection_lock:
-        if _vcad_connection is not None and _vcad_connection_agent != agent:
-            logger.debug(
-                f"Agent changed from {_vcad_connection_agent} to {agent}, "
-                "recreating VCAD connection"
+        # If identity changed (agent, host, port, or workspace), rotate connection
+        if _vcad_connection is not None and _vcad_connection_identity != new_identity:
+            logger.info(
+                f"VCAD connection endpoint rotated: {_vcad_connection_identity} -> {new_identity}"
             )
             with contextlib.suppress(Exception):
                 _vcad_connection.disconnect()
@@ -588,8 +617,8 @@ def get_vcad_connection(
             sidecar = get_vcad_sidecar()
             sidecar.ensure_running()
 
-            _vcad_connection = VCADConnection(host=host, port=port, agent=agent)
-            _vcad_connection_agent = agent
+            _vcad_connection = VCADConnection(host=host, port=port, agent=agent, workspace=workspace)
+            _vcad_connection_identity = new_identity
             logger.debug(
                 f"Created VCAD connection (agent: {agent}, "
                 "will be established on first use)"

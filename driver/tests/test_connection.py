@@ -1,7 +1,9 @@
 """Tests for SketchupConnection class."""
 
 import json
+import os
 import socket
+import threading
 import time
 from unittest.mock import Mock, patch
 
@@ -9,7 +11,10 @@ import pytest
 
 from supex_driver.connection import SketchupConnection
 from supex_driver.connection import sketchup_connection as connection_module
-from supex_driver.connection.sketchup_exceptions import SketchUpConnectionError
+from supex_driver.connection.sketchup_exceptions import (
+    SketchUpConnectionError,
+    SketchUpProtocolError,
+)
 
 
 class TestSketchupConnection:
@@ -210,32 +215,32 @@ class TestConnectionReuse:
         mock_sock_instance = Mock()
         mock_socket.return_value = mock_sock_instance
 
-        # Mock hello response
-        hello_response = json.dumps({
-            "jsonrpc": "2.0",
-            "result": {"success": True},
-            "id": "hello"
-        }).encode("utf-8") + b"\n"
+        # Track request IDs from sendall to return matching response IDs
+        sent_request_ids: list = []
 
-        # Mock command response
-        command_response = json.dumps({
-            "jsonrpc": "2.0",
-            "result": {"status": "ok"},
-            "id": 1
-        }).encode("utf-8") + b"\n"
+        def sendall_side_effect(data):
+            req = json.loads(data.decode("utf-8").strip())
+            sent_request_ids.append(req.get("id"))
+
+        mock_sock_instance.sendall.side_effect = sendall_side_effect
 
         def recv_side_effect(*args, **kwargs):
             # MSG_PEEK is used for health check - simulate no data available
             if args and args[0] == 1:
                 raise BlockingIOError()
-            return recv_responses.pop(0)
+            req_id = sent_request_ids[-1]
+            if req_id == "hello":
+                return json.dumps({
+                    "jsonrpc": "2.0",
+                    "result": {"success": True},
+                    "id": "hello"
+                }).encode("utf-8") + b"\n"
+            return json.dumps({
+                "jsonrpc": "2.0",
+                "result": {"status": "ok"},
+                "id": req_id
+            }).encode("utf-8") + b"\n"
 
-        recv_responses = [
-            hello_response,   # First connect hello
-            command_response,  # First command
-            command_response,  # Second command
-            command_response,  # Third command
-        ]
         mock_sock_instance.recv.side_effect = recv_side_effect
 
         conn = SketchupConnection(host="localhost", port=9876)
@@ -296,30 +301,32 @@ class TestConnectionReuse:
         mock_sock_instance = Mock()
         mock_socket.return_value = mock_sock_instance
 
-        # Mock responses
-        hello_response = json.dumps({
-            "jsonrpc": "2.0",
-            "result": {"success": True},
-            "id": "hello"
-        }).encode("utf-8") + b"\n"
-        command_response = json.dumps({
-            "jsonrpc": "2.0",
-            "result": {"status": "ok"},
-            "id": 1
-        }).encode("utf-8") + b"\n"
+        # Track request IDs from sendall to return matching response IDs
+        sent_request_ids: list = []
+
+        def sendall_side_effect(data):
+            req = json.loads(data.decode("utf-8").strip())
+            sent_request_ids.append(req.get("id"))
+
+        mock_sock_instance.sendall.side_effect = sendall_side_effect
 
         def recv_side_effect(*args, **kwargs):
             # MSG_PEEK is used for health check - simulate no data available
             if args and args[0] == 1:
                 raise BlockingIOError()
-            return recv_responses.pop(0)
+            req_id = sent_request_ids[-1]
+            if req_id == "hello":
+                return json.dumps({
+                    "jsonrpc": "2.0",
+                    "result": {"success": True},
+                    "id": "hello"
+                }).encode("utf-8") + b"\n"
+            return json.dumps({
+                "jsonrpc": "2.0",
+                "result": {"status": "ok"},
+                "id": req_id
+            }).encode("utf-8") + b"\n"
 
-        recv_responses = [
-            hello_response,   # First connect
-            command_response,  # First command
-            hello_response,   # Second connect (after idle)
-            command_response,  # Second command
-        ]
         mock_sock_instance.recv.side_effect = recv_side_effect
 
         conn = SketchupConnection(host="localhost", port=9876)
@@ -347,19 +354,30 @@ class TestConnectionReuse:
         mock_sock_instance = Mock()
         mock_socket.return_value = mock_sock_instance
 
-        hello_response = json.dumps({
-            "jsonrpc": "2.0",
-            "result": {"success": True},
-            "id": "hello"
-        }).encode("utf-8") + b"\n"
-        command_response = json.dumps({
-            "jsonrpc": "2.0",
-            "result": {"status": "ok"},
-            "id": 1
-        }).encode("utf-8") + b"\n"
+        # Track request IDs from sendall to return matching response IDs
+        sent_request_ids: list = []
 
-        recv_responses = [hello_response, command_response]
-        mock_sock_instance.recv.side_effect = lambda *args, **kwargs: recv_responses.pop(0)
+        def sendall_side_effect(data):
+            req = json.loads(data.decode("utf-8").strip())
+            sent_request_ids.append(req.get("id"))
+
+        mock_sock_instance.sendall.side_effect = sendall_side_effect
+
+        def recv_side_effect(*args, **kwargs):
+            req_id = sent_request_ids[-1]
+            if req_id == "hello":
+                return json.dumps({
+                    "jsonrpc": "2.0",
+                    "result": {"success": True},
+                    "id": "hello"
+                }).encode("utf-8") + b"\n"
+            return json.dumps({
+                "jsonrpc": "2.0",
+                "result": {"status": "ok"},
+                "id": req_id
+            }).encode("utf-8") + b"\n"
+
+        mock_sock_instance.recv.side_effect = recv_side_effect
 
         conn = SketchupConnection(host="localhost", port=9876)
         assert conn._last_activity == 0.0
@@ -394,3 +412,161 @@ class TestConnectionErrorHandling:
                 conn.send_command("ping")
 
             assert "Socket not initialized" in str(exc_info.value)
+
+
+class TestResponseIDValidation:
+    """Test response ID matching in send_command."""
+
+    @patch("socket.socket")
+    def test_id_mismatch_raises_protocol_error(self, mock_socket: Mock) -> None:
+        """Test that mismatched response ID raises ProtocolError and disconnects."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        hello_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"success": True},
+            "id": "hello"
+        }).encode("utf-8") + b"\n"
+
+        # Response with wrong ID
+        bad_response = json.dumps({
+            "jsonrpc": "2.0",
+            "result": {"status": "ok"},
+            "id": 999
+        }).encode("utf-8") + b"\n"
+
+        recv_responses = [hello_response, bad_response]
+        mock_sock_instance.recv.side_effect = lambda *args, **kwargs: recv_responses.pop(0)
+
+        conn = SketchupConnection(host="localhost", port=9876)
+
+        with pytest.raises(SketchUpProtocolError, match="Response ID mismatch"):
+            conn.send_command("ping")
+
+    @patch("socket.socket")
+    def test_matching_id_succeeds(self, mock_socket: Mock) -> None:
+        """Test that matching response ID succeeds normally."""
+        mock_sock_instance = Mock()
+        mock_socket.return_value = mock_sock_instance
+
+        # Track request IDs from sendall to return matching response IDs
+        sent_request_ids: list = []
+
+        def sendall_side_effect(data):
+            req = json.loads(data.decode("utf-8").strip())
+            sent_request_ids.append(req.get("id"))
+
+        mock_sock_instance.sendall.side_effect = sendall_side_effect
+
+        def recv_side_effect(*args, **kwargs):
+            req_id = sent_request_ids[-1]
+            if req_id == "hello":
+                return json.dumps({
+                    "jsonrpc": "2.0",
+                    "result": {"success": True},
+                    "id": "hello"
+                }).encode("utf-8") + b"\n"
+            return json.dumps({
+                "jsonrpc": "2.0",
+                "result": {"status": "ok"},
+                "id": req_id
+            }).encode("utf-8") + b"\n"
+
+        mock_sock_instance.recv.side_effect = recv_side_effect
+
+        conn = SketchupConnection(host="localhost", port=9876)
+        result = conn.send_command("ping")
+        assert result == {"status": "ok"}
+
+
+class TestRPCLockSerialization:
+    """Test RPC lock serialization for concurrent access."""
+
+    def test_connection_has_rpc_lock(self) -> None:
+        """Test that SketchupConnection has an RPC lock."""
+        conn = SketchupConnection(host="localhost", port=9876)
+        assert hasattr(conn, "_rpc_lock")
+        assert isinstance(conn._rpc_lock, type(threading.Lock()))
+
+
+class TestSingletonRotation:
+    """Test singleton connection rotation on endpoint change."""
+
+    def setup_method(self) -> None:
+        """Reset global singleton state before each test."""
+        connection_module._sketchup_connection = None
+        connection_module._connection_identity = None
+
+    def teardown_method(self) -> None:
+        """Clean up global singleton state after each test."""
+        if connection_module._sketchup_connection is not None:
+            connection_module._sketchup_connection.disconnect()
+        connection_module._sketchup_connection = None
+        connection_module._connection_identity = None
+
+    def test_same_params_reuse_connection(self) -> None:
+        """Test that same params return the same connection instance."""
+        conn1 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="test"
+        )
+        conn2 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="test"
+        )
+        assert conn1 is conn2
+
+    def test_different_port_rotates_connection(self) -> None:
+        """Test that different port creates a new connection."""
+        conn1 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="test"
+        )
+        conn2 = connection_module.get_sketchup_connection(
+            host="localhost", port=9877, agent="test"
+        )
+        assert conn1 is not conn2
+        assert conn2.port == 9877
+
+    def test_different_host_rotates_connection(self) -> None:
+        """Test that different host creates a new connection."""
+        conn1 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="test"
+        )
+        conn2 = connection_module.get_sketchup_connection(
+            host="192.168.1.1", port=9876, agent="test"
+        )
+        assert conn1 is not conn2
+        assert conn2.host == "192.168.1.1"
+
+    def test_different_agent_rotates_connection(self) -> None:
+        """Test that different agent creates a new connection."""
+        conn1 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="user"
+        )
+        conn2 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="mcp"
+        )
+        assert conn1 is not conn2
+        assert conn2.agent == "mcp"
+
+    @patch.dict(os.environ, {"SUPEX_WORKSPACE": "/project/a"})
+    def test_different_workspace_rotates_connection(self) -> None:
+        """Test that different workspace creates a new connection."""
+        conn1 = connection_module.get_sketchup_connection(
+            host="localhost", port=9876, agent="test"
+        )
+        with patch.dict(os.environ, {"SUPEX_WORKSPACE": "/project/b"}):
+            conn2 = connection_module.get_sketchup_connection(
+                host="localhost", port=9876, agent="test"
+            )
+        assert conn1 is not conn2
+
+    def test_identity_includes_all_components(self) -> None:
+        """Test that connection identity tracks all components."""
+        connection_module.get_sketchup_connection(
+            host="myhost", port=1234, agent="myagent"
+        )
+        identity = connection_module._connection_identity
+        assert identity is not None
+        assert identity[0] == "myagent"
+        assert identity[1] == "myhost"
+        assert identity[2] == 1234

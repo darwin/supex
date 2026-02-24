@@ -71,6 +71,7 @@ class SketchupConnection:
     sock: socket.socket | None = field(default=None, repr=False)
     _identified: bool = field(default=False, repr=False)
     _last_activity: float = field(default=0.0, repr=False)
+    _rpc_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def connect(self) -> bool:
         """Connect to the SketchUp runtime socket server and send hello handshake.
@@ -308,28 +309,50 @@ class SketchupConnection:
 
         while retry_count <= MAX_RETRIES:
             try:
-                logger.debug(f"[req:{request_id}] Sending {method}")
-
-                request_bytes = json.dumps(request).encode("utf-8") + b"\n"
-                self.sock.sendall(request_bytes)
-
-                response_data = self.receive_full_response(self.sock)
-                response = json.loads(response_data.decode("utf-8"))
-
-                logger.debug(f"[req:{request_id}] Response received")
-
-                if "error" in response:
-                    error = response["error"]
-                    raise SketchUpRemoteError(
-                        code=error.get("code", -1),
-                        message=error.get("message", "Unknown error from SketchUp"),
-                        data=error.get("data"),
+                acquired = self._rpc_lock.acquire(timeout=self.timeout)
+                if not acquired:
+                    logger.warning(f"[req:{request_id}] RPC lock contention, timed out waiting")
+                    raise SketchUpTimeoutError(
+                        f"RPC lock contention: could not acquire lock within {self.timeout}s"
                     )
 
-                # Update activity timestamp on success
-                self._last_activity = time.time()
-                result: dict[str, Any] = response.get("result", {})
-                return result
+                try:
+                    logger.debug(f"[req:{request_id}] Sending {method}")
+
+                    request_bytes = json.dumps(request).encode("utf-8") + b"\n"
+                    self.sock.sendall(request_bytes)
+
+                    response_data = self.receive_full_response(self.sock)
+                    response = json.loads(response_data.decode("utf-8"))
+
+                    logger.debug(f"[req:{request_id}] Response received")
+
+                    # Validate response ID matches request
+                    response_id = response.get("id")
+                    if response_id != request_id:
+                        logger.error(
+                            f"[req:{request_id}] Response ID mismatch: "
+                            f"expected={request_id}, got={response_id}"
+                        )
+                        self.disconnect()
+                        raise SketchUpProtocolError(
+                            f"Response ID mismatch: expected={request_id}, got={response_id}"
+                        )
+
+                    if "error" in response:
+                        error = response["error"]
+                        raise SketchUpRemoteError(
+                            code=error.get("code", -1),
+                            message=error.get("message", "Unknown error from SketchUp"),
+                            data=error.get("data"),
+                        )
+
+                    # Update activity timestamp on success
+                    self._last_activity = time.time()
+                    result: dict[str, Any] = response.get("result", {})
+                    return result
+                finally:
+                    self._rpc_lock.release()
 
             except (
                 TimeoutError,
@@ -377,7 +400,7 @@ class SketchupConnection:
 # Global connection management with thread safety
 _connection_lock = threading.Lock()
 _sketchup_connection: SketchupConnection | None = None
-_connection_agent: str | None = None
+_connection_identity: tuple[str, str, int, str | None] | None = None  # (agent, host, port, workspace)
 
 
 def get_sketchup_connection(
@@ -386,6 +409,8 @@ def get_sketchup_connection(
     """Get or create a persistent SketchUp connection.
 
     Thread-safe singleton pattern for connection management.
+    Cache key includes (agent, host, port, workspace) — if any component
+    changes, the old connection is disconnected and a new one is created.
 
     Args:
         host: Host to connect to.
@@ -395,12 +420,17 @@ def get_sketchup_connection(
     Returns:
         A SketchupConnection instance.
     """
-    global _sketchup_connection, _connection_agent
+    global _sketchup_connection, _connection_identity
+
+    workspace = os.environ.get("SUPEX_WORKSPACE")
+    new_identity = (agent, host, port, workspace)
 
     with _connection_lock:
-        # If agent changed, recreate connection
-        if _sketchup_connection is not None and _connection_agent != agent:
-            logger.debug(f"Agent changed from {_connection_agent} to {agent}, recreating connection")
+        # If identity changed (agent, host, port, or workspace), rotate connection
+        if _sketchup_connection is not None and _connection_identity != new_identity:
+            logger.info(
+                f"Connection endpoint rotated: {_connection_identity} -> {new_identity}"
+            )
             with contextlib.suppress(Exception):
                 _sketchup_connection.disconnect()
             _sketchup_connection = None
@@ -417,8 +447,10 @@ def get_sketchup_connection(
                 _sketchup_connection = None
 
         if _sketchup_connection is None:
-            _sketchup_connection = SketchupConnection(host=host, port=port, agent=agent)
-            _connection_agent = agent
+            _sketchup_connection = SketchupConnection(
+                host=host, port=port, agent=agent, workspace=workspace,
+            )
+            _connection_identity = new_identity
             # Note: Don't try to connect here - let individual commands handle connection attempts
             # This allows the server to remain available even when SketchUp isn't running
             logger.debug(f"Created SketchUp connection (agent: {agent}, will be established on first use)")

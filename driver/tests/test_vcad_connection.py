@@ -1252,3 +1252,132 @@ class TestReconcilerWithDag:
 
         # Should no longer be in DAG or persisted state
         assert dag.state.get_node("gone-node") is None
+
+
+# ---------------------------------------------------------------------------
+# VCADConnection — RPC lock and response ID validation
+# ---------------------------------------------------------------------------
+
+
+class TestVCADResponseIDValidation:
+    """Test response ID matching in VCADConnection send_command."""
+
+    def test_id_mismatch_raises_protocol_error(self, mock_sidecar: MockVCADSidecar) -> None:
+        """Test that mismatched response ID raises VCADProtocolError."""
+        # Override the mock sidecar to return wrong IDs
+        original_create = mock_sidecar._create_response
+
+        def bad_id_response(request):
+            resp = original_create(request)
+            if request.get("method") != "hello":
+                resp["id"] = 999999  # Wrong ID
+            return resp
+
+        mock_sidecar._create_response = bad_id_response
+
+        conn = VCADConnection(
+            host="127.0.0.1",
+            port=mock_sidecar.port,
+            agent="test",
+        )
+
+        with pytest.raises(VCADProtocolError, match="Response ID mismatch"):
+            conn.send_command("ping")
+
+    def test_matching_id_succeeds(self, mock_sidecar: MockVCADSidecar) -> None:
+        """Test that matching response ID succeeds normally."""
+        conn = VCADConnection(
+            host="127.0.0.1",
+            port=mock_sidecar.port,
+            agent="test",
+        )
+        result = conn.send_command("ping")
+        assert result == {"status": "ok"}
+
+    def test_connection_has_rpc_lock(self) -> None:
+        """Test that VCADConnection has an RPC lock."""
+        conn = VCADConnection(host="localhost", port=9877)
+        assert hasattr(conn, "_rpc_lock")
+        assert isinstance(conn._rpc_lock, type(threading.Lock()))
+
+
+# ---------------------------------------------------------------------------
+# get_vcad_connection — singleton rotation
+# ---------------------------------------------------------------------------
+
+
+class TestVCADSingletonRotation:
+    """Test singleton connection rotation on endpoint change."""
+
+    def setup_method(self) -> None:
+        """Reset global singleton state before each test."""
+        from supex_driver.connection import vcad_connection as vcmod
+
+        self._vcmod = vcmod
+        vcmod._vcad_connection = None
+        vcmod._vcad_connection_identity = None
+
+    def teardown_method(self) -> None:
+        """Clean up global singleton state after each test."""
+        vcmod = self._vcmod
+        if vcmod._vcad_connection is not None:
+            vcmod._vcad_connection.disconnect()
+        vcmod._vcad_connection = None
+        vcmod._vcad_connection_identity = None
+
+    @patch("supex_driver.connection.vcad_sidecar.get_vcad_sidecar")
+    def test_same_params_reuse_connection(self, mock_get_sidecar: Mock) -> None:
+        """Test that same params return the same connection instance."""
+        mock_get_sidecar.return_value = Mock()
+        from supex_driver.connection.vcad_connection import get_vcad_connection
+
+        conn1 = get_vcad_connection(host="localhost", port=9877, agent="test")
+        conn2 = get_vcad_connection(host="localhost", port=9877, agent="test")
+        assert conn1 is conn2
+
+    @patch("supex_driver.connection.vcad_sidecar.get_vcad_sidecar")
+    def test_different_port_rotates_connection(self, mock_get_sidecar: Mock) -> None:
+        """Test that different port creates a new connection."""
+        mock_get_sidecar.return_value = Mock()
+        from supex_driver.connection.vcad_connection import get_vcad_connection
+
+        conn1 = get_vcad_connection(host="localhost", port=9877, agent="test")
+        conn2 = get_vcad_connection(host="localhost", port=9878, agent="test")
+        assert conn1 is not conn2
+        assert conn2.port == 9878
+
+    @patch("supex_driver.connection.vcad_sidecar.get_vcad_sidecar")
+    def test_different_agent_rotates_connection(self, mock_get_sidecar: Mock) -> None:
+        """Test that different agent creates a new connection."""
+        mock_get_sidecar.return_value = Mock()
+        from supex_driver.connection.vcad_connection import get_vcad_connection
+
+        conn1 = get_vcad_connection(host="localhost", port=9877, agent="user")
+        conn2 = get_vcad_connection(host="localhost", port=9877, agent="mcp")
+        assert conn1 is not conn2
+        assert conn2.agent == "mcp"
+
+    @patch("supex_driver.connection.vcad_sidecar.get_vcad_sidecar")
+    @patch.dict(os.environ, {"SUPEX_WORKSPACE": "/project/a"})
+    def test_different_workspace_rotates_connection(self, mock_get_sidecar: Mock) -> None:
+        """Test that different workspace creates a new connection."""
+        mock_get_sidecar.return_value = Mock()
+        from supex_driver.connection.vcad_connection import get_vcad_connection
+
+        conn1 = get_vcad_connection(host="localhost", port=9877, agent="test")
+        with patch.dict(os.environ, {"SUPEX_WORKSPACE": "/project/b"}):
+            conn2 = get_vcad_connection(host="localhost", port=9877, agent="test")
+        assert conn1 is not conn2
+
+    @patch("supex_driver.connection.vcad_sidecar.get_vcad_sidecar")
+    def test_identity_includes_all_components(self, mock_get_sidecar: Mock) -> None:
+        """Test that connection identity tracks all components."""
+        mock_get_sidecar.return_value = Mock()
+        from supex_driver.connection.vcad_connection import get_vcad_connection
+
+        get_vcad_connection(host="myhost", port=1234, agent="myagent")
+        identity = self._vcmod._vcad_connection_identity
+        assert identity is not None
+        assert identity[0] == "myagent"
+        assert identity[1] == "myhost"
+        assert identity[2] == 1234
