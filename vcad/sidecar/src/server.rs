@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 
-const PROTOCOL_VERSION: u32 = 1;
+const PROTOCOL_VERSION: &str = "1.0";
 const SIDECAR_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // JSON-RPC error codes (standard)
@@ -288,6 +288,12 @@ fn write_response(writer: &mut BufWriter<&TcpStream>, response: &JsonRpcResponse
     }
 }
 
+/// Extract major version number from a "major.minor" string.
+fn parse_protocol_major(version: &str) -> Option<u32> {
+    let major_str = version.split('.').next()?;
+    major_str.parse::<u32>().ok()
+}
+
 fn dispatch_hello(
     request: &JsonRpcRequest,
     ctx: &mut ConnectionContext,
@@ -302,10 +308,7 @@ fn dispatch_hello(
     let version = params
         .and_then(|p| p.get("version"))
         .and_then(|v| v.as_str());
-    let protocol_version = params
-        .and_then(|p| p.get("protocol_version"))
-        .and_then(|v| v.as_u64())
-        .map(|v| v as u32);
+    let protocol_version_raw = params.and_then(|p| p.get("protocol_version"));
 
     if name.is_none() || version.is_none() {
         return make_error_response(
@@ -316,15 +319,40 @@ fn dispatch_hello(
         );
     }
 
-    // Protocol version check
-    if let Some(client_proto) = protocol_version {
-        if client_proto != PROTOCOL_VERSION {
+    // Protocol version check — requires "major.minor" string format
+    if let Some(pv) = protocol_version_raw {
+        let pv_str = match pv.as_str() {
+            Some(s) => s,
+            None => {
+                return make_app_error_response(
+                    request.id.clone(),
+                    "PROTOCOL_MISMATCH",
+                    &format!(
+                        "protocol_version must be a string (\"major.minor\"), got: {}",
+                        pv
+                    ),
+                );
+            }
+        };
+        let client_major = parse_protocol_major(pv_str);
+        let server_major = parse_protocol_major(PROTOCOL_VERSION);
+        if client_major.is_none() {
+            return make_app_error_response(
+                request.id.clone(),
+                "PROTOCOL_MISMATCH",
+                &format!(
+                    "Malformed protocol_version: \"{}\", expected \"major.minor\"",
+                    pv_str
+                ),
+            );
+        }
+        if client_major != server_major {
             return make_app_error_response(
                 request.id.clone(),
                 "PROTOCOL_MISMATCH",
                 &format!(
                     "Protocol version mismatch: client={}, server={}",
-                    client_proto, PROTOCOL_VERSION
+                    pv_str, PROTOCOL_VERSION
                 ),
             );
         }
@@ -1085,8 +1113,8 @@ mod tests {
         let result = resp.get("result").unwrap();
         assert_eq!(result.get("engine").unwrap().as_str().unwrap(), "rust");
         assert_eq!(
-            result.get("protocol_version").unwrap().as_u64().unwrap(),
-            PROTOCOL_VERSION as u64
+            result.get("protocol_version").unwrap().as_str().unwrap(),
+            PROTOCOL_VERSION
         );
 
         // Ping
@@ -1167,7 +1195,7 @@ mod tests {
     }
 
     #[test]
-    fn test_protocol_mismatch() {
+    fn test_protocol_mismatch_major_version() {
         let (port, shutdown) = start_test_server(64, 120_000, None);
         let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
 
@@ -1180,7 +1208,65 @@ mod tests {
                 "version": "0.1.0",
                 "agent": "test",
                 "pid": 1,
-                "protocol_version": 999
+                "protocol_version": "999.0"
+            }
+        });
+        let resp = send_request(&mut stream, &req);
+        assert!(resp.get("error").is_some());
+        let data = resp.get("error").unwrap().get("data").unwrap();
+        assert_eq!(
+            data.get("error_code").unwrap().as_str().unwrap(),
+            "PROTOCOL_MISMATCH"
+        );
+
+        shutdown.store(true, Ordering::SeqCst);
+    }
+
+    #[test]
+    fn test_protocol_mismatch_integer_rejected() {
+        let (port, shutdown) = start_test_server(64, 120_000, None);
+        let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+
+        // Integer protocol_version should be rejected (must be string)
+        let req = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "hello",
+            "params": {
+                "name": "test",
+                "version": "0.1.0",
+                "agent": "test",
+                "pid": 1,
+                "protocol_version": 1
+            }
+        });
+        let resp = send_request(&mut stream, &req);
+        assert!(resp.get("error").is_some());
+        let data = resp.get("error").unwrap().get("data").unwrap();
+        assert_eq!(
+            data.get("error_code").unwrap().as_str().unwrap(),
+            "PROTOCOL_MISMATCH"
+        );
+
+        shutdown.store(true, Ordering::SeqCst);
+    }
+
+    #[test]
+    fn test_protocol_mismatch_malformed_rejected() {
+        let (port, shutdown) = start_test_server(64, 120_000, None);
+        let mut stream = TcpStream::connect(format!("127.0.0.1:{}", port)).unwrap();
+
+        // Malformed protocol_version string should be rejected
+        let req = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "hello",
+            "params": {
+                "name": "test",
+                "version": "0.1.0",
+                "agent": "test",
+                "pid": 1,
+                "protocol_version": "not-a-version"
             }
         });
         let resp = send_request(&mut stream, &req);

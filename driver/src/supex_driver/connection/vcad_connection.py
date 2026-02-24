@@ -174,6 +174,16 @@ class VCADConnection:
 
             # Protocol version negotiation (fail-fast on major mismatch)
             sidecar_version = result.get("protocol_version", "0.0")
+            if not isinstance(sidecar_version, str):
+                raise VCADProtocolError(
+                    f"Sidecar protocol_version must be a string (\"major.minor\"), "
+                    f"got: {type(sidecar_version).__name__}={sidecar_version}",
+                    error_code=PROTOCOL_MISMATCH,
+                    details={
+                        "expected_protocol": PROTOCOL_VERSION,
+                        "actual_protocol": sidecar_version,
+                    },
+                )
             local_major = _parse_major_version(PROTOCOL_VERSION)
             remote_major = _parse_major_version(sidecar_version)
 

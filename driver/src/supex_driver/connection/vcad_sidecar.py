@@ -1,8 +1,10 @@
 """VCAD sidecar process lifecycle management."""
 
+import json
 import logging
 import os
 import signal
+import socket
 import subprocess
 import threading
 import time
@@ -11,6 +13,10 @@ logger = logging.getLogger("supex.vcad.sidecar")
 
 # Default sidecar binary path (relative to supex root)
 _SIDECAR_RELATIVE_PATH = "vcad/sidecar/target/release/supex-vcad-sidecar"
+
+# Readiness probe configuration
+_PROBE_RETRIES = 5
+_PROBE_INTERVAL = 0.5  # seconds between retries
 
 
 def _find_supex_root() -> str | None:
@@ -53,10 +59,10 @@ class VCADSidecar:
                 self.sidecar_path = os.path.join(root, _SIDECAR_RELATIVE_PATH)
 
     def ensure_running(self) -> None:
-        """Start sidecar if not running. Check health via ping.
+        """Start sidecar if not running. Verify readiness via TCP probe.
 
         If the sidecar process is already running and responsive, this is a no-op.
-        If the process has exited or is unresponsive, it will be restarted.
+        If the process has exited or is unresponsive, it will be (re)started.
         """
         with self._lock:
             if self._is_alive():
@@ -95,7 +101,7 @@ class VCADSidecar:
         return self.process.poll() is None
 
     def _start(self) -> None:
-        """Start the sidecar binary as a subprocess."""
+        """Start the sidecar binary as a subprocess and verify readiness."""
         if not self.sidecar_path:
             logger.warning(
                 "VCAD sidecar path not configured. "
@@ -135,27 +141,35 @@ class VCADSidecar:
                 os.makedirs(temp_dir, exist_ok=True)
                 env["SUPEX_VCAD_TEMP_DIR"] = temp_dir
 
+        host = env.get("SUPEX_VCAD_HOST", "localhost")
+        port = int(env.get("SUPEX_VCAD_PORT", "9877"))
+
         try:
             self.process = subprocess.Popen(
                 [self.sidecar_path],
                 env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=None,  # inherit parent stderr
             )
-            # Wait briefly for startup
-            time.sleep(0.1)
 
-            if self.process.poll() is not None:
-                _stdout = self.process.stdout.read() if self.process.stdout else b""
-                stderr = self.process.stderr.read() if self.process.stderr else b""
-                logger.error(
-                    f"Sidecar exited immediately (code={self.process.returncode}). "
-                    f"stderr: {stderr.decode('utf-8', errors='replace')[:500]}"
-                )
+            # Readiness probe: TCP connect + ping with bounded retries
+            if not self._wait_ready(host, port):
+                # Process died during startup or started but unresponsive
+                if self.process.poll() is not None:
+                    logger.error(
+                        f"Sidecar process died during startup "
+                        f"(code={self.process.returncode})"
+                    )
+                else:
+                    logger.error(
+                        f"Sidecar started (pid={self.process.pid}) but unresponsive "
+                        f"after {_PROBE_RETRIES} probes, killing"
+                    )
+                    self._force_kill()
                 self._cleanup_process()
                 return
 
-            logger.info(f"VCAD sidecar started (pid={self.process.pid})")
+            logger.info(f"VCAD sidecar ready (pid={self.process.pid})")
         except FileNotFoundError:
             logger.error(f"VCAD sidecar binary not found: {self.sidecar_path}")
             self.process = None
@@ -166,13 +180,75 @@ class VCADSidecar:
             logger.error(f"Failed to start VCAD sidecar: {e}")
             self.process = None
 
+    def _wait_ready(self, host: str, port: int) -> bool:
+        """Probe sidecar with TCP connect + ping until ready or timeout.
+
+        Returns True if sidecar responded to ping within retry budget.
+        """
+        for attempt in range(1, _PROBE_RETRIES + 1):
+            # Check if process died
+            if self.process is not None and self.process.poll() is not None:
+                return False
+
+            time.sleep(_PROBE_INTERVAL)
+
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2.0)
+                sock.connect((host, port))
+
+                # Send a minimal ping request
+                ping_req = json.dumps({
+                    "jsonrpc": "2.0",
+                    "method": "hello",
+                    "params": {
+                        "name": "supex-driver-probe",
+                        "version": "0.0.0",
+                        "protocol_version": "1.0",
+                        "pid": os.getpid(),
+                    },
+                    "id": "probe",
+                }).encode("utf-8") + b"\n"
+                sock.sendall(ping_req)
+
+                # Read response
+                data = bytearray()
+                while b"\n" not in data:
+                    chunk = sock.recv(4096)
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+
+                sock.close()
+
+                if data:
+                    response = json.loads(data.decode("utf-8"))
+                    if "result" in response:
+                        logger.debug(
+                            f"Readiness probe succeeded on attempt {attempt}"
+                        )
+                        return True
+
+            except (ConnectionRefusedError, TimeoutError, OSError) as e:
+                logger.debug(f"Readiness probe attempt {attempt}/{_PROBE_RETRIES}: {e}")
+            except Exception as e:
+                logger.debug(f"Readiness probe attempt {attempt}/{_PROBE_RETRIES}: {e}")
+
+        return False
+
+    def _force_kill(self) -> None:
+        """Force-kill the sidecar process."""
+        if self.process is None:
+            return
+        try:
+            self.process.kill()
+            self.process.wait(timeout=2.0)
+        except (OSError, ProcessLookupError, subprocess.TimeoutExpired):
+            pass
+
     def _cleanup_process(self) -> None:
         """Clean up process handles."""
         if self.process:
-            if self.process.stdout:
-                self.process.stdout.close()
-            if self.process.stderr:
-                self.process.stderr.close()
             self.process = None
 
 
