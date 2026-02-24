@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import textwrap
 from datetime import datetime
 
@@ -11,6 +12,20 @@ from radar.tui.renderers import (
     RendererReloader,
     RendererRegistry,
 )
+
+
+_mtime_offset = 0
+
+
+def _bump_mtime(path):
+    """Advance file mtime so reloader detects a change on filesystems
+    with coarse (1 s) mtime resolution (Linux ext4/tmpfs in Docker).
+    Uses a monotonic counter so repeated bumps within the same wall-clock
+    second always produce distinct mtime values."""
+    global _mtime_offset
+    _mtime_offset += 1
+    st = os.stat(path)
+    os.utime(path, (st.st_atime, st.st_mtime + _mtime_offset))
 
 
 def _make_event(
@@ -165,6 +180,7 @@ class TestRendererHotReload:
 
             RENDERERS = {"hot-source": HotRenderer()}
         """))
+        _bump_mtime(mod_file)
 
         # Trigger check — should detect mtime change and reload
         results = reloader.check()
@@ -206,6 +222,7 @@ class TestRendererHotReloadError:
 
         # Break the file with a syntax error
         mod_file.write_text("def broken(\n")
+        _bump_mtime(mod_file)
 
         results = reloader.check()
         assert len(results) == 1
@@ -249,6 +266,7 @@ class TestRendererHotReloadRecovery:
 
         # Step 1: break the file
         mod_file.write_text("def broken(\n")
+        _bump_mtime(mod_file)
         results = reloader.check()
         assert results[0].success is False
         assert "V1: hello" in reg.get("recov-source").render(event).plain
@@ -264,6 +282,7 @@ class TestRendererHotReloadRecovery:
 
             RENDERERS = {"recov-source": RecovRenderer()}
         """))
+        _bump_mtime(mod_file)
 
         results = reloader.check()
         assert len(results) == 1

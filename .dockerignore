@@ -1,0 +1,13 @@
+**/.git
+**/target/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+.tmp/
+.idea/
+*.iml
+.code/
+.plan-runner/
+.direnv/
+devtools/docgen/

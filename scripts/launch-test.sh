@@ -2,11 +2,6 @@
 
 set -euo pipefail
 
-# Re-exec under mise if available and not already running under mise
-if [[ -z "${MISE_SHELL:-}" ]] && command -v mise &> /dev/null; then
-    exec mise exec -- "$0" "$@"
-fi
-
 # Configuration
 RUN_E2E=false
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -223,11 +218,26 @@ main() {
     fi
     echo ""
 
-    # Check required tools
-    require_command "uv" "pip install uv"
-    require_command "bundle" "gem install bundler"
-    require_command "cargo" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    require_command "npx" "brew install node"
+    # Check required tools based on selected suites
+    local needs_uv=false needs_bundle=false needs_cargo=false needs_npx=false
+    for entry in "${SUITES[@]}"; do
+        local _slug _cmd _e2e
+        _slug=$(suite_field "$entry" 0)
+        _cmd=$(suite_field "$entry" 3)
+        _e2e=$(suite_field "$entry" 4)
+        if should_run "$_slug" "$_e2e"; then
+            case "$_cmd" in
+                uv*) needs_uv=true ;;
+                bundle*) needs_bundle=true ;;
+                cargo*) needs_cargo=true ;;
+                npx*) needs_npx=true ;;
+            esac
+        fi
+    done
+    $needs_uv && require_command "uv" "pip install uv"
+    $needs_bundle && require_command "bundle" "gem install bundler"
+    $needs_cargo && require_command "cargo" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    $needs_npx && require_command "npx" "brew install node"
 
     for entry in "${SUITES[@]}"; do
         local slug display dir command e2e_flag
