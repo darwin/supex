@@ -14,10 +14,21 @@ class RingBuffer:
     def __init__(self, capacity: int = 10_000):
         self._capacity = capacity
         self._events: deque[LogEvent] = deque(maxlen=capacity)
+        # Incremental source tracking: O(1) amortized instead of O(n)
+        self._source_counts: dict[str, int] = {}
 
     def append(self, event: LogEvent) -> None:
         """Append an event. Silently evicts oldest when full."""
+        # Track eviction before deque auto-evicts
+        if len(self._events) == self._capacity:
+            evicted = self._events[0]
+            cnt = self._source_counts[evicted.source] - 1
+            if cnt == 0:
+                del self._source_counts[evicted.source]
+            else:
+                self._source_counts[evicted.source] = cnt
         self._events.append(event)
+        self._source_counts[event.source] = self._source_counts.get(event.source, 0) + 1
 
     def get_recent(self, n: int) -> list[LogEvent]:
         """Return the most recent n events (oldest first)."""
@@ -54,7 +65,7 @@ class RingBuffer:
     @property
     def sources(self) -> set[str]:
         """Set of unique source IDs in the buffer."""
-        return {e.source for e in self._events}
+        return set(self._source_counts.keys())
 
 
 class ObservableBuffer(RingBuffer):

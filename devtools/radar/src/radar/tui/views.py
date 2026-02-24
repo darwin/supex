@@ -64,19 +64,35 @@ class LogListView(DataTable):
             else:
                 self.add_column(label, key=label)
 
+    @staticmethod
+    def _make_row(event: LogEvent) -> tuple:
+        """Build a row tuple for a single event."""
+        level_style = LEVEL_STYLES.get(event.level, "")
+        return (
+            Text(event.eid, style="dim"),
+            Text(event.timestamp.strftime("%H:%M:%S.%f")[:12], style="dim cyan"),
+            Text(f"{event.level.name:<5}", style=level_style),
+            Text(event.source, style="green"),
+            event.message[:200],
+        )
+
     def add_event(self, event: LogEvent) -> None:
         """Append a single event as a new row."""
         self._events.append(event)
         self._eid_to_index[event.eid] = len(self._events) - 1
+        self.add_row(*self._make_row(event), key=event.eid)
 
-        level_style = LEVEL_STYLES.get(event.level, "")
-        eid_cell = Text(event.eid, style="dim")
-        ts_cell = Text(event.timestamp.strftime("%H:%M:%S.%f")[:12], style="dim cyan")
-        level_cell = Text(f"{event.level.name:<5}", style=level_style)
-        source_cell = Text(event.source, style="green")
-        msg_cell = event.message[:200]
-
-        self.add_row(eid_cell, ts_cell, level_cell, source_cell, msg_cell, key=event.eid)
+    def add_events_batch(self, events: list[LogEvent]) -> None:
+        """Append multiple events efficiently in a single batch."""
+        if not events:
+            return
+        base_idx = len(self._events)
+        rows = []
+        for i, event in enumerate(events):
+            self._events.append(event)
+            self._eid_to_index[event.eid] = base_idx + i
+            rows.append(self._make_row(event))
+        self.add_rows(rows)
 
     def clear_events(self) -> None:
         """Remove all rows and reset event tracking."""
@@ -106,25 +122,40 @@ class LogListView(DataTable):
 
 
 class DetailPanel(Static):
-    """Expanded view of a single event.  Toggles between summary and raw."""
+    """Expanded view of a single event.  Toggles between summary and raw.
+
+    Lazy rendering: content is only computed when the panel is visible.
+    Setting an event while hidden just stores the reference; the actual
+    render happens when the panel becomes visible.
+    """
 
     show_raw: reactive[bool] = reactive(False)
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._event: LogEvent | None = None
+        self._dirty = False
 
     def set_event(self, event: LogEvent | None) -> None:
         self._event = event
-        self._refresh_content()
+        self._dirty = True
+        if self.has_class("visible"):
+            self._render_now()
 
     def toggle_view(self) -> None:
         self.show_raw = not self.show_raw
 
     def watch_show_raw(self, _value: bool) -> None:
-        self._refresh_content()
+        self._dirty = True
+        if self.has_class("visible"):
+            self._render_now()
 
-    def _refresh_content(self) -> None:
+    def on_show(self) -> None:
+        if self._dirty:
+            self._render_now()
+
+    def _render_now(self) -> None:
+        self._dirty = False
         if self._event is None:
             self.update("")
             return

@@ -343,5 +343,131 @@ def parse(
     typer.echo(f"[radar] parse: {file}")
 
 
+@app.command()
+def bench(
+    count: Annotated[
+        int,
+        typer.Option("--count", "-n", help="Number of synthetic events to generate."),
+    ] = 100_000,
+    capacity: Annotated[
+        int,
+        typer.Option("--capacity", help="Ring buffer capacity."),
+    ] = 100_000,
+    sources_count: Annotated[
+        int,
+        typer.Option("--sources", help="Number of distinct synthetic sources."),
+    ] = 5,
+) -> None:
+    """Benchmark buffer ingest, filter, and rebuild performance.
+
+    Generates synthetic events and measures key operations to validate
+    that radar remains responsive under high event volumes.
+    """
+    import random
+    import re
+    import time
+    from datetime import datetime, timedelta
+
+    from .buffer import ObservableBuffer
+    from .models import LogEvent
+
+    rng = random.Random(42)
+    source_names = [f"bench-src-{i}" for i in range(sources_count)]
+    levels = list(Level)
+    base_ts = datetime(2025, 6, 1, 12, 0, 0)
+
+    # -- Generate synthetic events --
+    typer.echo(f"[bench] generating {count:,} synthetic events...")
+    t0 = time.perf_counter()
+    events: list[LogEvent] = []
+    for i in range(count):
+        src = source_names[i % sources_count]
+        lvl = levels[rng.randint(0, len(levels) - 1)]
+        ts = base_ts + timedelta(milliseconds=i * 10)
+        msg = f"bench event {i} src={src} level={lvl.name} payload={'x' * rng.randint(20, 200)}"
+        events.append(LogEvent(
+            eid=f"{i:06x}"[-6:],
+            timestamp=ts,
+            level=lvl,
+            source=src,
+            source_path=f"/tmp/bench/{src}.log",
+            message=msg,
+            raw=msg,
+        ))
+    gen_time = time.perf_counter() - t0
+    typer.echo(f"[bench] generation: {gen_time:.3f}s ({count / gen_time:,.0f} events/s)")
+
+    # -- Ingest into buffer --
+    buf = ObservableBuffer(capacity=capacity)
+    t0 = time.perf_counter()
+    for event in events:
+        buf.append(event)
+    ingest_time = time.perf_counter() - t0
+    typer.echo(f"[bench] buffer ingest: {ingest_time:.3f}s ({count / ingest_time:,.0f} events/s)")
+    typer.echo(f"[bench] buffer count={buf.count:,}, sources={len(buf.sources)}")
+
+    # -- Drain pending --
+    t0 = time.perf_counter()
+    pending = buf.drain_pending()
+    drain_time = time.perf_counter() - t0
+    typer.echo(f"[bench] drain_pending ({len(pending):,} events): {drain_time:.3f}s")
+
+    # -- Filter: pass-all --
+    spec_all = FilterSpec()
+    t0 = time.perf_counter()
+    matched = buf.filter(spec_all)
+    filter_all_time = time.perf_counter() - t0
+    typer.echo(f"[bench] filter (pass-all, {len(matched):,} matched): {filter_all_time:.3f}s")
+
+    # -- Filter: single source --
+    spec_src = FilterSpec(sources=[source_names[0]])
+    t0 = time.perf_counter()
+    matched = buf.filter(spec_src)
+    filter_src_time = time.perf_counter() - t0
+    typer.echo(f"[bench] filter (single source, {len(matched):,} matched): {filter_src_time:.3f}s")
+
+    # -- Filter: level >= ERROR --
+    spec_level = FilterSpec(min_level=Level.ERROR)
+    t0 = time.perf_counter()
+    matched = buf.filter(spec_level)
+    filter_level_time = time.perf_counter() - t0
+    typer.echo(f"[bench] filter (level>=ERROR, {len(matched):,} matched): {filter_level_time:.3f}s")
+
+    # -- Filter: regex pattern --
+    spec_pattern = FilterSpec(pattern=re.compile(r"event [0-9]*00 "))
+    t0 = time.perf_counter()
+    matched = buf.filter(spec_pattern)
+    filter_pattern_time = time.perf_counter() - t0
+    typer.echo(f"[bench] filter (regex pattern, {len(matched):,} matched): {filter_pattern_time:.3f}s")
+
+    # -- Search --
+    t0 = time.perf_counter()
+    found = buf.search("event 50000")
+    search_time = time.perf_counter() - t0
+    typer.echo(f"[bench] search (literal, {len(found)} matched): {search_time:.3f}s")
+
+    # -- Sources property (now cached) --
+    t0 = time.perf_counter()
+    for _ in range(10_000):
+        _ = buf.sources
+    sources_time = time.perf_counter() - t0
+    typer.echo(f"[bench] buf.sources x10k: {sources_time:.3f}s ({sources_time / 10_000 * 1e6:.1f} us/call)")
+
+    # -- Summary --
+    typer.echo("")
+    typer.echo("[bench] === Summary ===")
+    typer.echo(f"  Events:       {count:>10,}")
+    typer.echo(f"  Capacity:     {capacity:>10,}")
+    typer.echo(f"  Generation:   {gen_time:>10.3f}s")
+    typer.echo(f"  Ingest:       {ingest_time:>10.3f}s  ({count / ingest_time:>12,.0f} evt/s)")
+    typer.echo(f"  Drain:        {drain_time:>10.3f}s")
+    typer.echo(f"  Filter (all): {filter_all_time:>10.3f}s")
+    typer.echo(f"  Filter (src): {filter_src_time:>10.3f}s")
+    typer.echo(f"  Filter (lvl): {filter_level_time:>10.3f}s")
+    typer.echo(f"  Filter (re):  {filter_pattern_time:>10.3f}s")
+    typer.echo(f"  Search:       {search_time:>10.3f}s")
+    typer.echo(f"  Sources/call: {sources_time / 10_000 * 1e6:>10.1f} us")
+
+
 def main() -> None:
     app()

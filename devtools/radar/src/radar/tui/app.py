@@ -179,14 +179,13 @@ class RadarApp(App):
             return
 
         log_list = self.query_one("#log-list", LogListView)
-        added = 0
-        for event in pending:
-            if self._filter.matches(event):
-                log_list.add_event(event)
-                self._visible_events.append(event)
-                added += 1
+        matched = [e for e in pending if self._filter.matches(e)]
 
-        if added and self._mode == "streaming":
+        if matched:
+            log_list.add_events_batch(matched)
+            self._visible_events.extend(matched)
+
+        if matched and self._mode == "streaming":
             log_list.scroll_end(animate=False)
 
         self._update_status_bar(new_count=len(pending))
@@ -336,9 +335,10 @@ class RadarApp(App):
         log_list.clear_events()
         self._visible_events.clear()
 
-        for event in self._buffer.filter(self._filter):
-            log_list.add_event(event)
-            self._visible_events.append(event)
+        matched = self._buffer.filter(self._filter)
+        if matched:
+            log_list.add_events_batch(matched)
+            self._visible_events.extend(matched)
 
         if self._mode == "streaming":
             log_list.scroll_end(animate=False)
