@@ -42,7 +42,6 @@ module SupexRuntime
       @verbose = ENV['SUPEX_VERBOSE'] == '1'
 
       setup_console
-      setup_console_capture
     end
 
     # Start the TCP server
@@ -67,7 +66,6 @@ module SupexRuntime
         log "Bridge server created on port #{@port}"
 
         @running = true
-        start_console_capture
         start_request_handler
 
         log 'Bridge server started and listening'
@@ -111,8 +109,9 @@ module SupexRuntime
     end
 
     # Setup console capture for output logging
-    def setup_console_capture
-      workspace = ENV['SUPEX_WORKSPACE'] || File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
+    # @param workspace [String, nil] workspace path (defaults to SUPEX_WORKSPACE env or project root)
+    def setup_console_capture(workspace = nil)
+      workspace ||= ENV['SUPEX_WORKSPACE'] || File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
       log_dir = File.join(workspace, '.tmp', 'logs')
       FileUtils.mkdir_p(log_dir)
       log_file_path = File.join(log_dir, 'runtime-console.log')
@@ -437,6 +436,13 @@ module SupexRuntime
         pid: pid
       }
       context.workspace = params['workspace']
+
+      # Redirect console capture to the client's workspace
+      if context.workspace
+        stop_console_capture
+        setup_console_capture(context.workspace)
+        start_console_capture
+      end
 
       workspace_info = context.workspace ? " workspace: #{context.workspace}" : ''
       log "Client connected: #{name}/#{version} [PID:#{pid}] (agent: #{agent}#{workspace_info})"
