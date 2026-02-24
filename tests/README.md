@@ -348,7 +348,7 @@ TimeoutError: SketchUp did not become ready within 60 seconds
 **Possible causes:**
 1. SketchUp is already running - close it manually
 2. Port 9876 is in use - check with `lsof -i :9876`
-3. Extension failed to load - check `.tmp/sketchup_console.log`
+3. Extension failed to load - check `.tmp/logs/runtime-console.log`
 
 **Solution:**
 ```bash
@@ -375,7 +375,7 @@ SketchUpConnectionError: Connection refused
 3. Firewall blocking localhost connections
 
 **Solution:**
-1. Check console log: `cat .tmp/sketchup_console.log`
+1. Check console log: `cat .tmp/logs/runtime-console.log`
 2. Verify extension is loaded: Check **Extensions** menu in SketchUp
 3. Test connection manually: `./supex status` (from repository root)
 
@@ -406,7 +406,7 @@ FileNotFoundError: Template file not found: tests/data/template.skp
 **Problem:** `fresh_model` fixture fails or tests run with stale state.
 
 **Solution:**
-1. Verify snippet loading: check `.tmp/sketchup_console.log` for Ruby errors
+1. Verify snippet loading: check `.tmp/logs/runtime-console.log` for Ruby errors
 2. Ensure `template.skp` exists and is valid
 3. Try running with `--no-sketchup-launch` if SketchUp is already clean
 
@@ -418,7 +418,7 @@ FileNotFoundError: Template file not found: tests/data/template.skp
 - Stack traces show actual file:line from `.rb` files
 - Check Ruby version compatibility (Ruby 3.2.2 for SketchUp 2026)
 - Verify SketchUp API version matches expectations
-- Review `.tmp/sketchup_console.log` for detailed errors
+- Review `.tmp/logs/runtime-console.log` for detailed errors
 
 ### JSON Parsing Errors
 

@@ -90,13 +90,16 @@ If neither `SUPEX_VCAD_TEMP_DIR` nor `SUPEX_WORKSPACE` is set, sidecar startup f
 
 ## Log Files
 
-Common outputs in `$SUPEX_LOG_DIR`:
+All logs are written under a single canonical root: `$SUPEX_WORKSPACE/.tmp/logs/`
 
-- `supex-cli-stdout.log`
-- `supex-cli-stderr.log`
-- `supex-cli.log`
-- `supex-mcp-protocol.jsonl`
-- `supex-mcp-stderr.log`
+(Override with `$SUPEX_LOG_DIR` for wrappers.)
+
+- `cli-stdout.log`
+- `cli-stderr.log`
+- `cli-driver.log`
+- `mcp-protocol.jsonl`
+- `mcp-stderr.log`
 - `vcad-sidecar-stderr.log`
-
-Runtime console capture is written to `./.tmp/sketchup_console.log`.
+- `runtime-console.log`
+- `runtime-stdout.log`
+- `runtime-stderr.log`

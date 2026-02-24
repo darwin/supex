@@ -112,9 +112,10 @@ module SupexRuntime
 
     # Setup console capture for output logging
     def setup_console_capture
-      # Create .tmp directory if it doesn't exist
-      tmp_dir = File.join(File.dirname(__FILE__), '..', '..', '..', '.tmp')
-      log_file_path = File.expand_path(File.join(tmp_dir, 'sketchup_console.log'))
+      workspace = ENV['SUPEX_WORKSPACE'] || File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..'))
+      log_dir = File.join(workspace, '.tmp', 'logs')
+      FileUtils.mkdir_p(log_dir)
+      log_file_path = File.join(log_dir, 'runtime-console.log')
 
       @console_capture = ConsoleCapture.new(log_file_path)
       log "Console capture initialized: #{log_file_path}"

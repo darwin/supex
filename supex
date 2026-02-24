@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Supex CLI wrapper for convenient access from project root
-# Logs stdout to supex-cli-stdout.log
-# Logs stderr to supex-cli-stderr.log
+# Logs stdout to cli-stdout.log
+# Logs stderr to cli-stderr.log
 
 set -e
 
@@ -21,8 +21,8 @@ export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$HOME/.supex/tmp-workspace}"
 LOG_DIR="${SUPEX_LOG_DIR:-$SUPEX_WORKSPACE/.tmp/logs}"
 mkdir -p "$LOG_DIR"
 
-STDOUT_LOG="$LOG_DIR/supex-cli-stdout.log"
-STDERR_LOG="$LOG_DIR/supex-cli-stderr.log"
+STDOUT_LOG="$LOG_DIR/cli-stdout.log"
+STDERR_LOG="$LOG_DIR/cli-stderr.log"
 
 # Preserve TTY detection for rich formatting (tee breaks isatty())
 if [ -t 1 ]; then

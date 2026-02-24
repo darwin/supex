@@ -115,18 +115,20 @@ Log files are written under `$SUPEX_LOG_DIR`.
 When using repository wrappers, the default is `$SUPEX_WORKSPACE/.tmp/logs`.
 
 **Wrapper logs**:
-- `$SUPEX_LOG_DIR/supex-cli-stdout.log`
-- `$SUPEX_LOG_DIR/supex-cli-stderr.log`
-- `$SUPEX_LOG_DIR/supex-mcp-protocol.jsonl`
-- `$SUPEX_LOG_DIR/supex-mcp-stderr.log`
+- `$SUPEX_LOG_DIR/cli-stdout.log`
+- `$SUPEX_LOG_DIR/cli-stderr.log`
+- `$SUPEX_LOG_DIR/mcp-protocol.jsonl`
+- `$SUPEX_LOG_DIR/mcp-stderr.log`
 - `$SUPEX_LOG_DIR/vcad-sidecar-stderr.log`
 
 **Driver internal log**:
-- `$SUPEX_LOG_DIR/supex-cli.log`
+- `$SUPEX_LOG_DIR/cli-driver.log`
 
 **Runtime logs**:
 - SketchUp Ruby Console
-- `./.tmp/sketchup_console.log` (console capture)
+- `$SUPEX_LOG_DIR/runtime-console.log` (console capture)
+- `$SUPEX_LOG_DIR/runtime-stdout.log`
+- `$SUPEX_LOG_DIR/runtime-stderr.log`
 
 **Request tracing**:
 - Each request includes an ID like `[req:123]`

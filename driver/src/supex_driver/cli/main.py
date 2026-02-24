@@ -22,7 +22,7 @@ def _setup_logging():
     log_dir = os.environ.get("SUPEX_LOG_DIR", default_log_dir)
     try:
         os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, "supex-cli.log")
+        log_file = os.path.join(log_dir, "cli-driver.log")
         handler = logging.FileHandler(log_file, mode="a")
         formatter = logging.Formatter(
             fmt="%(asctime)s|%(levelname)s|%(name)s|%(message)s",

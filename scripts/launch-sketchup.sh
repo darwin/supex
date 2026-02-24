@@ -32,10 +32,11 @@ fi
 
 # Configuration
 APP_NAME="SketchUp"
-LOG_DIR="$PROJECT_ROOT/.tmp"
-SKETCHUP_OUT_FILE="$LOG_DIR/sketchup_out.txt"
-SKETCHUP_ERR_FILE="$LOG_DIR/sketchup_err.txt"
-CONSOLE_LOG_FILE="$LOG_DIR/sketchup_console.log"
+export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$(pwd)}"
+LOG_DIR="$SUPEX_WORKSPACE/.tmp/logs"
+SKETCHUP_OUT_FILE="$LOG_DIR/runtime-stdout.log"
+SKETCHUP_ERR_FILE="$LOG_DIR/runtime-stderr.log"
+CONSOLE_LOG_FILE="$LOG_DIR/runtime-console.log"
 
 # Colors and logging functions are provided by common.sh
 

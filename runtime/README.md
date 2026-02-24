@@ -212,14 +212,14 @@ Change code and reload without restarting SketchUp:
 
 ### Debugging
 
-Console output is logged to `.tmp/sketchup_console.log`:
+Console output is logged to `$SUPEX_WORKSPACE/.tmp/logs/runtime-console.log`:
 
 ```ruby
 # Check capture status
 SupexRuntime::Main.server_status
 
 # View log path
-# Log location: <repo>/.tmp/sketchup_console.log
+# Log location: $SUPEX_WORKSPACE/.tmp/logs/runtime-console.log
 ```
 
 ## Requirements
