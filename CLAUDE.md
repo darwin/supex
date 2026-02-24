@@ -64,8 +64,12 @@ MCP-based platform connecting AI agents to SketchUp:
 ./supex info
 ./supex reload
 
-# Run tests
-cd driver && uv run pytest tests/
+# Run all tests
+./scripts/launch-tests.sh
+
+# Run selected test suites (slugs: driver, stdlib, runtime, mock, sidecar, viewer, radar, e2e)
+./scripts/launch-tests.sh viewer sidecar
+./scripts/launch-tests.sh --list          # show available suites
 
 # Build production .rbz
 cd runtime && bundle exec rake build
