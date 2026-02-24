@@ -129,7 +129,7 @@ class DetailPanel(Static):
     render happens when the panel becomes visible.
     """
 
-    show_raw: reactive[bool] = reactive(False)
+    show_raw: reactive[bool] = reactive(True)
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)

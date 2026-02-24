@@ -1,8 +1,8 @@
-"""Pluggable summary renderers for log events.
+"""Pluggable renderers for log events (summary + detail).
 
-Each source can register a custom renderer that produces a concise one-liner
-from a LogEvent.  The summary is what both humans and agents see in the log
-list view.  Raw detail is always available via detail panel toggle.
+Each source can register a custom renderer that produces:
+- ``render``: concise one-liner for the log list view
+- ``render_detail``: full content for the detail panel (default: raw text)
 
 Renderer lookup uses ``event.source`` (logical source ID from config).
 
@@ -21,6 +21,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from rich.highlighter import JSONHighlighter
 from rich.text import Text
 
 from radar.models import Level, LogEvent
@@ -43,6 +44,10 @@ class SummaryRenderer(ABC):
     @abstractmethod
     def render(self, event: LogEvent) -> Text: ...
 
+    def render_detail(self, event: LogEvent) -> Text:
+        """Render full detail for the event.  Override for custom formatting."""
+        return Text(event.raw)
+
 
 class DefaultSummaryRenderer(SummaryRenderer):
     """Default: timestamp | level (colored) | source | message (truncated)."""
@@ -59,8 +64,17 @@ class DefaultSummaryRenderer(SummaryRenderer):
         return text
 
 
+_json_hl = JSONHighlighter()
+
+
 class MCPProtocolRenderer(SummaryRenderer):
     """MCP JSONL: method name, tool, direction (req/res), duration."""
+
+    def render_detail(self, event: LogEvent) -> Text:
+        if event.structured:
+            raw = json.dumps(event.structured, indent=2, default=str)
+            return _json_hl(Text(raw))
+        return Text(event.raw)
 
     def render(self, event: LogEvent) -> Text:
         text = Text()
@@ -370,20 +384,14 @@ def render_summary(event: LogEvent) -> Text:
 
 
 def render_raw(event: LogEvent) -> Text:
-    """Original raw text with metadata header.  No truncation.
-
-    Always available via detail panel toggle -- not pluggable.
-    """
+    """Metadata header + renderer-specific detail content."""
     text = Text()
-    text.append(f"EID: {event.eid}\n", style="dim")
-    text.append(f"Source: {event.source} ({event.source_path})\n", style="dim")
-    text.append(f"Timestamp: {event.timestamp.isoformat()}\n", style="dim")
-    text.append(f"Level: {event.level.name}\n", style="dim")
-    text.append("\u2500" * 40 + "\n", style="dim")
-    text.append(event.raw)
-    if event.structured:
-        text.append("\n" + "\u2500" * 40 + "\n", style="dim")
-        text.append(json.dumps(event.structured, indent=2, default=str), style="cyan")
+    text.append(f"EID: {event.eid}", style="dim")
+    text.append(f"  Source: {event.source}", style="dim")
+    text.append(f"  {event.timestamp.isoformat()}", style="dim")
+    text.append(f"  {event.level.name}\n", style=LEVEL_STYLES.get(event.level, "dim"))
+    text.append("\u2500" * 60 + "\n", style="dim")
+    text.append_text(get_renderer(event.source).render_detail(event))
     return text
 
 
