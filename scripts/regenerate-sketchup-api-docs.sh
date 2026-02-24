@@ -7,8 +7,8 @@ set -euo pipefail
 # Determine script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SUBMODULE_PATH="docgen/sketchup-api-stubs"
-GENERATOR_SCRIPT="docgen/scripts/generate_docs.sh"
+SUBMODULE_PATH="devtools/docgen/sketchup-api-stubs"
+GENERATOR_SCRIPT="devtools/docgen/scripts/generate_docs.sh"
 
 # Source common utilities (colors, logging, confirm)
 source "$SCRIPT_DIR/helpers/common.sh"

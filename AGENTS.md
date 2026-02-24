@@ -41,7 +41,9 @@ supex/
 │       └── phyz/              # Physics engine
 ├── docs/                      # Documentation
 │   └── agents/                # Agent prompts (guide/ symlinked as supex-guide/)
-├── docgen/                    # SketchUp API doc generator
+├── devtools/                  # Developer tools
+│   ├── docgen/                # SketchUp API doc generator
+│   └── radar/                 # Log aggregator / observability
 ├── stdlib/                    # Standard library (Ruby helpers)
 ├── scripts/                   # Development scripts
 └── examples/                  # Example projects (orphan branches)

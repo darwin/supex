@@ -21,7 +21,7 @@ bundle exec rubocop
 
 echo ""
 echo "--- Ruby: docgen ---"
-cd "$PROJECT_ROOT/docgen"
+cd "$PROJECT_ROOT/devtools/docgen"
 bundle exec rubocop
 
 echo ""

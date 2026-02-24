@@ -1,6 +1,3 @@
-[submodule "docgen/sketchup-api-stubs"]
-	path = docgen/sketchup-api-stubs
-	url = https://github.com/SketchUp/ruby-api-stubs.git
 [submodule "vcad/vendor/vcad"]
 	path = vcad/vendor/vcad
 	url = https://github.com/darwin/vcad.git
@@ -13,3 +10,6 @@
 	path = vcad/vendor/phyz
 	url = https://github.com/darwin/phyz.git
 	branch = supex-patches
+[submodule "devtools/docgen/sketchup-api-stubs"]
+	path = devtools/docgen/sketchup-api-stubs
+	url = https://github.com/SketchUp/ruby-api-stubs.git
