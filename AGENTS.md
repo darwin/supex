@@ -73,6 +73,10 @@ MCP-based platform connecting AI agents to SketchUp:
 ./scripts/launch-tests.sh viewer sidecar
 ./scripts/launch-tests.sh --list          # show available suites
 
+# Rebuild binaries (slugs: sidecar, viewer)
+./scripts/rebuild.sh                   # rebuild all
+./scripts/rebuild.sh sidecar           # rebuild only sidecar
+
 # Build production .rbz
 cd runtime && bundle exec rake build
 ```
