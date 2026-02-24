@@ -60,14 +60,14 @@ SUITES:
 $(list_suites)
 
 OPTIONS:
-    -e, --e2e       Include E2E tests (when running all suites)
+    -e, --e2e       Run E2E tests only (requires SketchUp running)
     -l, --list      List available test suites
     -h, --help      Show this help message
 
 EXAMPLES:
-    $(basename "$0")                    # Run all unit tests
+    $(basename "$0")                    # Run all headless tests
     $(basename "$0") driver viewer      # Run only driver and viewer tests
-    $(basename "$0") --e2e              # Run all tests including E2E
+    $(basename "$0") --e2e              # Run E2E tests only
     $(basename "$0") sidecar            # Run only sidecar tests
 
 EOF
@@ -199,11 +199,13 @@ should_run() {
         return 1
     fi
 
-    # No explicit selection: run all, but skip e2e unless --e2e
-    if [ "$e2e_flag" = "true" ] && [ "$RUN_E2E" != true ]; then
-        return 1
+    # --e2e: run only e2e suites
+    if [ "$RUN_E2E" = true ]; then
+        [ "$e2e_flag" = "true" ] && return 0 || return 1
     fi
 
+    # Default: run only non-e2e suites
+    [ "$e2e_flag" = "true" ] && return 1
     return 0
 }
 
@@ -215,9 +217,9 @@ main() {
     if [ ${#SELECTED_SUITES[@]} -gt 0 ]; then
         echo -e "${YELLOW}Running selected suites: ${SELECTED_SUITES[*]}${NC}"
     elif [ "$RUN_E2E" = true ]; then
-        echo -e "${YELLOW}Running all suites including E2E${NC}"
+        echo -e "${YELLOW}Running E2E tests only${NC}"
     else
-        echo -e "${YELLOW}E2E tests will be skipped (use --e2e to include)${NC}"
+        echo -e "${YELLOW}Tip: use ./test --e2e to run E2E tests (requires SketchUp running)${NC}"
     fi
     echo ""
 

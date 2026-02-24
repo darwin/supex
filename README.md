@@ -258,7 +258,7 @@ Run tests and linters from the repository root:
 # Run all unit tests (driver, stdlib, runtime)
 ./test
 
-# Run all tests including E2E (requires SketchUp running)
+# Run E2E tests only (requires SketchUp running)
 ./test --e2e
 
 # Run all linters (RuboCop, ruff, mypy)
