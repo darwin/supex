@@ -55,3 +55,26 @@ class RingBuffer:
     def sources(self) -> set[str]:
         """Set of unique source IDs in the buffer."""
         return {e.source for e in self._events}
+
+
+class ObservableBuffer(RingBuffer):
+    """RingBuffer with pending-event tracking for live consumers.
+
+    After each append, the event is also placed into a pending list.
+    Consumers (TUI timer, plain-mode loop) call ``drain_pending()``
+    to collect new events since the last drain.
+    """
+
+    def __init__(self, capacity: int = 10_000):
+        super().__init__(capacity)
+        self._pending: list[LogEvent] = []
+
+    def append(self, event: LogEvent) -> None:
+        super().append(event)
+        self._pending.append(event)
+
+    def drain_pending(self) -> list[LogEvent]:
+        """Return and clear all events appended since the last drain."""
+        events = self._pending
+        self._pending = []
+        return events
