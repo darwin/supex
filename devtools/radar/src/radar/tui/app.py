@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+import time
 from typing import TYPE_CHECKING
 
 from textual.app import App
@@ -104,6 +105,7 @@ class RadarApp(App):
     # (tab, enter, escape) — no Ctrl combinations that could clash.
     BINDINGS = [
         Binding("q", "quit", "Quit"),
+        Binding("ctrl+c", "interrupt", "Ctrl+C x2 to quit", show=False, priority=True),
         Binding("f", "toggle_filter", "Filter"),
         Binding("tab", "toggle_view", "Summary/Raw", show=False),
         Binding("slash", "search", "Search"),
@@ -114,6 +116,8 @@ class RadarApp(App):
         Binding("enter", "select_row", "Detail", show=False),
         Binding("escape", "exit_browse", "Resume", show=False),
     ]
+
+    _CTRL_C_WINDOW = 1.0  # seconds between Ctrl+C presses
 
     def __init__(
         self,
@@ -132,6 +136,7 @@ class RadarApp(App):
 
         # Mode: "streaming" (auto-scroll, no cursor) or "browsing" (cursor, no auto-scroll)
         self._mode = "streaming"
+        self._last_ctrl_c: float = 0.0
 
         # Active filter (may be pre-set from CLI)
         self._filter = initial_filter or FilterSpec()
@@ -388,6 +393,15 @@ class RadarApp(App):
         """Return to streaming mode: hide detail, scroll to end."""
         self._hide_detail()
         self._exit_browse_mode()
+
+    def action_interrupt(self) -> None:
+        """Quit on double Ctrl+C within the time window."""
+        now = time.monotonic()
+        if now - self._last_ctrl_c < self._CTRL_C_WINDOW:
+            self.exit()
+        else:
+            self._last_ctrl_c = now
+            self.notify("Press Ctrl+C again to quit", timeout=2)
 
     # ------------------------------------------------------------------
     # Browse / stream mode
