@@ -113,6 +113,10 @@ class RadarApp(App):
         Binding("down", "cursor_down", "Down", show=False, priority=True),
         Binding("k", "cursor_up", "Up", show=False),
         Binding("up", "cursor_up", "Up", show=False, priority=True),
+        Binding("h", "page_up", "PgUp", show=False),
+        Binding("left", "page_up", "PgUp", show=False, priority=True),
+        Binding("l", "page_down", "PgDn", show=False),
+        Binding("right", "page_down", "PgDn", show=False, priority=True),
         Binding("g", "scroll_top", "Top", show=False),
         Binding("G", "scroll_bottom", "Bottom", show=False),
         Binding("enter", "select_row", "Detail", show=False),
@@ -346,6 +350,23 @@ class RadarApp(App):
         self._enter_browse_mode()
         if not was_streaming:
             self.query_one("#log-list", LogListView).action_cursor_up()
+        self._update_detail_for_cursor()
+
+    def action_page_up(self) -> None:
+        self._enter_browse_mode()
+        log_list = self.query_one("#log-list", LogListView)
+        page = max(1, log_list.size.height - 1)
+        target = max(0, log_list.cursor_row - page)
+        log_list.move_cursor(row=target)
+        self._update_detail_for_cursor()
+
+    def action_page_down(self) -> None:
+        self._enter_browse_mode()
+        log_list = self.query_one("#log-list", LogListView)
+        page = max(1, log_list.size.height - 1)
+        last = len(self._visible_events) - 1
+        target = min(last, log_list.cursor_row + page)
+        log_list.move_cursor(row=target)
         self._update_detail_for_cursor()
 
     def action_scroll_top(self) -> None:
