@@ -374,7 +374,7 @@ module SupexRuntime
 
       # Handle legacy command format for backwards compatibility
       if request['command']
-        response = handle_legacy_command(request)
+        response = handle_legacy_command(request, context)
         log "[req:#{req_id}] Completed (legacy)"
         return response
       end
@@ -465,19 +465,29 @@ module SupexRuntime
 
     # Handle legacy command format
     # @param request [Hash] legacy request format
+    # @param context [ConnectionContext] connection-scoped state
     # @return [Hash] JSON-RPC response
-    def handle_legacy_command(request)
+    def handle_legacy_command(request, context)
+      emit_legacy_deprecation_warning
       tool_request = {
         'method' => 'tools/call',
         'params' => {
           'name' => request['command'],
-          'arguments' => request['parameters']
+          'arguments' => request['parameters'] || {}
         },
         'jsonrpc' => request['jsonrpc'] || '2.0',
         'id' => request['id']
       }
-      log "Converting to tool request: #{tool_request.inspect}"
-      handle_tool_call(tool_request)
+      log_verbose "Converting legacy command '#{request['command']}' to tool request"
+      handle_tool_call(tool_request, context)
+    end
+
+    # Emit deprecation warning for legacy command format (once per session)
+    def emit_legacy_deprecation_warning
+      return if @legacy_warning_emitted
+
+      @legacy_warning_emitted = true
+      log 'DEPRECATION: Legacy command format is deprecated, use tools/call method instead'
     end
 
     # Handle ping request

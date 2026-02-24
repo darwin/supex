@@ -560,6 +560,106 @@ class TestBridgeServer < Minitest::Test
   end
 
   # ==========================================================================
+  # Legacy command compat tests
+  # ==========================================================================
+
+  def test_handle_legacy_command_converts_to_tool_call
+    server = SupexRuntime::BridgeServer.new(port: 0)
+    context = SupexRuntime::BridgeServer::ConnectionContext.new(
+      client_info: { name: 'test', version: '1.0', agent: 'test', pid: 123 }
+    )
+    request = {
+      'jsonrpc' => '2.0',
+      'command' => 'ping',
+      'parameters' => {},
+      'id' => 42
+    }
+
+    response = server.send(:handle_legacy_command, request, context)
+
+    assert response[:result][:success], "Legacy command should succeed: #{response.inspect}"
+    assert_equal 42, response[:id]
+  end
+
+  def test_handle_legacy_command_nil_parameters
+    server = SupexRuntime::BridgeServer.new(port: 0)
+    context = SupexRuntime::BridgeServer::ConnectionContext.new(
+      client_info: { name: 'test', version: '1.0', agent: 'test', pid: 123 }
+    )
+    request = {
+      'jsonrpc' => '2.0',
+      'command' => 'ping',
+      'id' => 43
+    }
+
+    response = server.send(:handle_legacy_command, request, context)
+
+    assert response[:result][:success], "Legacy command with nil parameters should succeed: #{response.inspect}"
+  end
+
+  def test_handle_legacy_command_emits_deprecation_warning_once
+    server = SupexRuntime::BridgeServer.new(port: 0)
+    context = SupexRuntime::BridgeServer::ConnectionContext.new(
+      client_info: { name: 'test', version: '1.0', agent: 'test', pid: 123 }
+    )
+    request = {
+      'jsonrpc' => '2.0',
+      'command' => 'ping',
+      'parameters' => {},
+      'id' => 44
+    }
+
+    SupexRuntime::Utils.clear_console_output
+
+    # First call should emit deprecation warning
+    server.send(:handle_legacy_command, request, context)
+    first_output = SupexRuntime::Utils.console_output.join("\n")
+    assert_includes first_output, 'DEPRECATION'
+
+    SupexRuntime::Utils.clear_console_output
+
+    # Second call should not emit again
+    server.send(:handle_legacy_command, request, context)
+    second_output = SupexRuntime::Utils.console_output.join("\n")
+    refute_includes second_output, 'DEPRECATION'
+  end
+
+  def test_handle_legacy_command_preserves_request_id
+    server = SupexRuntime::BridgeServer.new(port: 0)
+    context = SupexRuntime::BridgeServer::ConnectionContext.new(
+      client_info: { name: 'test', version: '1.0', agent: 'test', pid: 123 }
+    )
+    request = {
+      'jsonrpc' => '2.0',
+      'command' => 'ping',
+      'parameters' => {},
+      'id' => 'unique-id-99'
+    }
+
+    response = server.send(:handle_legacy_command, request, context)
+
+    assert_equal 'unique-id-99', response[:id]
+  end
+
+  def test_handle_jsonrpc_legacy_command_path
+    server = SupexRuntime::BridgeServer.new(port: 0)
+    context = SupexRuntime::BridgeServer::ConnectionContext.new(
+      client_info: { name: 'test', version: '1.0', agent: 'test', pid: 123 }
+    )
+    # Legacy request has 'command' key instead of 'method' = 'tools/call'
+    request = {
+      'jsonrpc' => '2.0',
+      'command' => 'ping',
+      'parameters' => {},
+      'id' => 45
+    }
+
+    response = server.send(:handle_jsonrpc_request, request, context)
+
+    assert response[:result][:success], "Legacy path through handle_jsonrpc_request should work: #{response.inspect}"
+  end
+
+  # ==========================================================================
   # Framing tests (newline-delimited JSON)
   # ==========================================================================
 

@@ -255,6 +255,9 @@ module SupexRuntime
       end
     end
 
+    # Maximum length for PID values (10 digits covers any realistic PID)
+    MAX_PID_LENGTH = 10
+
     # Handle hello handshake request
     # @param request [Hash] JSON-RPC request
     # @param client [ClientConnection] client connection
@@ -271,15 +274,25 @@ module SupexRuntime
         end
       end
 
-      pid = params['pid']
+      pid = sanitize_pid(params['pid'])
       name = params['name'] || 'unknown'
 
-      # Create session directory
+      # Create session directory from sanitized tokens only
       timestamp = Time.now.strftime('%y%m%d-%H%M%S')
-      session_name = "s#{timestamp}-#{pid || Process.pid}"
-      client.session_dir = File.join(SNIPPETS_DIR, session_name)
-      FileUtils.mkdir_p(client.session_dir)
+      session_name = "s#{timestamp}-#{pid}"
+      session_dir = File.join(SNIPPETS_DIR, session_name)
+      FileUtils.mkdir_p(session_dir)
 
+      # Canonicalize and verify session path stays within snippets root
+      canonical_snippets = File.realpath(SNIPPETS_DIR)
+      canonical_session = File.realpath(session_dir)
+      unless canonical_session.start_with?("#{canonical_snippets}/")
+        FileUtils.rm_rf(session_dir) rescue nil # rubocop:disable Style/RescueModifier
+        log "ERROR: Session path escaped snippets root: #{canonical_session}"
+        return error_response(request, 'Session path traversal denied', -32_600)
+      end
+
+      client.session_dir = canonical_session
       client.client_info = params
 
       log "Client connected: #{name} [PID:#{pid}] -> #{session_name}"
@@ -289,6 +302,19 @@ module SupexRuntime
                          session: session_name,
                          server: { name: 'supex-repl', version: VERSION }
                        })
+    end
+
+    # Sanitize PID value: numeric only, bounded length
+    # @param pid [String, Integer, nil] raw PID from client
+    # @return [String] sanitized PID (numeric string)
+    def sanitize_pid(pid)
+      pid_str = pid.to_s
+      if pid_str.match?(/\A\d{1,#{MAX_PID_LENGTH}}\z/)
+        pid_str
+      else
+        log "WARNING: Invalid PID '#{pid_str.slice(0, 40)}', falling back to Process.pid" unless pid_str.empty?
+        Process.pid.to_s
+      end
     end
 
     # Handle eval request
