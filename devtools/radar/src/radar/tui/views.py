@@ -54,7 +54,7 @@ class LogListView(DataTable):
         super().__init__(**kwargs)
         self._events: list[LogEvent] = []
         self._eid_to_index: dict[str, int] = {}
-        self.cursor_type = "none"  # streaming mode default
+        self.cursor_type = "row"
         self.zebra_stripes = True
 
     def on_mount(self) -> None:

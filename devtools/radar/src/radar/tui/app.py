@@ -77,9 +77,11 @@ class RadarApp(App):
     LogListView {
         height: 1fr;
     }
+    LogListView.detail-open {
+        height: 4;
+    }
     #detail-panel {
-        height: auto;
-        max-height: 40%;
+        height: 1fr;
         display: none;
         padding: 0 1;
         border-top: solid $primary;
@@ -165,6 +167,7 @@ class RadarApp(App):
         self._log_terminal_info()
         self._renderer_reloader.snapshot_mtimes()
         self._apply_initial_filter()
+        self.query_one("#log-list", LogListView).focus()
         self.run_worker(self._run_pipeline(), exclusive=True, name="ingest")
         self.set_interval(0.1, self._poll_events)
         self.set_interval(1.0, self._poll_renderer_reload)
@@ -348,6 +351,24 @@ class RadarApp(App):
             log_list.move_cursor(row=len(self._visible_events) - 1)
         self._update_detail_for_cursor()
 
+    def _show_detail(self, event: LogEvent) -> None:
+        """Show detail panel for the given event, shrink log list."""
+        detail = self.query_one("#detail-panel", DetailPanel)
+        log_list = self.query_one("#log-list", LogListView)
+        detail.add_class("visible")
+        log_list.add_class("detail-open")
+        detail.set_event(event)
+        # Defer centering until after layout reflow (height change needs a render pass)
+        self.call_after_refresh(self._center_cursor, log_list)
+
+    def _hide_detail(self) -> None:
+        """Hide detail panel, restore log list height."""
+        detail = self.query_one("#detail-panel", DetailPanel)
+        log_list = self.query_one("#log-list", LogListView)
+        detail.remove_class("visible")
+        log_list.remove_class("detail-open")
+        detail.set_event(None)
+
     def action_select_row(self) -> None:
         """Enter/toggle detail panel for the selected row."""
         detail = self.query_one("#detail-panel", DetailPanel)
@@ -359,18 +380,13 @@ class RadarApp(App):
             return
 
         if detail.has_class("visible"):
-            # Already showing — hide it
-            detail.remove_class("visible")
-            detail.set_event(None)
+            self._hide_detail()
         else:
-            detail.add_class("visible")
-            detail.set_event(event)
+            self._show_detail(event)
 
     def action_exit_browse(self) -> None:
         """Return to streaming mode: hide detail, scroll to end."""
-        detail = self.query_one("#detail-panel", DetailPanel)
-        detail.remove_class("visible")
-        detail.set_event(None)
+        self._hide_detail()
         self._exit_browse_mode()
 
     # ------------------------------------------------------------------
@@ -382,7 +398,7 @@ class RadarApp(App):
             return
         self._mode = "browsing"
         log_list = self.query_one("#log-list", LogListView)
-        log_list.cursor_type = "row"
+        log_list.focus()
         # Place cursor at the last row
         if self._visible_events:
             log_list.move_cursor(row=len(self._visible_events) - 1)
@@ -390,15 +406,36 @@ class RadarApp(App):
     def _exit_browse_mode(self) -> None:
         self._mode = "streaming"
         log_list = self.query_one("#log-list", LogListView)
-        log_list.cursor_type = "none"
         log_list.scroll_end(animate=False)
+
+    def _center_cursor(self, log_list: LogListView) -> None:
+        """Scroll so the cursor row is in the middle of the 3 visible rows.
+
+        TODO: scroll centering works in tmux but not reliably outside it.
+        Needs investigation into Textual DataTable scroll coordinate system.
+        """
+        pass
 
     def _update_detail_for_cursor(self) -> None:
         detail = self.query_one("#detail-panel", DetailPanel)
         if not detail.has_class("visible"):
             return
-        event = self.query_one("#log-list", LogListView).get_event_at_cursor()
+        log_list = self.query_one("#log-list", LogListView)
+        event = log_list.get_event_at_cursor()
         detail.set_event(event)
+        self.call_after_refresh(self._center_cursor, log_list)
+
+    # ------------------------------------------------------------------
+    # DataTable row selection (Enter handled by DataTable in browse mode)
+    # ------------------------------------------------------------------
+
+    def on_log_list_view_event_selected(self, message: LogListView.EventSelected) -> None:
+        """Handle Enter on a DataTable row — toggle detail panel."""
+        detail = self.query_one("#detail-panel", DetailPanel)
+        if detail.has_class("visible"):
+            self._hide_detail()
+        else:
+            self._show_detail(message.event)
 
     # ------------------------------------------------------------------
     # Filter changes
