@@ -177,6 +177,13 @@ main() {
         "npx vitest run" \
         || true  # Continue even if failed
 
+    # Run Radar tests (Python)
+    run_test_suite \
+        "Radar Tests" \
+        "${PROJECT_ROOT}/devtools/radar" \
+        "uv run python -m pytest tests/" \
+        || true  # Continue even if failed
+
     # Run E2E tests if flag is set
     if [ "$RUN_E2E" = true ]; then
         run_test_suite \
