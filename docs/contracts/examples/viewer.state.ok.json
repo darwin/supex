@@ -1,0 +1,5 @@
+{
+  "type": "viewer.state",
+  "camera": {"position": [50, 50, 50], "target": [0, 0, 0], "fov": 50},
+  "selection": ["bracket"]
+}

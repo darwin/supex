@@ -45,8 +45,9 @@ describe("DriverRelayClient", () => {
     expect(ready.type).toBe("viewer.ready");
     expect(ready.protocol_version).toBe("1.0");
     expect(ready.features).toEqual(
-      expect.arrayContaining(["mesh", "screenshot", "state", "focus"]),
+      expect.arrayContaining(["mesh", "state", "focus"]),
     );
+    expect(ready.features).not.toContain("screenshot");
 
     client.dispose();
   });
@@ -179,7 +180,7 @@ describe("DriverRelayClient", () => {
     client.dispose();
   });
 
-  it("handles screenshot.request by sending response", () => {
+  it("ignores screenshot.request (capability not advertised)", () => {
     const client = new DriverRelayClient();
     client.connect();
     const ws = MockWebSocket.latest!;
@@ -194,8 +195,7 @@ describe("DriverRelayClient", () => {
     const resp = ws.sentMessages.find(
       (m) => (m as Record<string, unknown>).type === "screenshot.response",
     ) as Record<string, unknown> | undefined;
-    expect(resp).toBeDefined();
-    expect(resp!.request_id).toBe("req-123");
+    expect(resp).toBeUndefined();
 
     client.dispose();
   });

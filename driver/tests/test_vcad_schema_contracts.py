@@ -104,6 +104,48 @@ class TestSchemaFixtureValidation:
         errors = validate_viewer_relay(fixture)
         assert errors == [], f"Validation errors: {errors}"
 
+    def test_mesh_update_ok_validates(self) -> None:
+        """mesh.update.ok.json validates against viewer-relay."""
+        fixture = _load_example("mesh.update.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_mesh_remove_ok_validates(self) -> None:
+        """mesh.remove.ok.json validates against viewer-relay."""
+        fixture = _load_example("mesh.remove.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_scene_reset_ok_validates(self) -> None:
+        """scene.reset.ok.json validates against viewer-relay."""
+        fixture = _load_example("scene.reset.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_viewer_focus_ok_validates(self) -> None:
+        """viewer.focus.ok.json validates against viewer-relay."""
+        fixture = _load_example("viewer.focus.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_viewer_state_ok_validates(self) -> None:
+        """viewer.state.ok.json validates against viewer-relay."""
+        fixture = _load_example("viewer.state.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_screenshot_request_ok_validates(self) -> None:
+        """screenshot.request.ok.json validates against viewer-relay."""
+        fixture = _load_example("screenshot.request.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
+    def test_screenshot_response_ok_validates(self) -> None:
+        """screenshot.response.ok.json validates against viewer-relay."""
+        fixture = _load_example("screenshot.response.ok.json")
+        errors = validate_viewer_relay(fixture)
+        assert errors == [], f"Validation errors: {errors}"
+
     def test_artifact_applied_validates(self) -> None:
         """artifact.applied.json validates against artifact-manifest."""
         fixture = _load_example("artifact.applied.json")
@@ -369,20 +411,28 @@ class TestNegativeValidationWrongTypes:
             "type": "mesh.update",
             "node_id": "bracket",
             "revision": "not-an-int",  # Should be integer
-            "positions": [0.0, 0.0, 0.0],
-            "indices": [0],
+            "dae_path": "/tmp/bracket.dae",
         }
         errors = validate_viewer_relay(payload)
         assert len(errors) > 0
 
-    def test_viewer_relay_wrong_positions_type(self) -> None:
-        """Wrong type for positions in mesh.update -> validation error."""
+    def test_viewer_relay_wrong_dae_path_type(self) -> None:
+        """Wrong type for dae_path in mesh.update -> validation error."""
         payload = {
             "type": "mesh.update",
             "node_id": "bracket",
             "revision": 1,
-            "positions": "not-an-array",
-            "indices": [0],
+            "dae_path": 12345,  # Should be string
+        }
+        errors = validate_viewer_relay(payload)
+        assert len(errors) > 0
+
+    def test_viewer_relay_missing_dae_path(self) -> None:
+        """Missing dae_path in mesh.update -> validation error."""
+        payload = {
+            "type": "mesh.update",
+            "node_id": "bracket",
+            "revision": 1,
         }
         errors = validate_viewer_relay(payload)
         assert len(errors) > 0
@@ -687,8 +737,7 @@ class TestCompatibilityAdditive:
             "type": "mesh.update",
             "node_id": "bracket",
             "revision": 1,
-            "positions": [0.0, 0.0, 0.0],
-            "indices": [0],
+            "dae_path": "/tmp/bracket.dae",
             "lod_level": 2,  # New optional field
         }
         errors = validate_viewer_relay(payload)
@@ -702,11 +751,18 @@ class TestCompatibilityAdditive:
         assert errors == []
 
     def test_previous_fixtures_remain_valid(self) -> None:
-        """All original fixtures still validate unchanged (regression guard)."""
+        """All fixtures still validate unchanged (regression guard)."""
         cases = [
             ("handshake.ok.json", validate_handshake_response),
             ("viewer.ready.ok.json", validate_viewer_relay),
             ("scene.snapshot.ok.json", validate_viewer_relay),
+            ("mesh.update.ok.json", validate_viewer_relay),
+            ("mesh.remove.ok.json", validate_viewer_relay),
+            ("scene.reset.ok.json", validate_viewer_relay),
+            ("viewer.focus.ok.json", validate_viewer_relay),
+            ("viewer.state.ok.json", validate_viewer_relay),
+            ("screenshot.request.ok.json", validate_viewer_relay),
+            ("screenshot.response.ok.json", validate_viewer_relay),
             ("artifact.applied.json", validate_artifact_manifest),
             ("artifact.stale_dropped.json", validate_artifact_manifest),
             ("artifact.superseded.json", validate_artifact_manifest),
@@ -928,3 +984,217 @@ class TestToolsCallValidation:
         }
         errors = validate_tools_call(payload)
         assert errors == []
+
+
+# ===========================================================================
+# Relay contract conformance: driver payloads match schema
+# ===========================================================================
+
+
+class TestRelayContractConformance:
+    """Validate that payloads as produced by the driver relay conform to schema.
+
+    These tests construct payloads the same way the driver relay does and
+    validate them against the viewer-relay schema, preventing schema drift.
+    """
+
+    def test_push_file_update_payload_conforms(self) -> None:
+        """mesh.update payload from push_file_update conforms to schema."""
+        # Mirrors VCADViewerRelay.push_file_update() message construction
+        mesh_data = {
+            "dae_path": "/tmp/vcad-sidecar/bracket.dae",
+            "bbox": {"min": [0.0, 0.0, 0.0], "max": [10.0, 5.0, 2.0]},
+        }
+        payload = {
+            "type": "mesh.update",
+            "node_id": "bracket",
+            "revision": 3,
+            **mesh_data,
+        }
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"push_file_update payload failed: {errors}"
+
+    def test_push_file_update_minimal_conforms(self) -> None:
+        """Minimal mesh.update (no bbox) conforms to schema."""
+        payload = {
+            "type": "mesh.update",
+            "node_id": "node-1",
+            "revision": 1,
+            "dae_path": "/tmp/node-1.dae",
+        }
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"Minimal push payload failed: {errors}"
+
+    def test_push_mesh_remove_payload_conforms(self) -> None:
+        """mesh.remove payload conforms to schema."""
+        payload = {"type": "mesh.remove", "node_id": "bracket"}
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"mesh.remove payload failed: {errors}"
+
+    def test_scene_reset_payload_conforms(self) -> None:
+        """scene.reset payload conforms to schema."""
+        payload = {"type": "scene.reset"}
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"scene.reset payload failed: {errors}"
+
+    def test_scene_snapshot_payload_conforms(self) -> None:
+        """scene.snapshot payload from _send_scene_snapshot conforms to schema."""
+        # Mirrors VCADViewerRelay._send_scene_snapshot() construction
+        nodes = [
+            {
+                "dae_path": "/tmp/bracket.dae",
+                "bbox": {"min": [0.0, 0.0, 0.0], "max": [10.0, 5.0, 2.0]},
+                "node_id": "bracket",
+                "revision": 3,
+            },
+            {
+                "dae_path": "/tmp/shelf.dae",
+                "bbox": None,
+                "node_id": "shelf",
+                "revision": 1,
+            },
+        ]
+        payload = {"type": "scene.snapshot", "nodes": nodes}
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"scene.snapshot payload failed: {errors}"
+
+    def test_scene_snapshot_empty_nodes_conforms(self) -> None:
+        """scene.snapshot with empty nodes list conforms to schema."""
+        payload = {"type": "scene.snapshot", "nodes": []}
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"Empty snapshot payload failed: {errors}"
+
+    def test_screenshot_request_payload_conforms(self) -> None:
+        """screenshot.request payload conforms to schema."""
+        payload = {
+            "type": "screenshot.request",
+            "request_id": "550e8400-e29b-41d4-a716-446655440000",
+        }
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"screenshot.request payload failed: {errors}"
+
+    def test_viewer_focus_payload_conforms(self) -> None:
+        """viewer.focus payload conforms to schema."""
+        payload = {"type": "viewer.focus", "node_id": "bracket"}
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"viewer.focus payload failed: {errors}"
+
+    def test_viewer_ready_payload_conforms(self) -> None:
+        """viewer.ready payload (as viewer would send) conforms to schema."""
+        payload = {
+            "type": "viewer.ready",
+            "protocol_version": "1.0",
+            "features": ["mesh", "state", "focus"],
+        }
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"viewer.ready payload failed: {errors}"
+
+    def test_viewer_state_payload_conforms(self) -> None:
+        """viewer.state payload conforms to schema."""
+        payload = {
+            "type": "viewer.state",
+            "camera": {"position": [50, 50, 50], "target": [0, 0, 0], "fov": 50},
+            "selection": ["bracket"],
+        }
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"viewer.state payload failed: {errors}"
+
+    def test_screenshot_response_payload_conforms(self) -> None:
+        """screenshot.response payload conforms to schema."""
+        payload = {
+            "type": "screenshot.response",
+            "request_id": "req-123",
+            "data": "iVBORw0KGgoAAAANSUhEUg==",
+            "width": 800,
+            "height": 600,
+        }
+        errors = validate_viewer_relay(payload)
+        assert errors == [], f"screenshot.response payload failed: {errors}"
+
+    def test_all_relay_examples_validate(self) -> None:
+        """All viewer-relay example fixtures validate against schema.
+
+        Regression guard: if a new example is added but doesn't validate,
+        this test catches it.
+        """
+        relay_examples = [
+            "viewer.ready.ok.json",
+            "scene.snapshot.ok.json",
+            "mesh.update.ok.json",
+            "mesh.remove.ok.json",
+            "scene.reset.ok.json",
+            "viewer.focus.ok.json",
+            "viewer.state.ok.json",
+            "screenshot.request.ok.json",
+            "screenshot.response.ok.json",
+        ]
+        for name in relay_examples:
+            fixture = _load_example(name)
+            errors = validate_viewer_relay(fixture)
+            assert errors == [], f"{name} failed validation: {errors}"
+
+
+# ===========================================================================
+# Relay golden fields: new fixture field checks
+# ===========================================================================
+
+
+class TestRelayGoldenFields:
+    """Golden field checks for relay example fixtures."""
+
+    def test_mesh_update_golden_fields(self) -> None:
+        """mesh.update has all required golden fields."""
+        fixture = _load_example("mesh.update.ok.json")
+        assert fixture["type"] == "mesh.update"
+        assert isinstance(fixture["node_id"], str)
+        assert isinstance(fixture["revision"], int)
+        assert isinstance(fixture["dae_path"], str)
+
+    def test_mesh_remove_golden_fields(self) -> None:
+        """mesh.remove has all required golden fields."""
+        fixture = _load_example("mesh.remove.ok.json")
+        assert fixture["type"] == "mesh.remove"
+        assert isinstance(fixture["node_id"], str)
+
+    def test_scene_reset_golden_fields(self) -> None:
+        """scene.reset has required type field."""
+        fixture = _load_example("scene.reset.ok.json")
+        assert fixture["type"] == "scene.reset"
+
+    def test_scene_snapshot_uses_dae_path(self) -> None:
+        """scene.snapshot nodes use dae_path (file-based transport)."""
+        fixture = _load_example("scene.snapshot.ok.json")
+        assert fixture["type"] == "scene.snapshot"
+        assert isinstance(fixture["nodes"], list)
+        for node in fixture["nodes"]:
+            assert isinstance(node["dae_path"], str)
+            assert "positions" not in node, "Snapshot should use dae_path, not inline data"
+            assert "indices" not in node, "Snapshot should use dae_path, not inline data"
+
+    def test_viewer_focus_golden_fields(self) -> None:
+        """viewer.focus has all required golden fields."""
+        fixture = _load_example("viewer.focus.ok.json")
+        assert fixture["type"] == "viewer.focus"
+        assert isinstance(fixture["node_id"], str)
+
+    def test_viewer_state_golden_fields(self) -> None:
+        """viewer.state has expected structure."""
+        fixture = _load_example("viewer.state.ok.json")
+        assert fixture["type"] == "viewer.state"
+        assert "camera" in fixture
+        assert "selection" in fixture
+
+    def test_screenshot_request_golden_fields(self) -> None:
+        """screenshot.request has all required golden fields."""
+        fixture = _load_example("screenshot.request.ok.json")
+        assert fixture["type"] == "screenshot.request"
+        assert isinstance(fixture["request_id"], str)
+
+    def test_screenshot_response_golden_fields(self) -> None:
+        """screenshot.response has all required golden fields."""
+        fixture = _load_example("screenshot.response.ok.json")
+        assert fixture["type"] == "screenshot.response"
+        assert isinstance(fixture["request_id"], str)
+        assert isinstance(fixture["data"], str)
+        assert isinstance(fixture["width"], int)
+        assert isinstance(fixture["height"], int)

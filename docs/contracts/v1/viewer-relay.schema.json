@@ -36,23 +36,15 @@
     "mesh_update": {
       "type": "object",
       "title": "mesh.update",
-      "description": "Push mesh data to viewer.",
-      "required": ["type", "node_id", "revision", "positions", "indices"],
+      "description": "Push file-based mesh data to viewer. Viewer loads the DAE file via Tauri.",
+      "required": ["type", "node_id", "revision", "dae_path"],
       "properties": {
         "type": { "const": "mesh.update" },
         "node_id": { "type": "string" },
         "revision": { "type": "integer" },
-        "positions": {
-          "type": "array",
-          "items": { "type": "number" }
-        },
-        "indices": {
-          "type": "array",
-          "items": { "type": "integer" }
-        },
-        "normals": {
-          "type": ["array", "null"],
-          "items": { "type": "number" }
+        "dae_path": {
+          "type": "string",
+          "description": "Absolute path to the DAE mesh file on disk."
         },
         "material": {
           "type": ["object", "null"],
@@ -110,21 +102,13 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["node_id", "revision", "positions", "indices"],
+            "required": ["node_id", "revision", "dae_path"],
             "properties": {
               "node_id": { "type": "string" },
               "revision": { "type": "integer" },
-              "positions": {
-                "type": "array",
-                "items": { "type": "number" }
-              },
-              "indices": {
-                "type": "array",
-                "items": { "type": "integer" }
-              },
-              "normals": {
-                "type": ["array", "null"],
-                "items": { "type": "number" }
+              "dae_path": {
+                "type": "string",
+                "description": "Absolute path to the DAE mesh file on disk."
               },
               "material": {
                 "type": ["object", "null"],

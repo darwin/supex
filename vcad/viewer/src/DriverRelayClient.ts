@@ -10,7 +10,7 @@ import { useViewerStore } from "./store";
 import type { MeshMaterial } from "./store";
 
 const RELAY_PROTOCOL_VERSION = "1.0";
-const VIEWER_FEATURES = ["mesh", "screenshot", "state", "focus"];
+const VIEWER_FEATURES = ["mesh", "state", "focus"];
 const RECONNECT_DELAY_MS = 2000;
 const STATE_SEND_INTERVAL_MS = 1000;
 
@@ -108,9 +108,6 @@ export class DriverRelayClient {
       case "scene.reset":
         this.handleSceneReset();
         break;
-      case "screenshot.request":
-        this.handleScreenshotRequest(msg.request_id as string);
-        break;
       case "viewer.focus":
         this.handleViewerFocus(msg.node_id as string);
         break;
@@ -182,18 +179,6 @@ export class DriverRelayClient {
   private handleSceneReset(): void {
     this.latestRevisionByNode.clear();
     useViewerStore.getState().clearMeshes();
-  }
-
-  private handleScreenshotRequest(requestId: string): void {
-    // Screenshot capture will be implemented via Tauri canvas capture.
-    // For now, send an empty response.
-    this.send({
-      type: "screenshot.response",
-      request_id: requestId,
-      data: "",
-      width: 0,
-      height: 0,
-    });
   }
 
   private handleViewerFocus(nodeId: string): void {

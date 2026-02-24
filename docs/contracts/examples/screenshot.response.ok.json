@@ -1,0 +1,7 @@
+{
+  "type": "screenshot.response",
+  "request_id": "req-abc123",
+  "data": "iVBORw0KGgoAAAANSUhEUg==",
+  "width": 1920,
+  "height": 1080
+}
