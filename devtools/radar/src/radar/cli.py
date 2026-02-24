@@ -157,6 +157,7 @@ def _do_watch(
     *,
     plain: bool,
     pane_name: str,
+    mouse: bool,
     capacity: int,
     initial_filter: FilterSpec,
 ) -> None:
@@ -172,7 +173,7 @@ def _do_watch(
     if plain:
         asyncio.run(_run_plain(pipeline, buffer, initial_filter))
     else:
-        _run_tui(pipeline, buffer, pane_name, initial_filter)
+        _run_tui(pipeline, buffer, pane_name, mouse, initial_filter)
 
 
 async def _run_plain(pipeline, buffer, initial_filter: FilterSpec) -> None:
@@ -195,7 +196,7 @@ async def _run_plain(pipeline, buffer, initial_filter: FilterSpec) -> None:
             pass
 
 
-def _run_tui(pipeline, buffer, pane_name: str, initial_filter: FilterSpec) -> None:
+def _run_tui(pipeline, buffer, pane_name: str, mouse: bool, initial_filter: FilterSpec) -> None:
     """Launch the Textual TUI application."""
     from .tui.app import RadarApp
 
@@ -203,6 +204,7 @@ def _run_tui(pipeline, buffer, pane_name: str, initial_filter: FilterSpec) -> No
         pipeline=pipeline,
         buffer=buffer,
         pane_name=pane_name,
+        mouse=mouse,
         initial_filter=initial_filter,
     )
     tui_app.run()
@@ -265,6 +267,14 @@ def watch(
         str,
         typer.Option("--pane-name", help="tmux pane title (TUI mode)."),
     ] = "radar",
+    no_mouse: Annotated[
+        bool,
+        typer.Option(
+            "--no-mouse",
+            help="Disable mouse support. Useful over SSH or in terminals "
+            "where mouse events interfere with copy/paste.",
+        ),
+    ] = False,
 ) -> None:
     """Watch log files with live tail streaming.
 
@@ -283,6 +293,20 @@ def watch(
     Output:
       --plain                         Stream to stdout (no TUI)
       --capacity 50000                Increase ring buffer size
+      --no-mouse                      Disable mouse (SSH/copy-paste)
+    \b
+    tmux (agent workflow):
+      tmux capture-pane -t radar -p   Capture visible TUI output
+      tmux send-keys -t radar ...     Send keys to radar pane
+    \b
+    Keybindings (no conflict with tmux Ctrl+b prefix):
+      q        quit            f        toggle filter bar
+      j/k      navigate down/up (enters browse mode)
+      g/G      scroll to top/bottom
+      enter    toggle detail panel
+      tab      toggle summary/raw in detail
+      /        focus search pattern input
+      escape   return to streaming mode
     """
     has_files = bool(files)
 
@@ -314,7 +338,8 @@ def watch(
         filter_parts.append(f"sources={','.join(initial_filter.sources)}")
     filter_desc = f", filter=[{' '.join(filter_parts)}]" if filter_parts else ""
 
-    typer.echo(f"[radar] mode={mode}, plain={plain}, capacity={capacity}{filter_desc}")
+    mouse_desc = ", mouse=off" if no_mouse else ""
+    typer.echo(f"[radar] mode={mode}, plain={plain}, capacity={capacity}{filter_desc}{mouse_desc}")
 
     sources, parser_overrides = _resolve_sources(mode, files, config)
     _do_watch(
@@ -322,6 +347,7 @@ def watch(
         parser_overrides,
         plain=plain,
         pane_name=pane_name,
+        mouse=not no_mouse,
         capacity=capacity,
         initial_filter=initial_filter,
     )

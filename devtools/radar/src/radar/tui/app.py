@@ -22,6 +22,35 @@ if TYPE_CHECKING:
     from radar.ingest import IngestPipeline
 
 
+def detect_color_system() -> str:
+    """Detect terminal color capability.
+
+    Returns one of: "truecolor", "256", "standard", "none".
+    Textual/Rich handle the actual rendering; this is for logging
+    and informing the user what mode is active.
+    """
+    colorterm = os.environ.get("COLORTERM", "").lower()
+    if colorterm in ("truecolor", "24bit"):
+        return "truecolor"
+    term = os.environ.get("TERM", "")
+    if "256color" in term:
+        return "256"
+    if term:
+        return "standard"
+    return "none"
+
+
+def detect_terminal_info() -> dict[str, str]:
+    """Gather terminal environment info for diagnostics."""
+    return {
+        "TERM": os.environ.get("TERM", ""),
+        "COLORTERM": os.environ.get("COLORTERM", ""),
+        "tmux": "yes" if os.environ.get("TMUX") else "no",
+        "ssh": "yes" if os.environ.get("SSH_CONNECTION") else "no",
+        "colors": detect_color_system(),
+    }
+
+
 class RadarApp(App):
     """Supex Radar TUI — live log aggregator."""
 
@@ -68,6 +97,9 @@ class RadarApp(App):
     }
     """
 
+    # Keybindings chosen to avoid conflict with default tmux prefix (Ctrl+b).
+    # All bindings are single printable keys or standard terminal keys
+    # (tab, enter, escape) — no Ctrl combinations that could clash.
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("f", "toggle_filter", "Filter"),
@@ -87,12 +119,14 @@ class RadarApp(App):
         pipeline: IngestPipeline,
         buffer: ObservableBuffer,
         pane_name: str = "radar",
+        mouse: bool = True,
         initial_filter: FilterSpec | None = None,
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
         self._buffer = buffer
         self._pane_name = pane_name
+        self._mouse = mouse
 
         # Mode: "streaming" (auto-scroll, no cursor) or "browsing" (cursor, no auto-scroll)
         self._mode = "streaming"
@@ -117,12 +151,18 @@ class RadarApp(App):
         yield DetailPanel(id="detail-panel")
         yield RadarStatusBar(id="status-bar")
 
+    def run(self, **kwargs) -> None:
+        """Launch the app, forwarding the mouse setting."""
+        kwargs.setdefault("mouse", self._mouse)
+        return super().run(**kwargs)
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
     def on_mount(self) -> None:
         self._set_tmux_pane_title()
+        self._log_terminal_info()
         self._renderer_reloader.snapshot_mtimes()
         self._apply_initial_filter()
         self.run_worker(self._run_pipeline(), exclusive=True, name="ingest")
@@ -157,6 +197,45 @@ class RadarApp(App):
                 )
             except FileNotFoundError:
                 pass
+
+    def _log_terminal_info(self) -> None:
+        """Show terminal capabilities in subtitle for diagnostics."""
+        info = detect_terminal_info()
+        parts = []
+        if info["tmux"] == "yes":
+            parts.append("tmux")
+        if info["ssh"] == "yes":
+            parts.append("ssh")
+        parts.append(f"colors={info['colors']}")
+        if not self._mouse:
+            parts.append("mouse=off")
+        self.sub_title = " | ".join(parts)
+
+        # Warn about tmux escape-time if it's set high (causes Escape key delay)
+        if info["tmux"] == "yes":
+            self._check_tmux_escape_time()
+
+    def _check_tmux_escape_time(self) -> None:
+        """Warn if tmux escape-time is high (causes sluggish Escape key)."""
+        try:
+            result = subprocess.run(
+                ["tmux", "show-option", "-gv", "escape-time"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                escape_time = int(result.stdout.strip())
+                if escape_time > 100:
+                    self.notify(
+                        f"tmux escape-time is {escape_time}ms (>100ms). "
+                        "Consider: tmux set -g escape-time 10",
+                        title="tmux",
+                        severity="warning",
+                        timeout=8,
+                    )
+        except (FileNotFoundError, ValueError):
+            pass
 
     # ------------------------------------------------------------------
     # Background ingest
