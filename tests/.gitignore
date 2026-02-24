@@ -24,7 +24,6 @@ MANIFEST
 
 # UV
 .venv/
-uv.lock
 
 # Testing
 .coverage
