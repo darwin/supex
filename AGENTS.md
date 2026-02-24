@@ -150,6 +150,39 @@ After any code change that affects the sidecar:
 
 Temp directory is resolved as: `SUPEX_VCAD_TEMP_DIR` (explicit) > `SUPEX_WORKSPACE/.tmp/vcad-sidecar` (derived). If neither env var is set, the sidecar panics at startup.
 
+## Observability with Radar
+
+Radar (`devtools/radar/`) is a log aggregator that tails all supex subsystem logs in real-time. It normalizes events from MCP protocol, runtime console, CLI, and VCAD sidecar into a unified stream. Each event gets a deterministic 6-char hex EID (e.g. `a1b2c3`).
+
+### Agent workflow
+
+Run two radar instances during a session for full observability:
+
+1. **Background stream** — plain text output for automated monitoring:
+   ```bash
+   ./radar watch --plain              # streams events to stdout
+   ./radar watch --plain -l WARN      # only warnings and errors
+   ./radar watch --plain -s mcp-protocol,vcad-sidecar
+   ```
+
+2. **Interactive pane** — TUI in a separate tmux pane for drill-down:
+   ```bash
+   ./radar watch                      # launches TUI
+   ```
+   Use `j`/`k` to browse events, `Enter` to open detail panel (shows full event with EID), `Tab` to toggle raw view, `/` to search.
+
+Cross-reference events between the two: the `--plain` stream prints `[e:EID]` per line, and the TUI detail panel shows the same EID. Use this to find an event in the plain stream and inspect its full detail in the TUI (or vice versa).
+
+### Filtering
+
+```bash
+./radar watch -l ERROR                  # minimum log level
+./radar watch -s runtime-console        # specific source(s)
+./radar watch -s mcp-protocol,vcad-sidecar -l WARN
+```
+
+Available sources: `mcp-protocol`, `mcp-stderr`, `cli-driver`, `cli-stdout`, `cli-stderr`, `runtime-console`, `runtime-stdout`, `runtime-stderr`, `vcad-sidecar`, `vcad-events`.
+
 ## Agent Prompts Convention
 
 User projects symlink `docs/agents/guide/` as `supex-guide/` in their project root. Therefore:
