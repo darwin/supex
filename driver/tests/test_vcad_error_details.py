@@ -304,7 +304,7 @@ class TestPassthrough:
 
         assert result["error_code"] == PROTOCOL_MISMATCH
 
-    def test_capability_code_preserved(self, mock_ctx, mock_vcad) -> None:
+    def test_capability_code_preserved(self, mock_ctx, mock_vcad, tmp_path) -> None:
         """CAPABILITY_UNAVAILABLE error_code preserved through place tool."""
         mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="adt_cache",
@@ -313,7 +313,7 @@ class TestPassthrough:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file=str(tmp_path / "f.cmp.oo"))
         )
 
         assert result["error_code"] == CAPABILITY_UNAVAILABLE

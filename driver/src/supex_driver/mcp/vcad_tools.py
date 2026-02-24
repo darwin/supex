@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Any
 
 from supex_driver.connection import (
@@ -33,6 +34,71 @@ from supex_driver.connection.vcad_schema import build_error
 from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
 
 logger = logging.getLogger("supex.mcp.vcad")
+
+# ---------------------------------------------------------------------------
+# Workspace boundary validation
+# ---------------------------------------------------------------------------
+
+
+def validate_workspace_path(path: str, workspace: Path) -> Path:
+    """Validate and canonicalize a source file path within workspace boundary.
+
+    Resolves relative paths against the workspace root. Rejects paths that
+    escape the workspace via traversal (``../``) or symlink.
+
+    Args:
+        path: The source file path to validate (absolute or relative).
+        workspace: The workspace root directory.
+
+    Returns:
+        Resolved canonical Path guaranteed to be within the workspace.
+
+    Raises:
+        ValueError: If the resolved path is outside the workspace.
+    """
+    workspace_canonical = workspace.resolve()
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = workspace_canonical / candidate
+    resolved = candidate.resolve()
+
+    ws_str = str(workspace_canonical)
+    if resolved != workspace_canonical and not str(resolved).startswith(ws_str + os.sep):
+        raise ValueError(f"Path escapes workspace boundary: {path}")
+
+    return resolved
+
+
+def _check_source_boundary(
+    source_file: str, operation: str,
+) -> tuple[str, dict[str, Any] | None]:
+    """Validate source file path against workspace boundary.
+
+    Fail-closed: if ``SUPEX_WORKSPACE`` is not set, all reads are denied.
+
+    Returns:
+        ``(resolved_path, None)`` on success, or
+        ``(original_path, error_dict)`` on denial.
+    """
+    workspace_env = os.environ.get("SUPEX_WORKSPACE")
+    if not workspace_env:
+        return source_file, build_error(
+            "PATH_NOT_ALLOWED",
+            "SUPEX_WORKSPACE not set: cannot validate source file path",
+            {"path": source_file, "workspace": "(unset)"},
+            operation=operation,
+        )
+    try:
+        resolved = validate_workspace_path(source_file, Path(workspace_env))
+        return str(resolved), None
+    except ValueError:
+        return source_file, build_error(
+            "PATH_NOT_ALLOWED",
+            f"Source file path outside workspace boundary: {source_file}",
+            {"path": source_file, "workspace": workspace_env},
+            operation=operation,
+        )
+
 
 # ---------------------------------------------------------------------------
 # DAG singleton
@@ -310,6 +376,11 @@ def _vcad_update_single(  # noqa: PLR0911
     """
     agent = get_agent_name(ctx)
 
+    # Workspace boundary check
+    source_file, boundary_err = _check_source_boundary(source_file, "vcad_update:cascade:read")
+    if boundary_err:
+        return boundary_err
+
     # Read source and check for imports
     try:
         with open(source_file) as f:
@@ -418,6 +489,11 @@ def vcad_place(  # noqa: PLR0911
         component_name: Optional name for the SketchUp component
     """
     agent = get_agent_name(ctx)
+
+    # Workspace boundary check
+    source_file, boundary_err = _check_source_boundary(source_file, "vcad_place:read")
+    if boundary_err:
+        return json.dumps(boundary_err)
 
     # Step 1: Read source and check for imports
     try:
@@ -579,6 +655,11 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None, c
             return _handle_sketchup_error(e, "vcad_update:lookup")
         except Exception as e:
             return _handle_sketchup_error(e, "vcad_update:lookup")
+
+    # Workspace boundary check
+    source_file, boundary_err = _check_source_boundary(source_file, "vcad_update:read")
+    if boundary_err:
+        return json.dumps(boundary_err)
 
     # Read source and check for imports
     try:
@@ -745,6 +826,9 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
         # Read source text if it's a file path
         is_file = source.endswith(".oo") or source.endswith(".loon")
         if is_file:
+            source, boundary_err = _check_source_boundary(source, "vcad_inspect:read")
+            if boundary_err:
+                return json.dumps(boundary_err)
             try:
                 with open(source) as f:
                     source_text = f.read()
@@ -806,6 +890,9 @@ def vcad_export(
         # Read source text if it's a file path
         is_file = source.endswith(".oo") or source.endswith(".loon")
         if is_file:
+            source, boundary_err = _check_source_boundary(source, "vcad_export:read")
+            if boundary_err:
+                return json.dumps(boundary_err)
             try:
                 with open(source) as f:
                     source_text = f.read()

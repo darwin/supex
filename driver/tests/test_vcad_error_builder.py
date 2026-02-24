@@ -239,14 +239,14 @@ class TestBuilderAutoFillsOperation:
 class TestNoBoundaryPathMessageOnly:
     """Every error path through MCP tools produces error_code + details."""
 
-    def test_vcad_capability_error_has_structured_details(self, mock_ctx, mock_vcad) -> None:
+    def test_vcad_capability_error_has_structured_details(self, mock_ctx, mock_vcad, tmp_path) -> None:
         """VCADCapabilityError produces error_code + details."""
         mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="adt_cache",
             negotiated_capabilities=["eval"],
             operation="vcad_place",
         )
-        result = json.loads(vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo"))
+        result = json.loads(vcad_place(mock_ctx, node_id="n1", source_file=str(tmp_path / "f.cmp.oo")))
         assert result["error_code"] == CAPABILITY_UNAVAILABLE
         assert "details" in result
         assert result["details"]["required_capability"] == "adt_cache"

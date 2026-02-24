@@ -248,13 +248,13 @@ class TestVCADPlaceImports:
 class TestVCADPlaceImportsErrors:
     """Test error handling in vcad_place."""
 
-    def test_source_file_not_found(self, mock_ctx):
+    def test_source_file_not_found(self, mock_ctx, tmp_path):
         """Missing source file returns IO error."""
         result = json.loads(
             vcad_place(
                 mock_ctx,
                 node_id="n1",
-                source_file="/nonexistent/file.cmp.oo",
+                source_file=str(tmp_path / "nonexistent" / "file.cmp.oo"),
             )
         )
         assert result["success"] is False

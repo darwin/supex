@@ -1,6 +1,7 @@
 """Tests for MCP vcad tools."""
 
 import json
+import os
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -10,6 +11,7 @@ from supex_driver.connection.sketchup_exceptions import (
 )
 from supex_driver.connection.vcad_exceptions import (
     CAPABILITY_UNAVAILABLE,
+    PATH_NOT_ALLOWED,
     PROTOCOL_MISMATCH,
     VCADCapabilityError,
     VCADConnectionError,
@@ -18,6 +20,7 @@ from supex_driver.connection.vcad_exceptions import (
     VCADTimeoutError,
 )
 from supex_driver.mcp.vcad_tools import (
+    validate_workspace_path,
     vcad_eval,
     vcad_export,
     vcad_inspect,
@@ -29,6 +32,12 @@ from supex_driver.mcp.vcad_tools import (
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def ws(tmp_path):
+    """Return workspace root (matches SUPEX_WORKSPACE from _isolate_supex_state)."""
+    return tmp_path
 
 
 @pytest.fixture
@@ -66,7 +75,7 @@ def mock_sketchup():
 class TestVCADPlace:
     """Test vcad_place tool."""
 
-    def test_place_success(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_place_success(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """Place evaluates file, imports mesh, returns result."""
         mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {
@@ -76,11 +85,12 @@ class TestVCADPlace:
             "definition_name": "vcad_bracket",
         }
 
+        src = str(ws / "bracket.cmp.oo")
         result = json.loads(
             vcad_place(
                 mock_ctx,
                 node_id="bracket",
-                source_file="/project/bracket.cmp.oo",
+                source_file=src,
                 position=[10.0, 20.0, 0.0],
                 component_name="my_bracket",
             )
@@ -99,42 +109,42 @@ class TestVCADPlace:
         assert params["position"] == [10.0, 20.0, 0.0]
         assert params["component_name"] == "my_bracket"
 
-    def test_place_default_position(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_place_default_position(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """Place without position omits it from params."""
         mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
         mock_sketchup.send_command.return_value = {"success": True, "node_id": "n1"}
 
-        vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+        vcad_place(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
 
         params = mock_sketchup.send_command.call_args.kwargs["params"]
         assert "position" not in params
 
-    def test_place_eval_error_returns_vcad_error(self, mock_ctx, mock_vcad):
+    def test_place_eval_error_returns_vcad_error(self, ws, mock_ctx, mock_vcad):
         """Sidecar eval failure returns error without calling SketchUp."""
         mock_vcad.eval_with_imports.side_effect = VCADRemoteError(
             code=-32000, message="Parse error in Loon code"
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/bad.cmp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file=str(ws / "bad.cmp.oo"))
         )
 
         assert result["success"] is False
         assert result["error_code"] == -32000
         assert "Parse error" in result["error"]
 
-    def test_place_no_mesh_path(self, mock_ctx, mock_vcad):
+    def test_place_no_mesh_path(self, ws, mock_ctx, mock_vcad):
         """Sidecar returns result without mesh_path."""
         mock_vcad.eval_with_imports.return_value = {"result": "no mesh"}
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
         )
 
         assert result["success"] is False
         assert "mesh_path" in result["error"]
 
-    def test_place_sketchup_error(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_place_sketchup_error(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """SketchUp import failure propagated."""
         mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
         mock_sketchup.send_command.side_effect = SketchUpConnectionError(
@@ -142,7 +152,7 @@ class TestVCADPlace:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
         )
 
         assert result["success"] is False
@@ -158,7 +168,7 @@ class TestVCADPlace:
 class TestVCADUpdate:
     """Test vcad_update tool."""
 
-    def test_update_with_source(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_update_with_source(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """Update with explicit source_file."""
         mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/updated.obj"}
         mock_sketchup.send_command.return_value = {
@@ -172,7 +182,7 @@ class TestVCADUpdate:
             vcad_update(
                 mock_ctx,
                 node_id="bracket",
-                source_file="/project/bracket.cmp.oo",
+                source_file=str(ws / "bracket.cmp.oo"),
             )
         )
 
@@ -180,11 +190,12 @@ class TestVCADUpdate:
         assert result["version"] == 2
         mock_vcad.eval_with_imports.assert_called_once()
 
-    def test_update_lookup_source(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_update_lookup_source(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """Update without source_file looks it up from SketchUp."""
+        src = str(ws / "plate.cmp.oo")
         # First call: get_vcad_node lookup; second call: update_vcad_node
         mock_sketchup.send_command.side_effect = [
-            {"source_file": "/project/plate.cmp.oo", "node_id": "plate"},
+            {"source_file": src, "node_id": "plate"},
             {"success": True, "node_id": "plate", "version": 4},
         ]
         mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/plate.obj"}
@@ -206,19 +217,19 @@ class TestVCADUpdate:
         assert result["success"] is False
         assert "source_file" in result["error"]
 
-    def test_update_eval_error(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_update_eval_error(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """Sidecar eval error during update."""
         mock_vcad.eval_with_imports.side_effect = VCADTimeoutError("Eval timed out")
 
         result = json.loads(
-            vcad_update(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_update(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
         )
 
         assert result["success"] is False
         assert result["error_code"] == "CONNECTION_ERROR"
         assert result["details"]["error_type"] == "connection"
 
-    def test_update_cascade(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_update_cascade(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """cascade=True re-evaluates root and downstream nodes."""
         from supex_driver.connection.vcad_dag import VCADDag, VCADNode
 
@@ -229,15 +240,16 @@ class TestVCADUpdate:
             "version": 2,
         }
 
+        base_src = str(ws / "base.cmp.oo")
         dag = VCADDag()
         dag.add_node(VCADNode(
             node_id="base",
-            source_file="/project/base.cmp.oo",
+            source_file=base_src,
             imports=[],
         ))
         dag.add_node(VCADNode(
             node_id="child",
-            source_file="/project/child.cmp.oo",
+            source_file=str(ws / "child.cmp.oo"),
             imports=[MagicMock(source_node_id="base")],
         ))
 
@@ -252,7 +264,7 @@ class TestVCADUpdate:
                 vcad_update(
                     mock_ctx,
                     node_id="base",
-                    source_file="/project/base.cmp.oo",
+                    source_file=base_src,
                     cascade=True,
                 )
             )
@@ -311,22 +323,23 @@ class TestVCADInspect:
 class TestVCADExport:
     """Test vcad_export tool."""
 
-    def test_export_obj(self, mock_ctx, mock_vcad):
+    def test_export_obj(self, ws, mock_ctx, mock_vcad):
         """Export to OBJ."""
         mock_vcad.send_command.return_value = {
             "file_path": "/tmp/output.obj",
             "format": "obj",
         }
 
+        src = str(ws / "part.cmp.oo")
         result = json.loads(
-            vcad_export(mock_ctx, source="/project/part.cmp.oo", format="obj")
+            vcad_export(mock_ctx, source=src, format="obj")
         )
 
         assert result["success"] is True
         assert result["file_path"] == "/tmp/output.obj"
         call_args = mock_vcad.send_command.call_args
         assert call_args[0][0] == "vcad.export"
-        assert call_args[0][1]["source"] == "/project/part.cmp.oo"
+        assert call_args[0][1]["source"] == src
         assert call_args[0][1]["format"] == "obj"
 
     def test_export_with_output_path(self, mock_ctx, mock_vcad):
@@ -461,7 +474,7 @@ class TestVCADToolsErrorPropagation:
         assert result["details"]["actual_protocol"] == "2.0"
         assert result["details"]["operation"] == "vcad_eval"
 
-    def test_capability_unavailable_surfaces_in_mcp(self, mock_ctx, mock_vcad):
+    def test_capability_unavailable_surfaces_in_mcp(self, ws, mock_ctx, mock_vcad):
         """Missing capability surfaces as CAPABILITY_UNAVAILABLE with full details."""
         mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="adt_cache",
@@ -470,7 +483,7 @@ class TestVCADToolsErrorPropagation:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
         )
 
         assert result["success"] is False
@@ -479,7 +492,7 @@ class TestVCADToolsErrorPropagation:
         assert result["details"]["negotiated_capabilities"] == ["eval", "inspect"]
         assert result["details"]["operation"] == "vcad_place"
 
-    def test_protocol_mismatch_no_fallback(self, mock_ctx, mock_vcad, mock_sketchup):
+    def test_protocol_mismatch_no_fallback(self, ws, mock_ctx, mock_vcad, mock_sketchup):
         """Tool returns error directly on protocol mismatch (no retry/fallback)."""
         mock_vcad.eval_with_imports.side_effect = VCADProtocolError(
             "Protocol version mismatch",
@@ -488,7 +501,7 @@ class TestVCADToolsErrorPropagation:
         )
 
         result = json.loads(
-            vcad_place(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_place(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
         )
 
         assert result["success"] is False
@@ -535,7 +548,7 @@ class TestVCADToolsErrorPropagation:
         assert result["success"] is False
         assert result["error_code"] == PROTOCOL_MISMATCH
 
-    def test_capability_unavailable_in_update(self, mock_ctx, mock_vcad):
+    def test_capability_unavailable_in_update(self, ws, mock_ctx, mock_vcad):
         """Capability error propagates through vcad_update."""
         mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
             required_capability="eval",
@@ -544,7 +557,7 @@ class TestVCADToolsErrorPropagation:
         )
 
         result = json.loads(
-            vcad_update(mock_ctx, node_id="n1", source_file="/f.cmp.oo")
+            vcad_update(mock_ctx, node_id="n1", source_file=str(ws / "f.cmp.oo"))
         )
 
         assert result["success"] is False
@@ -585,3 +598,150 @@ class TestVCADToolsRegistration:
         from supex_driver.mcp import vcad_tools
 
         assert vcad_tools is not None
+
+
+# ---------------------------------------------------------------------------
+# Workspace boundary validation
+# ---------------------------------------------------------------------------
+
+
+class TestValidateWorkspacePath:
+    """Test validate_workspace_path helper."""
+
+    def test_absolute_path_within_workspace(self, ws):
+        """Absolute path inside workspace passes validation."""
+        from pathlib import Path
+
+        result = validate_workspace_path(str(ws / "bracket.cmp.oo"), ws)
+        assert result == (ws / "bracket.cmp.oo").resolve()
+
+    def test_relative_path_resolved_against_workspace(self, ws):
+        """Relative path is resolved against workspace root."""
+        result = validate_workspace_path("bracket.cmp.oo", ws)
+        assert result == (ws / "bracket.cmp.oo").resolve()
+
+    def test_nested_relative_path(self, ws):
+        """Nested relative path resolves within workspace."""
+        result = validate_workspace_path("sub/dir/part.cmp.oo", ws)
+        assert result == (ws / "sub" / "dir" / "part.cmp.oo").resolve()
+
+    def test_traversal_denied(self, ws):
+        """Path with ../ traversal outside workspace is denied."""
+        with pytest.raises(ValueError, match="escapes workspace"):
+            validate_workspace_path("../../etc/passwd", ws)
+
+    def test_absolute_path_outside_workspace(self, ws):
+        """Absolute path outside workspace is denied."""
+        with pytest.raises(ValueError, match="escapes workspace"):
+            validate_workspace_path("/etc/passwd", ws)
+
+    def test_symlink_escape_denied(self, ws):
+        """Symlink that resolves outside workspace is denied."""
+        import os
+
+        # Create a symlink inside workspace pointing outside
+        link = ws / "escape.cmp.oo"
+        os.symlink("/etc/hostname", str(link))
+
+        with pytest.raises(ValueError, match="escapes workspace"):
+            validate_workspace_path(str(link), ws)
+
+    def test_workspace_root_itself(self, ws):
+        """Workspace root path itself is accepted (edge case)."""
+        result = validate_workspace_path(str(ws), ws)
+        assert result == ws.resolve()
+
+
+class TestWorkspaceBoundaryInTools:
+    """Test workspace boundary enforcement in MCP tool flows."""
+
+    def test_place_rejects_outside_workspace(self, mock_ctx, mock_vcad):
+        """vcad_place denies source_file outside workspace."""
+        result = json.loads(
+            vcad_place(mock_ctx, node_id="n1", source_file="/etc/passwd")
+        )
+
+        assert result["success"] is False
+        assert result["error_code"] == PATH_NOT_ALLOWED
+        assert result["details"]["path"] == "/etc/passwd"
+        assert "operation" in result["details"]
+
+    def test_update_rejects_outside_workspace(self, mock_ctx, mock_vcad):
+        """vcad_update denies source_file outside workspace."""
+        result = json.loads(
+            vcad_update(mock_ctx, node_id="n1", source_file="/etc/passwd")
+        )
+
+        assert result["success"] is False
+        assert result["error_code"] == PATH_NOT_ALLOWED
+
+    def test_inspect_rejects_outside_workspace(self, mock_ctx, mock_vcad):
+        """vcad_inspect denies file path outside workspace."""
+        result = json.loads(
+            vcad_inspect(mock_ctx, source="/etc/secret.cmp.oo")
+        )
+
+        assert result["success"] is False
+        assert result["error_code"] == PATH_NOT_ALLOWED
+
+    def test_inspect_inline_code_not_checked(self, mock_ctx, mock_vcad):
+        """vcad_inspect with inline code (no .oo extension) skips boundary check."""
+        mock_vcad.eval_with_imports.return_value = {
+            "volume": 1.0, "surface_area": 6.0,
+            "bbox": {}, "is_empty": False,
+        }
+
+        result = json.loads(vcad_inspect(mock_ctx, source="[cube 1.0 1.0 1.0]"))
+        assert result["success"] is True
+
+    def test_export_rejects_outside_workspace(self, mock_ctx, mock_vcad):
+        """vcad_export denies file path outside workspace."""
+        result = json.loads(
+            vcad_export(mock_ctx, source="/etc/secret.cmp.oo")
+        )
+
+        assert result["success"] is False
+        assert result["error_code"] == PATH_NOT_ALLOWED
+
+    def test_export_inline_code_not_checked(self, mock_ctx, mock_vcad):
+        """vcad_export with inline code skips boundary check."""
+        mock_vcad.send_command.return_value = {"file_path": "/tmp/out.obj"}
+
+        result = json.loads(vcad_export(mock_ctx, source="[cube 1.0 1.0 1.0]"))
+        assert result["success"] is True
+
+    def test_place_rejects_traversal_path(self, ws, mock_ctx, mock_vcad):
+        """vcad_place denies source_file with ../ traversal."""
+        result = json.loads(
+            vcad_place(
+                mock_ctx,
+                node_id="n1",
+                source_file=str(ws / ".." / ".." / "etc" / "passwd"),
+            )
+        )
+
+        assert result["success"] is False
+        assert result["error_code"] == PATH_NOT_ALLOWED
+
+    def test_no_workspace_denies_all(self, mock_ctx, mock_vcad, monkeypatch):
+        """When SUPEX_WORKSPACE is unset, all source file reads are denied."""
+        monkeypatch.delenv("SUPEX_WORKSPACE", raising=False)
+
+        result = json.loads(
+            vcad_place(mock_ctx, node_id="n1", source_file="bracket.cmp.oo")
+        )
+
+        assert result["success"] is False
+        assert result["error_code"] == PATH_NOT_ALLOWED
+        assert result["details"]["workspace"] == "(unset)"
+
+    def test_relative_path_accepted(self, ws, mock_ctx, mock_vcad, mock_sketchup):
+        """Relative path is resolved against workspace and accepted."""
+        mock_vcad.eval_with_imports.return_value = {"mesh_path": "/tmp/out.obj"}
+        mock_sketchup.send_command.return_value = {"success": True, "node_id": "n1"}
+
+        result = json.loads(
+            vcad_place(mock_ctx, node_id="n1", source_file="bracket.cmp.oo")
+        )
+
+        assert result["success"] is True
