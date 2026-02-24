@@ -96,10 +96,10 @@ module SupexRuntime
       puts "Supex: #{message}"
     end
 
-    # Format a log line in pipe-separated format for Ideolog
-    def idea_log_line(severity, message)
-      timestamp = Time.now.strftime('%H:%M:%S.%L')
-      "#{timestamp}|#{severity}|SketchUp|#{message}\n"
+    # Format a log line in pipe-separated format
+    def idea_log_line(severity, message, source = 'Runtime')
+      timestamp = Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L')
+      "#{timestamp}|#{severity}|#{source}|#{message}\n"
     end
 
     # Ensure the log directory exists
@@ -191,8 +191,8 @@ module SupexRuntime
       private
 
       def idea_format(severity, message)
-        timestamp = Time.now.strftime('%H:%M:%S.%L')
-        "#{timestamp}|#{severity}|SketchUp|#{message}"
+        timestamp = Time.now.strftime('%Y-%m-%dT%H:%M:%S.%L')
+        "#{timestamp}|#{severity}|#{@stream_name}|#{message}"
       end
     end
   end

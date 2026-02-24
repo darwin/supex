@@ -5,11 +5,14 @@ import sys
 from typing import Any, cast
 
 # Configure logging BEFORE importing fastmcp to prevent rich handler installation
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stderr,
+_mcp_handler = logging.StreamHandler(sys.stderr)
+_mcp_formatter = logging.Formatter(
+    fmt="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
 )
+_mcp_formatter.default_time_format = "%Y-%m-%dT%H:%M:%S"
+_mcp_formatter.default_msec_format = "%s.%03d"
+_mcp_handler.setFormatter(_mcp_formatter)
+logging.basicConfig(level=logging.INFO, handlers=[_mcp_handler])
 
 from mcp.server import fastmcp
 from mcp.server.fastmcp import Context, FastMCP

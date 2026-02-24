@@ -23,12 +23,15 @@ def _setup_logging():
     try:
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, "supex-cli.log")
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            filename=log_file,
-            filemode="a",
+        handler = logging.FileHandler(log_file, mode="a")
+        formatter = logging.Formatter(
+            fmt="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
         )
+        formatter.default_time_format = "%Y-%m-%dT%H:%M:%S"
+        formatter.default_msec_format = "%s.%03d"
+        handler.setFormatter(formatter)
+        logging.root.addHandler(handler)
+        logging.root.setLevel(logging.DEBUG)
     except OSError:
         # If we can't create log directory, configure null handler
         logging.basicConfig(level=logging.WARNING, handlers=[logging.NullHandler()])
