@@ -302,7 +302,10 @@ class RadarApp(App):
                 )
 
     def _update_status_bar(self, *, new_count: int) -> None:
-        status = self.query_one("#status-bar", RadarStatusBar)
+        results = self.query("#status-bar")
+        if not results:
+            return
+        status = results.first(RadarStatusBar)
         status.update_stats(
             total=self._buffer.count,
             filtered=len(self._visible_events),
