@@ -9,7 +9,6 @@ settings.local.json
 .plan-runner/
 
 # vcad sidecar build artifacts
-/vcad/sidecar/Cargo.lock
 /vcad/sidecar/target/
 
 # vendored submodule build artifacts
@@ -20,5 +19,4 @@ settings.local.json
 # vcad viewer build artifacts
 /vcad/viewer/node_modules/
 /vcad/viewer/dist/
-/vcad/viewer/src-tauri/Cargo.lock
 /vcad/viewer/src-tauri/target/
