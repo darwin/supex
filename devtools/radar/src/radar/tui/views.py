@@ -164,6 +164,15 @@ class FilterBar(Widget):
     def on_mount(self) -> None:
         self._debounce_timer = None
 
+    def set_initial_values(self, *, sources: str, level: str, pattern: str) -> None:
+        """Pre-populate filter inputs from CLI flags (call before or during mount)."""
+        if sources:
+            self.query_one("#filter-source", Input).value = sources
+        if level:
+            self.query_one("#filter-level", Input).value = level
+        if pattern:
+            self.query_one("#filter-pattern", Input).value = pattern
+
     @on(Input.Changed)
     def _on_input_changed(self, _event: Input.Changed) -> None:
         if self._debounce_timer is not None:

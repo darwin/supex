@@ -12,7 +12,7 @@ from textual.binding import Binding
 from textual.widgets import Input
 
 from radar.buffer import ObservableBuffer
-from radar.models import FilterSpec, LogEvent
+from radar.models import FilterSpec, Level, LogEvent
 from radar.tui.renderers import RendererReloader, RENDERERS
 from radar.tui.views import DetailPanel, FilterBar, LogListView, RadarStatusBar
 
@@ -87,6 +87,7 @@ class RadarApp(App):
         pipeline: IngestPipeline,
         buffer: ObservableBuffer,
         pane_name: str = "radar",
+        initial_filter: FilterSpec | None = None,
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
@@ -96,8 +97,9 @@ class RadarApp(App):
         # Mode: "streaming" (auto-scroll, no cursor) or "browsing" (cursor, no auto-scroll)
         self._mode = "streaming"
 
-        # Active filter
-        self._filter = FilterSpec()
+        # Active filter (may be pre-set from CLI)
+        self._filter = initial_filter or FilterSpec()
+        self._initial_filter = initial_filter
 
         # All events that passed the filter (mirrors what the DataTable shows)
         self._visible_events: list[LogEvent] = []
@@ -122,9 +124,28 @@ class RadarApp(App):
     def on_mount(self) -> None:
         self._set_tmux_pane_title()
         self._renderer_reloader.snapshot_mtimes()
+        self._apply_initial_filter()
         self.run_worker(self._run_pipeline(), exclusive=True, name="ingest")
         self.set_interval(0.1, self._poll_events)
         self.set_interval(1.0, self._poll_renderer_reload)
+
+    def _apply_initial_filter(self) -> None:
+        """Pre-populate FilterBar inputs from CLI-provided filter."""
+        if self._initial_filter is None:
+            return
+        f = self._initial_filter
+        has_filter = f.sources or f.min_level > Level.DEBUG or f.pattern
+        if not has_filter:
+            return
+
+        fb = self.query_one("#filter-bar", FilterBar)
+        fb.set_initial_values(
+            sources=",".join(f.sources) if f.sources else "",
+            level=f.min_level.name if f.min_level > Level.DEBUG else "",
+            pattern=f.pattern.pattern if f.pattern else "",
+        )
+        # Show filter bar when pre-set filters are active
+        fb.add_class("visible")
 
     def _set_tmux_pane_title(self) -> None:
         if os.environ.get("TMUX") and self._pane_name:
