@@ -370,6 +370,12 @@ impl Evaluator {
         let scene = evaluate_document(doc, &options).map_err(EvalError::Kernel)?;
         let part = select_single_part(&scene)?;
 
+        // Validate mesh arrays early if we'll need them (no BRep available)
+        let has_brep = part.solid.as_ref().and_then(|s| s.brep()).is_some();
+        if !has_brep {
+            validate_mesh_arrays(&part.mesh.positions, &part.mesh.indices)?;
+        }
+
         // Extract geometry metadata from Solid
         let (volume, surface_area, bbox, is_empty) = if let Some(ref solid) = part.solid {
             let (bb_min, bb_max) = solid.bounding_box();
@@ -393,7 +399,7 @@ impl Evaluator {
             let dae = brep_to_dae(brep, &params);
             (dae.into_bytes(), "dae")
         } else {
-            (mesh_to_dae(&part.mesh).into_bytes(), "dae")
+            (mesh_to_dae(&part.mesh).map_err(EvalError::MeshMalformed)?.into_bytes(), "dae")
         };
         let mesh_path = self.next_artifact_path(name, ext)?;
         let manifest_path = Self::manifest_path_for_mesh(&mesh_path, &self.temp_dir)?;
@@ -510,21 +516,39 @@ impl Evaluator {
                         // Clean up tmp files referenced in the marker
                         if let Some(mesh_path) = marker.get("mesh_path").and_then(|v| v.as_str()) {
                             let mesh = PathBuf::from(mesh_path);
-                            let tmp_ext = mesh.extension().and_then(|s| s.to_str()).unwrap_or("dae");
-                            std::fs::remove_file(mesh.with_extension(format!("{tmp_ext}.tmp"))).ok();
-                            // Remove half-published files too
-                            std::fs::remove_file(&mesh).ok();
+                            if is_inside_root(&mesh, &self.temp_dir) {
+                                let tmp_ext =
+                                    mesh.extension().and_then(|s| s.to_str()).unwrap_or("dae");
+                                std::fs::remove_file(
+                                    mesh.with_extension(format!("{tmp_ext}.tmp")),
+                                )
+                                .ok();
+                                // Remove half-published files too
+                                std::fs::remove_file(&mesh).ok();
+                            } else {
+                                tracing::warn!(
+                                    "Recovery: skipping mesh path outside temp root: {}",
+                                    mesh.display()
+                                );
+                            }
                         }
                         if let Some(manifest_path) =
                             marker.get("manifest_path").and_then(|v| v.as_str())
                         {
                             let manifest = PathBuf::from(manifest_path);
-                            std::fs::remove_file(manifest.with_extension("json.tmp")).ok();
-                            std::fs::remove_file(&manifest).ok();
+                            if is_inside_root(&manifest, &self.temp_dir) {
+                                std::fs::remove_file(manifest.with_extension("json.tmp")).ok();
+                                std::fs::remove_file(&manifest).ok();
+                            } else {
+                                tracing::warn!(
+                                    "Recovery: skipping manifest path outside temp root: {}",
+                                    manifest.display()
+                                );
+                            }
                         }
                     }
                 }
-                // Remove the marker itself
+                // Always remove the marker itself (found inside temp_dir by read_dir)
                 std::fs::remove_file(&path).ok();
             }
         }
@@ -563,14 +587,63 @@ impl Evaluator {
     }
 }
 
+/// Check if `candidate` path is inside `root` using canonical paths.
+///
+/// Handles both existing files (full canonicalize) and non-existing files
+/// (canonicalize parent + filename comparison).
+fn is_inside_root(candidate: &Path, root: &Path) -> bool {
+    let Ok(canonical_root) = root.canonicalize() else {
+        return false;
+    };
+    // If the file exists, canonicalize directly
+    if let Ok(canonical) = candidate.canonicalize() {
+        return canonical.starts_with(&canonical_root);
+    }
+    // For non-existing files, canonicalize the parent directory
+    if let Some(parent) = candidate.parent() {
+        if let Ok(canonical_parent) = parent.canonicalize() {
+            return canonical_parent.starts_with(&canonical_root);
+        }
+    }
+    false
+}
+
+/// Validate mesh array sizes for stride-3 positions and stride-3 indices (triangles).
+fn validate_mesh_arrays(positions: &[f32], indices: &[u32]) -> Result<(), EvalError> {
+    if !positions.len().is_multiple_of(3) {
+        return Err(EvalError::MeshMalformed(format!(
+            "positions array length {} is not a multiple of 3",
+            positions.len()
+        )));
+    }
+    if !indices.len().is_multiple_of(3) {
+        return Err(EvalError::MeshMalformed(format!(
+            "index array length {} is not a multiple of 3",
+            indices.len()
+        )));
+    }
+    let vertex_count = positions.len() / 3;
+    for (i, &idx) in indices.iter().enumerate() {
+        if (idx as usize) >= vertex_count {
+            return Err(EvalError::MeshMalformed(format!(
+                "index {} at position {} is out of range (vertex count: {})",
+                idx, i, vertex_count
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// Compute bounding box from mesh positions (fallback when Solid not available).
+///
+/// Caller must validate mesh arrays first (positions.len() % 3 == 0).
 fn compute_mesh_bbox(mesh: &vcad_eval::EvaluatedMesh) -> BBox {
     let mut min = [f64::MAX; 3];
     let mut max = [f64::MIN; 3];
     let positions = &mesh.positions;
-    for i in (0..positions.len()).step_by(3) {
+    for chunk in positions.chunks_exact(3) {
         for j in 0..3 {
-            let v = positions[i + j] as f64;
+            let v = chunk[j] as f64;
             min[j] = min[j].min(v);
             max[j] = max[j].max(v);
         }
@@ -604,6 +677,8 @@ pub enum EvalError {
     NoGeometry,
     /// Scene produced more than one part
     MultiPart(usize),
+    /// Malformed mesh geometry (bad array sizes or out-of-range indices)
+    MeshMalformed(String),
     /// Internal error (IO, path, etc.)
     Internal(String),
 }
@@ -616,6 +691,7 @@ impl EvalError {
             EvalError::Kernel(_) => "KERNEL_ERROR",
             EvalError::NoGeometry => "NO_GEOMETRY",
             EvalError::MultiPart(_) => "MULTI_PART_UNSUPPORTED",
+            EvalError::MeshMalformed(_) => "MESH_MALFORMED",
             EvalError::Internal(s) if s == "TEMP_SEQ_EXHAUSTED" => "TEMP_SEQ_EXHAUSTED",
             EvalError::Internal(s) if s.starts_with("PATH_NOT_ALLOWED") => "PATH_NOT_ALLOWED",
             EvalError::Internal(_) => "INTERNAL_ERROR",
@@ -639,6 +715,7 @@ impl EvalError {
             EvalError::Kernel(e) => format!("Kernel evaluation error: {}", e),
             EvalError::NoGeometry => "Scene produced zero parts".to_string(),
             EvalError::MultiPart(n) => format!("Scene produced {} parts (expected 1)", n),
+            EvalError::MeshMalformed(msg) => format!("Malformed mesh geometry: {}", msg),
             EvalError::Internal(msg) => msg.clone(),
         }
     }
@@ -814,6 +891,99 @@ mod tests {
         let imports = std::collections::HashMap::new();
         let result = evaluator.eval_with_imports(source, None, &imports, None, false, false, false, false, true);
         assert!(result.is_err(), "raw [import ...] must fail during evaluation");
+    }
+
+    #[test]
+    fn test_is_inside_root() {
+        let temp = tempfile::tempdir().unwrap();
+
+        // Existing file inside temp dir
+        let inside = temp.path().join("inside.txt");
+        std::fs::write(&inside, "test").unwrap();
+        assert!(is_inside_root(&inside, temp.path()));
+
+        // Non-existing file in temp dir
+        assert!(is_inside_root(
+            &temp.path().join("nonexist.txt"),
+            temp.path()
+        ));
+
+        // Outside path
+        let other = tempfile::tempdir().unwrap();
+        let outside = other.path().join("outside.txt");
+        std::fs::write(&outside, "test").unwrap();
+        assert!(!is_inside_root(&outside, temp.path()));
+
+        // Path traversal attempt
+        let traversal = temp.path().join("sub").join("..").join("..").join("etc");
+        assert!(!is_inside_root(&traversal, temp.path()));
+    }
+
+    #[test]
+    fn test_recovery_skips_paths_outside_temp() {
+        let temp = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+
+        // Create a file outside temp that should NOT be deleted
+        let target = outside.path().join("precious.txt");
+        std::fs::write(&target, "precious").unwrap();
+
+        // Create a malicious marker pointing outside temp
+        let marker = serde_json::json!({
+            "mesh_path": target.to_string_lossy(),
+            "manifest_path": target.to_string_lossy(),
+            "created_at": "2025-01-01T00:00:00Z",
+        });
+        std::fs::write(
+            temp.path().join("evil.pair.pending"),
+            serde_json::to_vec_pretty(&marker).unwrap(),
+        )
+        .unwrap();
+
+        let _evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
+
+        // Marker should be gone
+        assert!(!temp.path().join("evil.pair.pending").exists());
+        // Target outside temp should still exist
+        assert!(target.exists(), "File outside temp root was deleted!");
+    }
+
+    #[test]
+    fn test_validate_mesh_arrays_valid() {
+        // Valid mesh
+        assert!(validate_mesh_arrays(
+            &[0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
+            &[0, 1, 0]
+        )
+        .is_ok());
+
+        // Empty mesh
+        assert!(validate_mesh_arrays(&[], &[]).is_ok());
+    }
+
+    #[test]
+    fn test_validate_mesh_arrays_bad_positions() {
+        let err = validate_mesh_arrays(&[0.0, 1.0], &[]).unwrap_err();
+        assert_eq!(err.error_code(), "MESH_MALFORMED");
+    }
+
+    #[test]
+    fn test_validate_mesh_arrays_bad_indices() {
+        let err = validate_mesh_arrays(&[0.0, 1.0, 2.0], &[0, 0]).unwrap_err();
+        assert_eq!(err.error_code(), "MESH_MALFORMED");
+    }
+
+    #[test]
+    fn test_validate_mesh_arrays_index_out_of_range() {
+        let err = validate_mesh_arrays(&[0.0, 1.0, 2.0], &[0, 0, 5]).unwrap_err();
+        assert_eq!(err.error_code(), "MESH_MALFORMED");
+    }
+
+    #[test]
+    fn test_mesh_malformed_error_code() {
+        let err = EvalError::MeshMalformed("test".into());
+        assert_eq!(err.error_code(), "MESH_MALFORMED");
+        assert!(err.message().contains("Malformed mesh geometry"));
     }
 
     #[test]

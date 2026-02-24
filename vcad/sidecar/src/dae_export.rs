@@ -140,14 +140,14 @@ fn emit_tessellated_triangles(
     let base_idx = positions.len() / 3;
 
     // Convert f32 vertices to f64 for consistent XML output
-    for i in (0..mesh.vertices.len()).step_by(3) {
-        positions.push(mesh.vertices[i] as f64);
-        positions.push(mesh.vertices[i + 1] as f64);
-        positions.push(mesh.vertices[i + 2] as f64);
+    for chunk in mesh.vertices.chunks_exact(3) {
+        positions.push(chunk[0] as f64);
+        positions.push(chunk[1] as f64);
+        positions.push(chunk[2] as f64);
     }
 
     // Each triangle is a polygon with vcount=3
-    for tri in mesh.indices.chunks(3) {
+    for tri in mesh.indices.chunks_exact(3) {
         vcount.push(3);
         indices.push(base_idx + tri[0] as usize);
         indices.push(base_idx + tri[1] as usize);
@@ -159,7 +159,31 @@ fn emit_tessellated_triangles(
 ///
 /// Each triangle is emitted as a polylist entry with vcount=3. Vertex positions
 /// are promoted from f32 to f64 for consistent XML output.
-pub fn mesh_to_dae(mesh: &EvaluatedMesh) -> String {
+///
+/// Returns an error if mesh arrays have invalid sizes or out-of-range indices.
+pub fn mesh_to_dae(mesh: &EvaluatedMesh) -> Result<String, String> {
+    if !mesh.positions.len().is_multiple_of(3) {
+        return Err(format!(
+            "positions array length {} is not a multiple of 3",
+            mesh.positions.len()
+        ));
+    }
+    if !mesh.indices.len().is_multiple_of(3) {
+        return Err(format!(
+            "index array length {} is not a multiple of 3",
+            mesh.indices.len()
+        ));
+    }
+    let vertex_count = mesh.positions.len() / 3;
+    for (i, &idx) in mesh.indices.iter().enumerate() {
+        if (idx as usize) >= vertex_count {
+            return Err(format!(
+                "index {} at position {} is out of range (vertex count: {})",
+                idx, i, vertex_count
+            ));
+        }
+    }
+
     let mut positions: Vec<f64> = Vec::with_capacity(mesh.positions.len());
     let mut vcount: Vec<usize> = Vec::new();
     let mut indices: Vec<usize> = Vec::new();
@@ -168,14 +192,14 @@ pub fn mesh_to_dae(mesh: &EvaluatedMesh) -> String {
         positions.push(p as f64);
     }
 
-    for tri in mesh.indices.chunks(3) {
+    for tri in mesh.indices.chunks_exact(3) {
         vcount.push(3);
         indices.push(tri[0] as usize);
         indices.push(tri[1] as usize);
         indices.push(tri[2] as usize);
     }
 
-    build_collada_xml(&positions, &vcount, &indices)
+    Ok(build_collada_xml(&positions, &vcount, &indices))
 }
 
 /// Build the complete COLLADA XML document.
@@ -397,7 +421,7 @@ mod tests {
             indices: vec![0, 1, 2],
             normals: None,
         };
-        let dae = mesh_to_dae(&mesh);
+        let dae = mesh_to_dae(&mesh).unwrap();
 
         assert!(dae.starts_with("<?xml"));
         assert!(dae.contains("<COLLADA"));
@@ -421,12 +445,45 @@ mod tests {
             indices: vec![],
             normals: None,
         };
-        let dae = mesh_to_dae(&mesh);
+        let dae = mesh_to_dae(&mesh).unwrap();
 
         assert!(dae.starts_with("<?xml"));
         assert!(dae.contains("<COLLADA"));
         // 0 vertices, 0 polygons
         assert!(dae.contains("count=\"0\""));
+    }
+
+    #[test]
+    fn test_mesh_to_dae_malformed_positions() {
+        let mesh = EvaluatedMesh {
+            positions: vec![0.0, 1.0], // not a multiple of 3
+            indices: vec![],
+            normals: None,
+        };
+        let err = mesh_to_dae(&mesh).unwrap_err();
+        assert!(err.contains("not a multiple of 3"));
+    }
+
+    #[test]
+    fn test_mesh_to_dae_malformed_indices() {
+        let mesh = EvaluatedMesh {
+            positions: vec![0.0, 1.0, 2.0],
+            indices: vec![0, 0], // not a multiple of 3
+            normals: None,
+        };
+        let err = mesh_to_dae(&mesh).unwrap_err();
+        assert!(err.contains("not a multiple of 3"));
+    }
+
+    #[test]
+    fn test_mesh_to_dae_index_out_of_range() {
+        let mesh = EvaluatedMesh {
+            positions: vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
+            indices: vec![0, 1, 5], // index 5 out of range (only 2 vertices)
+            normals: None,
+        };
+        let err = mesh_to_dae(&mesh).unwrap_err();
+        assert!(err.contains("out of range"));
     }
 
     #[test]
