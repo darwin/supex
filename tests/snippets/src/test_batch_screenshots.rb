@@ -8,8 +8,12 @@ require 'json'
 
 module SupexTestSnippets
   # Helper to get temp directory for batch screenshot tests
+  # Uses SUPEX_WORKSPACE directly (set by CLIRunner to isolated test workspace)
   def self.batch_screenshot_temp_dir
-    dir = File.join(Dir.tmpdir, 'supex_e2e_batch_screenshots')
+    ws = ENV['SUPEX_WORKSPACE']
+    raise 'SUPEX_WORKSPACE not set — E2E tests require an isolated workspace' if ws.nil? || ws.empty?
+
+    dir = File.join(ws, 'batch_screenshots')
     FileUtils.mkdir_p(dir)
     dir
   end
@@ -18,13 +22,13 @@ module SupexTestSnippets
   # @return [String] JSON with success status and file info
   def self.batch_single_zoom_extents
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{ 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'full' }],
       'output_dir' => temp_dir,
       'base_name' => 'test_single',
       'width' => 800,
       'height' => 600
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -33,7 +37,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_multiple_standard_views
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [
         { 'camera' => { 'type' => 'standard_view', 'view' => 'front' }, 'name' => 'front' },
         { 'camera' => { 'type' => 'standard_view', 'view' => 'top' }, 'name' => 'top' },
@@ -43,7 +47,7 @@ module SupexTestSnippets
       'base_name' => 'test_views',
       'width' => 640,
       'height' => 480
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -52,7 +56,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_custom_diagonal_view
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{
         'camera' => { 'type' => 'custom', 'eye' => [100, 100, 100], 'target' => [0, 0, 0] },
         'name' => 'diagonal'
@@ -61,7 +65,7 @@ module SupexTestSnippets
       'base_name' => 'test_custom',
       'width' => 800,
       'height' => 600
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -71,7 +75,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_custom_top_down_view
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{
         'camera' => { 'type' => 'custom', 'eye' => [50, 50, 200], 'target' => [50, 50, 0] },
         'name' => 'top_down'
@@ -80,7 +84,7 @@ module SupexTestSnippets
       'base_name' => 'test_topdown',
       'width' => 800,
       'height' => 600
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -89,7 +93,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_custom_bottom_up_view
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{
         'camera' => { 'type' => 'custom', 'eye' => [50, 50, -100], 'target' => [50, 50, 50] },
         'name' => 'bottom_up'
@@ -98,7 +102,7 @@ module SupexTestSnippets
       'base_name' => 'test_bottomup',
       'width' => 800,
       'height' => 600
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -107,7 +111,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_custom_with_fov
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{
         'camera' => {
           'type' => 'custom',
@@ -121,7 +125,7 @@ module SupexTestSnippets
       'base_name' => 'test_fov',
       'width' => 800,
       'height' => 600
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -130,7 +134,7 @@ module SupexTestSnippets
   # @return [String] JSON with success=false, successful=2, failed=1
   def self.batch_partial_failure
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [
         { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'good1' },
         { 'camera' => { 'type' => 'zoom_entity', 'entity_ids' => [999_999] }, 'name' => 'bad' },
@@ -140,7 +144,7 @@ module SupexTestSnippets
       'base_name' => 'test_partial',
       'width' => 640,
       'height' => 480
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -149,7 +153,7 @@ module SupexTestSnippets
   # @return [String] JSON with successful=1, failed=1
   def self.batch_invalid_camera_type
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [
         { 'camera' => { 'type' => 'nonexistent_type' }, 'name' => 'invalid' },
         { 'camera' => { 'type' => 'standard_view', 'view' => 'iso' }, 'name' => 'valid' }
@@ -158,7 +162,7 @@ module SupexTestSnippets
       'base_name' => 'test_invalid',
       'width' => 640,
       'height' => 480
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -177,7 +181,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_camera_restore_test
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [
         { 'camera' => { 'type' => 'standard_view', 'view' => 'top' }, 'name' => 'top' },
         { 'camera' => { 'type' => 'standard_view', 'view' => 'front' }, 'name' => 'front' }
@@ -187,7 +191,7 @@ module SupexTestSnippets
       'width' => 640,
       'height' => 480,
       'restore_camera' => true
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -224,7 +228,7 @@ module SupexTestSnippets
   # @return [String] JSON with success status
   def self.batch_with_isolation(group_id)
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{
         'camera' => { 'type' => 'standard_view', 'view' => 'iso' },
         'isolate' => group_id,
@@ -234,7 +238,7 @@ module SupexTestSnippets
       'base_name' => 'test_isolation',
       'width' => 800,
       'height' => 600
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end
@@ -253,7 +257,7 @@ module SupexTestSnippets
   # @return [String] JSON with success=false
   def self.batch_isolation_invalid_entity
     temp_dir = batch_screenshot_temp_dir
-    result = SupexRuntime::BatchScreenshot.execute(
+    result = SupexRuntime::BatchScreenshot.execute({
       'shots' => [{
         'camera' => { 'type' => 'standard_view', 'view' => 'iso' },
         'isolate' => 999_999_999, # Non-existent entity
@@ -263,7 +267,7 @@ module SupexTestSnippets
       'base_name' => 'test_invalid_isolation',
       'width' => 640,
       'height' => 480
-    )
+    })
     result[:temp_dir] = temp_dir
     result.to_json
   end

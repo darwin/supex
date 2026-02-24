@@ -550,7 +550,7 @@ module SupexRuntime
       case tool_name
       when 'ping' then ping
       when 'export_scene' then Export.export_scene(args)
-      when 'eval_ruby' then eval_ruby(args)
+      when 'eval_ruby' then eval_ruby(args, workspace: workspace)
       when 'reload_extension' then reload_extension
       when 'console_capture_status' then console_capture_status
       when 'eval_ruby_file' then eval_ruby_file(args, workspace: workspace)
@@ -622,9 +622,15 @@ module SupexRuntime
     # Each eval runs in an isolated binding - local variables don't persist between calls.
     # Global variables ($foo), constants (Foo), and class/module definitions do persist.
     # @param params [Hash] parameters containing Ruby code
+    # @param workspace [String, nil] workspace path propagated from connection context
     # @return [Hash] evaluation result
-    def eval_ruby(params)
+    def eval_ruby(params, workspace: nil)
       log "Evaluating Ruby code (#{params['code'].length} chars)"
+
+      # Propagate workspace to ENV so evaluated code can access it
+      # (e.g., BatchScreenshot.execute reads ENV['SUPEX_WORKSPACE'] as fallback)
+      old_ws = ENV['SUPEX_WORKSPACE']
+      ENV['SUPEX_WORKSPACE'] = workspace if workspace
 
       begin
         @console_capture&.add_marker('EVAL_RUBY START')
@@ -644,6 +650,8 @@ module SupexRuntime
         @console_capture&.add_marker("EVAL_RUBY ERROR: #{e.message}")
         log "Ruby eval error: #{e.message}"
         raise "Ruby evaluation error: #{e.message}"
+      ensure
+        ENV['SUPEX_WORKSPACE'] = old_ws
       end
     end
 

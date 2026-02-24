@@ -32,10 +32,11 @@ class CLIRunner:
     # Agent name used for client identification in logs
     AGENT_NAME = "e2e-test"
 
-    def __init__(self, driver_path: Path | None = None):
+    def __init__(self, driver_path: Path | None = None, workspace: Path | None = None):
         self._driver_path = driver_path or (
             Path(__file__).parent.parent.parent / "driver"
         )
+        self._workspace = workspace
         self._snippets_loaded = False
 
     def load_snippets(self) -> CLIResult:
@@ -105,7 +106,14 @@ class CLIRunner:
         cmd = ["uv", "run", "supex", *args]
         # Pass SUPEX_AGENT to identify as e2e test in logs
         # Use SUPEX_PLAIN=1 to disable Rich formatting for predictable output parsing
-        env = {**os.environ, "SUPEX_AGENT": self.AGENT_NAME, "SUPEX_PLAIN": "1"}
+        # Strip inherited SUPEX_WORKSPACE — tests use their own isolated workspace
+        env = {
+            k: v for k, v in os.environ.items() if k != "SUPEX_WORKSPACE"
+        }
+        env["SUPEX_AGENT"] = self.AGENT_NAME
+        env["SUPEX_PLAIN"] = "1"
+        if self._workspace:
+            env["SUPEX_WORKSPACE"] = str(self._workspace)
         result = subprocess.run(
             cmd,
             capture_output=True,

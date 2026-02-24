@@ -42,6 +42,10 @@ module SupexRuntime
       # @param workspace [String, nil] workspace path for default output directory
       # @return [Hash] results with file paths and any errors
       def execute(params, workspace: nil)
+        # Fallback to env when called directly (e.g., from test snippets)
+        # rather than via tool dispatch which passes workspace explicitly
+        workspace ||= ENV['SUPEX_WORKSPACE']
+
         model = Sketchup.active_model
         return { success: false, error: 'No active model' } unless model
 

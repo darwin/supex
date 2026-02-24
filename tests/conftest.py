@@ -1,8 +1,5 @@
 """Pytest configuration and fixtures for e2e tests."""
 
-import os
-import tempfile
-import time
 from pathlib import Path
 
 import pytest
@@ -11,12 +8,17 @@ from helpers.sketchup_process import SketchUpProcess
 from helpers.cli_runner import CLIRunner
 
 
-def get_project_temp_dir(subpath: str = "") -> Path:
-    """Get path to project .tmp directory, creating subdirs if needed."""
+def get_e2e_workspace() -> Path:
+    """Get isolated E2E test workspace directory.
+
+    Tests use their own workspace under supex/.tmp/tests/e2e/ instead of
+    inheriting SUPEX_WORKSPACE from the environment. This ensures test
+    isolation and a clean workspace for PathPolicy validation.
+    """
     project_root = Path(__file__).parent.parent
-    temp_dir = project_root / ".tmp" / subpath
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    return temp_dir
+    workspace = project_root / ".tmp" / "tests" / "e2e"
+    workspace.mkdir(parents=True, exist_ok=True)
+    return workspace
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -36,7 +38,18 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 @pytest.fixture(scope="session")
-def sketchup(request: pytest.FixtureRequest) -> SketchUpProcess:
+def e2e_workspace() -> Path:
+    """Session-scoped isolated workspace for E2E tests.
+
+    All test file operations (saves, exports, screenshots) use paths
+    under this workspace. SUPEX_WORKSPACE is set to this directory
+    so PathPolicy accepts these paths.
+    """
+    return get_e2e_workspace()
+
+
+@pytest.fixture(scope="session")
+def sketchup(request: pytest.FixtureRequest, e2e_workspace: Path) -> SketchUpProcess:
     """
     Session-scoped fixture that manages SketchUp lifecycle.
 
@@ -55,12 +68,12 @@ def sketchup(request: pytest.FixtureRequest) -> SketchUpProcess:
     yield process
 
     if not no_stop:
-        # Save model to .tmp/tests/e2e/models before quitting to avoid save dialog
-        # Reuses the same file created by test_model_file fixture
+        # Save model before quitting to avoid save dialog
         try:
-            temp_dir = get_project_temp_dir("tests/e2e/models")
-            temp_file = temp_dir / "supex_test_session.skp"
-            cli_runner = CLIRunner()
+            models_dir = e2e_workspace / "models"
+            models_dir.mkdir(parents=True, exist_ok=True)
+            temp_file = models_dir / "supex_test_session.skp"
+            cli_runner = CLIRunner(workspace=e2e_workspace)
             cli_runner.save_model(str(temp_file))
         except Exception:
             # Ignore save errors during teardown
@@ -70,14 +83,15 @@ def sketchup(request: pytest.FixtureRequest) -> SketchUpProcess:
 
 
 @pytest.fixture(scope="session")
-def cli(sketchup: SketchUpProcess) -> CLIRunner:
+def cli(sketchup: SketchUpProcess, e2e_workspace: Path) -> CLIRunner:
     """
     Session-scoped CLI runner.
 
     Depends on sketchup fixture to ensure SketchUp is running.
+    Uses an isolated workspace under .tmp/tests/e2e/ for all file operations.
     Loads all Ruby snippets once at the start of the test session.
     """
-    cli_runner = CLIRunner()
+    cli_runner = CLIRunner(workspace=e2e_workspace)
     # Load all snippet files once at session start
     result = cli_runner.load_snippets()
     if not result.success:
@@ -86,15 +100,16 @@ def cli(sketchup: SketchUpProcess) -> CLIRunner:
 
 
 @pytest.fixture(scope="session")
-def test_model_file(cli: CLIRunner) -> Path:
+def test_model_file(cli: CLIRunner, e2e_workspace: Path) -> Path:
     """
     Session-scoped fixture that creates a single test model file.
 
     Saves the model once at the start of the test session to prevent
     save dialogs. This file is reused across all tests and by session teardown.
     """
-    temp_dir = get_project_temp_dir("tests/e2e/models")
-    temp_file = temp_dir / "supex_test_session.skp"
+    models_dir = e2e_workspace / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    temp_file = models_dir / "supex_test_session.skp"
     cli.eval(f"Sketchup.active_model.save('{temp_file}')")
     return temp_file
 
