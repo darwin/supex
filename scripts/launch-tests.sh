@@ -15,23 +15,65 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Source common utilities (colors and logging)
 source "$SCRIPT_DIR/helpers/common.sh"
 
+# Test suite registry: slug|display name|directory|command|requires_e2e
+SUITES=(
+    "driver|Python Driver Tests|driver|uv run python -m pytest tests/|false"
+    "stdlib|Ruby Stdlib Tests|stdlib|bundle exec rake test|false"
+    "runtime|Ruby Runtime Tests|runtime|bundle exec rake test|false"
+    "mock|Ruby Mock Tests|mock|bundle exec rake test|false"
+    "sidecar|VCAD Sidecar Tests|vcad/sidecar|cargo test|false"
+    "viewer|VCAD Viewer Tests|vcad/viewer|npx vitest run|false"
+    "radar|Radar Tests|devtools/radar|uv run python -m pytest tests/|false"
+    "e2e|E2E Tests|tests|uv run python -m pytest e2e/ -v|true"
+)
+
+# Parse a suite entry field by index (0-based)
+suite_field() {
+    echo "$1" | cut -d'|' -f"$(($2 + 1))"
+}
+
+list_suites() {
+    echo "Available test suites:"
+    echo ""
+    for entry in "${SUITES[@]}"; do
+        local slug display e2e_flag
+        slug=$(suite_field "$entry" 0)
+        display=$(suite_field "$entry" 1)
+        e2e_flag=$(suite_field "$entry" 4)
+        if [ "$e2e_flag" = "true" ]; then
+            printf "  %-12s %s (requires --e2e)\n" "$slug" "$display"
+        else
+            printf "  %-12s %s\n" "$slug" "$display"
+        fi
+    done
+}
+
 # Parse command line arguments
 show_help() {
     cat << EOF
-Usage: $(basename "$0") [OPTIONS]
+Usage: $(basename "$0") [OPTIONS] [SUITE...]
 
-Run all tests in all subprojects.
+Run tests for specified subsystems. Without SUITE arguments, runs all
+non-E2E test suites.
+
+SUITES:
+$(list_suites)
 
 OPTIONS:
-    -e, --e2e       Include E2E tests (requires SketchUp running)
+    -e, --e2e       Include E2E tests (when running all suites)
+    -l, --list      List available test suites
     -h, --help      Show this help message
 
 EXAMPLES:
-    $(basename "$0")            # Run unit tests only
-    $(basename "$0") --e2e      # Run all tests including E2E
+    $(basename "$0")                    # Run all unit tests
+    $(basename "$0") driver viewer      # Run only driver and viewer tests
+    $(basename "$0") --e2e              # Run all tests including E2E
+    $(basename "$0") sidecar            # Run only sidecar tests
 
 EOF
 }
+
+SELECTED_SUITES=()
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -39,16 +81,41 @@ while [[ $# -gt 0 ]]; do
             RUN_E2E=true
             shift
             ;;
+        -l|--list)
+            list_suites
+            exit 0
+            ;;
         -h|--help)
             show_help
             exit 0
             ;;
-        *)
+        -*)
             echo -e "${RED}Error: Unknown option: $1${NC}" >&2
             show_help
             exit 1
             ;;
+        *)
+            SELECTED_SUITES+=("$1")
+            shift
+            ;;
     esac
+done
+
+# Validate selected suite slugs
+for slug in "${SELECTED_SUITES[@]}"; do
+    found=false
+    for entry in "${SUITES[@]}"; do
+        if [ "$(suite_field "$entry" 0)" = "$slug" ]; then
+            found=true
+            break
+        fi
+    done
+    if [ "$found" = false ]; then
+        echo -e "${RED}Error: Unknown test suite: $slug${NC}" >&2
+        echo ""
+        list_suites
+        exit 1
+    fi
 done
 
 # Track test results
@@ -117,13 +184,38 @@ print_summary() {
     return 0
 }
 
+# Determine if a suite should run
+should_run() {
+    local slug="$1"
+    local e2e_flag="$2"
+
+    # Explicit selection: run exactly what was requested
+    if [ ${#SELECTED_SUITES[@]} -gt 0 ]; then
+        for s in "${SELECTED_SUITES[@]}"; do
+            if [ "$s" = "$slug" ]; then
+                return 0
+            fi
+        done
+        return 1
+    fi
+
+    # No explicit selection: run all, but skip e2e unless --e2e
+    if [ "$e2e_flag" = "true" ] && [ "$RUN_E2E" != true ]; then
+        return 1
+    fi
+
+    return 0
+}
+
 # Main execution
 main() {
     cd "$PROJECT_ROOT"
 
     echo -e "${BLUE}Starting test run...${NC}"
-    if [ "$RUN_E2E" = true ]; then
-        echo -e "${YELLOW}E2E tests will be included${NC}"
+    if [ ${#SELECTED_SUITES[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Running selected suites: ${SELECTED_SUITES[*]}${NC}"
+    elif [ "$RUN_E2E" = true ]; then
+        echo -e "${YELLOW}Running all suites including E2E${NC}"
     else
         echo -e "${YELLOW}E2E tests will be skipped (use --e2e to include)${NC}"
     fi
@@ -135,63 +227,18 @@ main() {
     require_command "cargo" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
     require_command "npx" "brew install node"
 
-    # Run Python Driver tests
-    run_test_suite \
-        "Python Driver Tests" \
-        "${PROJECT_ROOT}/driver" \
-        "uv run python -m pytest tests/" \
-        || true  # Continue even if failed
+    for entry in "${SUITES[@]}"; do
+        local slug display dir command e2e_flag
+        slug=$(suite_field "$entry" 0)
+        display=$(suite_field "$entry" 1)
+        dir=$(suite_field "$entry" 2)
+        command=$(suite_field "$entry" 3)
+        e2e_flag=$(suite_field "$entry" 4)
 
-    # Run Ruby Stdlib tests
-    run_test_suite \
-        "Ruby Stdlib Tests" \
-        "${PROJECT_ROOT}/stdlib" \
-        "bundle exec rake test" \
-        || true  # Continue even if failed
-
-    # Run Ruby Runtime tests
-    run_test_suite \
-        "Ruby Runtime Tests" \
-        "${PROJECT_ROOT}/runtime" \
-        "bundle exec rake test" \
-        || true  # Continue even if failed
-
-    # Run Ruby Mock tests
-    run_test_suite \
-        "Ruby Mock Tests" \
-        "${PROJECT_ROOT}/mock" \
-        "bundle exec rake test" \
-        || true  # Continue even if failed
-
-    # Run VCAD Sidecar tests (Rust)
-    run_test_suite \
-        "VCAD Sidecar Tests" \
-        "${PROJECT_ROOT}/vcad/sidecar" \
-        "cargo test" \
-        || true  # Continue even if failed
-
-    # Run VCAD Viewer tests (TypeScript)
-    run_test_suite \
-        "VCAD Viewer Tests" \
-        "${PROJECT_ROOT}/vcad/viewer" \
-        "npx vitest run" \
-        || true  # Continue even if failed
-
-    # Run Radar tests (Python)
-    run_test_suite \
-        "Radar Tests" \
-        "${PROJECT_ROOT}/devtools/radar" \
-        "uv run python -m pytest tests/" \
-        || true  # Continue even if failed
-
-    # Run E2E tests if flag is set
-    if [ "$RUN_E2E" = true ]; then
-        run_test_suite \
-            "E2E Tests" \
-            "${PROJECT_ROOT}/tests" \
-            "uv run python -m pytest e2e/ -v" \
-            || true  # Continue even if failed
-    fi
+        if should_run "$slug" "$e2e_flag"; then
+            run_test_suite "$display" "${PROJECT_ROOT}/${dir}" "$command" || true
+        fi
+    done
 
     # Print summary and exit with appropriate code
     if print_summary; then
