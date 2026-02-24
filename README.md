@@ -256,10 +256,10 @@ Run tests and linters from the repository root:
 
 ```bash
 # Run all unit tests (driver, stdlib, runtime)
-./scripts/launch-tests.sh
+./test
 
 # Run all tests including E2E (requires SketchUp running)
-./scripts/launch-tests.sh --e2e
+./test --e2e
 
 # Run all linters (RuboCop, ruff, mypy)
 ./scripts/lint.sh

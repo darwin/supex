@@ -13,11 +13,11 @@ run = "./scripts/launch-sketchup.sh"
 
 [tasks.test]
 description = "Run all tests (Python driver + Ruby runtime)"
-run = "./scripts/launch-tests.sh"
+run = "./scripts/launch-test.sh"
 
 [tasks."test:e2e"]
 description = "Run all tests including E2E (requires SketchUp running)"
-run = "./scripts/launch-tests.sh --e2e"
+run = "./scripts/launch-test.sh --e2e"
 
 [tasks.docs]
 description = "Regenerate SketchUp API documentation"

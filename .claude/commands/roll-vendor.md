@@ -46,7 +46,7 @@ Report summary: which repos were rolled, how many new commits were pulled in, wh
 Automatically run rebuild and tests:
 
 1. **Rebuild**: `./scripts/rebuild.sh` to rebuild all binaries (sidecar + viewer)
-2. **Test**: `./scripts/launch-tests.sh` to run all headless tests
+2. **Test**: `./test` to run all headless tests
 
 If rebuild fails, STOP and report the error — do not run tests.
 If tests fail, report failures but continue to the commit prompt.

@@ -258,7 +258,7 @@ driver/tests/              # Python unit tests (no SketchUp required)
 cd driver && uv run pytest tests/
 
 # E2E tests (SketchUp must be running)
-./scripts/launch-tests.sh
+./test
 ```
 
 ## Quality Assurance

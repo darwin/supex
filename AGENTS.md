@@ -67,11 +67,11 @@ MCP-based platform connecting AI agents to SketchUp:
 ./supex reload
 
 # Run all tests
-./scripts/launch-tests.sh
+./test
 
 # Run selected test suites (slugs: driver, stdlib, runtime, mock, sidecar, viewer, radar, e2e)
-./scripts/launch-tests.sh viewer sidecar
-./scripts/launch-tests.sh --list          # show available suites
+./test viewer sidecar
+./test --list          # show available suites
 
 # Rebuild binaries (slugs: sidecar, viewer)
 ./scripts/rebuild.sh                   # rebuild all
