@@ -107,7 +107,7 @@ class RadarApp(App):
         Binding("q", "quit", "Quit"),
         Binding("ctrl+c", "interrupt", "Ctrl+C x2 to quit", show=False, priority=True),
         Binding("f", "toggle_filter", "Filter"),
-        Binding("tab", "toggle_view", "Summary/Raw", show=False),
+        Binding("tab", "toggle_raw", "Raw", show=False, priority=True),
         Binding("slash", "search", "Search"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("down", "cursor_down", "Down", show=False, priority=True),
@@ -324,10 +324,10 @@ class RadarApp(App):
             except Exception:
                 pass
 
-    def action_toggle_view(self) -> None:
+    def action_toggle_raw(self) -> None:
         detail = self.query_one("#detail-panel", DetailPanel)
         if detail.has_class("visible"):
-            detail.toggle_view()
+            detail.toggle_raw()
 
     def action_search(self) -> None:
         fb = self.query_one("#filter-bar")

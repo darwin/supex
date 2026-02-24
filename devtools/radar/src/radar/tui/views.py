@@ -122,14 +122,18 @@ class LogListView(DataTable):
 
 
 class DetailPanel(Static):
-    """Expanded view of a single event.  Toggles between summary and raw.
+    """Expanded view of a single event.
+
+    Modes (toggle with tab/r):
+    - ``detail``: renderer-formatted content (default)
+    - ``raw``: exact logged text with line numbers (soft-wrap visible)
 
     Lazy rendering: content is only computed when the panel is visible.
     Setting an event while hidden just stores the reference; the actual
     render happens when the panel becomes visible.
     """
 
-    show_raw: reactive[bool] = reactive(True)
+    view_mode: reactive[str] = reactive("detail")
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -142,10 +146,11 @@ class DetailPanel(Static):
         if self.has_class("visible"):
             self._render_now()
 
-    def toggle_view(self) -> None:
-        self.show_raw = not self.show_raw
+    def toggle_raw(self) -> None:
+        """Toggle raw mode on/off (returns to detail when toggling off)."""
+        self.view_mode = "raw" if self.view_mode != "raw" else "detail"
 
-    def watch_show_raw(self, _value: bool) -> None:
+    def watch_view_mode(self, _value: str) -> None:
         self._dirty = True
         if self.has_class("visible"):
             self._render_now()
@@ -159,10 +164,24 @@ class DetailPanel(Static):
         if self._event is None:
             self.update("")
             return
-        if self.show_raw:
-            self.update(render_raw(self._event))
-        else:
+        if self.view_mode == "raw":
+            self.update(self._render_raw_text(self._event))
+        elif self.view_mode == "summary":
             self.update(render_summary(self._event))
+        else:
+            self.update(render_raw(self._event))
+
+    @staticmethod
+    def _render_raw_text(event: LogEvent) -> Text:
+        """Exact logged text with line numbers to reveal soft wrapping."""
+        text = Text()
+        text.append(f"EID: {event.eid}", style="dim")
+        text.append("  [raw]\n", style="dim yellow")
+        text.append("\u2500" * 60 + "\n", style="dim")
+        for i, line in enumerate(event.raw.splitlines(), 1):
+            text.append(f"{i:>4}\u2502 ", style="dim")
+            text.append(line + "\n")
+        return text
 
 
 # ---------------------------------------------------------------------------
