@@ -168,6 +168,7 @@ def _do_watch(
     mouse: bool,
     capacity: int,
     initial_filter: FilterSpec,
+    workspace_label: str = "",
 ) -> None:
     """Actually start the ingest pipeline and TUI / plain stream."""
     from .buffer import ObservableBuffer
@@ -181,7 +182,7 @@ def _do_watch(
     if plain:
         asyncio.run(_run_plain(pipeline, buffer, initial_filter))
     else:
-        _run_tui(pipeline, buffer, pane_name, mouse, initial_filter)
+        _run_tui(pipeline, buffer, pane_name, mouse, initial_filter, workspace_label)
 
 
 async def _run_plain(pipeline, buffer, initial_filter: FilterSpec) -> None:
@@ -204,7 +205,10 @@ async def _run_plain(pipeline, buffer, initial_filter: FilterSpec) -> None:
             pass
 
 
-def _run_tui(pipeline, buffer, pane_name: str, mouse: bool, initial_filter: FilterSpec) -> None:
+def _run_tui(
+    pipeline, buffer, pane_name: str, mouse: bool, initial_filter: FilterSpec,
+    workspace_label: str = "",
+) -> None:
     """Launch the Textual TUI application."""
     from .tui.app import RadarApp
 
@@ -214,6 +218,7 @@ def _run_tui(pipeline, buffer, pane_name: str, mouse: bool, initial_filter: Filt
         pane_name=pane_name,
         mouse=mouse,
         initial_filter=initial_filter,
+        workspace_label=workspace_label,
     )
     tui_app.run()
 
@@ -340,6 +345,7 @@ def watch(
         )
         raise typer.Exit(code=1)
 
+    workspace_label = ""
     if has_files:
         assert files is not None
         mode = "ad-hoc"
@@ -350,10 +356,12 @@ def watch(
     elif tests:
         mode = "tests"
         ws = _resolve_test_workspace()
+        workspace_label = str(ws)
         typer.echo(f"[radar] tests mode: watching standard supex logs in {ws}")
     else:
         mode = "default"
         ws = _resolve_workspace()
+        workspace_label = str(ws)
         typer.echo(f"[radar] default mode: watching standard supex logs in {ws}")
 
     initial_filter = _build_initial_filter(level, source)
@@ -377,6 +385,7 @@ def watch(
         mouse=not no_mouse,
         capacity=capacity,
         initial_filter=initial_filter,
+        workspace_label=workspace_label,
     )
 
 

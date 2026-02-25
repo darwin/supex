@@ -133,12 +133,14 @@ class RadarApp(App):
         pane_name: str = "radar",
         mouse: bool = True,
         initial_filter: FilterSpec | None = None,
+        workspace_label: str = "",
     ) -> None:
         super().__init__()
         self._pipeline = pipeline
         self._buffer = buffer
         self._pane_name = pane_name
         self._mouse = mouse
+        self._workspace_label = workspace_label
 
         # Mode: "streaming" (auto-scroll, no cursor) or "browsing" (cursor, no auto-scroll)
         self._mode = "streaming"
@@ -312,6 +314,7 @@ class RadarApp(App):
             sources=self._buffer.sources,
             mode=self._mode,
             new_count=new_count,
+            workspace=self._workspace_label,
         )
 
     # ------------------------------------------------------------------

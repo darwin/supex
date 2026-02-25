@@ -273,6 +273,7 @@ class RadarStatusBar(Static):
         sources: set[str],
         mode: str,
         new_count: int = 0,
+        workspace: str = "",
     ) -> None:
         now = time.monotonic()
         if new_count > 0:
@@ -286,10 +287,18 @@ class RadarStatusBar(Static):
         self._sources = sources
         self._mode = mode
 
-        text = Text()
-        text.append(f" Total: {total}", style="bold")
-        text.append(f"  Shown: {filtered}", style="dim")
-        text.append(f"  Sources: {len(sources)}", style="dim")
-        text.append(f"  Rate: {rate:.1f}/s", style="dim")
-        text.append(f"  [{mode}]", style="bold cyan")
-        self.update(text)
+        left = Text()
+        left.append(f" Total: {total}", style="bold")
+        left.append(f"  Shown: {filtered}", style="dim")
+        left.append(f"  Sources: {len(sources)}", style="dim")
+        left.append(f"  Rate: {rate:.1f}/s", style="dim")
+        left.append(f"  [{mode}]", style="bold cyan")
+
+        if workspace:
+            right = Text(f"{workspace} ", style="dim")
+            pad = self.size.width - left.cell_len - right.cell_len
+            if pad > 0:
+                left.append(" " * pad)
+            left.append_text(right)
+
+        self.update(left)
