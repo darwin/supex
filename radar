@@ -10,7 +10,12 @@ while [ -L "$SCRIPT_PATH" ]; do
 done
 SUPEX_ROOT="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 
-if [ -z "${SUPEX_WORKSPACE:-}" ]; then
+_needs_workspace=true
+for arg in "$@"; do
+  [ "$arg" = "--tests" ] && _needs_workspace=false && break
+done
+
+if $_needs_workspace && [ -z "${SUPEX_WORKSPACE:-}" ]; then
   echo "Error: SUPEX_WORKSPACE is not set." >&2
   echo "Export it to your project workspace root, e.g.:" >&2
   echo "  export SUPEX_WORKSPACE=/path/to/your/project" >&2

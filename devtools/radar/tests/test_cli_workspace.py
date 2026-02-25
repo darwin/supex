@@ -45,3 +45,16 @@ class TestResolveWorkspace:
         result = runner.invoke(app, ["watch", "--config", str(cfg)])
         assert result.exit_code == 0
         assert "config mode" in result.output
+
+    def test_tests_mode_ignores_workspace(self, monkeypatch):
+        """--tests mode works without SUPEX_WORKSPACE."""
+        monkeypatch.delenv("SUPEX_WORKSPACE", raising=False)
+        result = runner.invoke(app, ["watch", "--tests"])
+        assert result.exit_code == 0
+        assert "tests mode" in result.output
+
+    def test_tests_mode_uses_e2e_workspace(self):
+        """--tests resolves to .tmp/tests/e2e/ under supex root."""
+        result = runner.invoke(app, ["watch", "--tests"])
+        assert result.exit_code == 0
+        assert ".tmp/tests/e2e" in result.output

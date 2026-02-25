@@ -48,6 +48,12 @@ def _resolve_workspace() -> Path:
     return Path(ws)
 
 
+def _resolve_test_workspace() -> Path:
+    """Workspace used by E2E tests: <supex_root>/.tmp/tests/e2e/."""
+    supex_root = Path(__file__).resolve().parents[4]
+    return supex_root / ".tmp" / "tests" / "e2e"
+
+
 def _expand_glob(pattern: str, root: Path) -> list[Path]:
     """Expand a glob pattern relative to root directory. Returns sorted unique paths."""
     full = str(root / pattern)
@@ -81,8 +87,8 @@ def _resolve_sources(
         assert config_path is not None
         return _load_config(config_path)
 
-    # Default mode
-    workspace = _resolve_workspace()
+    # Default / tests mode
+    workspace = _resolve_test_workspace() if mode == "tests" else _resolve_workspace()
     sources: list[TailSource] = []
     parser_overrides: dict[str, str] = {}
     for src_def in _DEFAULT_SOURCES:
@@ -269,6 +275,13 @@ def watch(
         str,
         typer.Option("--pane-name", help="tmux pane title (TUI mode)."),
     ] = "radar",
+    tests: Annotated[
+        bool,
+        typer.Option(
+            "--tests",
+            help="Use E2E test workspace instead of $SUPEX_WORKSPACE.",
+        ),
+    ] = False,
     no_mouse: Annotated[
         bool,
         typer.Option(
@@ -320,6 +333,13 @@ def watch(
         )
         raise typer.Exit(code=1)
 
+    if tests and (has_files or config is not None):
+        typer.echo(
+            "Error: --tests cannot be combined with ad-hoc files or --config.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     if has_files:
         assert files is not None
         mode = "ad-hoc"
@@ -327,6 +347,10 @@ def watch(
     elif config is not None:
         mode = "config"
         typer.echo(f"[radar] config mode: {config}")
+    elif tests:
+        mode = "tests"
+        ws = _resolve_test_workspace()
+        typer.echo(f"[radar] tests mode: watching standard supex logs in {ws}")
     else:
         mode = "default"
         ws = _resolve_workspace()

@@ -51,6 +51,28 @@ class TestWatchModeSelection:
         assert result.exit_code == 1
         assert "cannot combine" in result.output.lower() or "cannot combine" in (result.stderr or "")
 
+    def test_tests_mode(self):
+        """radar watch --tests enters tests mode."""
+        result = runner.invoke(app, ["watch", "--tests"])
+        assert result.exit_code == 0
+        assert "tests mode" in result.output
+
+    def test_tests_with_adhoc_fails(self, tmp_path):
+        """radar watch --tests <file> is a usage error."""
+        f = tmp_path / "test.log"
+        f.touch()
+        result = runner.invoke(app, ["watch", "--tests", str(f)])
+        assert result.exit_code == 1
+        assert "cannot be combined" in result.output.lower() or "--tests" in (result.stderr or "")
+
+    def test_tests_with_config_fails(self, tmp_path):
+        """radar watch --tests --config <cfg> is a usage error."""
+        cfg = tmp_path / "radar.toml"
+        cfg.write_text('[project]\nname = "test"\n')
+        result = runner.invoke(app, ["watch", "--tests", "--config", str(cfg)])
+        assert result.exit_code == 1
+        assert "cannot be combined" in result.output.lower() or "--tests" in (result.stderr or "")
+
 
 class TestWatchPlainFlag:
     def test_plain_flag_default_mode(self):
