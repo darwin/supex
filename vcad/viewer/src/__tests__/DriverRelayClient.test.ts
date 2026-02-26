@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MockWebSocket } from "./mock-websocket";
 import { DriverRelayClient, _setTauriInvokeForTest } from "../DriverRelayClient";
 import { useViewerStore } from "../store";
-import type { TauriMeshData } from "./tauri-mock";
 import { installTauriMock, uninstallTauriMock, meshPayload } from "./tauri-mock";
 
 describe("DriverRelayClient", () => {

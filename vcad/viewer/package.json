@@ -23,12 +23,12 @@
   },
   "devDependencies": {
     "@react-three/test-renderer": "^9",
+    "@tailwindcss/postcss": "^4.2.1",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.183.1",
     "@vitejs/plugin-react": "^5",
-    "autoprefixer": "^10",
     "happy-dom": "^20",
     "postcss": "^8",
     "tailwindcss": "^4.2.1",
