@@ -3,23 +3,41 @@ name: roll-vendor
 description: Rebase vendored submodules on upstream and optionally commit
 ---
 
-Rebase `supex-patches` branches in vendored submodules (loon, phyz, vcad) on top of latest upstream changes, then offer follow-up actions.
+Roll vendored submodules on top of latest upstream changes, then offer follow-up actions.
 
 All paths below are relative to the supex repo root.
 
-## Phase 1: Roll (rebase)
+### Submodule types
 
-For each submodule in `vcad/vendor/loon`, `vcad/vendor/phyz`, `vcad/vendor/vcad`:
+There are two kinds of vendored submodules:
+
+- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/phyz`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
+- **Plain repos** (`vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches. Just fast-forward pull.
+
+## Phase 1: Roll
+
+Process all submodules sequentially in this order: tang, loon, phyz, vcad.
+
+### For each submodule:
 
 1. Record the current upstream base before fetch: `git -C <sub> rev-parse origin/main` → save as `<old-upstream>`
-2. Fetch from both remotes: `git -C <sub> fetch origin && git -C <sub> fetch darwin`
-3. Record the new upstream head: `git -C <sub> rev-parse origin/main` → save as `<new-upstream>`
-4. If `<old-upstream>` == `<new-upstream>`, report "no new upstream commits" and skip to the next submodule
-5. Check for dirty state (see below)
-6. Check current branch — may be `supex-patches` or detached HEAD
-7. If detached HEAD: restore `supex-patches` from darwin fork: `git -C <sub> checkout -B supex-patches darwin/supex-patches`
-8. Rebase `supex-patches` onto upstream main: `git -C <sub> rebase origin/main`
-9. Show new upstream commits summary (`<old-upstream>..<new-upstream>`)
+2. Fetch upstream: `git -C <sub> fetch origin`
+3. For **patch repos** only: also fetch darwin fork: `git -C <sub> fetch darwin`
+4. Record the new upstream head: `git -C <sub> rev-parse origin/main` → save as `<new-upstream>`
+5. If `<old-upstream>` == `<new-upstream>`, report "no new upstream commits" and skip to the next submodule
+6. Check for dirty state (see below)
+
+Then proceed based on submodule type:
+
+**Plain repos (tang):**
+7. Fast-forward to upstream: `git -C <sub> pull --ff-only origin main`
+8. Show new upstream commits summary (`<old-upstream>..<new-upstream>`)
+
+**Patch repos (loon, phyz, vcad):**
+7. Check current branch — may be `supex-patches` or detached HEAD
+8. If detached HEAD: restore `supex-patches` from darwin fork: `git -C <sub> checkout -B supex-patches darwin/supex-patches`
+9. Rebase `supex-patches` onto upstream main: `git -C <sub> rebase origin/main`
+10. Show new upstream commits summary (`<old-upstream>..<new-upstream>`)
 
 Save the `<old-upstream>` and `<new-upstream>` pair for each rolled submodule — these are needed in Phase 3 for commit messages.
 
@@ -64,10 +82,12 @@ Commits updated vendored submodule pointers in the supex repo and pushes the `su
    ```
    If no submodule pointers changed, report "nothing to commit" and stop.
 
-2. Push ALL changed submodules first, before any commits:
+2. Push ALL changed **patch repos** first, before any commits:
    ```
    git -C vcad/vendor/<name> push darwin supex-patches
    ```
+   Plain repos (tang) don't need pushing — they point directly at upstream commits which are already public.
+
    If any push fails, STOP and report the error — do NOT commit any pointers. If some pushes succeed and others fail, report partial state and let user decide.
 
 3. After all pushes succeed, create a **separate commit** for each changed submodule:
