@@ -125,6 +125,8 @@ For each submodule with new upstream commits:
 3. Test: `./test`
 4. Report results (pass/fail, which tests failed if any)
 
+Note: the rebuild will likely modify `vcad/sidecar/Cargo.lock` — this is expected. It will be committed together with the submodule pointers by `commit-vendor`.
+
 ### After build test
 
 Ask the user what to do next:

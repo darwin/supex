@@ -99,22 +99,34 @@ If any push fails, STOP and report the error — do NOT commit any pointers. If 
 
 ## Step 5: Commit
 
-After all pushes succeed, create a **separate commit** for each changed submodule:
+After all pushes succeed, create a **single atomic commit** with all changed submodule pointers and any modified build artifacts.
 
-```
-git add vcad/vendor/<name>
-git commit -m "Roll <name> vendor on top of <old_upstream>..<new_upstream>
+### Stage all changes
 
-https://github.com/ecto/<name>/compare/<old_upstream>...<new_upstream>"
-```
+```bash
+# Stage all changed submodule pointers
+git add vcad/vendor/tang vcad/vendor/loon vcad/vendor/vcad  # only those that changed
 
-If the submodule had no new upstream commits (only patch changes), use:
-```
-git add vcad/vendor/<name>
-git commit -m "Update <name> vendor supex-patches"
+# Stage Cargo.lock if modified by the rebuild
+git diff --quiet -- vcad/sidecar/Cargo.lock || git add vcad/sidecar/Cargo.lock
 ```
 
-Only stage one submodule pointer per commit — never bundle multiple submodules or other files.
+### Commit message format
+
+**Subject line:** Use `ecto/<name>@<new_upstream_short>` autolinks (clickable on GitHub). For submodules with only patch changes (no new upstream), use just the name without `@sha`.
+
+**Body:** Full GitHub compare URLs for each submodule that has new upstream commits (omit for patch-only changes).
+
+Example with upstream rolls:
+```
+Roll vendor: ecto/tang@6aeba2b, ecto/loon@256fa95, ecto/vcad@1b59e79
+
+https://github.com/ecto/tang/compare/<old_upstream>...<new_upstream>
+https://github.com/ecto/loon/compare/<old_upstream>...<new_upstream>
+https://github.com/ecto/vcad/compare/<old_upstream>...<new_upstream>
+```
+
+If ALL submodules are patch-only (no new upstream), use "Update vendor" instead of "Roll vendor" in the subject.
 
 ### Important
 
