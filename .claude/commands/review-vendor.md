@@ -7,15 +7,6 @@ Review new upstream changes in vendored submodules and analyze their impact on t
 
 All paths below are relative to the supex repo root.
 
-### Arguments
-
-Optional repo names: `tang`, `loon`, `phyz`, `vcad` (matching directory names under `vcad/vendor/`).
-
-- **No arguments** — process all repos in default order: tang, loon, phyz, vcad
-- **One or more names** — process only those repos, in the order given
-
-Examples: `/review-vendor vcad`, `/review-vendor loon vcad`
-
 ### Submodule types
 
 There are two kinds of vendored submodules:
@@ -25,7 +16,7 @@ There are two kinds of vendored submodules:
 
 ## Phase 1: Fetch + changelog
 
-Process selected submodules sequentially (default order: tang, loon, phyz, vcad).
+Process all submodules in order: tang, loon, phyz, vcad.
 
 ### For each submodule:
 
@@ -117,7 +108,7 @@ Before modifying any repo, check for assume-unchanged files:
 
 ### Rebase
 
-For each selected submodule with new upstream commits:
+For each submodule with new upstream commits:
 
 **Plain repos (phyz, tang):**
 - Fast-forward: `git -C <sub> pull --ff-only origin main`
