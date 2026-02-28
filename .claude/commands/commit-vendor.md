@@ -11,8 +11,8 @@ All paths below are relative to the supex repo root.
 
 There are two kinds of vendored submodules:
 
-- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/phyz`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
-- **Plain repos** (`vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
+- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
+- **Plain repos** (`vcad/vendor/phyz`, `vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
 
 ## Step 1: Detect changed pointers
 
@@ -45,7 +45,7 @@ old_upstream=$old_pointer
 new_upstream=$new_pointer
 ```
 
-**Patch repos (loon, phyz, vcad):** The pointer is on `supex-patches` (rebased). Use merge-base with `origin/main` to find the upstream base.
+**Patch repos (loon, vcad):** The pointer is on `supex-patches` (rebased). Use merge-base with `origin/main` to find the upstream base.
 ```bash
 old_upstream=$(git -C vcad/vendor/<name> merge-base $old_pointer origin/main)
 new_upstream=$(git -C vcad/vendor/<name> merge-base $new_pointer origin/main)
@@ -79,7 +79,7 @@ Push ALL changed **patch repos** to GitHub before any commits:
 git -C vcad/vendor/<name> push darwin supex-patches
 ```
 
-Plain repos (tang) don't need pushing — they point directly at upstream commits which are already public.
+Plain repos (phyz, tang) don't need pushing — they point directly at upstream commits which are already public.
 
 If any push fails, STOP and report the error — do NOT commit any pointers. If some pushes succeed and others fail, report partial state and let user decide.
 

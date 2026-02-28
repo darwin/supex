@@ -20,8 +20,8 @@ Examples: `/review-vendor vcad`, `/review-vendor loon vcad`
 
 There are two kinds of vendored submodules:
 
-- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/phyz`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
-- **Plain repos** (`vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
+- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
+- **Plain repos** (`vcad/vendor/phyz`, `vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
 
 ## Phase 1: Fetch + changelog
 
@@ -119,10 +119,10 @@ Before modifying any repo, check for assume-unchanged files:
 
 For each selected submodule with new upstream commits:
 
-**Plain repos (tang):**
+**Plain repos (phyz, tang):**
 - Fast-forward: `git -C <sub> pull --ff-only origin main`
 
-**Patch repos (loon, phyz, vcad):**
+**Patch repos (loon, vcad):**
 - Ensure on `supex-patches` branch (restore from darwin if detached): `git -C <sub> checkout -B supex-patches darwin/supex-patches`
 - Rebase: `git -C <sub> rebase origin/main`
 - If rebase fails with conflicts, STOP and assist with resolution
