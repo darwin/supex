@@ -933,6 +933,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "tang-expr"
+version = "0.1.0"
+dependencies = [
+ "tang",
+]
+
+[[package]]
 name = "tang-la"
 version = "0.1.0"
 dependencies = [
@@ -1158,6 +1165,8 @@ name = "vcad-kernel-constraints"
 version = "0.8.0"
 dependencies = [
  "slotmap",
+ "tang",
+ "tang-expr",
  "tang-la",
  "thiserror 2.0.18",
  "vcad-kernel-math",
@@ -1179,6 +1188,7 @@ dependencies = [
 name = "vcad-kernel-geom"
 version = "0.8.0"
 dependencies = [
+ "tang",
  "vcad-kernel-math",
 ]
 
@@ -1194,6 +1204,7 @@ dependencies = [
 name = "vcad-kernel-nurbs"
 version = "0.8.0"
 dependencies = [
+ "tang",
  "vcad-kernel-geom",
  "vcad-kernel-math",
 ]
