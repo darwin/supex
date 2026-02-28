@@ -72,14 +72,28 @@ For each changed submodule:
 
 Ask the user to confirm before proceeding.
 
-## Step 4: Push patch repos
+## Step 4: Archive + push patch repos
 
-Push ALL changed **patch repos** to GitHub before any commits:
+For each changed **patch repo**, archive the old state and push the new one. Plain repos (phyz, tang) don't need pushing — they point directly at upstream commits which are already public.
+
+### Archive old supex-patches
+
+Before force-pushing, tag the current remote HEAD so old submodule pointers remain reachable (prevents GC of commits referenced by older supex commits):
+
+```bash
+old_head=$(git -C vcad/vendor/<name> rev-parse darwin/supex-patches)
+short=$(echo $old_head | head -c 8)
+git -C vcad/vendor/<name> tag "archive/$short" $old_head
+git -C vcad/vendor/<name> push darwin "archive/$short"
 ```
+
+If the tag already exists (idempotent re-run), skip it.
+
+### Push new supex-patches
+
+```bash
 git -C vcad/vendor/<name> push darwin supex-patches
 ```
-
-Plain repos (phyz, tang) don't need pushing — they point directly at upstream commits which are already public.
 
 If any push fails, STOP and report the error — do NOT commit any pointers. If some pushes succeed and others fail, report partial state and let user decide.
 

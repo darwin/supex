@@ -30,9 +30,11 @@ Two Claude Code commands manage the vendor update cycle:
    impact on the sidecar, optionally rebase and test build. Read-only until
    the user opts into the build test phase.
 
-2. **`/commit-vendor`** — push `supex-patches` branches to GitHub and commit
-   the updated submodule pointers. Must be run after a successful review +
-   build test. Each submodule gets its own commit with a GitHub compare link.
+2. **`/commit-vendor`** — archive old `supex-patches` HEAD as a tag
+   (`archive/<sha>`), push rebased branches, and commit the updated submodule
+   pointers. Each submodule gets its own commit with a GitHub compare link.
+   Archive tags prevent GitHub from garbage-collecting commits referenced by
+   older supex history.
 
 Typical flow: `/review-vendor` &#8594; inspect results &#8594; `/commit-vendor`.
 
