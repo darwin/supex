@@ -19,6 +19,33 @@ Guidance for AI agents (Claude, Codex, Gemini, ...) when working on this reposit
 - **Use `git ls-tree -r HEAD`** to find project files
 - **Use portable shebangs** - `#!/usr/bin/env bash`, `#!/usr/bin/env python3`, etc.
 
+## For AI Agents — Common Mistakes
+
+```bash
+# WRONG — git add includes vendor submodule pointer changes
+git add -A && git commit -m "Add feature"
+
+# CORRECT — exclude vendor, use commit-vendor skill for submodule changes
+git add driver/ runtime/
+git diff --cached --name-only | grep -v vcad/vendor/
+```
+
+```bash
+# WRONG — debug build (SketchUp loads release binary)
+cargo build --manifest-path vcad/sidecar/Cargo.toml
+
+# CORRECT — always build release
+cargo build --release --manifest-path vcad/sidecar/Cargo.toml
+```
+
+```bash
+# WRONG — find/ls to discover project files (misses git-ignored state)
+find . -name "*.rb"
+
+# CORRECT — git ls-tree shows tracked files only
+git ls-tree -r HEAD --name-only | grep '\.rb$'
+```
+
 ## Project Structure
 
 ```
