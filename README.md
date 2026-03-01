@@ -265,12 +265,12 @@ Run tests and linters from the repository root:
 ./scripts/lint.sh
 ```
 
-If you have [mise](https://mise.jdx.dev/) installed:
+If you have [just](https://github.com/casey/just) installed:
 
 ```bash
-mise run test       # Unit tests
-mise run test:e2e   # All tests including E2E
-mise run lint       # All linters
+just test       # Unit tests
+just test-e2e   # All tests including E2E
+just lint       # All linters
 ```
 
 ## Reference

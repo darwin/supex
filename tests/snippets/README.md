@@ -158,7 +158,7 @@ end
 2. **Configure Ruby SDK**:
    - File → Project Structure → SDKs
    - Add Ruby 2.7.0 (SketchUp 2020+ uses Ruby 2.7)
-   - If using mise, it will automatically detect the Ruby version
+   - If using rbenv/mise, it will automatically detect the Ruby version from `.ruby-version`
 
 3. **Install SketchUp Ruby API Stubs** (Optional):
    - For full SketchUp API documentation and autocomplete
@@ -176,7 +176,7 @@ end
    - Install the "Ruby" extension by Shopify
 
 2. **Configure Ruby Version**:
-   - If using mise/direnv, Ruby version will be automatically detected
+   - Ruby version will be automatically detected from `.ruby-version`
    - Alternatively, set `ruby.interpreter.commandPath` in settings
 
 3. **SketchUp API Support**:
@@ -192,7 +192,7 @@ cd tests/snippets
 bundle install
 ```
 
-The project root may use **mise** for Ruby version management. If so, the Ruby version will be automatically detected when entering the project directory.
+The project root contains `.ruby-version` for Ruby version management. Compatible tools (rbenv, mise, etc.) will automatically detect it when entering the project directory.
 
 
 ## Benefits Summary

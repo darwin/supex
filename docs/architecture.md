@@ -227,7 +227,7 @@ Response (Ruby to Python):
 ### Modern Toolchain
 
 **Python**: UV package management, Python 3.14+
-**Ruby**: mise isolation, Ruby 3.2.2, Bundler dependency management
+**Ruby**: Ruby 3.2.2 (see `.ruby-version`), Bundler dependency management
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
 **Testing**: pytest (Python), Minitest (Ruby)
 

@@ -19,7 +19,7 @@ Before working with examples, ensure you have:
 - **SketchUp 2026** (or later) installed
 - **Supex runtime** installed in SketchUp (see main [README](../README.md))
 - **Claude Code** or another MCP client
-- **Ruby 3.2.2** (via mise, rbenv, or similar) for local development
+- **Ruby 3.2.2** (via rbenv or similar; see `.ruby-version`) for local development
 
 ## Quick Start
 
