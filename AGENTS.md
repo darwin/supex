@@ -166,6 +166,14 @@ git config submodule.vcad/vendor/phyz.ignore dirty
 
 This only hides working-tree dirt — committed HEAD pointer changes still show up (which is what you want).
 
+After a vendor roll (submodule update), Cargo may retain stale `.rmeta` cache because git doesn't always update file mtimes. This causes `cargo check` (and IDE diagnostics) to report false errors while `cargo build` succeeds. Fix by clearing the affected crates:
+
+```bash
+cargo clean -p vcad-ir -p vcad-eval --manifest-path vcad/sidecar/Cargo.toml
+```
+
+In IntelliJ IDEA, follow up with **Refresh Cargo Projects** in the Build tool window.
+
 After any code change that affects the sidecar:
 
 1. **Rebuild release binary** (SketchUp uses release, not debug):
