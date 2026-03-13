@@ -178,7 +178,7 @@ After any code change that affects the sidecar:
 
 1. **Rebuild release binary** (SketchUp uses release, not debug):
    ```bash
-   cargo build --release --manifest-path vcad/sidecar/Cargo.toml
+   ./scripts/rebuild.sh sidecar
    ```
 2. **Restart the running sidecar** — kill the old process and relaunch:
    ```bash
