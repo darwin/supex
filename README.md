@@ -88,7 +88,7 @@ For full documentation, see [VCAD Integration](docs/vcad.md).
 
 Supex bridges AI agents and CLI tools with SketchUp through a client-server architecture:
 
-![Architecture Overview](assets/supex-architecture-poster.jpeg)
+![Architecture Overview](assets/supex-architecture-poster.png)
 
 **Client-Side Components (Python):**
 
