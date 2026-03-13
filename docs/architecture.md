@@ -269,6 +269,14 @@ cd driver && uv run pytest tests/
 ./test
 ```
 
+If you have [just](https://github.com/casey/just) installed:
+
+```bash
+just test       # All tests
+just test-e2e   # All tests including E2E
+just lint       # All linters
+```
+
 ## Quality Assurance
 
 ### Error Handling
