@@ -1,6 +1,6 @@
 > **Note**: Unless you explicitly switched, you are viewing the `main` branch which contains stable releases. Active development happens on the [`dev` branch](https://github.com/darwin/supex/tree/dev).
 
-![Supex Hero](assets/supex-hero-poster.jpeg)
+![Supex Hero](assets/supex-hero-poster.png)
 
 # Supex: SketchUp Automation for Agentic Coding
 
