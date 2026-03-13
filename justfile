@@ -14,6 +14,11 @@ test-e2e:
 docs:
     ./scripts/regenerate-sketchup-api-docs.sh
 
+# Clear stale Cargo check cache (fixes false errors after vendor roll)
+clear-rust-caches:
+    cargo clean --manifest-path vcad/sidecar/Cargo.toml
+    cargo clean --manifest-path vcad/viewer/src-tauri/Cargo.toml
+
 # Run all linters (RuboCop, ruff, mypy)
 lint:
     ./scripts/lint.sh

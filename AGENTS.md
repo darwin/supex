@@ -169,7 +169,7 @@ This only hides working-tree dirt — committed HEAD pointer changes still show 
 After a vendor roll (submodule update), Cargo may retain stale `.rmeta` cache because git doesn't always update file mtimes. This causes `cargo check` (and IDE diagnostics) to report false errors while `cargo build` succeeds. Fix by clearing the affected crates:
 
 ```bash
-cargo clean -p vcad-ir -p vcad-eval --manifest-path vcad/sidecar/Cargo.toml
+just clear-rust-caches
 ```
 
 In IntelliJ IDEA, follow up with **Refresh Cargo Projects** in the Build tool window.
