@@ -18,6 +18,7 @@ Supex bridges these two worlds: keep using SketchUp's intuitive interface for di
 
 ## Contents
 
+- [Motivation](#motivation)
 - [Key Features](#key-features)
 - [VCAD Integration](#vcad-integration)
 - [Architecture Overview](#architecture-overview)
@@ -79,9 +80,7 @@ VCAD is a BRep (Boundary Representation) kernel that brings parametric CAD model
 
 ### Current Status
 
-- Filesystem and module change tracking are implemented in the VCAD pipeline.
-- Cascade updates are implemented and exposed via explicit MCP tools.
-- Some reactive update behaviors are still intentionally explicit/operator-driven.
+The VCAD pipeline tracks filesystem and module changes automatically. Cascade updates propagate through the dependency graph via explicit MCP tools. Reactive updates for watch-mode are operator-controlled, giving the agent fine-grained control over when geometry refreshes.
 
 For full documentation, see [VCAD Integration](docs/vcad.md).
 
@@ -112,7 +111,7 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 
 For more details, see [Architecture](docs/architecture.md).
 
-## Project Workflow
+## Project-Based Workflow
 
 Supex enables a **project-based workflow** where Ruby scripts live in your git-versioned project directories, treating 3D modeling code like application code:
 
@@ -255,20 +254,30 @@ The example covers:
 Run tests and linters from the repository root:
 
 ```bash
-# Run all unit tests (driver, stdlib, runtime)
+# Run all tests (driver, stdlib, runtime, mock, sidecar, viewer, radar)
 ./test
+
+# Run selected test suites
+./test sidecar viewer
+
+# List available test suites
+./test --list
 
 # Run E2E tests only (requires SketchUp running)
 ./test --e2e
 
 # Run all linters (RuboCop, ruff, mypy)
 ./scripts/lint.sh
+
+# Rebuild Rust binaries (VCAD sidecar, viewer)
+./scripts/rebuild.sh
+./scripts/rebuild.sh sidecar   # rebuild only sidecar
 ```
 
 If you have [just](https://github.com/casey/just) installed:
 
 ```bash
-just test       # Unit tests
+just test       # All tests
 just test-e2e   # All tests including E2E
 just lint       # All linters
 ```
@@ -278,9 +287,9 @@ just lint       # All linters
 - **[Documentation Index](docs/README.md)** - Start here for docs navigation
 - **[CLI Reference](docs/cli.md)** - Command-line interface for direct SketchUp interaction
 - **[Interactive REPL](docs/repl.md)** - Interactive Ruby development in SketchUp
-- **[MCP Reference](docs/mcp.md)** - Tools available for AI agents (Claude Code)
+- **[MCP Reference](docs/agents/guide/mcp.md)** - Tools available for AI agents (Claude Code)
 - **[Configuration](docs/configuration.md)** - Environment variables and settings
 - **[Protocol](docs/protocol.md)** - JSON-RPC communication protocol details
 - **[Security](docs/security.md)** - Authentication, path restrictions, and recommendations
 - **[VCAD Integration](docs/vcad.md)** - Parametric BRep CAD via Loon language
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[Troubleshooting](docs/agents/guide/troubleshooting.md)** - Common issues and solutions
