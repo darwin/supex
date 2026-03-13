@@ -12,24 +12,32 @@ For authoritative command/tool/env lists, use:
 Supex implements a multi-process architecture for robust SketchUp automation:
 
 ```
-                                                  ┌─────────────────┐
-                                           ┌─────▶│   Ruby REPL     │
-                                           │      │   :4433 TCP     │
-┌─────────────────┐     ┌──────────────────┤      └─────────────────┘
-│   Claude Code   │────▶│   Python MCP     │      ┌─────────────────┐
-│   AI Client     │     │   Driver         │─────▶│   SketchUp      │
-└─────────────────┘     └──────────────────┘      │   Ruby Runtime  │
-                          │    :9876 TCP JSON-RPC  │   :9876 TCP     │
-                          │                        └─────────────────┘
-                          │    :9877 TCP JSON-RPC
-                          ▼
-                  ┌──────────────────┐     ┌─────────────────┐
-                  │   VCAD Rust      │     │   VCAD Viewer   │
-                  │   Sidecar        │     │   (Tauri app)   │
-                  └──────────────────┘     └─────────────────┘
-                          │    :9878 WebSocket     │
-                          └────────────────────────┘
+                                                          ┌──────────────────────────────────┐
+┌──────────────────┐                                      │          SketchUp                │
+│  REPL            │─────── :4433 TCP JSON-RPC ──────────▶│                                  │
+│  ./repl          │                                      │   ┌────────────────────────┐     │
+└──────────────────┘                                      │   │  Supex Runtime  :9876  │     │
+                                                          │   │  REPL Server    :4433  │     │
+┌──────────────────┐        ┌──────────────────────┐      │   └────────────────────────┘     │
+│  AI Agent        │──MCP──▶│                      │      │   ┌──────────┐ ┌─────────────┐  │
+│  Claude          │        │      Driver          ├──────┤   │  StdLib  │ │ SketchUp API│  │
+└──────────────────┘        │      Python          │ :9876│   └──────────┘ └─────────────┘  │
+                     ┌─────▶│      ./mcp           │ TCP  └──────────────────────────────────┘
+┌──────────────────┐ │      │                      │ JSON-RPC        ▲
+│  CLI             │─┘      │                      │                 │  DAE file
+│  ./supex         │        │                      │                 │  (filesystem)
+└──────────────────┘        │                      ├── :9877 TCP ──▶┌┴─────────────────────┐
+                            │                      │   JSON-RPC     │  VCAD Sidecar        │
+                            │                      │                │  Rust                 │
+                            │                      │                └───────────────────────┘
+                            │                      │
+                            │                      ├── :9878 WS ──▶┌───────────────────────┐
+                            │                      │                │  VCAD Viewer          │
+                            └──────────────────────┘                │  Tauri app            │
+                                                                    └───────────────────────┘
 ```
+
+The Driver is the central hub: CLI and MCP are two entry points into the same Python process. The Driver connects to SketchUp (:9876), the VCAD Sidecar (:9877), and relays mesh data to the VCAD Viewer via WebSocket (:9878). The REPL client connects directly to SketchUp's REPL server (:4433), bypassing the Driver. Mesh exchange between Sidecar and SketchUp happens via the filesystem (DAE files).
 
 ## Project Structure
 
@@ -174,7 +182,7 @@ For the complete VCAD tool inventory (including diagnostics/viewer tools), see:
 
 | Port | Transport | Direction | Purpose |
 |------|-----------|-----------|---------|
-| 4433 | TCP | Driver ↔ SketchUp | Ruby REPL (interactive eval in TOPLEVEL_BINDING) |
+| 4433 | TCP | REPL client ↔ SketchUp | Ruby REPL (interactive eval in TOPLEVEL_BINDING) |
 | 9876 | TCP | Driver ↔ SketchUp | Ruby bridge (eval, introspection, import) |
 | 9877 | TCP | Driver ↔ Sidecar | VCAD evaluation, import extraction |
 | 9878 | WebSocket | Driver ↔ Viewer | BRep preview relay |
