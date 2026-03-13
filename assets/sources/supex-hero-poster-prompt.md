@@ -22,9 +22,9 @@ RIGHT SIDE:
 Two more robot figures mirroring the left side, facing left toward center. Same industrial aesthetic. Give them short antennas (behind the "ear" area or on the top/back of the head) that subtly catch the human’s control signals. Their eye-beams also converge toward the center and slightly upward toward the 3D scene above.
 
 3D SCENE BEING CREATED (above center):
-Where all the robot eye-beams converge above the human figure, a wireframe 3D scene materializes — geometric shapes, architectural forms emerging from the light. The beams are aimed slightly upward into this zone, as if the robots are both creating and scanning the scene.
+Where all the robot eye-beams converge above the human figure, a parametric CAD scene materializes — recognizable solid shapes: a chamfered cube, a cylinder with rounded fillet edges, an arch with boolean cutouts, geometric building forms. These are precision-engineered solids, not organic blobs. The beams are aimed slightly upward into this zone, as if the robots are both creating and scanning the scene.
 
-The scene is half-solid, half-wireframe — caught in the moment of creation. **Where the beams hit, surfaces “resolve” into solid forms** (crisp hard-edged transition, no gradients). Areas not directly struck remain wireframe or partially incomplete. Particles and geometric fragments float around the impact points. This is the visual climax but kept compact due to limited vertical space.
+The scene is half-solid, half-wireframe — caught in the moment of creation. **Where the beams hit, wireframe surfaces “resolve” into solid BRep forms** with crisp hard-edged transition (no gradients). Areas not directly struck remain wireframe or partially incomplete. Small floating geometric primitives (cubes, cylinders, cones) drift around the edges like building blocks waiting to be assembled. This is the visual climax but kept compact due to limited vertical space.
 
 VISUAL HIERARCHY:
 Use color contrast to create depth — dark silhouettes against lighter background areas. The human figure and robots rendered as bold graphic shapes. Robot eye-beams as clean geometric rays in coral/orange. The 3D creation zone as the brightest area (cream/white) drawing the eye. Layered elements create depth without gradients.
