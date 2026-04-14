@@ -1127,6 +1127,7 @@ version = "0.8.0"
 dependencies = [
  "serde",
  "serde_json",
+ "vcad-tool-derive",
 ]
 
 [[package]]
@@ -1301,6 +1302,15 @@ dependencies = [
  "loon-lang",
  "serde_json",
  "vcad-ir",
+]
+
+[[package]]
+name = "vcad-tool-derive"
+version = "0.8.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
