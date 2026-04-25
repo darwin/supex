@@ -420,6 +420,7 @@ mod tests {
             positions: vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
             indices: vec![0, 1, 2],
             normals: None,
+            face_kinds: None,
         };
         let dae = mesh_to_dae(&mesh).unwrap();
 
@@ -444,6 +445,7 @@ mod tests {
             positions: vec![],
             indices: vec![],
             normals: None,
+            face_kinds: None,
         };
         let dae = mesh_to_dae(&mesh).unwrap();
 
@@ -459,6 +461,7 @@ mod tests {
             positions: vec![0.0, 1.0], // not a multiple of 3
             indices: vec![],
             normals: None,
+            face_kinds: None,
         };
         let err = mesh_to_dae(&mesh).unwrap_err();
         assert!(err.contains("not a multiple of 3"));
@@ -470,6 +473,7 @@ mod tests {
             positions: vec![0.0, 1.0, 2.0],
             indices: vec![0, 0], // not a multiple of 3
             normals: None,
+            face_kinds: None,
         };
         let err = mesh_to_dae(&mesh).unwrap_err();
         assert!(err.contains("not a multiple of 3"));
@@ -481,6 +485,7 @@ mod tests {
             positions: vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
             indices: vec![0, 1, 5], // index 5 out of range (only 2 vertices)
             normals: None,
+            face_kinds: None,
         };
         let err = mesh_to_dae(&mesh).unwrap_err();
         assert!(err.contains("out of range"));
