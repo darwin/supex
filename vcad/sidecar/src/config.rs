@@ -82,26 +82,29 @@ mod tests {
     use std::sync::Mutex;
 
     // Env vars are process-global; serialize tests that manipulate them.
+    // This lock also makes the `unsafe` env mutations below sound (Rust 2024
+    // marks set_var/remove_var unsafe because they are not thread-safe): all
+    // env access in these tests happens while holding ENV_LOCK.
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_defaults() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // Clear env vars that might interfere
-        std::env::remove_var("SUPEX_VCAD_HOST");
-        std::env::remove_var("SUPEX_VCAD_PORT");
-        std::env::remove_var("SUPEX_VCAD_TEMP_DIR");
-        std::env::remove_var("SUPEX_VCAD_MAX_QUEUE");
-        std::env::remove_var("SUPEX_VCAD_EVAL_TIMEOUT_MS");
-        std::env::remove_var("SUPEX_VCAD_ADT_CACHE_MAX");
-        std::env::remove_var("SUPEX_VCAD_ALLOW_REMOTE");
-        std::env::remove_var("SUPEX_VCAD_AUTH_TOKEN");
-        std::env::remove_var("SUPEX_VCAD_TEMP_TTL_SEC");
-        std::env::remove_var("SUPEX_VCAD_TEMP_MAX_FILES");
+        unsafe { std::env::remove_var("SUPEX_VCAD_HOST") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_PORT") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_TEMP_DIR") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_MAX_QUEUE") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_EVAL_TIMEOUT_MS") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_ADT_CACHE_MAX") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_ALLOW_REMOTE") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_AUTH_TOKEN") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_TEMP_TTL_SEC") };
+        unsafe { std::env::remove_var("SUPEX_VCAD_TEMP_MAX_FILES") };
 
         // resolve_temp_dir requires at least SUPEX_WORKSPACE
         let tmp = tempfile::tempdir().unwrap();
-        std::env::set_var("SUPEX_WORKSPACE", tmp.path());
+        unsafe { std::env::set_var("SUPEX_WORKSPACE", tmp.path()) };
 
         let config = Config::from_env();
         assert_eq!(config.host, "127.0.0.1");
@@ -117,15 +120,15 @@ mod tests {
             tmp.path().join(".tmp").join("vcad-sidecar")
         );
 
-        std::env::remove_var("SUPEX_WORKSPACE");
+        unsafe { std::env::remove_var("SUPEX_WORKSPACE") };
     }
 
     #[test]
     #[should_panic(expected = "SUPEX_VCAD_TEMP_DIR or SUPEX_WORKSPACE must be set")]
     fn test_temp_dir_panics_without_env() {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        std::env::remove_var("SUPEX_VCAD_TEMP_DIR");
-        std::env::remove_var("SUPEX_WORKSPACE");
+        unsafe { std::env::remove_var("SUPEX_VCAD_TEMP_DIR") };
+        unsafe { std::env::remove_var("SUPEX_WORKSPACE") };
         Config::resolve_temp_dir();
     }
 
@@ -134,14 +137,14 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let ws = tempfile::tempdir().unwrap();
-        std::env::set_var("SUPEX_VCAD_TEMP_DIR", tmp.path());
-        std::env::set_var("SUPEX_WORKSPACE", ws.path());
+        unsafe { std::env::set_var("SUPEX_VCAD_TEMP_DIR", tmp.path()) };
+        unsafe { std::env::set_var("SUPEX_WORKSPACE", ws.path()) };
 
         let dir = Config::resolve_temp_dir();
         assert_eq!(dir, tmp.path());
 
-        std::env::remove_var("SUPEX_VCAD_TEMP_DIR");
-        std::env::remove_var("SUPEX_WORKSPACE");
+        unsafe { std::env::remove_var("SUPEX_VCAD_TEMP_DIR") };
+        unsafe { std::env::remove_var("SUPEX_WORKSPACE") };
     }
 
     #[test]
