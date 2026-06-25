@@ -30,3 +30,8 @@ This page is the navigation hub for Supex docs.
 - [Ruby Workflow Guide](agents/guide/ruby.md)
 - [VCAD Workflow Guide](agents/guide/vcad.md)
 - [Extended Workflow Examples](agents/guide/workflow.md)
+
+## Developer Tools
+
+- [Docgen — SketchUp API doc generator](../devtools/docgen/README.md)
+- [Radar — log aggregator / observability](../devtools/radar/README.md)

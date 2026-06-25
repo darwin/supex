@@ -62,14 +62,15 @@ supex/
 ├── vcad/                      # VCAD integration
 │   ├── sidecar/               # Rust VCAD evaluator (BRep pipeline)
 │   ├── viewer/                # Standalone Tauri geometry viewer
-│   └── vendor/                # Git submodules (vcad, loon, phyz)
+│   └── vendor/                # Git submodules (vcad, loon, phyz, tang)
 │       ├── vcad/              # BRep CAD kernel
 │       ├── loon/              # Loon language
-│       └── phyz/              # Physics engine
+│       ├── phyz/              # Physics engine
+│       └── tang/              # Differentiable computing (autodiff for VCAD)
 ├── docs/                      # Documentation
-│   └── agents/                # Agent prompts (guide/ symlinked as supex-guide/)
+│   └── agents/                # Agent prompts (user projects symlink guide/ as supex-guide/)
 ├── devtools/                  # Developer tools
-│   ├── docgen/                # SketchUp API doc generator
+│   ├── docgen/                # SketchUp API doc generator (+ sketchup-api-stubs submodule)
 │   └── radar/                 # Log aggregator / observability
 ├── stdlib/                    # Standard library (Ruby helpers)
 ├── scripts/                   # Development scripts
@@ -136,7 +137,7 @@ cd runtime && bundle exec rake build
 
 ## VCAD Sidecar
 
-Rust binary at `vcad/sidecar/`. Dependencies (vcad, loon, phyz) are vendored as git submodules in `vcad/vendor/`. After cloning, run `git submodule update --init --recursive` if you didn't use `--recurse-submodules`.
+Rust binary at `vcad/sidecar/`. Dependencies (vcad, loon, phyz, tang) are vendored as git submodules in `vcad/vendor/` (tang provides autodiff used by vcad via relative path deps). After cloning, run `git submodule update --init --recursive` if you didn't use `--recurse-submodules`.
 
 The vcad submodule requires `npm install` in `vcad/vendor/vcad/` for font assets used at compile time. This modifies the tracked `package-lock.json` — tell git to ignore the change:
 
@@ -148,10 +149,10 @@ git update-index --assume-unchanged package-lock.json Cargo.lock
 echo -e "node_modules/\n*.iml" >> $(git rev-parse --git-dir)/info/exclude
 ```
 
-Also exclude IDE files in loon and phyz:
+Also exclude IDE files in loon, phyz, and tang:
 
 ```bash
-for repo in loon phyz; do
+for repo in loon phyz tang; do
   echo "*.iml" >> $(git -C vcad/vendor/$repo rev-parse --git-dir)/info/exclude
 done
 ```
@@ -162,6 +163,7 @@ During development, vendor submodules often show as dirty in `git status` (untra
 git config submodule.vcad/vendor/vcad.ignore dirty
 git config submodule.vcad/vendor/loon.ignore dirty
 git config submodule.vcad/vendor/phyz.ignore dirty
+git config submodule.vcad/vendor/tang.ignore dirty
 ```
 
 This only hides working-tree dirt — committed HEAD pointer changes still show up (which is what you want).
