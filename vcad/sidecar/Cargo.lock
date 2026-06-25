@@ -89,6 +89,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 
 [[package]]
+name = "bytemuck"
+version = "1.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8efb64bd706a16a1bdde310ae86b351e4d21550d98d056f22f8a7f7a2183fec"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9abbd1bc6865053c427f7198e6af43bfdedc55ab791faed4fbd361d789575ff"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
 name = "cc"
 version = "1.2.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -290,6 +316,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures-core"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e3450815272ef58cec6d564423f6e755e25379b217b0bc688e295ba24df6b1d"
+
+[[package]]
+name = "futures-task"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "037711b3d59c33004d3856fbdc83b99d4ff37a24768fa1be9ce3538a1cde4393"
+
+[[package]]
+name = "futures-util"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "389ca41296e6190b48053de0321d02a77f32f8a5d2461dd38762c0593805c6d6"
+dependencies = [
+ "futures-core",
+ "futures-task",
+ "pin-project-lite",
+ "slab",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -314,6 +364,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash32"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,6 +386,16 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+
+[[package]]
+name = "heapless"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bfb9eb618601c89945a70e254898da93b13be0388091d42117462b265bb3fad"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "heck"
@@ -482,6 +551,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
+name = "libm"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
+
+[[package]]
 name = "libredox"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -540,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "loon-lang"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "codespan-reporting",
  "dirs-next",
@@ -624,6 +699,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -761,6 +837,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e27ee8bb91ca0adcf0ecb116293afa12d393f9c2b9b9cd54d33e8078fe19839"
 
 [[package]]
+name = "rstar"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "421400d13ccfd26dfa5858199c30a5d76f9c54e0dba7575273025b43c5175dbb"
+dependencies = [
+ "heapless",
+ "num-traits",
+ "smallvec",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -853,6 +940,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_spanned"
+version = "0.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf41e0cfaf7226dca15e8197172c295a782857fcb97fad1808a166870dee75a3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -868,6 +964,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
+name = "slab"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
 name = "slotmap"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -881,6 +983,12 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "stepperoni"
@@ -1018,6 +1126,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.8.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc1beb996b9d83529a9e75c17a1686767d148d70663143c7854d8b4a09ced362"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "0.6.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22cddaf88f4fbc13c51aebbf5f8eceb5c7c5a9da2ac40a13519eb5b0a0e8f11c"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.22.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_write",
+ "winnow",
+]
+
+[[package]]
+name = "toml_write"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
+
+[[package]]
 name = "tracing"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1105,12 +1254,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
+name = "vcad-ecad-package"
+version = "0.9.4"
+dependencies = [
+ "vcad-ir",
+]
+
+[[package]]
+name = "vcad-ecad-pcb"
+version = "0.9.4"
+dependencies = [
+ "rstar",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "vcad-ecad-package",
+ "vcad-ir",
+ "vcad-kernel-math",
+ "vcad-kernel-sheet",
+]
+
+[[package]]
 name = "vcad-eval"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "vcad-ecad-pcb",
  "vcad-ir",
  "vcad-kernel",
  "vcad-kernel-geom",
@@ -1123,7 +1294,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-ir"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "serde",
  "serde_json",
@@ -1132,14 +1303,17 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "vcad-kernel-booleans",
  "vcad-kernel-constraints",
+ "vcad-kernel-cost",
+ "vcad-kernel-dfm",
  "vcad-kernel-fillet",
  "vcad-kernel-geom",
  "vcad-kernel-math",
  "vcad-kernel-primitives",
+ "vcad-kernel-sheet",
  "vcad-kernel-shell",
  "vcad-kernel-sketch",
  "vcad-kernel-step",
@@ -1151,7 +1325,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-booleans"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "rayon",
  "vcad-kernel-geom",
@@ -1163,7 +1337,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-constraints"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "slotmap",
  "tang",
@@ -1175,8 +1349,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "vcad-kernel-cost"
+version = "0.9.4"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "vcad-kernel-dfm"
+version = "0.9.4"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml",
+ "vcad-ir",
+ "vcad-kernel-cost",
+ "vcad-kernel-geom",
+ "vcad-kernel-math",
+ "vcad-kernel-primitives",
+ "vcad-kernel-raytrace",
+ "vcad-kernel-topo",
+]
+
+[[package]]
 name = "vcad-kernel-fillet"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "vcad-kernel-geom",
  "vcad-kernel-math",
@@ -1187,7 +1386,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-geom"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "tang",
  "vcad-kernel-math",
@@ -1195,7 +1394,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-math"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "robust",
  "tang",
@@ -1203,7 +1402,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-nurbs"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "tang",
  "vcad-kernel-geom",
@@ -1212,7 +1411,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-primitives"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "vcad-kernel-geom",
  "vcad-kernel-math",
@@ -1220,8 +1419,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "vcad-kernel-raytrace"
+version = "0.9.4"
+dependencies = [
+ "bytemuck",
+ "js-sys",
+ "tang",
+ "thiserror 2.0.18",
+ "vcad-kernel-booleans",
+ "vcad-kernel-geom",
+ "vcad-kernel-math",
+ "vcad-kernel-primitives",
+ "vcad-kernel-topo",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "vcad-kernel-sheet"
+version = "0.9.4"
+dependencies = [
+ "serde",
+ "serde_json",
+ "vcad-kernel-math",
+]
+
+[[package]]
 name = "vcad-kernel-shell"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "vcad-kernel-geom",
  "vcad-kernel-math",
@@ -1232,7 +1458,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-sketch"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "thiserror 2.0.18",
  "vcad-kernel-geom",
@@ -1243,7 +1469,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-step"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "stepperoni",
  "thiserror 2.0.18",
@@ -1256,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-sweep"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "rustc-hash",
  "thiserror 2.0.18",
@@ -1269,7 +1495,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-tessellate"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "vcad-kernel-geom",
  "vcad-kernel-math",
@@ -1279,7 +1505,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-text"
-version = "0.1.0"
+version = "0.9.4"
 dependencies = [
  "thiserror 2.0.18",
  "ttf-parser",
@@ -1289,7 +1515,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-kernel-topo"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "slotmap",
  "vcad-kernel-math",
@@ -1297,7 +1523,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-loon"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "loon-lang",
  "serde_json",
@@ -1306,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "vcad-tool-derive"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1364,6 +1590,20 @@ dependencies = [
  "rustversion",
  "wasm-bindgen-macro",
  "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-futures"
+version = "0.4.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a89f4650b770e4521aa6573724e2aed4704372151bd0de9d16a3bbabb87441a"
+dependencies = [
+ "cfg-if",
+ "futures-util",
+ "js-sys",
+ "once_cell",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -1451,6 +1691,16 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "semver",
+]
+
+[[package]]
+name = "web-sys"
+version = "0.3.90"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "705eceb4ce901230f8625bd1d665128056ccbe4b7408faa625eec1ba80f59a97"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1624,6 +1874,15 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "winnow"
+version = "0.7.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df79d97927682d2fd8adb29682d1140b343be4ac0f08fd68b7765d9c059d3945"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "wit-bindgen"
