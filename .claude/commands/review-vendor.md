@@ -14,6 +14,12 @@ There are two kinds of vendored submodules:
 - **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
 - **Plain repos** (`vcad/vendor/phyz`, `vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
 
+### Workspace coupling — why phyz/tang must move with vcad
+
+`phyz` and `tang` are not independent upstream dependencies. They are **sibling crates inside the vcad workspace**: vcad path-depends on them with a version constraint (e.g. `vcad-kernel-physics/Cargo.toml` has `phyz = { path = "../../../phyz/...", version = "0.3" }`, and vcad's autodiff crates path-depend on tang). The minimum phyz/tang version is therefore **dictated by the pinned vcad commit**, not by what supex itself calls.
+
+This means the right question for rolling phyz/tang is **"does the vcad commit we're pinning require a newer phyz/tang?"** — NOT "does the supex sidecar use physics/autodiff?". The sidecar is a *separate* Cargo workspace that cherry-picks only a few `vcad-kernel-*` crates and never resolves `vcad-kernel-physics`, so its build stays green even when phyz lags. But rolling vcad forward while leaving phyz/tang behind records an **internally inconsistent vendored vcad workspace**: anything that resolves the full vcad graph (the native app `apple/VcadApp` via `vcad-ffi`, `cargo check` / IDE diagnostics at the vcad root, `just clear-rust-caches`, vcad CLI/sim, vcad CI) fails dependency resolution. Roll phyz and tang **in lockstep with vcad** to keep that workspace buildable.
+
 ## Phase 1: Fetch + changelog
 
 Process all submodules in order: tang, loon, phyz, vcad.
@@ -74,6 +80,28 @@ Read the supex integration points to understand what APIs are actually used:
 
 - `vcad/sidecar/Cargo.toml` — crate versions and features
 
+### Step 2b: vcad workspace consistency check (phyz / tang version floor)
+
+This step catches the lockstep coupling described in "Workspace coupling" above. It is independent of the sidecar dependency surface — phyz/tang can need rolling even when the sidecar never touches them.
+
+For the **vcad commit being rolled to** (`<new-upstream>` of the vcad submodule, or its rebased `supex-patches` tip), read the version constraints vcad places on phyz and tang:
+
+```
+# phyz constraint required by the rolled vcad
+git -C vcad/vendor/vcad show <vcad-new>:crates/vcad-kernel-physics/Cargo.toml | grep -E '^\s*phyz\s*='
+# tang constraint(s) — search the rolled vcad workspace for path-deps on tang
+git -C vcad/vendor/vcad grep -nE 'tang.*version\s*=' <vcad-new> -- '*/Cargo.toml'
+```
+
+Then compare against the phyz/tang version the rolled pointers would provide:
+
+```
+git -C vcad/vendor/phyz show <phyz-new>:crates/phyz/Cargo.toml | grep -m1 '^version'
+git -C vcad/vendor/tang show <tang-new>:crates/<tang-crate>/Cargo.toml | grep -m1 '^version'
+```
+
+Report a **blocking inconsistency** if the rolled vcad requires a phyz/tang version that the (rolled or current) phyz/tang pointer does not satisfy. In that case phyz/tang MUST be rolled forward to a commit whose version satisfies vcad's constraint — even if Step 2 found no sidecar API usage. Note this explicitly in the Step 4 assessment and action items.
+
 ### Step 3: Report per submodule
 
 For each submodule with changes, report:
@@ -124,6 +152,14 @@ For each submodule with new upstream commits:
 2. If rebuild fails, STOP and report — do not run tests
 3. Test: `./test`
 4. Report results (pass/fail, which tests failed if any)
+
+**Note — sidecar rebuild does NOT validate the full vcad workspace.** `./scripts/rebuild.sh` only builds the sidecar (a separate workspace that never resolves `vcad-kernel-physics`), so it stays green even when the phyz/tang floor from Step 2b is violated. To actually prove the vendored vcad workspace resolves, build something that resolves the full graph, e.g.:
+
+```
+cargo check --manifest-path vcad/vendor/vcad/Cargo.toml -p vcad-ffi
+```
+
+If Step 2b flagged an inconsistency, this is where it surfaces as a `failed to select a version for the requirement` resolution error.
 
 Note: the rebuild will likely modify `vcad/sidecar/Cargo.lock` — this is expected. It will be committed together with the submodule pointers by `commit-vendor`.
 
