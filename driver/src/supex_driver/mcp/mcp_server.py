@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, cast
+from typing import Any
 
 # Configure logging BEFORE importing fastmcp to prevent rich handler installation
 _mcp_handler = logging.StreamHandler(sys.stderr)
@@ -68,7 +68,7 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
                         if client_info:
                             raw_name = getattr(client_info, "name", None)
                             if raw_name and isinstance(raw_name, str):
-                                name: str = cast(str, raw_name)
+                                name: str = raw_name
                                 logger.info(
                                     f"Got client name from MCP clientInfo: {name}"
                                 )

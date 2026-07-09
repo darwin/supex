@@ -610,7 +610,6 @@ class TestValidateWorkspacePath:
 
     def test_absolute_path_within_workspace(self, ws):
         """Absolute path inside workspace passes validation."""
-        from pathlib import Path
 
         result = validate_workspace_path(str(ws / "bracket.cmp.oo"), ws)
         assert result == (ws / "bracket.cmp.oo").resolve()
@@ -637,7 +636,6 @@ class TestValidateWorkspacePath:
 
     def test_symlink_escape_denied(self, ws):
         """Symlink that resolves outside workspace is denied."""
-        import os
 
         # Create a symlink inside workspace pointing outside
         link = ws / "escape.cmp.oo"

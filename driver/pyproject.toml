@@ -88,6 +88,8 @@ ignore = [
     "PLR0913", # too many arguments
     "PLR0912", # too many branches
     "PLR0915", # too many statements (connection.send_command has retry logic)
+    "PLR0911", # too many return statements
+    "PLW0108", # unnecessary lambda (explicit lambdas kept for callback clarity)
     "PLR2004", # magic value in comparison (acceptable in tests)
     "PLC0415", # import not at top-level (intentional lazy imports)
     "PLW0603", # global statement discouraged

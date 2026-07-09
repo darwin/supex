@@ -38,7 +38,7 @@ MAX_INLINE_BASE64_BYTES = 128 * 1024  # 128 KB
 def _parse_major_version(version: str) -> int:
     """Extract major version number from version string."""
     try:
-        return int(version.split(".")[0])
+        return int(version.split(".", maxsplit=1)[0])
     except (ValueError, IndexError):
         return -1
 
