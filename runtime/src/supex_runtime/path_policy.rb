@@ -69,7 +69,7 @@ module SupexRuntime
         # For non-existing files (write targets): resolve symlinks in the
         # nearest existing ancestor to prevent symlinked parent escape.
         canonical_parent = resolve_nearest_ancestor(expanded)
-        remaining = expanded.sub(%r{^#{Regexp.escape(find_nearest_ancestor(expanded))}}, '')
+        remaining = expanded.sub(/^#{Regexp.escape(find_nearest_ancestor(expanded))}/, '')
         File.join(canonical_parent, remaining)
       end
 
@@ -80,6 +80,7 @@ module SupexRuntime
         current = File.dirname(path)
         while current != '/'
           return current if File.exist?(current)
+
           current = File.dirname(current)
         end
         '/' # root always exists

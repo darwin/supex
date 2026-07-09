@@ -42,3 +42,6 @@ Style/RescueStandardError:
 
 Naming/PredicateMethod:
   Enabled: false
+# Existing snippets indent hash literals from the statement, not the paren
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent

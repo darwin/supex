@@ -285,7 +285,7 @@ class MockEntities
   end
 
   def grep(type)
-    @entities.select { |e| e.is_a?(type) }
+    @entities.grep(type)
   end
 
   def map(&)

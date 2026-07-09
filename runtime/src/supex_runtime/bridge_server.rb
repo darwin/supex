@@ -635,7 +635,7 @@ module SupexRuntime
 
       # Propagate workspace to ENV so evaluated code can access it
       # (e.g., BatchScreenshot.execute reads ENV['SUPEX_WORKSPACE'] as fallback)
-      old_ws = ENV['SUPEX_WORKSPACE']
+      old_ws = ENV.fetch('SUPEX_WORKSPACE', nil)
       ENV['SUPEX_WORKSPACE'] = workspace if workspace
 
       begin

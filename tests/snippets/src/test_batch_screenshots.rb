@@ -10,8 +10,10 @@ module SupexTestSnippets
   # Helper to get temp directory for batch screenshot tests
   # Uses SUPEX_WORKSPACE directly (set by CLIRunner to isolated test workspace)
   def self.batch_screenshot_temp_dir
-    ws = ENV['SUPEX_WORKSPACE']
-    raise 'SUPEX_WORKSPACE not set — E2E tests require an isolated workspace' if ws.nil? || ws.empty?
+    ws = ENV.fetch('SUPEX_WORKSPACE', nil)
+    if ws.nil? || ws.empty?
+      raise 'SUPEX_WORKSPACE not set — E2E tests require an isolated workspace'
+    end
 
     dir = File.join(ws, 'batch_screenshots')
     FileUtils.mkdir_p(dir)

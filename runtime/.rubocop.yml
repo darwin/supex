@@ -72,3 +72,11 @@ Style/RescueStandardError:
 # Allow duplicate rescue branches for clarity in socket error handling
 Lint/DuplicateBranch:
   Enabled: false
+
+# repl.rb is a standalone client script; its helper class lives alongside the CLI code
+# (spec/test globs restate the cop defaults, which an Exclude override would drop)
+Style/OneClassPerFile:
+  Exclude:
+    - 'spec/**/*'
+    - 'test/**/*'
+    - 'src/repl.rb'

@@ -102,7 +102,7 @@ module SupexStdlib
       # @param object [Object]
       # @return [Boolean]
       def valid_triple?(object)
-        object.is_a?(Array) && object.size == 3 && object.all? { |item| item.is_a?(Numeric) }
+        object.is_a?(Array) && object.size == 3 && object.all?(Numeric)
       end
     end
   end

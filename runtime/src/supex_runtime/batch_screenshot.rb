@@ -44,7 +44,7 @@ module SupexRuntime
       def execute(params, workspace: nil)
         # Fallback to env when called directly (e.g., from test snippets)
         # rather than via tool dispatch which passes workspace explicitly
-        workspace ||= ENV['SUPEX_WORKSPACE']
+        workspace ||= ENV.fetch('SUPEX_WORKSPACE', nil)
 
         model = Sketchup.active_model
         return { success: false, error: 'No active model' } unless model
@@ -141,7 +141,7 @@ module SupexRuntime
           canonical = File.expand_path(filepath)
           unless canonical.start_with?(output_dir + File::SEPARATOR) || canonical == output_dir
             raise PathPolicy::PathAccessDenied,
-                  "Path access denied for batch_screenshot: shot path escapes output directory"
+                  'Path access denied for batch_screenshot: shot path escapes output directory'
           end
 
           # Take screenshot (offscreen render due to explicit dimensions)

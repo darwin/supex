@@ -111,7 +111,7 @@ module SupexStdlib
       def valid?(plane)
         return false unless plane.is_a?(Array)
 
-        (plane.size == 4 && plane.all? { |e| e.is_a?(Numeric) }) ||
+        (plane.size == 4 && plane.all?(Numeric)) ||
           (plane.size == 2 && valid_point?(plane[0]) && valid_vector?(plane[1]))
       end
 

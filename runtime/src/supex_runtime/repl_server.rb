@@ -28,6 +28,8 @@ module SupexRuntime
     SNIPPETS_DIR = File.expand_path('../../../.tmp/repl', __dir__)
     AUTH_TOKEN = ENV.fetch('SUPEX_AUTH_TOKEN', nil)
     ALLOW_REMOTE = ENV['SUPEX_ALLOW_REMOTE'] == '1'
+    # Maximum length for PID values (10 digits covers any realistic PID)
+    MAX_PID_LENGTH = 10
 
     # Connection context for scoped client state
     ClientConnection = Struct.new(:socket, :client_info, :session_dir, :snippet_counter, keyword_init: true) do
@@ -254,9 +256,6 @@ module SupexRuntime
         error_response(request, "Method not found: #{request['method']}", -32_601)
       end
     end
-
-    # Maximum length for PID values (10 digits covers any realistic PID)
-    MAX_PID_LENGTH = 10
 
     # Handle hello handshake request
     # @param request [Hash] JSON-RPC request
