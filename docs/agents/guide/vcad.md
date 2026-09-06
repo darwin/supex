@@ -61,13 +61,14 @@ For mixed tasks, keep geometry in VCAD and do scene/model post-processing with R
 
 ### 6. Core Loon CAD Constructors
 
-- Primitives: `cube`, `cylinder`, `sphere`, `cone`
+- Primitives: `cube`, `cylinder`, `sphere`, `cone`, `torus`, `wedge`, `prism` (n-gon by circumradius), `hex-prism` (across-flats), `polygon-prism`
 - Booleans (subject-last): `union`, `difference`, `intersection`
 - Transforms (subject-last): `translate`, `rotate`, `scale`
 - Features (subject-last): `fillet`, `chamfer`, `shell`
 - Patterns: `linear-pattern`, `circular-pattern`
 - Sketch-based: `sketch`, `extrude`, `revolve`, `sweep-line`, `sweep-helix`, `loft`, `loft-closed`
 - Scene/material: `root`, `material`
+- Vendor geometry: `import-mesh` (STL) and `import-step`; relative paths resolve against the directory of the `.cmp.oo` file. STL is read in metres and scaled to millimetres, so for a millimetre file use `[import-mesh-scaled 0.001 0.001 0.001 "vendor/part.stl"]`. Mesh imports carry no BRep, so the native-mesh rules above apply
 
 Authoritative constructor signatures: `cad-lib/src/lib.loon`.
 

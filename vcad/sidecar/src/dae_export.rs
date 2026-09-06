@@ -315,7 +315,17 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vcad_kernel_primitives::{make_cube, make_cylinder};
+    use vcad_kernel_primitives::{make_cube, make_cylinder, make_torus, make_wedge};
+
+    /// Vertex counts of every polygon in the `<polylist>`.
+    fn polygon_vcounts(dae: &str) -> Vec<usize> {
+        let start = dae.find("<vcount>").unwrap() + "<vcount>".len();
+        let end = dae.find("</vcount>").unwrap();
+        dae[start..end]
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect()
+    }
 
     #[test]
     fn test_cube_all_polygons() {
@@ -377,6 +387,54 @@ mod tests {
             vcounts.len() > 3,
             "Cylinder should have multiple faces from tessellation, got {}",
             vcounts.len()
+        );
+    }
+
+    #[test]
+    fn test_wedge_all_polygons() {
+        // A wedge is bounded by planar faces only: 2 triangular caps + 3 quads,
+        // so every face is emitted as one polygon without tessellation.
+        let brep = make_wedge(10.0, 20.0, 5.0);
+        let dae = brep_to_dae(&brep, &TessellationParams::from_segments(32));
+        let vcounts = polygon_vcounts(&dae);
+
+        assert_eq!(
+            vcounts.len(),
+            5,
+            "wedge should have 5 polygons, got {vcounts:?}"
+        );
+        assert_eq!(
+            vcounts.iter().filter(|&&v| v == 3).count(),
+            2,
+            "2 triangular caps"
+        );
+        assert_eq!(
+            vcounts.iter().filter(|&&v| v == 4).count(),
+            3,
+            "3 rectangular sides"
+        );
+    }
+
+    #[test]
+    fn test_torus_tessellated_finite() {
+        // The torus is the first primitive with a toroidal surface: its single
+        // curved face must tessellate into triangles with finite coordinates.
+        let brep = make_torus(10.0, 2.0, 32);
+        let dae = brep_to_dae(&brep, &TessellationParams::from_segments(32));
+        let vcounts = polygon_vcounts(&dae);
+
+        assert!(!vcounts.is_empty(), "torus should produce triangles");
+        assert!(
+            vcounts.iter().all(|&v| v == 3),
+            "torus faces must be tessellated, got {vcounts:?}"
+        );
+
+        let start = dae.find("<float_array").unwrap();
+        let end = dae[start..].find("</float_array>").unwrap() + start;
+        let floats = &dae[start..end];
+        assert!(
+            !floats.contains("NaN") && !floats.contains("inf"),
+            "torus positions must be finite"
         );
     }
 
