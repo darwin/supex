@@ -1,0 +1,58 @@
+# Monthly grouped dependency updates for every package manager in the repo.
+# Vendored submodules under vcad/vendor/ are managed by the review-vendor skill, not here.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /devtools/ci
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: uv
+    directories:
+      - /driver
+      - /devtools/radar
+      - /tests
+    schedule:
+      interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: bundler
+    directories:
+      - /runtime
+      - /stdlib
+      - /mock
+      - /tests/snippets
+      - /devtools/docgen
+    schedule:
+      interval: monthly
+    groups:
+      ruby:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directories:
+      - /vcad/sidecar
+      - /vcad/viewer/src-tauri
+    schedule:
+      interval: monthly
+    groups:
+      rust:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /vcad/viewer
+    schedule:
+      interval: monthly
+    groups:
+      node-minor:
+        update-types: ["minor", "patch"]

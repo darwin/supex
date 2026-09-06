@@ -27,15 +27,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ruby:3.2.2-slim-bookworm /usr/local/ /usr/local/
 
 # --- Rust toolchain (into /usr/local/cargo, no conflict with Ruby) ---
-COPY --from=rust:1-bookworm /usr/local/rustup /usr/local/rustup
-COPY --from=rust:1-bookworm /usr/local/cargo /usr/local/cargo
+# Keep the minor in sync with rust-version in vcad/sidecar/Cargo.toml and vcad/viewer/src-tauri/Cargo.toml
+COPY --from=rust:1.96-bookworm /usr/local/rustup /usr/local/rustup
+COPY --from=rust:1.96-bookworm /usr/local/cargo /usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
 ENV CARGO_HOME=/usr/local/cargo
 ENV PATH="/usr/local/cargo/bin:$PATH"
 RUN rustup component add rustfmt clippy
 
 # --- Python 3.14 via uv ---
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
 RUN uv python install 3.14
 
 # --- Node.js 22 LTS ---
