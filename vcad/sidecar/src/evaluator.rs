@@ -204,6 +204,7 @@ impl Evaluator {
         let options = EvalOptions {
             skip_clash_detection: true,
             clock: None,
+            ..Default::default()
         };
         let scene = evaluate_document(doc, &options).map_err(EvalError::Kernel)?;
         let part = select_single_part(&scene)?;
@@ -366,6 +367,7 @@ impl Evaluator {
         let options = EvalOptions {
             skip_clash_detection: true,
             clock: None,
+            ..Default::default()
         };
         let scene = evaluate_document(doc, &options).map_err(EvalError::Kernel)?;
         let part = select_single_part(&scene)?;
