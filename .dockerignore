@@ -10,4 +10,5 @@
 .code/
 .plan-runner/
 .direnv/
-devtools/docgen/
+devtools/docgen/generated-sketchup-api-docs/
+devtools/docgen/sketchup-api-stubs/

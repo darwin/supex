@@ -58,12 +58,12 @@ echo "--- Python: tests (ruff) ---"
 cd "$PROJECT_ROOT/tests"
 uv run ruff check .
 
-# Rust linting - sidecar and viewer backend (release profile matches what SketchUp loads)
+# Rust linting - sidecar and viewer backend
 echo ""
 echo "--- Rust: sidecar (fmt + clippy) ---"
 cd "$PROJECT_ROOT/vcad/sidecar"
 cargo fmt --check
-cargo clippy --release --all-targets --quiet -- -D warnings
+cargo clippy --all-targets --quiet -- -D warnings
 
 echo ""
 echo "--- Rust: viewer backend (fmt + clippy) ---"

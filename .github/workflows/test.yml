@@ -25,4 +25,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - run: docker run --rm supex-test
+      - name: Tests
+        run: docker run --rm supex-test
+
+      - name: Lint
+        run: docker run --rm --entrypoint scripts/lint.sh supex-test

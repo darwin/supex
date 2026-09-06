@@ -140,14 +140,14 @@ fn emit_tessellated_triangles(
     let base_idx = positions.len() / 3;
 
     // Convert f32 vertices to f64 for consistent XML output
-    for chunk in mesh.vertices.chunks_exact(3) {
+    for chunk in mesh.vertices.as_chunks::<3>().0 {
         positions.push(chunk[0] as f64);
         positions.push(chunk[1] as f64);
         positions.push(chunk[2] as f64);
     }
 
     // Each triangle is a polygon with vcount=3
-    for tri in mesh.indices.chunks_exact(3) {
+    for tri in mesh.indices.as_chunks::<3>().0 {
         vcount.push(3);
         indices.push(base_idx + tri[0] as usize);
         indices.push(base_idx + tri[1] as usize);
@@ -192,7 +192,7 @@ pub fn mesh_to_dae(mesh: &EvaluatedMesh) -> Result<String, String> {
         positions.push(p as f64);
     }
 
-    for tri in mesh.indices.chunks_exact(3) {
+    for tri in mesh.indices.as_chunks::<3>().0 {
         vcount.push(3);
         indices.push(tri[0] as usize);
         indices.push(tri[1] as usize);

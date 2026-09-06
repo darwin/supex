@@ -655,7 +655,7 @@ fn compute_mesh_bbox(mesh: &vcad_eval::EvaluatedMesh) -> BBox {
     let mut min = [f64::MAX; 3];
     let mut max = [f64::MIN; 3];
     let positions = &mesh.positions;
-    for chunk in positions.chunks_exact(3) {
+    for chunk in positions.as_chunks::<3>().0 {
         for j in 0..3 {
             let v = chunk[j] as f64;
             min[j] = min[j].min(v);
