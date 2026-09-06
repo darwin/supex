@@ -130,7 +130,7 @@ For Loon language syntax, CAD constructors, and API reference, see the agent doc
 
 ## Import System
 
-VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver auto-detects and resolves these references before evaluation. Imports are supported in all VCAD tools (`vcad_place`, `vcad_update`, `vcad_inspect`, `vcad_eval`, `vcad_export`).
+VCAD nodes can reference data from existing SketchUp entities using inline `[import ...]` declarations. The driver auto-detects and resolves these references before evaluation. Imports are supported in all VCAD tools (`vcad_place`, `vcad_update`, `vcad_inspect`, `vcad_eval`).
 
 **Why imports cannot appear in library modules:** The driver preprocesses `[import ...]` declarations by extracting them from the source, resolving them via SketchUp, and injecting the results before evaluation. Library modules loaded via `[use ...]` bypass this pipeline entirely — the Loon interpreter evaluates them directly. A raw `[import ...]` in a library file will fail at evaluation time because `import` is not a Loon built-in.
 
@@ -269,8 +269,6 @@ Practical VCAD tool flow:
 6. `vcad_watch_pause()` / `vcad_watch_resume()` batches multi-file edits into one cascade
 7. `vcad_viewer_state`, `vcad_viewer_screenshot`, `vcad_viewer_focus` support viewer diagnostics
 8. `check_status` provides unified health check; `vcad_metrics`, `vcad_reconcile_status` provide operational diagnostics
-
-`vcad_export(source, format?, output_path?)` is available, but import-aware export paths can behave differently from direct sidecar export. Validate behavior in your target environment.
 
 ## Known Limitations
 

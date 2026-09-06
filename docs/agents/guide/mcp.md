@@ -62,7 +62,6 @@ For full workflow and semantics, see [VCAD Integration](vcad.md).
 | `vcad_list_nodes` | List VCAD nodes present in the model |
 | `vcad_watch_pause` | Pause reactive watch processing |
 | `vcad_watch_resume` | Resume and flush accumulated watch events |
-| `vcad_export` | Sidecar export API surface (treat as experimental until fully wired end-to-end) |
 
 ## VCAD Viewer Relay
 

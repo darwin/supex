@@ -14,7 +14,6 @@ from supex_driver.connection.vcad_exceptions import (
     PATH_NOT_ALLOWED,
     PROTOCOL_MISMATCH,
     VCADCapabilityError,
-    VCADConnectionError,
     VCADProtocolError,
     VCADRemoteError,
     VCADTimeoutError,
@@ -22,7 +21,6 @@ from supex_driver.connection.vcad_exceptions import (
 from supex_driver.mcp.vcad_tools import (
     validate_workspace_path,
     vcad_eval,
-    vcad_export,
     vcad_inspect,
     vcad_list_nodes,
     vcad_place,
@@ -316,60 +314,6 @@ class TestVCADInspect:
 
 
 # ---------------------------------------------------------------------------
-# vcad_export
-# ---------------------------------------------------------------------------
-
-
-class TestVCADExport:
-    """Test vcad_export tool."""
-
-    def test_export_obj(self, ws, mock_ctx, mock_vcad):
-        """Export to OBJ."""
-        mock_vcad.send_command.return_value = {
-            "file_path": "/tmp/output.obj",
-            "format": "obj",
-        }
-
-        src = str(ws / "part.cmp.oo")
-        result = json.loads(
-            vcad_export(mock_ctx, source=src, format="obj")
-        )
-
-        assert result["success"] is True
-        assert result["file_path"] == "/tmp/output.obj"
-        call_args = mock_vcad.send_command.call_args
-        assert call_args[0][0] == "vcad.export"
-        assert call_args[0][1]["source"] == src
-        assert call_args[0][1]["format"] == "obj"
-
-    def test_export_with_output_path(self, mock_ctx, mock_vcad):
-        """Export with explicit output path."""
-        mock_vcad.send_command.return_value = {"file_path": "/custom/out.step"}
-
-        vcad_export(
-            mock_ctx,
-            source="[cube 1.0 1.0 1.0]",
-            format="step",
-            output_path="/custom/out.step",
-        )
-
-        params = mock_vcad.send_command.call_args[0][1]
-        assert params["output_path"] == "/custom/out.step"
-
-    def test_export_error(self, mock_ctx, mock_vcad):
-        """Export failure."""
-        mock_vcad.send_command.side_effect = VCADConnectionError(
-            "Sidecar not running"
-        )
-
-        result = json.loads(vcad_export(mock_ctx, source="[cube 1.0 1.0 1.0]"))
-
-        assert result["success"] is False
-        assert result["error_code"] == "CONNECTION_ERROR"
-        assert result["details"]["error_type"] == "connection"
-
-
-# ---------------------------------------------------------------------------
 # vcad_eval
 # ---------------------------------------------------------------------------
 
@@ -535,19 +479,6 @@ class TestVCADToolsErrorPropagation:
         assert result["error"] == "NO_GEOMETRY"
         assert result["details"]["node_id"] == "empty"
 
-    def test_protocol_mismatch_in_export(self, mock_ctx, mock_vcad):
-        """Protocol mismatch propagates through vcad_export."""
-        mock_vcad.send_command.side_effect = VCADProtocolError(
-            "Protocol version mismatch",
-            error_code=PROTOCOL_MISMATCH,
-            details={"expected_protocol": "1.0", "actual_protocol": "2.0"},
-        )
-
-        result = json.loads(vcad_export(mock_ctx, source="[cube 1.0 1.0 1.0]"))
-
-        assert result["success"] is False
-        assert result["error_code"] == PROTOCOL_MISMATCH
-
     def test_capability_unavailable_in_update(self, ws, mock_ctx, mock_vcad):
         """Capability error propagates through vcad_update."""
         mock_vcad.eval_with_imports.side_effect = VCADCapabilityError(
@@ -583,7 +514,6 @@ class TestVCADToolsRegistration:
             "vcad_place",
             "vcad_update",
             "vcad_inspect",
-            "vcad_export",
             "vcad_eval",
             "vcad_list_nodes",
         ]
@@ -690,22 +620,6 @@ class TestWorkspaceBoundaryInTools:
         }
 
         result = json.loads(vcad_inspect(mock_ctx, source="[cube 1.0 1.0 1.0]"))
-        assert result["success"] is True
-
-    def test_export_rejects_outside_workspace(self, mock_ctx, mock_vcad):
-        """vcad_export denies file path outside workspace."""
-        result = json.loads(
-            vcad_export(mock_ctx, source="/etc/secret.cmp.oo")
-        )
-
-        assert result["success"] is False
-        assert result["error_code"] == PATH_NOT_ALLOWED
-
-    def test_export_inline_code_not_checked(self, mock_ctx, mock_vcad):
-        """vcad_export with inline code skips boundary check."""
-        mock_vcad.send_command.return_value = {"file_path": "/tmp/out.obj"}
-
-        result = json.loads(vcad_export(mock_ctx, source="[cube 1.0 1.0 1.0]"))
         assert result["success"] is True
 
     def test_place_rejects_traversal_path(self, ws, mock_ctx, mock_vcad):
