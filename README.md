@@ -172,7 +172,7 @@ Run tests and linters from the repository root:
 # List available test suites
 ./test --list
 
-# Run E2E tests only (requires SketchUp running)
+# Run E2E tests only; launches SketchUp and quits it when done unless it was already running
 ./test --e2e
 
 # Run all linters (RuboCop, ruff, mypy, rustfmt, clippy, tsc, eslint)

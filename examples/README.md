@@ -133,6 +133,24 @@ This keeps your project in sync with Supex documentation updates.
 
 Add `supex-guide` to your `.gitignore` since the symlink path varies per developer.
 
+### Claude Code Permissions
+
+By default Claude Code asks before every Supex tool call. To let the agent model without prompts, allow the
+Supex tools in `.claude/settings.json` (shared with the project) or `.claude/settings.local.json` (per developer):
+
+```json
+{
+  "permissions": {
+    "allow": ["mcp__supex__*"]
+  }
+}
+```
+
+The runtime path policy still limits file operations to the workspace, so allowing the tools does not open
+the whole filesystem. For guidance that should apply only to some files, Claude Code also reads
+`.claude/rules/*.md`; a rule with a `paths:` frontmatter (for example `paths: ["**/*.oo"]`) loads only when
+the agent works on matching files, which keeps VCAD conventions out of the way of Ruby scripts.
+
 ### MCP Configuration
 
 `claude mcp add --scope project` (see above) produces a `.mcp.json` equivalent to:
