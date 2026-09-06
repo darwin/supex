@@ -20,6 +20,11 @@ cd "$PROJECT_ROOT/stdlib"
 bundle exec rubocop
 
 echo ""
+echo "--- Ruby: mock ---"
+cd "$PROJECT_ROOT/mock"
+bundle exec rubocop
+
+echo ""
 echo "--- Ruby: docgen ---"
 cd "$PROJECT_ROOT/devtools/docgen"
 bundle exec rubocop

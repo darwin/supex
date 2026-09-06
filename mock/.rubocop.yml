@@ -72,3 +72,10 @@ Naming/AccessorMethodName:
 Lint/EmptyBlock:
   Exclude:
     - 'test/**/*'
+
+# Mock files mirror SketchUp's namespaces (Sketchup, Geom, UI) per topic
+# (test glob restates the cop default, which an Exclude override would drop)
+Style/OneClassPerFile:
+  Exclude:
+    - 'src/sketchup_api/**/*'
+    - 'test/**/*'
