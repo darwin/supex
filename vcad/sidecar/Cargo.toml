@@ -2,6 +2,7 @@
 name = "supex-vcad-sidecar"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.96"
 
 [dependencies]
 # vcad evaluation pipeline (vendored git submodules)
@@ -26,7 +27,7 @@ blake3 = "1"
 tempfile = "3"
 
 # Filesystem watching
-notify = "7"
+notify = "8"
 
 # Signal handling
 ctrlc = "3"
