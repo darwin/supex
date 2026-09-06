@@ -56,8 +56,9 @@ pub struct NativeMeshData {
 ///
 /// Data imports (dims, bbox, transform, all) carry JSON data that is
 /// converted to Loon let-bindings. Solid imports carry a vcad_node_id
-/// whose cached ADT tree is injected into the Loon environment directly.
-/// Native mesh imports carry triangulated mesh data from SketchUp solids.
+/// whose cached ADT tree is printed back as loon source and bound in the
+/// preamble. Native mesh imports carry triangulated mesh data from SketchUp
+/// solids, bound as a sentinel `MeshImport` the mesh registry resolves.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedImport {
     /// The source keyword (e.g. "host").
@@ -375,11 +376,19 @@ fn json_to_loon(value: &serde_json::Value) -> String {
     }
 }
 
+/// Format a resolved solid import as a Loon let-binding string.
+///
+/// `expr` is loon source for the solid: a `[MeshImport ...]` sentinel for a
+/// native SketchUp mesh or a printed cached ADT tree for a VCAD-backed node.
+pub fn format_solid_binding(symbol: &str, expr: &str) -> String {
+    format!("[let {} {}]\n", symbol, expr)
+}
+
 /// Build the preamble of let-bindings for data imports only (skipping solid).
 ///
-/// Solid imports are injected directly into the Loon environment, not as
-/// source-level let-bindings. Data imports (dims, bbox, transform, all)
-/// are formatted as Loon let-bindings.
+/// Solid imports need the evaluator's mesh registry and ADT cache, so the
+/// evaluator appends them via [`format_solid_binding`]. Data imports (dims,
+/// bbox, transform, all) are formatted as Loon let-bindings here.
 pub fn build_import_preamble(imports: &HashMap<String, ResolvedImport>) -> String {
     let mut preamble = String::new();
     for import in imports.values() {

@@ -399,7 +399,8 @@ fn dispatch_hello(
                 "imports.data_extracts",
                 "imports.solid_adt",
                 "fs_watch",
-                "module_tracking"
+                "module_tracking",
+                "modules.lib_path"
             ],
             "limits": {
                 "max_queue": max_queue,

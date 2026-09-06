@@ -1,7 +1,8 @@
-"""Tests for native SketchUp solid import (native mesh -> ImportedMesh ADT).
+"""Tests for native SketchUp solid import (native mesh -> sidecar mesh registry).
 
 Tests the :solid import flow where native SketchUp solids (manifold geometry)
-are extracted as mesh data and forwarded to the sidecar as ImportedMesh ADT.
+are extracted as mesh data and forwarded to the sidecar, which binds them as
+a sentinel MeshImport and rewrites it to ImportedMesh after evaluation.
 """
 
 import json

@@ -139,6 +139,7 @@ A well-structured `.cmp.oo` file follows this order:
 ## Imports and Exports Notes
 
 - Keep import declarations in `.cmp.oo` files.
+- `[use name]` looks for `name.oo` beside the importing file first, then in each directory of `VCAD_LOON_PATH` (shared part libraries). Use dotted names for subdirectories (`[use hardware.screws]`); a local file shadows a lib module of the same name.
 - Prefer stable entity references and stable `node_id` naming.
 - `vcad_export(source, format?, output_path?)` is available; import-aware export behavior can differ from direct sidecar export, so validate in your environment.
 

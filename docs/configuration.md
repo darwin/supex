@@ -88,6 +88,7 @@ Workspace defaults differ by entrypoint script:
 | `SUPEX_VCAD_TEMP_DIR` | `$SUPEX_WORKSPACE/.tmp/vcad-sidecar` | Artifact directory |
 | `SUPEX_VCAD_TEMP_TTL_SEC` | `3600` | Artifact TTL (seconds) |
 | `SUPEX_VCAD_TEMP_MAX_FILES` | `500` | Max retained artifacts |
+| `VCAD_LOON_PATH` | (unset) | Directories searched for `[use ...]` modules not found beside the importing file (`:`-separated; `;` on Windows). Same variable vcad's own tools honour |
 | `SUPEX_VCAD_MAX_QUEUE` | `64` | Eval queue capacity |
 | `SUPEX_VCAD_EVAL_TIMEOUT_MS` | `120000` | Eval timeout per request |
 | `SUPEX_VCAD_ADT_CACHE_MAX` | `256` | ADT cache capacity |

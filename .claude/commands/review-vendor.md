@@ -11,8 +11,8 @@ All paths below are relative to the supex repo root.
 
 There are two kinds of vendored submodules:
 
-- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
-- **Plain repos** (`vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
+- **Patch repos** (`vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
+- **Plain repos** (`vcad/vendor/tang`, `vcad/vendor/loon`) — track upstream `origin/main` directly, no fork, no patches.
 
 ### Workspace coupling — why tang must move with vcad
 
@@ -67,8 +67,9 @@ If the diff is very large (thousands of lines), focus on files that are likely t
 Read the supex integration points to understand what APIs are actually used:
 
 - `vcad/sidecar/src/evaluator.rs` — main integration point:
-  - loon-lang: `parse()`, `eval_program_with_env_and_base_dir()`, `Value` ADT variants
-  - vcad-loon: `value_to_document()`, `VCAD_LIB_SOURCE`
+  - loon-lang: `parse()`, `eval_program_with_modules()`, `ModuleProvider` + `ModuleCache::resolve_path()` (`modules.rs`), `Value` variants (`loon_source.rs`)
+  - vcad-loon: `value_to_document_in()`, `VCAD_LIB_SOURCE`, `lib_dirs()`
+  - vcad-ir: `CsgOp::MeshImport` / `CsgOp::ImportedMesh` (`mesh_registry.rs`)
   - vcad-eval: `evaluate_document()`, `EvalOptions`, `EvaluatedScene`, `EvaluatedPart`
   - vcad-ir: `Document`
   - vcad-kernel-primitives: `BRepSolid` (volume, surface_area, bounding_box, brep, is_empty)
@@ -140,10 +141,10 @@ Before modifying any repo, check for assume-unchanged files:
 
 For each submodule with new upstream commits:
 
-**Plain repos (tang):**
+**Plain repos (tang, loon):**
 - Fast-forward: `git -C <sub> pull --ff-only origin main`
 
-**Patch repos (loon, vcad):**
+**Patch repos (vcad):**
 - Ensure on `supex-patches` branch (restore from darwin if detached): `git -C <sub> checkout -B supex-patches darwin/supex-patches`
 - Rebase: `git -C <sub> rebase origin/main`
 - If rebase fails with conflicts, STOP and assist with resolution

@@ -3,7 +3,10 @@ mod config;
 mod dae_export;
 mod evaluator;
 mod imports;
+mod loon_source;
+mod mesh_registry;
 mod module_tracker;
+mod modules;
 mod server;
 mod watcher;
 

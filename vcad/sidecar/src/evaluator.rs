@@ -1,11 +1,15 @@
 use crate::adt_cache::AdtCache;
 use crate::dae_export::{brep_to_dae, mesh_to_dae};
-use crate::imports::{ResolvedImport, build_import_preamble};
-use loon_lang::interp::{Env, Value, eval_program_with_env_and_base_dir};
+use crate::imports::{ResolvedImport, build_import_preamble, format_solid_binding};
+use crate::loon_source::value_to_loon_source;
+use crate::mesh_registry::MeshRegistry;
+use crate::modules::RecordingProvider;
+use loon_lang::interp::{Value, eval_program_with_modules};
 use loon_lang::parser::parse;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use vcad_eval::{EvalOptions, evaluate_document};
 use vcad_ir::Document;
 use vcad_kernel_tessellate::TessellationParams;
@@ -20,6 +24,10 @@ struct TempRetention {
 pub struct Evaluator {
     temp_dir: PathBuf,
     adt_cache: AdtCache,
+    mesh_registry: MeshRegistry,
+    /// Directories searched for `[use ...]` modules missing beside the
+    /// importer (`VCAD_LOON_PATH`).
+    lib_dirs: Vec<PathBuf>,
     retention: TempRetention,
 }
 
@@ -66,8 +74,10 @@ impl Evaluator {
         let max_files = max_files.max(1);
         let seq = Self::load_retention_seq(&temp_dir);
         let mut this = Self {
+            mesh_registry: MeshRegistry::new(&temp_dir, adt_cache_max),
             temp_dir,
             adt_cache: AdtCache::new(adt_cache_max),
+            lib_dirs: vcad_loon::lib_dirs(),
             retention: TempRetention {
                 ttl_sec,
                 max_files,
@@ -77,6 +87,12 @@ impl Evaluator {
         this.recover_incomplete_artifact_pairs().ok();
         this.cleanup_temp_dir();
         this
+    }
+
+    /// Override the lib path (tests; the server takes it from `VCAD_LOON_PATH`).
+    #[cfg(test)]
+    pub fn set_lib_dirs(&mut self, dirs: Vec<PathBuf>) {
+        self.lib_dirs = dirs;
     }
 
     fn cleanup_temp_dir(&self) {
@@ -251,65 +267,33 @@ impl Evaluator {
         inspect: bool,
         export_mesh: bool,
     ) -> Result<EvalResult, EvalError> {
-        // 1. Build Loon preamble for data imports only (solid skipped)
-        let preamble = build_import_preamble(imports);
+        // 1. Build the Loon preamble: data imports as literals, solid imports
+        //    as expressions (a sentinel `MeshImport` for native SketchUp
+        //    meshes, the printed cached ADT for VCAD-backed nodes).
+        let mut preamble = build_import_preamble(imports);
+        for import in imports.values() {
+            if import.extract != "solid" {
+                continue;
+            }
+            let expr = self.solid_import_expr(import)?;
+            preamble.push_str(&format_solid_binding(&import.injected_symbol, &expr));
+        }
         let augmented_source = format!("{}{}\n{}", VCAD_LIB_SOURCE, preamble, transformed_source);
 
         // 2. Parse the augmented source
         let exprs = parse(&augmented_source)
             .map_err(|e| EvalError::Loon(format!("Parse error: {}", e.message)))?;
 
-        // 3. Set up Loon environment with solid ADT bindings
-        let mut env = Env::new();
-        for import in imports.values() {
-            if import.extract == "solid" {
-                if let Some(ref mesh_data) = import.native_mesh {
-                    // Native SketchUp solid: build ImportedMesh ADT from mesh data
-                    let positions = Value::Vec(
-                        mesh_data
-                            .positions
-                            .iter()
-                            .map(|&v| Value::Float(v))
-                            .collect(),
-                    );
-                    let indices = Value::Vec(
-                        mesh_data
-                            .indices
-                            .iter()
-                            .map(|&v| Value::Int(v as i64))
-                            .collect(),
-                    );
-                    let normals =
-                        Value::Vec(mesh_data.normals.iter().map(|&v| Value::Float(v)).collect());
-                    let mesh_value = Value::Adt(
-                        "ImportedMesh".to_string(),
-                        vec![positions, indices, normals],
-                    );
-                    env.set(import.injected_symbol.clone(), mesh_value);
-                } else if let Some(ref vcad_nid) = import.vcad_node_id {
-                    if let Some(cached_adt) = self.adt_cache.get(vcad_nid) {
-                        env.set(import.injected_symbol.clone(), cached_adt.clone());
-                    } else {
-                        return Err(EvalError::Loon(format!(
-                            "ADT_CACHE_MISS: no cached ADT for node '{}' — \
-                             the source node must be evaluated before it can be imported",
-                            vcad_nid
-                        )));
-                    }
-                } else {
-                    return Err(EvalError::Loon(
-                        "SOLID_IMPORT_UNAVAILABLE: :solid import requires a \
-                         vcad-backed entity with a vcad_node_id or native mesh data"
-                            .to_string(),
-                    ));
-                }
-            }
-        }
-
-        // 4. Evaluate Loon
-        let (result_value, loaded_paths) =
-            eval_program_with_env_and_base_dir(&exprs, &mut env, base_dir, track_modules)
-                .map_err(|e| EvalError::Loon(format!("{e}")))?;
+        // 3. Evaluate Loon. The provider records every `[use ...]` and serves
+        //    lib-path modules; imported modules see the VCAD library as prelude.
+        let provider = Rc::new(RecordingProvider::new(self.lib_dirs.clone()));
+        let result_value = eval_program_with_modules(
+            &exprs,
+            base_dir,
+            Some(provider.clone()),
+            Some(VCAD_LIB_SOURCE),
+        )
+        .map_err(|e| EvalError::Loon(format!("{e}")))?;
 
         // A. Format display string
         let display_str = if display {
@@ -326,7 +310,8 @@ impl Evaluator {
         // C. Module tracking paths
         let module_paths = if track_modules {
             Some(
-                loaded_paths
+                provider
+                    .loaded_paths()
                     .iter()
                     .map(|p| p.to_string_lossy().into_owned())
                     .collect(),
@@ -336,15 +321,16 @@ impl Evaluator {
         };
 
         // D-F. BRep conversion path. `base_dir` also anchors relative
-        // `import-mesh` / `import-step` paths to the source file's directory.
+        // `import-mesh` / `import-step` paths to the source file's directory;
+        // sentinel `MeshImport` nodes become `ImportedMesh` with native data.
         if export_mesh {
-            let doc = value_to_document_in(&result_value, base_dir).map_err(EvalError::Loon)?;
+            let doc = self.value_to_document(&result_value, base_dir)?;
             let mut result = self.evaluate_and_export(&doc, "import-eval")?;
             result.display = display_str;
             result.loaded_module_paths = module_paths;
             Ok(result)
         } else if inspect {
-            let doc = value_to_document_in(&result_value, base_dir).map_err(EvalError::Loon)?;
+            let doc = self.value_to_document(&result_value, base_dir)?;
             let mut result = self.evaluate_metadata_only(&doc)?;
             result.display = display_str;
             result.loaded_module_paths = module_paths;
@@ -368,6 +354,53 @@ impl Evaluator {
     #[allow(dead_code)]
     pub fn adt_cache(&mut self) -> &mut AdtCache {
         &mut self.adt_cache
+    }
+
+    /// The loon expression a `:solid` import binds to.
+    fn solid_import_expr(&mut self, import: &ResolvedImport) -> Result<String, EvalError> {
+        if let Some(ref mesh_data) = import.native_mesh {
+            // Native SketchUp solid: an upstream `MeshImport` whose sentinel
+            // path the mesh registry resolves after document conversion.
+            let sentinel = self.mesh_registry.register(mesh_data);
+            let path = value_to_loon_source(&Value::Str(sentinel.as_str().into()))
+                .map_err(EvalError::Loon)?;
+            return Ok(format!("[MeshImport {path} 1.0 1.0 1.0]"));
+        }
+        if let Some(ref vcad_nid) = import.vcad_node_id {
+            let cached = self.adt_cache.get(vcad_nid).ok_or_else(|| {
+                EvalError::Loon(format!(
+                    "ADT_CACHE_MISS: no cached ADT for node '{}' — \
+                     the source node must be evaluated before it can be imported",
+                    vcad_nid
+                ))
+            })?;
+            return value_to_loon_source(cached).map_err(|e| {
+                EvalError::Loon(format!(
+                    "SOLID_IMPORT_UNAVAILABLE: node '{}' did not evaluate to importable \
+                     geometry ({e})",
+                    vcad_nid
+                ))
+            });
+        }
+        Err(EvalError::Loon(
+            "SOLID_IMPORT_UNAVAILABLE: :solid import requires a \
+             vcad-backed entity with a vcad_node_id or native mesh data"
+                .to_string(),
+        ))
+    }
+
+    /// Convert the evaluated loon value to a VCAD document, resolving
+    /// sentinel `MeshImport` nodes into `ImportedMesh` with native data.
+    fn value_to_document(
+        &mut self,
+        value: &Value,
+        base_dir: Option<&Path>,
+    ) -> Result<Document, EvalError> {
+        let mut doc = value_to_document_in(value, base_dir).map_err(EvalError::Loon)?;
+        self.mesh_registry
+            .resolve(&mut doc)
+            .map_err(EvalError::Loon)?;
+        Ok(doc)
     }
 
     fn evaluate_and_export(&mut self, doc: &Document, name: &str) -> Result<EvalResult, EvalError> {
@@ -1000,6 +1033,292 @@ mod tests {
         assert!(
             result.is_err(),
             "without base_dir the relative mesh path must not resolve"
+        );
+    }
+
+    fn tetrahedron() -> crate::imports::NativeMeshData {
+        crate::imports::NativeMeshData {
+            positions: vec![
+                0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 5.0, 10.0, 0.0, 5.0, 5.0, 10.0,
+            ],
+            indices: vec![0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3],
+            normals: vec![0.0; 12],
+        }
+    }
+
+    fn solid_import(symbol: &str, import: ResolvedImport) -> HashMap<String, ResolvedImport> {
+        let mut imports = HashMap::new();
+        imports.insert(symbol.to_string(), import);
+        imports
+    }
+
+    fn native_import(symbol: &str) -> ResolvedImport {
+        ResolvedImport {
+            source: "host".to_string(),
+            extract: "solid".to_string(),
+            injected_symbol: symbol.to_string(),
+            data: serde_json::Value::Null,
+            vcad_node_id: None,
+            native_mesh: Some(tetrahedron()),
+        }
+    }
+
+    fn node_import(symbol: &str, node_id: &str) -> ResolvedImport {
+        ResolvedImport {
+            source: "host".to_string(),
+            extract: "solid".to_string(),
+            injected_symbol: symbol.to_string(),
+            data: serde_json::Value::Null,
+            vcad_node_id: Some(node_id.to_string()),
+            native_mesh: None,
+        }
+    }
+
+    #[test]
+    fn test_native_mesh_import_participates_in_csg() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
+        let imports = solid_import("__vcad_import_0", native_import("__vcad_import_0"));
+
+        let result = evaluator
+            .eval_with_imports(
+                "[difference [translate 20.0 0.0 0.0 [cube 20.0 20.0 20.0]] __vcad_import_0]",
+                None,
+                &imports,
+                None,
+                true,
+                false,
+                false,
+                false,
+                true,
+            )
+            .expect("native mesh import must evaluate");
+        assert!(!result.is_empty);
+        assert!(result.volume > 0.0);
+        // The kernel currently concatenates mesh operands instead of cutting
+        // (vcad-kernel `try_boolean`, `MeshOperandConcat`), so the tetrahedron
+        // at the origin widens the bbox of the shifted cube.
+        assert!(result.bbox.min[0].abs() < 1e-6, "{:?}", result.bbox);
+        assert!(
+            (result.bbox.max[0] - 40.0).abs() < 1e-6,
+            "{:?}",
+            result.bbox
+        );
+        assert!(Path::new(&result.mesh_path).exists());
+        // The loon value carries the sentinel, not the vertex data.
+        let display = result.display.unwrap();
+        assert!(display.contains("MeshImport"), "{display}");
+        assert!(!display.contains("10 0 0"), "{display}");
+    }
+
+    #[test]
+    fn test_cached_adt_import_chain_through_native_mesh() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
+
+        // Node A: cube minus a native SketchUp tetrahedron, cached.
+        let imports = solid_import("__vcad_import_0", native_import("__vcad_import_0"));
+        let a = evaluator
+            .eval_with_imports(
+                "[difference [cube 20.0 20.0 20.0] __vcad_import_0]",
+                None,
+                &imports,
+                Some("node-a"),
+                false,
+                true,
+                false,
+                true,
+                false,
+            )
+            .unwrap();
+
+        // Node B imports A by node id: the printed ADT still references the
+        // sentinel, which the registry resolves again.
+        let imports = solid_import("__vcad_import_0", node_import("__vcad_import_0", "node-a"));
+        let b = evaluator
+            .eval_with_imports(
+                "[union __vcad_import_0 [translate 30.0 0.0 0.0 [cube 5.0 5.0 5.0]]]",
+                None,
+                &imports,
+                Some("node-b"),
+                false,
+                true,
+                false,
+                true,
+                false,
+            )
+            .expect("cached ADT import must evaluate");
+        assert!(b.volume > a.volume, "{} vs {}", b.volume, a.volume);
+        assert!((b.bbox.max[0] - 35.0).abs() < 1e-6, "{:?}", b.bbox);
+    }
+
+    #[test]
+    fn test_cached_adt_miss_is_reported() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
+        let imports = solid_import("__vcad_import_0", node_import("__vcad_import_0", "missing"));
+        let err = evaluator
+            .eval_with_imports(
+                "__vcad_import_0",
+                None,
+                &imports,
+                None,
+                false,
+                false,
+                false,
+                true,
+                false,
+            )
+            .unwrap_err();
+        assert_eq!(err.error_code(), "LOON_ERROR");
+        assert!(err.message().contains("ADT_CACHE_MISS"), "{err}");
+    }
+
+    #[test]
+    fn test_solid_import_without_source_is_reported() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
+        let mut import = node_import("__vcad_import_0", "x");
+        import.vcad_node_id = None;
+        let imports = solid_import("__vcad_import_0", import);
+        let err = evaluator
+            .eval_with_imports(
+                "__vcad_import_0",
+                None,
+                &imports,
+                None,
+                false,
+                false,
+                false,
+                true,
+                false,
+            )
+            .unwrap_err();
+        assert!(err.message().contains("SOLID_IMPORT_UNAVAILABLE"), "{err}");
+    }
+
+    #[test]
+    fn test_module_tracking_records_local_and_nested_modules() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("project");
+        std::fs::create_dir_all(project.join("shared")).unwrap();
+        std::fs::write(project.join("shared").join("params.oo"), "[let size 12.0]").unwrap();
+        // A module that itself uses another module (relative to itself) and
+        // the VCAD library.
+        std::fs::write(
+            project.join("shared").join("lib.oo"),
+            "[use params :as p]\n[let block [fn [] [cube p.size p.size p.size]]]",
+        )
+        .unwrap();
+
+        let mut evaluator = Evaluator::new(temp.path().join("artifacts"), 3600, 500, 256);
+        let result = evaluator
+            .eval_with_imports(
+                "[use shared.lib :as lib]\n[lib.block]",
+                Some(&project),
+                &HashMap::new(),
+                Some("node"),
+                false,
+                false,
+                true,
+                true,
+                false,
+            )
+            .expect("modules must load");
+        assert!((result.volume - 12.0 * 12.0 * 12.0).abs() < 1e-6);
+
+        let mut paths = result.loaded_module_paths.unwrap();
+        paths.sort();
+        let mut expected = vec![
+            project.join("shared/lib.oo").canonicalize().unwrap(),
+            project.join("shared/params.oo").canonicalize().unwrap(),
+        ]
+        .into_iter()
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+        expected.sort();
+        assert_eq!(paths, expected);
+    }
+
+    #[test]
+    fn test_module_tracking_is_opt_in() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(project.join("dims.oo"), "[let size 3.0]").unwrap();
+        let mut evaluator = Evaluator::new(temp.path().join("artifacts"), 3600, 500, 256);
+        let result = evaluator
+            .eval_with_imports(
+                "[use dims]\n[cube dims.size dims.size dims.size]",
+                Some(&project),
+                &HashMap::new(),
+                None,
+                false,
+                false,
+                false,
+                true,
+                false,
+            )
+            .unwrap();
+        assert!(result.loaded_module_paths.is_none());
+    }
+
+    #[test]
+    fn test_lib_path_module_resolves_and_is_tracked() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("project");
+        let lib = temp.path().join("lib");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(lib.join("hardware")).unwrap();
+        std::fs::write(
+            lib.join("hardware").join("blocks.oo"),
+            "[let brick [fn [s] [cube s s s]]]",
+        )
+        .unwrap();
+
+        let mut evaluator = Evaluator::new(temp.path().join("artifacts"), 3600, 500, 256);
+        let source = "[use hardware.blocks :as hw]\n[hw.brick 4.0]";
+
+        // Without a lib path the module is unknown.
+        let err = evaluator
+            .eval_with_imports(
+                source,
+                Some(&project),
+                &HashMap::new(),
+                None,
+                false,
+                false,
+                true,
+                true,
+                false,
+            )
+            .unwrap_err();
+        assert_eq!(err.error_code(), "LOON_ERROR");
+
+        evaluator.set_lib_dirs(vec![lib.clone()]);
+        let result = evaluator
+            .eval_with_imports(
+                source,
+                Some(&project),
+                &HashMap::new(),
+                None,
+                false,
+                false,
+                true,
+                true,
+                false,
+            )
+            .expect("lib path module must load");
+        assert!((result.volume - 64.0).abs() < 1e-6);
+        assert_eq!(
+            result.loaded_module_paths.unwrap(),
+            vec![
+                lib.join("hardware/blocks.oo")
+                    .canonicalize()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            ]
         );
     }
 

@@ -11,8 +11,8 @@ All paths below are relative to the supex repo root.
 
 There are two kinds of vendored submodules:
 
-- **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
-- **Plain repos** (`vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
+- **Patch repos** (`vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
+- **Plain repos** (`vcad/vendor/tang`, `vcad/vendor/loon`) — track upstream `origin/main` directly, no fork, no patches.
 
 ## Step 1: Detect changed pointers
 
@@ -39,13 +39,13 @@ new_pointer=$(git -C vcad/vendor/<name> rev-parse HEAD)
 
 ### Resolve to upstream commits
 
-**Plain repos (tang):** The pointer IS the upstream commit directly.
+**Plain repos (tang, loon):** The pointer IS the upstream commit directly.
 ```bash
 old_upstream=$old_pointer
 new_upstream=$new_pointer
 ```
 
-**Patch repos (loon, vcad):** The pointer is on `supex-patches` (rebased). Use merge-base with `origin/main` to find the upstream base.
+**Patch repos (vcad):** The pointer is on `supex-patches` (rebased). Use merge-base with `origin/main` to find the upstream base.
 ```bash
 old_upstream=$(git -C vcad/vendor/<name> merge-base $old_pointer origin/main)
 new_upstream=$(git -C vcad/vendor/<name> merge-base $new_pointer origin/main)
@@ -74,7 +74,7 @@ Ask the user to confirm before proceeding.
 
 ## Step 4: Archive + push patch repos
 
-For each changed **patch repo**, archive the old state and push the new one. Plain repos (tang) don't need pushing — they point directly at upstream commits which are already public.
+For each changed **patch repo**, archive the old state and push the new one. Plain repos (tang, loon) don't need pushing — they point directly at upstream commits which are already public.
 
 ### Archive old supex-patches
 

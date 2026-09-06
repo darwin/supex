@@ -232,6 +232,12 @@ When importing `:solid` from another VCAD node, the source node must be evaluate
 - Run `vcad_update(<source-node>)`
 - Or use `vcad_update(<upstream-node>, cascade=true)` to also update downstream dependents
 
+### NATIVE_MESH_MISS
+
+A `:solid` import of a native SketchUp entity is kept in the sidecar's mesh registry. The registry is lost on sidecar restart and bounded like the ADT cache, so a node that imports such geometry through another VCAD node can hit a miss.
+
+- Run `vcad_update(<node-that-imports-the-SketchUp-entity>)` first, then update the dependents
+
 ## Common Ruby Errors
 
 ### NoMethodError
