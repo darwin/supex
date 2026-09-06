@@ -210,7 +210,7 @@ module SupexRuntime
     # Unload extension files from $LOADED_FEATURES
     def self.unload_extension_files
       files_to_reload = %w[
-        version.rb utils.rb geometry.rb materials.rb
+        version.rb utils.rb path_policy.rb geometry.rb materials.rb
         export.rb joinery.rb batch_screenshot.rb tools.rb vcad_tools.rb
         bridge_server.rb repl_server.rb main.rb
       ]
