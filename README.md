@@ -43,8 +43,9 @@ Supex bridges AI agents and CLI tools with SketchUp through a client-server arch
 
 - **Python Driver** — [MCP](https://modelcontextprotocol.io) server (`./mcp`) and CLI (`./supex`) for AI agents and human use
 - **Ruby Runtime** — SketchUp extension with bridge server, stdlib, and REPL (`./repl`)
-- **VCAD Sidecar** — Rust server evaluating Loon code into BRep geometry
+- **VCAD Sidecar** — Rust server evaluating Loon code into BRep geometry (`./vcad-sidecar`)
 - **VCAD Viewer** — Standalone Tauri app for live BRep preview
+- **Radar** — Log aggregator TUI that tails all subsystems in one stream (`./radar`)
 
 Communication via JSON-RPC 2.0 over TCP sockets. For more details, see [Architecture](docs/architecture.md).
 
