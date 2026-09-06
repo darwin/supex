@@ -77,6 +77,8 @@ your-project/
 - **macOS** - Currently the primary supported platform
 - **Python 3.14+** - For the MCP driver (managed via UV)
 - **Ruby 3.2.2** - Same as the Ruby version bundled with SketchUp 2025/2026. This Ruby is past upstream end-of-life, but the pin cannot move until SketchUp ships a newer Ruby, because the runtime must run on the interpreter embedded in SketchUp
+- **Rust toolchain** (`cargo`) - Only for VCAD: builds the sidecar
+- **Node.js / npm** - Only for VCAD: builds the viewer and installs font assets the vendored vcad crate needs at compile time
 
 ### 1. Clone the Repository
 
@@ -91,7 +93,18 @@ Supex uses git submodules for vendored VCAD dependencies (`vcad/vendor/`). If yo
 git submodule update --init --recursive
 ```
 
-### 2. Launch SketchUp with Extension
+### 2. Build the VCAD Sidecar and Viewer (VCAD only)
+
+Skip this step if you do not use VCAD tools. The vendored vcad crate needs font assets from npm at compile time; the pinned lockfiles change after `npm install`, so tell git to ignore them:
+
+```bash
+(cd vcad/vendor/vcad && npm install && git update-index --assume-unchanged package-lock.json Cargo.lock)
+./scripts/rebuild.sh
+```
+
+`./scripts/rebuild.sh sidecar` builds only the sidecar (Rust), `./scripts/rebuild.sh viewer` only the viewer (Tauri, needs npm).
+
+### 3. Launch SketchUp with Extension
 
 The development launcher handles extension deployment automatically:
 
@@ -105,7 +118,7 @@ This script:
 - Enables live reloading during development
 - Optionally opens a model given as parameter  
 
-### 3. Configure Claude Code
+### 4. Configure Claude Code
 
 In your project directory, register the Supex MCP server and link the agent guide:
 
@@ -119,7 +132,7 @@ Supex guide (workflow rules, tool reference, SketchUp API docs); reference `supe
 from your project's `CLAUDE.md`. Add both `.mcp.json` and `supex-guide` to `.gitignore`, since the
 paths vary per developer. Replace `/path/to/supex` with the actual path to your Supex checkout.
 
-### 4. Verify Connection
+### 5. Verify Connection
 
 ```bash
 ./supex status
