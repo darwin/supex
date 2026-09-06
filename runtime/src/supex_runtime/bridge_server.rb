@@ -316,9 +316,8 @@ module SupexRuntime
     # @param timeout [Float] timeout in seconds
     # @return [String, nil] received data or nil on timeout
     def read_with_timeout(client, timeout)
-      # rubocop:disable Lint/IncompatibleIoSelectWithFiberScheduler
+      # rubocop:disable-next Lint/IncompatibleIoSelectWithFiberScheduler
       ready = IO.select([client], nil, nil, timeout)
-      # rubocop:enable Lint/IncompatibleIoSelectWithFiberScheduler
       return nil unless ready
 
       read_available_data(client)
@@ -642,9 +641,8 @@ module SupexRuntime
         @console_capture&.add_marker('EVAL_RUBY START')
         # Create fresh binding to isolate local variables between calls
         isolated_binding = create_isolated_binding
-        # rubocop:disable Security/Eval
+        # rubocop:disable-next Security/Eval
         result = eval(params['code'], isolated_binding)
-        # rubocop:enable Security/Eval
         @console_capture&.add_marker('EVAL_RUBY END')
 
         { success: true, result: result.to_s }
@@ -731,9 +729,8 @@ module SupexRuntime
     def execute_ruby_file(file_path)
       @console_capture&.add_marker("EVAL_RUBY_FILE START: #{file_path}")
       ruby_code = File.read(file_path)
-      # rubocop:disable Security/Eval
+      # rubocop:disable-next Security/Eval
       result = eval(ruby_code, TOPLEVEL_BINDING, file_path, 1)
-      # rubocop:enable Security/Eval
       @console_capture&.add_marker("EVAL_RUBY_FILE END: #{file_path}")
 
       { success: true, result: result.to_s, file_path: file_path,
