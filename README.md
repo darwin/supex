@@ -107,13 +107,17 @@ This script:
 
 ### 3. Configure Claude Code
 
-Add Supex MCP server to your project:
+In your project directory, register the Supex MCP server and link the agent guide:
 
 ```bash
-claude mcp add supex -- /path/to/supex/mcp
+claude mcp add --scope project --transport stdio supex -- /path/to/supex/mcp
+ln -s /path/to/supex/docs/agents/guide supex-guide
 ```
 
-Replace `/path/to/supex/mcp` with the actual path to your Supex installation.
+The first command writes `.mcp.json` next to your project. The symlink gives the agent access to the
+Supex guide (workflow rules, tool reference, SketchUp API docs); reference `supex-guide/README.md`
+from your project's `CLAUDE.md`. Add both `.mcp.json` and `supex-guide` to `.gitignore`, since the
+paths vary per developer. Replace `/path/to/supex` with the actual path to your Supex checkout.
 
 ### 4. Verify Connection
 
@@ -132,6 +136,7 @@ Example projects live in separate orphan branches. To clone an example:
 ```bash
 git clone -b example-simple-table https://github.com/darwin/supex.git simple-table
 cd simple-table
+ln -s /path/to/supex/docs/agents/guide supex-guide
 ```
 
 The example covers:
