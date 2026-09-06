@@ -75,7 +75,7 @@ your-project/
   - Other MCP-compatible AI agents might work but are untested
 - **macOS** - Currently the primary supported platform
 - **Python 3.14+** - For the MCP driver (managed via UV)
-- **Ruby 3.2.2** - Same as the Ruby version bundled with SketchUp 2026
+- **Ruby 3.2.2** - Same as the Ruby version bundled with SketchUp 2025/2026. This Ruby is past upstream end-of-life, but the pin cannot move until SketchUp ships a newer Ruby, because the runtime must run on the interpreter embedded in SketchUp
 
 ### 1. Clone the Repository
 

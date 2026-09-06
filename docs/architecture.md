@@ -235,7 +235,7 @@ Response (Ruby to Python):
 ### Modern Toolchain
 
 **Python**: UV package management, Python 3.14+
-**Ruby**: Ruby 3.2.2 (see `.ruby-version`), Bundler dependency management
+**Ruby**: Ruby 3.2.2 (see `.ruby-version`), Bundler dependency management. The version is dictated by the interpreter embedded in SketchUp 2025/2026; it is past upstream end-of-life, but bumping it is not possible until SketchUp bundles a newer Ruby
 **Quality**: Ruff (Python), RuboCop (Ruby), MyPy type checking
 **Testing**: pytest (Python), Minitest (Ruby)
 
