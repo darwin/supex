@@ -4,8 +4,7 @@
 	branch = supex-patches
 [submodule "vcad/vendor/loon"]
 	path = vcad/vendor/loon
-	url = https://github.com/darwin/loon.git
-	branch = supex-patches
+	url = https://github.com/ecto/loon.git
 [submodule "devtools/docgen/sketchup-api-stubs"]
 	path = devtools/docgen/sketchup-api-stubs
 	url = https://github.com/SketchUp/ruby-api-stubs.git
