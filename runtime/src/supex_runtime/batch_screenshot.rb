@@ -240,7 +240,7 @@ module SupexRuntime
         entity_ids = camera_spec['entity_ids'] || []
         raise 'No entity_ids specified for zoom_entity' if entity_ids.empty?
 
-        entities = entity_ids.map { |id| model.find_entity_by_id(id) }.compact
+        entities = entity_ids.filter_map { |id| model.find_entity_by_id(id) }
         raise "No valid entities found for IDs: #{entity_ids}" if entities.empty?
 
         # Zoom to the entities

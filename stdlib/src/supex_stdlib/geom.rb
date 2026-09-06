@@ -114,7 +114,7 @@ module SupexStdlib
     # @param array [Array] array of points or vectors
     # @return [Array] array with duplicates removed
     def remove_duplicates(array)
-      array.reduce([]) { |a, c1| a.any? { |c2| c2 == c1 } ? a : a << c1 }
+      array.reduce([]) { |a, c1| a.include?(c1) ? a : a << c1 }
     end
 
     # Calculate angle from subtrahend to minuend vector, projected to a plane.

@@ -244,7 +244,7 @@ class TestMain < Minitest::Test
     SupexRuntime::Main.add_menu_items
 
     supex_menu = UI.menus['Extensions'].submenus['Supex']
-    labels = supex_menu.items.map { |i| i[:label] }.compact
+    labels = supex_menu.items.filter_map { |i| i[:label] }
 
     assert_includes labels, 'Server Status'
     assert_includes labels, 'Stop All Servers'

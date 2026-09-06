@@ -45,7 +45,7 @@ module SupexRuntime
     # @param id [String, Integer] entity ID (may have quotes)
     # @return [Integer] clean entity ID
     def self.clean_entity_id(id)
-      id.to_s.gsub('"', '').to_i
+      id.to_s.delete('"').to_i
     end
 
     # Create circle points for cylindrical shapes

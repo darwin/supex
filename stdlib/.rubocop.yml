@@ -1,7 +1,10 @@
 # RuboCop configuration for Supex Standard Library
 
+plugins:
+  - rubocop-performance
+
 AllCops:
-  TargetRubyVersion: 3.4
+  TargetRubyVersion: 3.2
   NewCops: enable
   SuggestExtensions: false
 

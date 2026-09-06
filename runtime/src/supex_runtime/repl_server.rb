@@ -308,7 +308,7 @@ module SupexRuntime
     # @return [String] sanitized PID (numeric string)
     def sanitize_pid(pid)
       pid_str = pid.to_s
-      if pid_str.match?(/\A\d{1,#{MAX_PID_LENGTH}}\z/)
+      if pid_str.match?(/\A\d{1,#{MAX_PID_LENGTH}}\z/o)
         pid_str
       else
         log "WARNING: Invalid PID '#{pid_str.slice(0, 40)}', falling back to Process.pid" unless pid_str.empty?

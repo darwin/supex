@@ -327,7 +327,7 @@ module SupexRuntime
     # @param client [TCPSocket] client connection
     # @return [String, nil] received data or nil if empty
     def read_available_data(client)
-      data = String.new
+      data = +''
       loop do
         chunk = client.read_nonblock(1024)
         data << chunk
