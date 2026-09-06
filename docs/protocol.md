@@ -29,7 +29,7 @@ Clients identify first using `hello`.
   "method": "hello",
   "params": {
     "name": "supex-driver",
-    "version": "0.2.0",
+    "version": "X.Y.Z",
     "agent": "mcp",
     "pid": 12345,
     "token": "optional",
@@ -39,7 +39,7 @@ Clients identify first using `hello`.
 }
 ```
 
-Required params: `name`, `version`, `agent`, `pid`.
+Required params: `name`, `version`, `agent`, `pid`. `version` is the client's own version (the driver sends its package version); `X.Y.Z` above is a placeholder.
 
 ### Methods
 
@@ -47,6 +47,8 @@ Required params: `name`, `version`, `agent`, `pid`.
 - `ping`
 - `resources/list`
 - `tools/call`
+
+**Legacy command format (deprecated)**: the bridge still accepts requests carrying a top-level `command` and `parameters` instead of `method: "tools/call"`. Such requests are rewritten into the equivalent `tools/call` request (`command` becomes `name`, `parameters` becomes `arguments`) and a deprecation warning is logged once per session. New clients must use `tools/call`.
 
 `tools/call` payload:
 

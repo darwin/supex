@@ -157,7 +157,7 @@ end
 
 2. **Configure Ruby SDK**:
    - File → Project Structure → SDKs
-   - Add Ruby 2.7.0 (SketchUp 2020+ uses Ruby 2.7)
+   - Add Ruby 3.2.2 (the Ruby bundled with SketchUp 2025/2026, pinned in `Gemfile`)
    - If using rbenv/mise, it will automatically detect the Ruby version from `.ruby-version`
 
 3. **Install SketchUp Ruby API Stubs** (Optional):
@@ -199,16 +199,16 @@ The project root contains `.ruby-version` for Ruby version management. Compatibl
 
 | Aspect | Before (Inline) | After (Loaded Files) |
 |--------|----------------|---------------------|
-| Syntax Highlighting | ❌ None | Full Ruby support |
-| IDE Autocomplete | ❌ No | Yes |
-| SketchUp API Docs | ❌ No | Yes (with setup) |
-| RuboCop Linting | ❌ No | Yes |
-| Code Navigation | ❌ Difficult | Easy |
-| Refactoring | ❌ Manual | IDE-assisted |
-| Reusability | ❌ Copy-paste | Shared functions |
-| Organization | ❌ Mixed in Python | Clean src/ directory |
-| **Error Context** | ❌ No file/line info | **Actual file:line in errors!** |
-| Debugging | ❌ Hard | Easy with stacktraces |
+| Syntax Highlighting | None | Full Ruby support |
+| IDE Autocomplete | No | Yes |
+| SketchUp API Docs | No | Yes (with setup) |
+| RuboCop Linting | No | Yes |
+| Code Navigation | Difficult | Easy |
+| Refactoring | Manual | IDE-assisted |
+| Reusability | Copy-paste | Shared functions |
+| Organization | Mixed in Python | Clean src/ directory |
+| **Error Context** | No file/line info | **Actual file:line in errors!** |
+| Debugging | Hard | Easy with stacktraces |
 
 ## Future Improvements
 

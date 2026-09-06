@@ -8,6 +8,7 @@ This page is the navigation hub for Supex docs.
 - Using the CLI directly: [CLI Reference](cli.md)
 - Using MCP tools from an agent: [MCP Reference](agents/guide/mcp.md)
 - Building parametric geometry with VCAD: [VCAD Integration](vcad.md)
+- Looking for a starting point: [Example Projects](../examples/README.md)
 - Debugging setup/runtime issues: [Troubleshooting](agents/guide/troubleshooting.md)
 
 ## Core References

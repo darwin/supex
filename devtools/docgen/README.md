@@ -15,7 +15,7 @@ This project generates clean Markdown documentation from the official SketchUp R
 ## Quick Start
 
 ```bash
-cd docgen
+cd devtools/docgen
 git submodule update --init --recursive
 bundle install
 ./scripts/generate_docs.sh
@@ -25,7 +25,7 @@ Output: `generated-sketchup-api-docs/`
 
 ## Requirements
 
-- Ruby 2.7 or higher
+- Ruby 3.2.2 (pinned in `Gemfile`)
 - Bundler
 - Git (for submodule management)
 
@@ -34,7 +34,7 @@ Output: `generated-sketchup-api-docs/`
 ### 1. Initialize the SketchUp API Stubs Submodule
 
 ```bash
-cd docgen
+cd devtools/docgen
 git submodule add https://github.com/SketchUp/ruby-api-stubs.git sketchup-api-stubs
 git submodule update --init --recursive
 ```

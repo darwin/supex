@@ -128,14 +128,18 @@ For environment variables and defaults, see [Configuration](configuration.md).
 **Module Structure**:
 ```
 supex_runtime/
-├── main.rb            # Extension lifecycle and menu integration
-├── bridge_server.rb   # TCP server and JSON-RPC protocol handling (port 9876)
-├── repl_server.rb     # Interactive REPL server via JSON-RPC (port 4433)
-├── tools.rb           # Tool implementations (mixin for Server)
-├── export.rb          # Multi-format export functionality
-├── utils.rb           # Logging, error handling, common utilities
-├── console_capture.rb # Output capture and logging system
-└── version.rb         # Version and metadata management
+├── main.rb             # Extension lifecycle and menu integration
+├── bridge_server.rb    # TCP server and JSON-RPC protocol handling (port 9876)
+├── repl_server.rb      # Interactive REPL server via JSON-RPC (port 4433)
+├── tools.rb            # Tool implementations (mixin for Server)
+├── vcad_tools.rb       # VCAD node tools: mesh import, attribute storage, instance lifecycle
+├── vcad_observer.rb    # Entity change queue polled by the driver for reactive VCAD updates
+├── batch_screenshot.rb # Multi-camera screenshot batches without viewport flicker
+├── path_policy.rb      # Path guardrail for file tools (workspace + SUPEX_ALLOWED_ROOTS)
+├── export.rb           # Multi-format export functionality
+├── utils.rb            # Logging, error handling, common utilities
+├── console_capture.rb  # Output capture and logging system
+└── version.rb          # Version and metadata management
 ```
 
 **REPL Server**: A separate TCP server (default port 4433) provides interactive Ruby evaluation in `TOPLEVEL_BINDING` (same context as SketchUp's built-in console). Uses JSON-RPC 2.0 protocol with `hello` handshake and `eval` method. Non-blocking via SketchUp's UI timer. See [Interactive REPL](repl.md).
@@ -151,7 +155,7 @@ VCAD extends supex with a parametric modeling pipeline. The agent writes `.cmp.o
 **Evaluation Pipeline**:
 ```
 .cmp.oo source → Loon parse → Value::Adt tree → vcad_ir::Document
-    → vcad_kernel::Solid (BRep) → TriangleMesh → DAE → SketchUp import
+    → vcad_eval evaluation → vcad_kernel_primitives::BRepSolid → TriangleMesh → DAE → SketchUp import
 ```
 
 **Sidecar** (`vcad/sidecar/`, Rust):
@@ -272,15 +276,24 @@ driver/tests/              # Python unit tests (no SketchUp required)
 # Python unit tests (no SketchUp needed)
 cd driver && uv run pytest tests/
 
-# E2E tests (SketchUp must be running)
+# All headless suites (driver, stdlib, runtime, mock, sidecar, viewer, radar)
 ./test
+
+# E2E tests only
+./test --e2e
+```
+
+`./test --e2e` runs pytest in `tests/`. The session fixture launches SketchUp itself and quits it at the end; pass `--no-sketchup-launch` to reuse an already running SketchUp and `--no-sketchup-stop` to keep it open. `./test` does not forward pytest options, so for these run pytest directly:
+
+```bash
+cd tests && uv run python -m pytest e2e/ --no-sketchup-launch --no-sketchup-stop
 ```
 
 If you have [just](https://github.com/casey/just) installed:
 
 ```bash
-just test       # All tests
-just test-e2e   # All tests including E2E
+just test       # All headless suites
+just test-e2e   # E2E tests only
 just lint       # All linters
 ```
 

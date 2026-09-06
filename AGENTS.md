@@ -50,6 +50,7 @@ git ls-tree -r HEAD --name-only | grep '\.rb$'
 
 ```
 supex/
+├── .github/                   # GitHub Actions workflows and Dependabot config
 ├── driver/                    # Python MCP driver + CLI
 │   └── src/supex_driver/
 │       ├── cli/               # CLI commands
@@ -71,7 +72,8 @@ supex/
 │       └── tang/              # Differentiable computing (autodiff for VCAD)
 ├── tests/                     # E2E tests (pytest) and the Ruby snippets they execute
 ├── docs/                      # Documentation
-│   └── agents/                # Agent prompts (user projects symlink guide/ as supex-guide/)
+│   ├── agents/                # Agent prompts (user projects symlink guide/ as supex-guide/)
+│   └── contracts/             # JSON schemas and example payloads for the wire protocol
 ├── devtools/                  # Developer tools
 │   ├── ci/                    # Dockerfile for the GitHub Actions test image
 │   ├── docgen/                # SketchUp API doc generator (+ sketchup-api-stubs submodule)
@@ -79,6 +81,7 @@ supex/
 ├── assets/                    # README posters and the prompts that generated them
 ├── scripts/                   # Development scripts
 ├── examples/                  # Example projects (orphan branches)
+├── justfile                   # just recipes: sketchup, test, test-e2e, docs, lint, clear-rust-caches
 ├── supex, mcp, repl           # Root wrappers: CLI, MCP server, REPL client
 └── test, radar, vcad-sidecar  # Root wrappers: test runner, radar TUI, VCAD sidecar
 ```

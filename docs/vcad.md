@@ -187,9 +187,9 @@ Import a solid for CSG composition. Works with both VCAD-backed nodes and native
   [difference bracket]]
 ```
 
-**VCAD-backed entities**: The cached ADT tree from the sidecar's ADT cache is printed back as loon source and bound in the program preamble. The source node must be evaluated first.
+**VCAD-backed entities**: The cached ADT tree from the sidecar's ADT cache is printed back as Loon source and bound in the program preamble. The source node must be evaluated first.
 
-**Native SketchUp solids**: Groups and ComponentInstances with face geometry are triangulated in SketchUp and forwarded to the sidecar as mesh data. The sidecar registers the mesh under a content hash and binds the import to `[MeshImport "<sentinel>" 1.0 1.0 1.0]`, a sentinel path under the sidecar temp directory that is never written. After the loon value is converted to a VCAD document, the sidecar rewrites those `MeshImport` nodes into `ImportedMesh` nodes carrying the exact vertex data. The registry is bounded like the ADT cache (`SUPEX_VCAD_ADT_CACHE_MAX`); a sentinel whose mesh is gone (eviction, sidecar restart) fails with `NATIVE_MESH_MISS` instead of silently producing empty geometry.
+**Native SketchUp solids**: Groups and ComponentInstances with face geometry are triangulated in SketchUp and forwarded to the sidecar as mesh data. The sidecar registers the mesh under a content hash and binds the import to `[MeshImport "<sentinel>" 1.0 1.0 1.0]`, a sentinel path under the sidecar temp directory that is never written. After the Loon value is converted to a VCAD document, the sidecar rewrites those `MeshImport` nodes into `ImportedMesh` nodes carrying the exact vertex data. The registry is bounded like the ADT cache (`SUPEX_VCAD_ADT_CACHE_MAX`); a sentinel whose mesh is gone (eviction, sidecar restart) fails with `NATIVE_MESH_MISS` instead of silently producing empty geometry.
 
 ### Import resolution flow
 
