@@ -12,7 +12,7 @@ All paths below are relative to the supex repo root.
 There are two kinds of vendored submodules:
 
 - **Patch repos** (`vcad/vendor/loon`, `vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
-- **Plain repos** (`vcad/vendor/phyz`, `vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
+- **Plain repos** (`vcad/vendor/tang`) — track upstream `origin/main` directly, no fork, no patches.
 
 ## Step 1: Detect changed pointers
 
@@ -74,7 +74,7 @@ Ask the user to confirm before proceeding.
 
 ## Step 4: Archive + push patch repos
 
-For each changed **patch repo**, archive the old state and push the new one. Plain repos (phyz, tang) don't need pushing — they point directly at upstream commits which are already public.
+For each changed **patch repo**, archive the old state and push the new one. Plain repos (tang) don't need pushing — they point directly at upstream commits which are already public.
 
 ### Archive old supex-patches
 
@@ -131,5 +131,5 @@ If ALL submodules are patch-only (no new upstream), use "Update vendor" instead 
 ### Important
 
 - Push MUST succeed before committing — a commit with unreachable submodule pointers breaks `git clone --recurse-submodules`
-- Process submodules in order: tang, loon, phyz, vcad
+- Process submodules in order: tang, loon, vcad
 - This command may run after multiple review-vendor cycles — the range computation handles this correctly via merge-base

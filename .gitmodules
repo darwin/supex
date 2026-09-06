@@ -6,9 +6,6 @@
 	path = vcad/vendor/loon
 	url = https://github.com/darwin/loon.git
 	branch = supex-patches
-[submodule "vcad/vendor/phyz"]
-	path = vcad/vendor/phyz
-	url = https://github.com/ecto/phyz.git
 [submodule "devtools/docgen/sketchup-api-stubs"]
 	path = devtools/docgen/sketchup-api-stubs
 	url = https://github.com/SketchUp/ruby-api-stubs.git

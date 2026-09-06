@@ -62,10 +62,9 @@ supex/
 ├── vcad/                      # VCAD integration
 │   ├── sidecar/               # Rust VCAD evaluator (BRep pipeline)
 │   ├── viewer/                # Standalone Tauri geometry viewer
-│   └── vendor/                # Git submodules (vcad, loon, phyz, tang)
+│   └── vendor/                # Git submodules (vcad, loon, tang)
 │       ├── vcad/              # BRep CAD kernel
 │       ├── loon/              # Loon language
-│       ├── phyz/              # Physics engine
 │       └── tang/              # Differentiable computing (autodiff for VCAD)
 ├── docs/                      # Documentation
 │   └── agents/                # Agent prompts (user projects symlink guide/ as supex-guide/)
@@ -137,7 +136,7 @@ cd runtime && bundle exec rake build
 
 ## VCAD Sidecar
 
-Rust binary at `vcad/sidecar/`. Dependencies (vcad, loon, phyz, tang) are vendored as git submodules in `vcad/vendor/` (tang provides autodiff used by vcad via relative path deps). After cloning, run `git submodule update --init --recursive` if you didn't use `--recurse-submodules`.
+Rust binary at `vcad/sidecar/`. Dependencies (vcad, loon, tang) are vendored as git submodules in `vcad/vendor/` (tang provides autodiff used by vcad via relative path deps; phyz is not vendored — vcad pins it as a git dependency, fetched by Cargo on demand). After cloning, run `git submodule update --init --recursive` if you didn't use `--recurse-submodules`.
 
 The vcad submodule requires `npm install` in `vcad/vendor/vcad/` for font assets used at compile time. This modifies the tracked `package-lock.json` — tell git to ignore the change:
 
@@ -149,10 +148,10 @@ git update-index --assume-unchanged package-lock.json Cargo.lock
 echo -e "node_modules/\n*.iml" >> $(git rev-parse --git-dir)/info/exclude
 ```
 
-Also exclude IDE files in loon, phyz, and tang:
+Also exclude IDE files in loon and tang:
 
 ```bash
-for repo in loon phyz tang; do
+for repo in loon tang; do
   echo "*.iml" >> $(git -C vcad/vendor/$repo rev-parse --git-dir)/info/exclude
 done
 ```
@@ -162,7 +161,6 @@ During development, vendor submodules often show as dirty in `git status` (untra
 ```bash
 git config submodule.vcad/vendor/vcad.ignore dirty
 git config submodule.vcad/vendor/loon.ignore dirty
-git config submodule.vcad/vendor/phyz.ignore dirty
 git config submodule.vcad/vendor/tang.ignore dirty
 ```
 

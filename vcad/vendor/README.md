@@ -19,8 +19,12 @@ that carries local patches rebased on top of upstream `origin/main`.
 
 | Directory | Upstream              |
 |-----------|-----------------------|
-| `phyz/`   | `ecto/phyz`           |
 | `tang/`   | `ecto/tang`           |
+
+`phyz` is deliberately not vendored: upstream vcad pins it in its
+`[workspace.dependencies]` as a git dependency with a fixed `rev`, so Cargo
+fetches it on demand when the full vcad workspace is built. The supex
+sidecar never resolves it.
 
 ## Workflow
 
@@ -50,5 +54,5 @@ git update-index --assume-unchanged package-lock.json Cargo.lock
 # Silence dirty submodule noise in parent repo
 git config submodule.vcad/vendor/vcad.ignore dirty
 git config submodule.vcad/vendor/loon.ignore dirty
-git config submodule.vcad/vendor/phyz.ignore dirty
+git config submodule.vcad/vendor/tang.ignore dirty
 ```

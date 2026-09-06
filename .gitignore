@@ -14,7 +14,6 @@ settings.local.json
 # vendored submodule build artifacts
 /vcad/vendor/vcad/target/
 /vcad/vendor/loon/target/
-/vcad/vendor/phyz/target/
 
 # vcad viewer build artifacts
 /vcad/viewer/node_modules/
