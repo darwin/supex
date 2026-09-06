@@ -15,7 +15,7 @@ Guidance for AI agents (Claude, Codex, Gemini, ...) when working on this reposit
 - **NEVER commit changes** unless explicitly asked
 - **NEVER read git-ignored files** unless explicitly asked
 - **NEVER use emojis** in documentation
-- **NEVER include `vcad/vendor/*` submodule pointer changes in regular commits** — use the `commit-vendor` skill instead, which pushes branches to GitHub first. Committing submodule pointers without pushing makes the repo uncloneable. If the user explicitly asks to commit vendor changes manually, warn them that they MUST push the vcad `supex-patches` branch to GitHub before or immediately after (loon and tang track upstream `main` directly).
+- **NEVER include `vcad/vendor/*` submodule pointer changes in regular commits** — use the `commit-vendor` skill instead. All vendored submodules track upstream `main` directly (no local patches); a pointer must be an upstream commit, otherwise the repo becomes uncloneable. Changes a vendored crate needs go upstream as a PR, never into a patch branch.
 - **Use `git ls-tree -r HEAD`** to find project files
 - **Use portable shebangs** - `#!/usr/bin/env bash`, `#!/usr/bin/env python3`, etc.
 

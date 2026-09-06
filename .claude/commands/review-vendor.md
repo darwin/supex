@@ -7,12 +7,9 @@ Review new upstream changes in vendored submodules and analyze their impact on t
 
 All paths below are relative to the supex repo root.
 
-### Submodule types
+### Submodules
 
-There are two kinds of vendored submodules:
-
-- **Patch repos** (`vcad/vendor/vcad`) — have a darwin fork with a `supex-patches` branch that carries local patches rebased on top of upstream `origin/main`.
-- **Plain repos** (`vcad/vendor/tang`, `vcad/vendor/loon`) — track upstream `origin/main` directly, no fork, no patches.
+All vendored submodules (`vcad/vendor/tang`, `vcad/vendor/loon`, `vcad/vendor/vcad`) track upstream `origin/main` directly — no fork, no local patches. The sidecar is written against upstream APIs only; if a roll needs a change in a vendored crate, the change goes upstream as a PR, not into a patch branch.
 
 ### Workspace coupling — why tang must move with vcad
 
@@ -42,7 +39,6 @@ Save the `<old-upstream>` and `<new-upstream>` pair for each submodule with new 
 
 ### Important
 
-- Do NOT fetch darwin fork — this review is about upstream changes only
 - Do NOT modify any branches, rebase, or change worktree state — Phase 1 and 2 are read-only (fetch is the only network operation)
 
 ## Phase 2: Impact analysis
@@ -79,7 +75,7 @@ Read the supex integration points to understand what APIs are actually used:
   - vcad-kernel-geom: `GeometryStore`, `SurfaceKind`
   - vcad-kernel-math: `Point2`, `Vec3`
   - vcad-kernel-topo: `Topology`, `Orientation`, half-edge navigation
-  - vcad-kernel-tessellate: `tessellate_face`
+  - vcad-kernel-tessellate: `tessellate_brep_by_face`, `TriangleMesh`
 
 - `vcad/sidecar/Cargo.toml` — crate versions and features
 
@@ -87,7 +83,7 @@ Read the supex integration points to understand what APIs are actually used:
 
 This step catches the lockstep coupling described in "Workspace coupling" above. It is independent of the sidecar dependency surface — tang can need rolling even when the sidecar never touches it.
 
-For the **vcad commit being rolled to** (`<new-upstream>` of the vcad submodule, or its rebased `supex-patches` tip), read the version constraints vcad places on tang:
+For the **vcad commit being rolled to** (`<new-upstream>` of the vcad submodule), read the version constraints vcad places on tang:
 
 ```
 # tang constraint(s) required by the rolled vcad
@@ -137,17 +133,9 @@ Before modifying any repo, check for assume-unchanged files:
 2. If any found, STOP and tell the user — explain which files have the flag
 3. Let the user decide how to handle it — do NOT automatically reset or stash
 
-### Rebase
+### Roll
 
-For each submodule with new upstream commits:
-
-**Plain repos (tang, loon):**
-- Fast-forward: `git -C <sub> pull --ff-only origin main`
-
-**Patch repos (vcad):**
-- Ensure on `supex-patches` branch (restore from darwin if detached): `git -C <sub> checkout -B supex-patches darwin/supex-patches`
-- Rebase: `git -C <sub> rebase origin/main`
-- If rebase fails with conflicts, STOP and assist with resolution
+For each submodule with new upstream commits, check out the new upstream head (detached, the pointer is what matters): `git -C <sub> checkout --detach <new-upstream>`
 
 ### Build + test
 
@@ -171,6 +159,4 @@ Note: the rebuild will likely modify `vcad/sidecar/Cargo.lock` — this is expec
 Ask the user what to do next:
 
 - **Keep** — leave repos rebased (ready for commit via `commit-vendor`)
-- **Revert** — reset each submodule to its previous state:
-  - For patch repos: `git -C <sub> checkout -B supex-patches darwin/supex-patches`
-  - For plain repos: `git -C <sub> checkout <old-upstream>`
+- **Revert** — reset each submodule to its previous state: `git -C <sub> checkout --detach <old-upstream>`

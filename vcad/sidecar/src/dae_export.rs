@@ -3,26 +3,24 @@ use vcad_eval::EvaluatedMesh;
 use vcad_kernel_geom::{GeometryStore, SurfaceKind};
 use vcad_kernel_math::{Point2, Vec3};
 use vcad_kernel_primitives::BRepSolid;
-use vcad_kernel_tessellate::{TessellationParams, tessellate_face};
+use vcad_kernel_tessellate::{TessellationParams, TriangleMesh, tessellate_brep_by_face};
 use vcad_kernel_topo::{Orientation, Topology};
 
 /// Convert a BRep solid to COLLADA (.dae) XML text.
 ///
 /// Planar faces without holes are emitted as native n-gon polygons with f64
-/// precision. Curved faces and planar faces with holes are tessellated into
-/// triangles via `tessellate_face` (f32 precision, converted to f64 for output).
+/// precision. Curved faces and planar faces with holes use the kernel's
+/// per-face tessellation (`tessellate_brep_by_face`, f32 precision, converted
+/// to f64 for output); the tessellated mesh of a face emitted as a polygon is
+/// discarded.
 pub fn brep_to_dae(brep: &BRepSolid, params: &TessellationParams) -> String {
-    let solid = &brep.topology.solids[brep.solid_id];
-    let shell = &brep.topology.shells[solid.outer_shell];
-
     let mut all_positions: Vec<f64> = Vec::new();
     let mut all_vcount: Vec<usize> = Vec::new();
     let mut all_indices: Vec<usize> = Vec::new();
 
-    for &face_id in &shell.faces {
+    for (face_id, kind, face_mesh) in tessellate_brep_by_face(brep, params) {
         let face = &brep.topology.faces[face_id];
-        let surface = &brep.geometry.surfaces[face.surface_index];
-        let is_plane = surface.surface_type() == SurfaceKind::Plane;
+        let is_plane = kind == SurfaceKind::Plane;
         let has_holes = !face.inner_loops.is_empty();
 
         // Planar faces without holes that have a proper polygon boundary
@@ -42,10 +40,7 @@ pub fn brep_to_dae(brep: &BRepSolid, params: &TessellationParams) -> String {
             );
         } else {
             emit_tessellated_triangles(
-                &brep.topology,
-                &brep.geometry,
-                face_id,
-                params,
+                &face_mesh,
                 &mut all_positions,
                 &mut all_vcount,
                 &mut all_indices,
@@ -122,17 +117,13 @@ fn emit_planar_polygon(
     }
 }
 
-/// Emit a face (curved or with holes) as tessellated triangles.
+/// Emit a face (curved or with holes) from its tessellated triangles.
 fn emit_tessellated_triangles(
-    topo: &Topology,
-    geom: &GeometryStore,
-    face_id: vcad_kernel_topo::FaceId,
-    params: &TessellationParams,
+    mesh: &TriangleMesh,
     positions: &mut Vec<f64>,
     vcount: &mut Vec<usize>,
     indices: &mut Vec<usize>,
 ) {
-    let mesh = tessellate_face(topo, geom, face_id, params);
     if mesh.indices.is_empty() {
         return;
     }
