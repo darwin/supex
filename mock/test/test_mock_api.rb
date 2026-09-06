@@ -550,8 +550,7 @@ class TestUI < Minitest::Test
 
   def test_blocking_mode_captures_timer
     UI.enable_blocking_mode!
-    captured = false
-    UI.start_timer(0.01, true) { captured = true }
+    UI.start_timer(0.01, true) { flunk('timer must not fire outside run_blocking_loop!') }
 
     # Verify that run_blocking_loop! would work (don't actually run it - it blocks)
     # Instead, verify the timer was captured by checking the internal state
