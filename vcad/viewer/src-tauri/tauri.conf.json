@@ -1,7 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicbarker/tauri/refs/heads/dev/crates/tauri-utils/schema.json",
   "productName": "vcad-viewer",
-  "version": "0.1.0",
   "identifier": "com.supex.vcad-viewer",
   "build": {
     "frontendDist": "../dist",

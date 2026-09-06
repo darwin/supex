@@ -9,17 +9,32 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Source common utilities
 source "$SCRIPT_DIR/helpers/common.sh"
 
-# Version files to update
+# Version files to update (every component shares the supex version)
 VERSION_FILES=(
     "driver/pyproject.toml"
     "tests/pyproject.toml"
+    "devtools/radar/pyproject.toml"
     "runtime/src/supex_runtime/version.rb"
     "stdlib/src/supex_stdlib.rb"
+    "vcad/sidecar/Cargo.toml"
+    "vcad/viewer/src-tauri/Cargo.toml"
+    "vcad/viewer/package.json"
+)
+
+# Lockfiles that record the root package version and are refreshed after the bump.
+# tauri.conf.json carries no version on purpose: Tauri falls back to Cargo.toml.
+LOCK_FILES=(
+    "driver/uv.lock"
+    "tests/uv.lock"
+    "devtools/radar/uv.lock"
+    "vcad/sidecar/Cargo.lock"
+    "vcad/viewer/src-tauri/Cargo.lock"
+    "vcad/viewer/package-lock.json"
 )
 
 show_help() {
     cat << EOF
-Usage: $(basename "$0") <version>
+Usage: $(basename "$0") [--bump-only] <version>
 
 Create a new release by updating version numbers, committing, tagging,
 and fast-forwarding main to dev.
@@ -27,13 +42,18 @@ and fast-forwarding main to dev.
 ARGUMENTS:
     version     New version in semver format (e.g., 0.2.0)
 
+OPTIONS:
+    --bump-only Only update version files and lockfiles, no git operations
+                (useful to preview the diff; revert with git checkout)
+
 EXAMPLES:
     $(basename "$0") 0.2.0
     $(basename "$0") 1.0.0
+    $(basename "$0") --bump-only 0.3.0
 
 WORKFLOW:
     1. Validates version format and git state
-    2. Updates version in all component files
+    2. Updates version in all component files and refreshes lockfiles
     3. Commits changes with "Release vX.Y.Z"
     4. Creates signed tag vX.Y.Z (requires GPG key)
     5. Fast-forwards main to dev
@@ -87,14 +107,42 @@ update_version_file() {
 
     case "$file" in
         *.toml)
-            # Python pyproject.toml: version = "X.Y.Z"
-            sed -i '' "s/^version = \"[0-9]*\.[0-9]*\.[0-9]*\"/version = \"$version\"/" "$filepath"
+            # pyproject.toml / Cargo.toml: version = "X.Y.Z" (first match only, i.e. [project]/[package])
+            sed -i '' "1,/^version = \"[0-9]*\.[0-9]*\.[0-9]*\"/ s/^version = \"[0-9]*\.[0-9]*\.[0-9]*\"/version = \"$version\"/" "$filepath"
             ;;
         *.rb)
             # Ruby: VERSION = 'X.Y.Z'
             sed -i '' "s/^  VERSION = '[0-9]*\.[0-9]*\.[0-9]*'/  VERSION = '$version'/" "$filepath"
             ;;
+        *package.json)
+            # npm updates package.json and package-lock.json together
+            (cd "$(dirname "$filepath")" && npm version "$version" --no-git-tag-version --allow-same-version > /dev/null)
+            ;;
     esac
+}
+
+# Refresh lockfiles so they record the new root package version
+refresh_lockfiles() {
+    local dir
+    for dir in driver tests devtools/radar; do
+        (cd "$PROJECT_ROOT/$dir" && uv lock --quiet)
+        log_success "Refreshed $dir/uv.lock"
+    done
+    for dir in vcad/sidecar vcad/viewer/src-tauri; do
+        (cd "$PROJECT_ROOT/$dir" && cargo update --workspace --offline --quiet)
+        log_success "Refreshed $dir/Cargo.lock"
+    done
+}
+
+# Update every version file and lockfile
+bump_versions() {
+    local version="$1"
+    local file
+    for file in "${VERSION_FILES[@]}"; do
+        update_version_file "$file" "$version"
+        log_success "Updated $file"
+    done
+    refresh_lockfiles
 }
 
 # Main
@@ -112,6 +160,16 @@ main() {
         exit 0
     fi
 
+    local bump_only=0
+    if [[ "$1" == "--bump-only" ]]; then
+        bump_only=1
+        shift
+        if [[ $# -lt 1 ]]; then
+            show_help
+            exit 1
+        fi
+    fi
+
     local new_version="$1"
 
     # === VALIDATION ===
@@ -119,6 +177,14 @@ main() {
 
     # Validate version format
     validate_version "$new_version"
+
+    if (( bump_only )); then
+        log_info "Bumping version files to $new_version (no git operations)"
+        bump_versions "$new_version"
+        echo ""
+        log_info "Review with: git diff"
+        exit 0
+    fi
 
     # Check we're on dev branch
     local current_branch
@@ -165,6 +231,10 @@ main() {
     for file in "${VERSION_FILES[@]}"; do
         echo "    - $file"
     done
+    echo "  Lockfiles to refresh:"
+    for file in "${LOCK_FILES[@]}"; do
+        echo "    - $file"
+    done
     echo ""
 
     # Confirm
@@ -176,14 +246,13 @@ main() {
     # === UPDATE VERSIONS ===
     echo ""
     log_info "Updating version files..."
-    for file in "${VERSION_FILES[@]}"; do
-        update_version_file "$file" "$new_version"
-        log_success "Updated $file"
-    done
+    bump_versions "$new_version"
 
     # === COMMIT ===
+    # Stage only the known files: never git add -A, which would sweep in
+    # vendor submodule pointer changes or stray files.
     log_info "Committing changes..."
-    git add -A
+    git add "${VERSION_FILES[@]}" "${LOCK_FILES[@]}"
     git commit -m "Release v$new_version"
     log_success "Created commit"
 

@@ -115,6 +115,10 @@ MCP-based platform connecting AI agents to SketchUp:
 
 # Build production .rbz
 cd runtime && bundle exec rake build
+
+# Release: bump every component version + lockfiles, commit, sign tag, fast-forward main
+./scripts/release.sh 0.3.0
+./scripts/release.sh --bump-only 0.3.0   # only rewrite files, preview with git diff
 ```
 
 ## Key Files
