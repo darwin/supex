@@ -2,10 +2,9 @@
 
 plugins:
   - rubocop-performance
-  - rubocop-rake
 
 AllCops:
-  TargetRubyVersion: 3.4
+  TargetRubyVersion: 3.2
   NewCops: enable
   Include:
     - 'src/**/*.rb'

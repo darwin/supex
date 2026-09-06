@@ -26,7 +26,7 @@ module SupexSimpleTable
     invalid = params.select { |_name, value| !value.is_a?(Numeric) || value <= 0 }
     return if invalid.empty?
 
-    names = invalid.keys.map(&:to_s).join(', ')
+    names = invalid.keys.join(', ')
     raise ArgumentError, "Parameters must be positive: #{names}"
   end
 

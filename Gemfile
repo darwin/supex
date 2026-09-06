@@ -8,9 +8,7 @@ ruby '3.2.2'
 group :development do
   gem 'bundler'
   gem 'pry'
-  gem 'rake'
   gem 'rubocop'
   gem 'rubocop-performance'
-  gem 'rubocop-rake'
   gem 'sketchup-api-stubs'
 end

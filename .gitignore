@@ -9,3 +9,4 @@ supex
 /.code/
 .envrc
 .supex/
+.mcp.json
