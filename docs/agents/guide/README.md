@@ -17,6 +17,8 @@ This directory is intended to be symlinked into user projects.
 - `ruby.md` - Full Ruby workflow rules and patterns
 - `vcad.md` - Full VCAD workflow rules and constraints
 - `workflow.md` - Extended examples and visual QA for both workflows
+- `mcp.md` - Canonical MCP tool inventory (names and scope)
+- `troubleshooting.md` - Common issues and solutions (connection, execution, geometry, VCAD)
 - `api/` - SketchUp Ruby API docs (symlink)
 - `stdlib/` - Ruby helper library docs (symlink)
 - `cad-lib/` - Loon CAD library source and constructors (symlink)

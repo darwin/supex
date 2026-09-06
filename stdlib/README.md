@@ -62,9 +62,10 @@ SupexStdlib::Edge.to_line(edge)            # Convert to [point, vector]
 ### ComponentDefinition
 
 ```ruby
-SupexStdlib::ComponentDefinition.erase(definition)              # Erase definition and instances
-SupexStdlib::ComponentDefinition.place_axes(def, tr, adjust)    # Redefine axes
-SupexStdlib::ComponentDefinition.unique_to?(definition, scopes) # Check if unique to scope
+SupexStdlib::ComponentDefinition.erase(definition)                          # Erase definition and instances
+SupexStdlib::ComponentDefinition.place_axes(definition, new_axes, adjust_instances = true) # Redefine axes; keeps geometry in place when adjust_instances
+SupexStdlib::ComponentDefinition.unique_to?(definition, scopes)             # Check if all instances are within scopes
+SupexStdlib::ComponentDefinition.all_instance_paths(definition)             # Instance paths (root to instance) for all instances
 ```
 
 ### Geom
@@ -82,18 +83,27 @@ SupexStdlib::Geom.angle_in_plane(v1, v2, n)    # Angle between vectors (0 to 2pi
 ### Geom::Transformation
 
 ```ruby
-SupexStdlib::Geom::Transformation.from_axes(origin, x, y, z)    # Create from axes
-SupexStdlib::Geom::Transformation.from_euler_angles(o, x, y, z) # Create from angles
+SupexStdlib::Geom::Transformation.from_axes(origin, x, y, z)    # Create from axes (keeps scale and shear)
+SupexStdlib::Geom::Transformation.from_euler_angles(o, x, y, z) # Create from angles (ZYX order)
 SupexStdlib::Geom::Transformation.euler_angles(tr)              # Extract [x, y, z] angles
+SupexStdlib::Geom::Transformation.rotx(tr)                      # X rotation in radians
+SupexStdlib::Geom::Transformation.roty(tr)                      # Y rotation in radians
+SupexStdlib::Geom::Transformation.rotz(tr)                      # Z rotation in radians
 SupexStdlib::Geom::Transformation.xaxis(tr)                     # X axis with scale
+SupexStdlib::Geom::Transformation.yaxis(tr)                     # Y axis with scale
+SupexStdlib::Geom::Transformation.zaxis(tr)                     # Z axis with scale
 SupexStdlib::Geom::Transformation.xscale(tr)                    # X scale factor
+SupexStdlib::Geom::Transformation.yscale(tr)                    # Y scale factor
+SupexStdlib::Geom::Transformation.zscale(tr)                    # Z scale factor
+SupexStdlib::Geom::Transformation.scale_factor_in_plane(tr, plane) # Area scale factor at a plane
 SupexStdlib::Geom::Transformation.determinant(tr)               # Matrix determinant
 SupexStdlib::Geom::Transformation.flipped?(tr)                  # Test if mirrored
 SupexStdlib::Geom::Transformation.sheared?(tr)                  # Test if sheared
 SupexStdlib::Geom::Transformation.identity?(tr)                 # Test if identity
 SupexStdlib::Geom::Transformation.same?(tr1, tr2)               # Compare transformations
-SupexStdlib::Geom::Transformation.remove_scaling(tr)            # Remove scaling
-SupexStdlib::Geom::Transformation.remove_shearing(tr)           # Make orthogonal
+SupexStdlib::Geom::Transformation.remove_scaling(tr, allow_flip = false)          # Remove scaling (axes length 1)
+SupexStdlib::Geom::Transformation.remove_shearing(tr, preserve_determinant = false) # Make orthogonal (X axis kept)
+SupexStdlib::Geom::Transformation.extract_shearing(tr)          # Shear-only transformation
 SupexStdlib::Geom::Transformation.transpose(tr)                 # Transpose matrix
 ```
 
@@ -126,12 +136,14 @@ SupexStdlib::Geom::Vector.transform_as_normal(n, tr)   # Transform normal correc
 ### Geom::BoundingBox
 
 ```ruby
-bb = SupexStdlib::Geom::BoundingBox.new(points)  # Create from 8 corner points
+bb = SupexStdlib::Geom::BoundingBox.new(points)  # Create from 0, 4 (2D) or 8 (3D) corner points
 bb.width, bb.height, bb.depth                     # Dimensions
 bb.center, bb.origin                              # Key points
+bb.corner(index), bb.points                       # Corner by index (0-7), all corner points
 bb.x_axis, bb.y_axis, bb.z_axis                   # Axis vectors
 bb.volume, bb.area                                # Measurements
 bb.empty?, bb.is_2d?, bb.is_3d?                   # Type checks
+bb.have_area?, bb.have_volume?                    # Non-degenerate axes checks
 ```
 
 ### Geom::Line
@@ -149,8 +161,9 @@ SupexStdlib::Color.grayscale?(color)              # Test if r==g==b
 SupexStdlib::Color.luminance(color)               # Perceived brightness (0-255)
 SupexStdlib::Color.dark?(color, threshold)        # Test if dark
 SupexStdlib::Color.light?(color, threshold)       # Test if light
-SupexStdlib::Color.contrast_color(color)          # Get black or white for contrast
+SupexStdlib::Color.contrast_color(color, threshold = 128) # Get black or white for contrast
 SupexStdlib::Color.to_grayscale(color)            # Convert to grayscale [r,g,b]
+SupexStdlib::Color.components(color)              # {r:, g:, b:, a:} hash
 SupexStdlib::Color.to_hex(color, include_alpha=false) # Convert to "#RRGGBB" (or "#RRGGBBAA" if include_alpha)
 ```
 
@@ -162,6 +175,8 @@ SupexStdlib::Platform.win?       # Running on Windows?
 SupexStdlib::Platform.temp_path  # System temp directory
 
 SupexStdlib::Platform::ID        # "osx64" or "win64"
+SupexStdlib::Platform::KEY       # "osx" or "win"
+SupexStdlib::Platform::POINTER_SIZE # 32 or 64
 SupexStdlib::Platform::NAME      # "macOS" or "Windows"
 SupexStdlib::Platform::IS_MAC    # Boolean
 SupexStdlib::Platform::IS_WIN    # Boolean

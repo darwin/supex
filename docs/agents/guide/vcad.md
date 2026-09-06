@@ -72,7 +72,7 @@ For mixed tasks, keep geometry in VCAD and do scene/model post-processing with R
 
 Authoritative constructor signatures: `cad-lib/src/lib.loon`.
 
-Important: Loon has no runtime arithmetic operators (`+`, `-`, `*`, etc.). Use literals, `let`, and `fn` patterns.
+Arithmetic works in prefix form: `+`, `-`, `*`, `/`, `%` plus `min`, `max`, `abs`, `sqrt`, `pow`, `floor`, `ceil`, `round` (for example `[* 2.0 r]`, `[/ across-flats 1.7320508075688772]`). `+` and `*` take two or more arguments; `-` and `/` are binary (no unary minus: write `-1.0` or `[- 0.0 x]`). Mixed int/float operands promote to float, but int/int `/` is integer division and `%` accepts integers only, so write dimensions as float literals (`40.0`, not `40`).
 
 ## Functional Style
 
@@ -139,7 +139,7 @@ A well-structured `.cmp.oo` file follows this order:
 ## Imports and Exports Notes
 
 - Keep import declarations in `.cmp.oo` files.
-- `[use name]` looks for `name.oo` beside the importing file first, then in each directory of `VCAD_LOON_PATH` (shared part libraries). Use dotted names for subdirectories (`[use hardware.screws]`); a local file shadows a lib module of the same name.
+- `[use name]` looks for `name.loon` and then `name.oo` beside the importing file first, then in each directory of `VCAD_LOON_PATH` (shared part libraries). Use dotted names for subdirectories (`[use hardware.screws]`); a local file shadows a lib module of the same name, and because `.loon` is tried before `.oo`, a stray `name.loon` next to `name.oo` shadows it.
 - Prefer stable entity references and stable `node_id` naming.
 
 ## Examples
@@ -179,4 +179,4 @@ vcad_watch_resume()  # flushes as one merged cascade update
 
 - Router and chooser: `README.md`
 - Geometry QA: `ruby.md` § "Geometry Quality Rules"
-- VCAD architecture/details: `docs/vcad.md` in the supex repository (not reachable through `supex-guide/`)
+- VCAD architecture/details: the VCAD integration document in the supex repository (`docs/vcad.md` there; not reachable through `supex-guide/`)

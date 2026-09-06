@@ -14,6 +14,7 @@ It covers both authoring workflows:
 - `guide/vcad.md` - VCAD workflow rules and constraints
 - `guide/workflow.md` - Extended examples, visual QA, and practical snippets
 - `guide/mcp.md` - Canonical MCP tool inventory (names and scope)
+- `guide/troubleshooting.md` - Common issues and solutions
 
 ## Structure
 
@@ -25,10 +26,14 @@ docs/agents/
     ├── ruby.md
     ├── vcad.md
     ├── workflow.md
+    ├── mcp.md
+    ├── troubleshooting.md
     ├── api/      # SketchUp Ruby API docs (symlink)
     ├── stdlib/   # Ruby helper library docs (symlink)
     └── cad-lib/  # Loon CAD library source (symlink)
 ```
+
+The `api/` symlink points at generated, git-ignored output (`devtools/docgen/generated-sketchup-api-docs`), so it dangles in a fresh clone until you run `just docs` (or `scripts/regenerate-sketchup-api-docs.sh`).
 
 ## Usage
 
