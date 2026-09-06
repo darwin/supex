@@ -69,6 +69,7 @@ tests/
 │       ├── conftest.rb      # Fixture snippets
 │       ├── test_model_operations.rb   # Geometry/groups/materials
 │       ├── test_introspection.rb      # Entity listing/selection/camera
+│       ├── test_batch_screenshots.rb  # Batch screenshot scenarios
 │       └── test_error_handling.rb     # Error-inducing snippets
 ├── data/
 │   └── template.skp         # Template model for tests
@@ -76,12 +77,14 @@ tests/
     ├── test_connection.py       # Connection and basic communication
     ├── test_model_operations.py # Geometry creation and manipulation
     ├── test_introspection.py    # Model introspection tools
+    ├── test_file_operations.py  # Export, save, open, sequential commands
+    ├── test_batch_screenshots.py # Batch screenshot tool
     └── test_error_handling.py   # Error handling and edge cases
 ```
 
 ### Test Organization
 
-Tests follow a four-layer approach:
+Tests follow a six-layer approach:
 
 1. **Connection & Basic Commands** (`test_connection.py`)
    - Validates SketchUp is accessible via TCP
@@ -98,7 +101,16 @@ Tests follow a four-layer approach:
    - Tests selection operations
    - Tests camera control
 
-4. **Error Handling** (`test_error_handling.py`)
+4. **File Operations** (`test_file_operations.py`)
+   - Tests export in every supported format and rejection of unknown formats
+   - Tests save and open round-trips that preserve geometry
+   - Tests that the connection survives sequences of commands
+
+5. **Batch Screenshots** (`test_batch_screenshots.py`)
+   - Tests standard views and custom cameras (including FOV)
+   - Tests partial failures, camera restore and entity isolation
+
+6. **Error Handling** (`test_error_handling.py`)
    - Tests Ruby syntax and runtime errors
    - Tests invalid inputs and edge cases
    - Tests error recovery and unicode handling
@@ -132,16 +144,16 @@ Tests follow a four-layer approach:
 
 ### Current Coverage
 
-| Category | Tests | Description |
-|----------|-------|-------------|
-| Connection | 10 | CLI status, SketchUp communication, parametrized commands |
-| Error Handling | 14 | Syntax errors, runtime errors, edge cases, unicode |
-| Geometry | 3 | Cube, circle, cylinder creation |
-| Groups/Components | 4 | Group creation, nesting, component instances |
-| Materials | 4 | Material creation, application, transparency |
-| Introspection | 12 | Entity listing, selection, layers, camera |
+| File | Tests | Description |
+|------|-------|-------------|
+| `test_connection.py` | 10 | CLI status, SketchUp communication, parametrized commands |
+| `test_model_operations.py` | 9 | Geometry, groups, components, materials |
+| `test_introspection.py` | 14 | Entity listing, selection, layers, camera |
+| `test_file_operations.py` | 13 | Export formats, save/open, sequential commands |
+| `test_batch_screenshots.py` | 12 | Standard and custom cameras, isolation, camera restore |
+| `test_error_handling.py` | 14 | Syntax errors, runtime errors, edge cases, unicode |
 
-**Total: 47 tests across 4 test files**
+**Total: 72 tests across 6 test files** (count with `uv run pytest --collect-only -q -o addopts="" e2e`)
 
 ### Pytest Markers
 
@@ -152,9 +164,8 @@ Tests follow a four-layer approach:
 
 The following areas need additional test coverage:
 
-- File operations (open, save, export with various parameters)
 - Large entity count performance
-- Connection loss and reconnection
+- Connection loss and reconnection (only sequential-command survival is covered)
 - Transaction rollback on failure
 - Advanced camera/view operations
 - Complex nested components and groups
