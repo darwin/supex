@@ -21,6 +21,12 @@ Workspace defaults differ by entrypoint script:
 - `./mcp`: `SUPEX_WORKSPACE=${SUPEX_WORKSPACE:-$(pwd)}`
 - `./vcad-sidecar`: `SUPEX_WORKSPACE=${SUPEX_WORKSPACE:-$(pwd)}`
 
+## Mock Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPEX_MOCK_PORT` | `9876` | Port for `scripts/launch-sketchup-mock.sh` (driver unit tests default to `19876`) |
+
 ## Bridge / Driver (MCP + CLI)
 
 | Variable | Default | Description |
@@ -36,6 +42,7 @@ Workspace defaults differ by entrypoint script:
 | `SUPEX_VERBOSE` | (unset) | Verbose runtime logging when set to `1` |
 | `SUPEX_NO_AUTOSTART` | (unset) | Disable extension autostart when set to `1` |
 | `SUPEX_CHECK_INTERVAL` | `0.25` | Runtime request poll interval (seconds) |
+| `SUPEX_STDLIB_PATH` | `<repo>/stdlib/src/supex_stdlib.rb` | Override the stdlib file the runtime loads at startup |
 | `SUPEX_RESPONSE_DELAY` | `0` | Artificial response delay (seconds) |
 | `SUPEX_PLAIN` | (unset) | Force plain-text CLI output when set to `1` |
 | `SUPEX_COLOR` | (unset) | Force rich/color CLI output when set to `1` |

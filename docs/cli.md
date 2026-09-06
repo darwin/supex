@@ -40,6 +40,13 @@ For interactive Ruby console usage, see [Interactive REPL](repl.md).
 - `materials`
 - `camera`
 
+## Screenshot Options
+
+- `--output`, `-o`: Output file path (default: generated under the workspace)
+- `--width`, `-w`: Image width (default `1920`)
+- `--height`: Image height (default `1080`)
+- `--transparent`, `-t`: Transparent background
+
 ## Export Formats
 
 Runtime export currently supports:
@@ -59,5 +66,6 @@ Runtime export currently supports:
 ./supex eval-file /absolute/path/to/script.rb
 ./supex entities faces --raw
 ./supex screenshot --width 2560 --height 1440
+./supex screenshot --output shots/iso.png --transparent
 ./supex export obj
 ```
