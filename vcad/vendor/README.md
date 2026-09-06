@@ -3,23 +3,24 @@
 Git submodules providing the VCAD evaluation pipeline and its dependencies
 for the supex sidecar (`vcad/sidecar/`).
 
-## Submodule types
+## Submodules
 
-There are two kinds of vendored submodules:
+All vendored submodules track upstream `origin/main` directly. There are no
+forks and no local patch branches: a submodule pointer is always an upstream
+commit, so `git clone --recurse-submodules` works without extra remotes. The
+sidecar is written against upstream APIs only; when it needs a change in a
+vendored crate, the change goes upstream as a PR, never into a patch branch.
 
-**Patch repos** — have a darwin fork on GitHub with a `supex-patches` branch
-that carries local patches rebased on top of upstream `origin/main`.
+| Directory | Upstream    | Role                                                    |
+|-----------|-------------|---------------------------------------------------------|
+| `vcad/`   | `ecto/vcad` | BRep CAD kernel and evaluation crates used by the sidecar |
+| `loon/`   | `ecto/loon` | Loon language (parser and interpreter)                  |
+| `tang/`   | `ecto/tang` | Autodiff; a sibling crate of the vcad workspace         |
 
-| Directory | Upstream              | Fork                   |
-|-----------|-----------------------|------------------------|
-| `loon/`   | `ecto/loon`           | `darwin/loon`          |
-| `vcad/`   | `ecto/vcad`           | `darwin/vcad`          |
-
-**Plain repos** — track upstream `origin/main` directly, no fork, no patches.
-
-| Directory | Upstream              |
-|-----------|-----------------------|
-| `tang/`   | `ecto/tang`           |
+`tang` is not an independent dependency of supex: vcad path-depends on it
+(`../tang/crates/tang` in vcad's `[workspace.dependencies]`), so the required
+tang version is dictated by the pinned vcad commit. Roll tang in lockstep with
+vcad to keep the vendored vcad workspace resolvable.
 
 `phyz` is deliberately not vendored: upstream vcad pins it in its
 `[workspace.dependencies]` as a git dependency with a fixed `rev`, so Cargo
@@ -30,17 +31,17 @@ sidecar never resolves it.
 
 Two Claude Code commands manage the vendor update cycle:
 
-1. **`/review-vendor`** — fetch upstream changes, display changelog, analyze
-   impact on the sidecar, optionally rebase and test build. Read-only until
-   the user opts into the build test phase.
+1. **`/review-vendor`** — fetch upstream changes, display the changelog,
+   analyze impact on the sidecar (including the tang version floor required by
+   the rolled vcad), and optionally check out the new upstream heads and test
+   build. Read-only until the user opts into the build test phase.
 
-2. **`/commit-vendor`** — archive old `supex-patches` HEAD as a tag
-   (`archive/<sha>`), push rebased branches, and commit the updated submodule
-   pointers. Each submodule gets its own commit with a GitHub compare link.
-   Archive tags prevent GitHub from garbage-collecting commits referenced by
-   older supex history.
+2. **`/commit-vendor`** — verify every changed pointer is reachable from its
+   upstream remote, show a summary with GitHub compare links, and create one
+   atomic commit with all changed submodule pointers (plus
+   `vcad/sidecar/Cargo.lock` if the rebuild touched it). It pushes nothing.
 
-Typical flow: `/review-vendor` &#8594; inspect results &#8594; `/commit-vendor`.
+Typical flow: `/review-vendor`, inspect the results, then `/commit-vendor`.
 
 ## Setup after clone
 
