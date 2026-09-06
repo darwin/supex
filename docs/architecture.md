@@ -60,13 +60,20 @@ supex/
 │       └── vcad_observer.rb   # VCAD node lifecycle observer
 ├── vcad/                      # VCAD parametric CAD subsystem
 │   ├── sidecar/               # Rust sidecar (Loon eval + BRep kernel)
-│   └── viewer/                # Tauri BRep viewer app
+│   ├── viewer/                # Tauri BRep viewer app
+│   └── vendor/                # Git submodules: vcad kernel, loon language, tang autodiff
 ├── stdlib/                    # Ruby standard library helpers
+├── mock/                      # Headless SketchUp API mock (Ruby) for tests without SketchUp
+├── devtools/                  # Developer tooling
+│   ├── ci/                    # Dockerfile for the CI test image
+│   ├── docgen/                # SketchUp API documentation generator
+│   └── radar/                 # Log aggregator TUI
 ├── scripts/                   # Development automation
 ├── tests/                     # E2E and integration tests
 │   ├── e2e/                   # End-to-end tests
 │   ├── snippets/              # Ruby test snippets
 │   └── helpers/               # Test utilities
+├── examples/                  # Example projects (checked out from orphan branches)
 └── docs/                      # Documentation
 ```
 

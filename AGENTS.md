@@ -56,9 +56,12 @@ supex/
 │       ├── connection/        # SketchUp socket connection
 │       └── mcp/               # MCP server
 ├── runtime/                   # Ruby SketchUp extension
+│   ├── ide_stubs/             # Shims so IDEs resolve sketchup.rb / extensions.rb
 │   └── src/
 │       ├── supex_runtime.rb   # Extension entry point
 │       └── supex_runtime/     # Extension modules
+├── stdlib/                    # Standard library (Ruby helpers)
+├── mock/                      # Headless SketchUp API mock server (Ruby) for tests without SketchUp
 ├── vcad/                      # VCAD integration
 │   ├── sidecar/               # Rust VCAD evaluator (BRep pipeline)
 │   ├── viewer/                # Standalone Tauri geometry viewer
@@ -66,14 +69,18 @@ supex/
 │       ├── vcad/              # BRep CAD kernel
 │       ├── loon/              # Loon language
 │       └── tang/              # Differentiable computing (autodiff for VCAD)
+├── tests/                     # E2E tests (pytest) and the Ruby snippets they execute
 ├── docs/                      # Documentation
 │   └── agents/                # Agent prompts (user projects symlink guide/ as supex-guide/)
 ├── devtools/                  # Developer tools
+│   ├── ci/                    # Dockerfile for the GitHub Actions test image
 │   ├── docgen/                # SketchUp API doc generator (+ sketchup-api-stubs submodule)
 │   └── radar/                 # Log aggregator / observability
-├── stdlib/                    # Standard library (Ruby helpers)
+├── assets/                    # README posters and the prompts that generated them
 ├── scripts/                   # Development scripts
-└── examples/                  # Example projects (orphan branches)
+├── examples/                  # Example projects (orphan branches)
+├── supex, mcp, repl           # Root wrappers: CLI, MCP server, REPL client
+└── test, radar, vcad-sidecar  # Root wrappers: test runner, radar TUI, VCAD sidecar
 ```
 
 ## Architecture
