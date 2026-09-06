@@ -50,6 +50,15 @@ uv run pytest e2e/ -v -s
 uv run pytest e2e/ -v --tb=long
 ```
 
+### Tracing Filesystem Writes (macOS)
+
+`scripts/test-fs-trace.sh` runs a test suite under `fs_usage` and reports every path written during the run, highlighting writes outside `.tmp/`. Use it when checking that the path policy or a new tool keeps its files inside the workspace. It asks for `sudo` once, only for `fs_usage`:
+
+```bash
+./scripts/test-fs-trace.sh --e2e      # trace the E2E suite
+./scripts/test-fs-trace.sh driver     # trace one suite (same args as ./test)
+```
+
 ## Test Structure and Strategy
 
 ### Architecture

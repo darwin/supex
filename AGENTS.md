@@ -116,9 +116,14 @@ MCP-based platform connecting AI agents to SketchUp:
 # Build production .rbz
 cd runtime && bundle exec rake build
 
+# Build the CI image locally and run the test suites in it (args go to launch-test.sh)
+./scripts/docker-test.sh
+./scripts/docker-test.sh sidecar viewer
+
 # Release: bump every component version + lockfiles, commit, sign tag, fast-forward main
 ./scripts/release.sh 0.3.0
 ./scripts/release.sh --bump-only 0.3.0   # only rewrite files, preview with git diff
+./scripts/changelog.sh v0.3.0            # write the GitHub Release changelog prompt to .tmp/
 ```
 
 ## Key Files

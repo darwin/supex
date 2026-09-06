@@ -176,6 +176,14 @@ The REPL server starts automatically with the Supex extension. You can control i
 SUPEX_REPL_DISABLED=1 ./scripts/launch-sketchup.sh
 ```
 
+## Session Snippets
+
+Each REPL session writes the code it evaluates into a snippet directory under `.tmp/repl/` in the supex repository, so stack traces point at real files. The directories are never removed automatically; clear them with:
+
+```bash
+./scripts/clean-repl.sh
+```
+
 ## Troubleshooting
 
 ### Connection Refused

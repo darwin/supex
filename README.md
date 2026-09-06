@@ -163,6 +163,9 @@ Run tests and linters from the repository root:
 # Rebuild Rust binaries (VCAD sidecar, viewer)
 ./scripts/rebuild.sh
 ./scripts/rebuild.sh sidecar   # rebuild only sidecar
+
+# Run the same Docker image as CI locally (requires Docker)
+./scripts/docker-test.sh
 ```
 
 ## Reference
