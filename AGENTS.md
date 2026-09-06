@@ -80,7 +80,7 @@ supex/
 
 MCP-based platform connecting AI agents to SketchUp:
 
-- **Python MCP Driver** (`driver/`) - FastMCP server exposing tools to AI
+- **Python MCP Driver** (`driver/`) - MCP Python SDK server (`MCPServer`) exposing tools to AI
 - **Ruby Runtime** (`runtime/`) - SketchUp extension executing commands
 - **Socket Communication** - TCP on localhost:9876 (default)
 

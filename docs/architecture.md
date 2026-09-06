@@ -74,7 +74,7 @@ supex/
 
 ### Python Driver (`driver/`)
 
-**Framework**: FastMCP (MCP server) + Typer (CLI)
+**Framework**: MCP Python SDK `MCPServer` (MCP server) + Typer (CLI)
 **Purpose**: MCP protocol handling, tool interface, and standalone CLI
 
 The driver serves two roles: as an MCP server for AI agents, and as a CLI (`./supex`) for direct human use. Both share the same connection layer and tool implementations.

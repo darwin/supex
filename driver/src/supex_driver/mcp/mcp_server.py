@@ -1,10 +1,11 @@
+import importlib.metadata
 import json
 import logging
 import os
 import sys
 from typing import Any
 
-# Configure logging BEFORE importing fastmcp to prevent rich handler installation
+# Configure logging BEFORE importing the MCP server to prevent rich handler installation
 _mcp_handler = logging.StreamHandler(sys.stderr)
 _mcp_formatter = logging.Formatter(
     fmt="%(asctime)s|%(levelname)s|%(name)s|%(message)s",
@@ -14,11 +15,10 @@ _mcp_formatter.default_msec_format = "%s.%03d"
 _mcp_handler.setFormatter(_mcp_formatter)
 logging.basicConfig(level=logging.INFO, handlers=[_mcp_handler])
 
-from mcp.server import fastmcp
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import Context, MCPServer
 
-# Type alias for MCP Context (generic with Any for session/lifespan/request types)
-McpContext = Context[Any, Any, Any]
+# Type alias for MCP Context (generic with Any for lifespan/request types)
+McpContext = Context[Any, Any]
 
 from supex_driver import __version__
 from supex_driver.connection import get_sketchup_connection
@@ -48,7 +48,7 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
     """Get agent name from MCP client info or environment.
 
     Priority:
-    1. MCP clientInfo.name (from session.client_params.clientInfo)
+    1. MCP clientInfo.name (from session.client_params.client_info)
     2. SUPEX_AGENT environment variable
     3. Default to "mcp"
     """
@@ -57,14 +57,14 @@ def get_agent_name(ctx: McpContext | None = None) -> str:
     # Try to get from Context
     if ctx is not None:
         try:
-            # Access: ctx.request_context.session.client_params.clientInfo.name
+            # Access: ctx.request_context.session.client_params.client_info.name
             request_context = getattr(ctx, "request_context", None)
             if request_context:
                 session = getattr(request_context, "session", None)
                 if session:
                     client_params = getattr(session, "client_params", None)
                     if client_params:
-                        client_info = getattr(client_params, "clientInfo", None)
+                        client_info = getattr(client_params, "client_info", None)
                         if client_info:
                             raw_name = getattr(client_info, "name", None)
                             if raw_name and isinstance(raw_name, str):
@@ -101,12 +101,12 @@ def log_startup_info() -> None:
     _startup_logged = True
 
     logger.info(f"Supex MCP Server version {__version__} starting up")
-    logger.info(f"FastMCP version: {fastmcp.__version__}")
+    logger.info(f"MCP SDK version: {importlib.metadata.version('mcp')}")
     logger.info(f"SUPEX_WORKSPACE: {os.environ.get('SUPEX_WORKSPACE', 'not set')}")
 
 
 # Create MCP server
-mcp = FastMCP("Supex")
+mcp = MCPServer("Supex")
 
 
 def call_tool(

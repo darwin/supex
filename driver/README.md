@@ -120,7 +120,7 @@ AI Agent / CLI
       v
 +----------------------------------+
 |  Python Driver (driver/)    |
-|  +-- mcp/server.py   (FastMCP)  |
+|  +-- mcp/server.py   (MCPServer)|
 |  +-- cli/main.py     (Typer)    |
 |  +-- connection/     (Socket)   |
 +----------------------------------+
@@ -141,7 +141,7 @@ driver/
 +-- src/supex_driver/
 |   +-- __init__.py          # Package exports
 |   +-- mcp/
-|   |   +-- server.py        # FastMCP server, 15 tools
+|   |   +-- server.py        # MCPServer, MCP tools
 |   +-- cli/
 |   |   +-- main.py          # Typer CLI commands
 |   +-- connection/

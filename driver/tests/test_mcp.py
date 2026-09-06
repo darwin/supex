@@ -34,7 +34,7 @@ class TestMCPServer:
             "check_status",
         ]
 
-        # Since FastMCP doesn't expose internal tools directly,
+        # Since MCPServer does not expose internal tools directly,
         # we test that the functions exist in the module
         from supex_driver.mcp import mcp_server as server
 

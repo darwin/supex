@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 dependencies = [
-    "mcp[cli]>=1.28.0",
+    "mcp[cli]>=2.1.1,<3",
     "typer>=0.24.0",
     "rich>=14.0.0",
     "websockets>=16.0",
