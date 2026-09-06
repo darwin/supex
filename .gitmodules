@@ -1,7 +1,6 @@
 [submodule "vcad/vendor/vcad"]
 	path = vcad/vendor/vcad
-	url = https://github.com/darwin/vcad.git
-	branch = supex-patches
+	url = https://github.com/ecto/vcad.git
 [submodule "vcad/vendor/loon"]
 	path = vcad/vendor/loon
 	url = https://github.com/ecto/loon.git
