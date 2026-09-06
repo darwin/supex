@@ -1,7 +1,7 @@
 """SketchUp process management for e2e tests."""
 
-import subprocess
 import socket
+import subprocess
 import time
 from pathlib import Path
 from typing import Self

@@ -4,7 +4,6 @@ This module tests that the Supex CLI properly handles various error conditions
 including Ruby syntax errors, runtime errors, and edge cases.
 """
 
-import pytest
 
 from helpers.cli_runner import CLIRunner
 

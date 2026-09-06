@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from helpers.sketchup_process import SketchUpProcess
 from helpers.cli_runner import CLIRunner
+from helpers.sketchup_process import SketchUpProcess
 
 
 def get_e2e_workspace() -> Path:

@@ -7,6 +7,9 @@ dependencies = [
     "pytest>=9.0.0",
 ]
 
+[dependency-groups]
+dev = ["ruff>=0.15.0"]
+
 [tool.pytest.ini_options]
 testpaths = ["e2e"]
 pythonpath = ["."]
@@ -22,3 +25,6 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+ignore = [
+    "E501", # line too long (handled by formatter)
+]
