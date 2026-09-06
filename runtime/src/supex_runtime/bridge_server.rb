@@ -715,9 +715,8 @@ module SupexRuntime
     # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] evaluation result with file context
     def eval_ruby_file(params, workspace: nil)
-      file_path = params['file_path']
-      PathPolicy.validate!(file_path, operation: 'eval_ruby_file', workspace: workspace)
-      raise "Ruby file not found: #{file_path}" unless File.exist?(file_path)
+      file_path = PathPolicy.validate!(params['file_path'], operation: 'eval_ruby_file', workspace: workspace)
+      raise "Ruby file not found: #{params['file_path']}" unless file_path && File.exist?(file_path)
 
       log "Evaluating Ruby file: #{File.basename(file_path)}"
       execute_ruby_file(file_path)

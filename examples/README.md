@@ -192,7 +192,7 @@ To contribute a new example:
 ### Script Errors
 
 **"No such file"**
-- Use absolute paths or paths relative to project root
+- Use absolute paths or paths relative to the project root (the workspace)
 - Check that the file exists and has `.rb` extension
 
 **Ruby syntax errors**

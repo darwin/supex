@@ -12,19 +12,33 @@ module SupexRuntime
     class PathAccessDenied < StandardError; end
 
     class << self
-      # Validate path is within allowed roots
-      # @param path [String] path to validate
+      # Validate path is within allowed roots and return it as an absolute path.
+      # Relative paths are resolved against the workspace (the client's project
+      # directory), not against the SketchUp process working directory.
+      # @param path [String, nil] path to validate
       # @param operation [String] operation name for error messages
       # @param workspace [String, nil] optional workspace to include in allowed roots
+      # @return [String, nil] absolute path, or nil when path is nil
       # @raise [PathAccessDenied] if path is not allowed
       def validate!(path, operation: 'access', workspace: nil)
-        return if allow_all?
         return unless path
 
-        resolved = resolve_path(path)
-        return if allowed?(resolved, workspace: workspace)
+        absolute = absolute_path(path, workspace: workspace)
+        return absolute if allow_all?
+
+        resolved = resolve_path(absolute)
+        return absolute if allowed?(resolved, workspace: workspace)
 
         raise PathAccessDenied, "Path access denied for #{operation}: #{path}"
+      end
+
+      # Expand path to an absolute path, resolving relative paths against the workspace
+      # @param path [String] path to expand
+      # @param workspace [String, nil] base directory for relative paths
+      # @return [String] absolute path
+      def absolute_path(path, workspace: nil)
+        base = workspace && !workspace.empty? ? File.expand_path(workspace) : nil
+        File.expand_path(path, base)
       end
 
       # Check if path is within allowed roots

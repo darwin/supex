@@ -100,13 +100,11 @@ module SupexRuntime
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
 
-      # Validate output_path if provided
-      if params['output_path']
-        PathPolicy.validate!(params['output_path'], operation: 'take_screenshot',
-                                                    workspace: workspace)
-      end
+      # Validate output_path if provided (resolves relative paths against workspace)
+      output_path = PathPolicy.validate!(params['output_path'], operation: 'take_screenshot',
+                                                                workspace: workspace)
 
-      screenshot_path = determine_screenshot_path(params['output_path'], workspace)
+      screenshot_path = determine_screenshot_path(output_path, workspace)
       write_screenshot(model, screenshot_path, params)
     rescue StandardError => e
       log "Error taking screenshot: #{e.message}"
@@ -132,11 +130,10 @@ module SupexRuntime
     # @param workspace [String, nil] workspace path for path validation
     # @return [Hash] open operation result
     def open_model(params, workspace: nil)
-      file_path = params['path']
-      return { success: false, error: 'No file path provided' } unless file_path
+      return { success: false, error: 'No file path provided' } unless params['path']
 
-      PathPolicy.validate!(file_path, operation: 'open_model', workspace: workspace)
-      return { success: false, error: "File not found: #{file_path}" } unless File.exist?(file_path)
+      file_path = PathPolicy.validate!(params['path'], operation: 'open_model', workspace: workspace)
+      return { success: false, error: "File not found: #{params['path']}" } unless File.exist?(file_path)
 
       Sketchup.open_file(file_path)
       model = Sketchup.active_model
@@ -155,10 +152,10 @@ module SupexRuntime
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
 
-      # Validate path if provided
-      PathPolicy.validate!(params['path'], operation: 'save_model', workspace: workspace) if params['path']
+      # Validate path if provided (resolves relative paths against workspace)
+      save_path = PathPolicy.validate!(params['path'], operation: 'save_model', workspace: workspace)
 
-      saved_path = perform_save(model, params['path'])
+      saved_path = perform_save(model, save_path)
       { success: true, file_path: saved_path, file_name: File.basename(saved_path),
         title: model.title }
     rescue StandardError => e

@@ -319,7 +319,7 @@ def eval_ruby_file(ctx: McpContext, file_path: str) -> str:
     """Evaluate Ruby code from a file in SketchUp context
 
     Args:
-        file_path: Absolute path to Ruby file to execute
+        file_path: Path to Ruby file to execute (relative paths resolve against the workspace)
     """
     logger.info(f"Evaluating Ruby file: {file_path}")
     return call_tool(ctx, "eval_ruby_file", {"file_path": file_path}, "eval_ruby_file")
@@ -504,7 +504,7 @@ def open_model(ctx: McpContext, path: str) -> str:
     """Open a SketchUp model file
 
     Args:
-        path: Absolute path to the .skp file to open
+        path: Path to the .skp file to open (relative paths resolve against the workspace)
 
     Returns success status and model information
     """
@@ -516,7 +516,7 @@ def save_model(ctx: McpContext, path: str | None = None) -> str:
     """Save the current SketchUp model
 
     Args:
-        path: Optional absolute path to save to. If not provided, saves to current location
+        path: Optional path to save to (relative paths resolve against the workspace). If not provided, saves to current location
 
     Returns success status and saved file path
     """

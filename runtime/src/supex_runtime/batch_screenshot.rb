@@ -403,9 +403,7 @@ module SupexRuntime
       # @raise [PathPolicy::PathAccessDenied] if output_dir is outside allowed roots
       def prepare_output_dir(output_dir, workspace)
         dir = if output_dir
-                resolved = File.expand_path(output_dir)
-                PathPolicy.validate!(resolved, operation: 'batch_screenshot', workspace: workspace)
-                resolved
+                PathPolicy.validate!(output_dir, operation: 'batch_screenshot', workspace: workspace)
               else
                 timestamp = Time.now.strftime('%Y%m%d-%H%M%S')
                 File.join(PathPolicy.default_tmp_dir(workspace), 'batch_screenshots', timestamp)

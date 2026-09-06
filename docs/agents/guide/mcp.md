@@ -45,7 +45,7 @@ Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 
 | Tool | Description |
 |------|-------------|
-| `open_model` | Open `.skp` model by absolute path |
+| `open_model` | Open `.skp` model by path (relative paths resolve against the workspace) |
 | `save_model` | Save current model (optionally to path) |
 | `export_scene` | Export scene (`skp`, `obj`, `stl`, `png`, `jpg`, `jpeg`) |
 

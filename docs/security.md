@@ -68,9 +68,10 @@ Note: `SUPEX_WORKSPACE` is set in your MCP client's environment configuration an
 ### Path Validation
 
 The path policy:
-1. Resolves symlinks to prevent symlink escape attacks
-2. Checks that the resolved path starts with an allowed root
-3. Enforces workspace-rooted default paths for guarded operations
+1. Resolves relative paths against the workspace (the client's project directory), never against the SketchUp process working directory
+2. Resolves symlinks to prevent symlink escape attacks
+3. Checks that the resolved path starts with an allowed root
+4. Enforces workspace-rooted default paths for guarded operations
 
 **Error handling**: Path denials are surfaced as `Path access denied...` messages and, in some VCAD flows, as structured `PATH_NOT_ALLOWED` envelopes.
 

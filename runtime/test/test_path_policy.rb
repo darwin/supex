@@ -258,6 +258,58 @@ class TestPathPolicy < Minitest::Test
     end
   end
 
+  # ==========================================================================
+  # Relative path resolution tests
+  # ==========================================================================
+
+  def test_relative_path_resolves_against_workspace
+    set_constant(:ALLOWED_ROOTS, [])
+
+    Dir.mktmpdir('workspace') do |workspace_dir|
+      Dir.mkdir(File.join(workspace_dir, 'src'))
+      File.write(File.join(workspace_dir, 'src', 'script.rb'), '')
+
+      Dir.chdir(Dir.tmpdir) do
+        resolved = SupexRuntime::PathPolicy.validate!('src/script.rb', workspace: workspace_dir)
+
+        assert_equal File.realpath(File.join(workspace_dir, 'src', 'script.rb')), File.realpath(resolved)
+      end
+    end
+  end
+
+  def test_relative_path_escaping_workspace_raises
+    set_constant(:ALLOWED_ROOTS, [])
+
+    Dir.mktmpdir('workspace') do |workspace_dir|
+      assert_raises(SupexRuntime::PathPolicy::PathAccessDenied) do
+        SupexRuntime::PathPolicy.validate!('../outside.rb', workspace: workspace_dir)
+      end
+    end
+  end
+
+  def test_relative_path_without_workspace_uses_cwd
+    set_constant(:ALLOWED_ROOTS, ['*'])
+
+    Dir.mktmpdir('cwd') do |cwd|
+      Dir.chdir(cwd) do
+        resolved = SupexRuntime::PathPolicy.validate!('file.rb')
+
+        assert_equal File.join(Dir.pwd, 'file.rb'), resolved
+      end
+    end
+  end
+
+  def test_validate_returns_absolute_path_and_nil_for_nil
+    set_constant(:ALLOWED_ROOTS, [])
+
+    Dir.mktmpdir('workspace') do |workspace_dir|
+      absolute = File.join(workspace_dir, 'a.rb')
+
+      assert_equal absolute, SupexRuntime::PathPolicy.validate!(absolute, workspace: workspace_dir)
+      assert_nil SupexRuntime::PathPolicy.validate!(nil, workspace: workspace_dir)
+    end
+  end
+
   private
 
   def set_constant(name, value)
