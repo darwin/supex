@@ -108,8 +108,10 @@ ln -s /path/to/supex/docs/agents/guide supex-guide
 
 This gives your AI agents access to:
 - `supex-guide/README.md` - Main agent prompt and conventions
-- `supex-guide/workflow.md` - Complete workflow guide
-- `supex-guide/best_practices.md` - Geometry lessons and pitfalls
+- `supex-guide/ruby.md` - Ruby workflow rules, geometry lessons and pitfalls
+- `supex-guide/vcad.md` - VCAD workflow rules and constraints
+- `supex-guide/workflow.md` - Extended examples and visual QA
+- `supex-guide/mcp.md` - MCP tool inventory
 - `supex-guide/api/` - SketchUp API documentation
 
 ### Creating CLAUDE.md
