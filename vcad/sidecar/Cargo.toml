@@ -9,7 +9,6 @@ rust-version = "1.96"
 loon-lang = { path = "../vendor/loon/crates/loon-lang" }
 vcad-loon = { path = "../vendor/vcad/crates/vcad-loon" }
 vcad-eval = { path = "../vendor/vcad/crates/vcad-eval" }
-vcad-kernel = { path = "../vendor/vcad/crates/vcad-kernel" }
 vcad-ir = { path = "../vendor/vcad/crates/vcad-ir" }
 vcad-kernel-primitives = { path = "../vendor/vcad/crates/vcad-kernel-primitives" }
 vcad-kernel-topo = { path = "../vendor/vcad/crates/vcad-kernel-topo" }

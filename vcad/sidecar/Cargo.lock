@@ -1140,7 +1140,6 @@ dependencies = [
  "tracing-subscriber",
  "vcad-eval",
  "vcad-ir",
- "vcad-kernel",
  "vcad-kernel-geom",
  "vcad-kernel-math",
  "vcad-kernel-primitives",
