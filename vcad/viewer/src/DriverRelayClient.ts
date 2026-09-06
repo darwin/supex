@@ -269,7 +269,7 @@ async function getTauriInvoke(): Promise<InvokeFn | null> {
   try {
     // Dynamic import — only resolves inside Tauri runtime
     const mod = await import("@tauri-apps/api/core");
-    if (typeof mod.invoke === "function" && (window as any).__TAURI_INTERNALS__) {
+    if (typeof mod.invoke === "function" && (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__) {
       _tauriInvoke = mod.invoke as InvokeFn;
     } else {
       _tauriInvoke = null;

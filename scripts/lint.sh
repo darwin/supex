@@ -71,6 +71,12 @@ cd "$PROJECT_ROOT/vcad/viewer/src-tauri"
 cargo fmt --check
 cargo clippy --all-targets --quiet -- -D warnings
 
+# TypeScript viewer frontend (tsc + eslint)
+echo ""
+echo "--- TypeScript: viewer (tsc + eslint) ---"
+cd "$PROJECT_ROOT/vcad/viewer"
+npm run --silent lint
+
 # Markdown docs
 echo ""
 echo "--- Markdown: docs ---"
