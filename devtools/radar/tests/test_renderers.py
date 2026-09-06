@@ -9,10 +9,9 @@ from datetime import datetime
 from radar.models import Level, LogEvent
 from radar.tui.renderers import (
     DefaultSummaryRenderer,
-    RendererReloader,
     RendererRegistry,
+    RendererReloader,
 )
-
 
 _mtime_offset = 0
 

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import glob as globmod
 import os
 import tomllib
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -57,7 +58,7 @@ def _resolve_test_workspace() -> Path:
 def _expand_glob(pattern: str, root: Path) -> list[Path]:
     """Expand a glob pattern relative to root directory. Returns sorted unique paths."""
     full = str(root / pattern)
-    return sorted(set(Path(p) for p in globmod.glob(full)))
+    return sorted({Path(p) for p in globmod.glob(full)})
 
 
 def _dedup_sources(sources: list[TailSource]) -> list[TailSource]:
@@ -80,8 +81,8 @@ def _resolve_sources(
     """Resolve TailSource list and parser overrides for the selected mode."""
     if mode == "ad-hoc":
         assert files is not None
-        sources = [TailSource(source=f.stem, source_path=f) for f in files]
-        return _dedup_sources(sources), {}
+        adhoc = [TailSource(source=f.stem, source_path=f) for f in files]
+        return _dedup_sources(adhoc), {}
 
     if mode == "config":
         assert config_path is not None
@@ -199,10 +200,8 @@ async def _run_plain(pipeline, buffer, initial_filter: FilterSpec) -> None:
             await asyncio.sleep(0.1)
     except (KeyboardInterrupt, asyncio.CancelledError):
         task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await task
-        except asyncio.CancelledError:
-            pass
 
 
 def _run_tui(
@@ -231,14 +230,14 @@ def _run_tui(
 @app.command()
 def watch(
     files: Annotated[
-        Optional[list[Path]],
+        list[Path] | None,
         typer.Argument(
             help="Ad-hoc log files to watch (skips config/default sources). "
             "Supports shell glob expansion, e.g. .tmp/logs/*.log",
         ),
     ] = None,
     config: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             "--config", "-c",
             help="TOML config file with [[source]] entries. "
@@ -253,7 +252,7 @@ def watch(
         ),
     ] = False,
     level: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             "--level", "-l",
             help=f"Minimum log level filter ({'/'.join(_LEVEL_NAMES)}). "
@@ -261,7 +260,7 @@ def watch(
         ),
     ] = None,
     source: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--source", "-s",
             help="Filter by logical source ID (repeatable, comma-separated). "

@@ -9,6 +9,7 @@ Widgets:
 
 from __future__ import annotations
 
+import contextlib
 import re
 import time
 from typing import TYPE_CHECKING
@@ -18,6 +19,7 @@ from textual import on
 from textual.containers import Horizontal
 from textual.message import Message
 from textual.reactive import reactive
+from textual.timer import Timer
 from textual.widget import Widget
 from textual.widgets import DataTable, Input, Static
 
@@ -212,7 +214,7 @@ class FilterBar(Widget):
             yield Input(placeholder="regex pattern", id="filter-pattern")
 
     def on_mount(self) -> None:
-        self._debounce_timer = None
+        self._debounce_timer: Timer | None = None
 
     def set_initial_values(self, *, sources: str, level: str, pattern: str) -> None:
         """Pre-populate filter inputs from CLI flags (call before or during mount)."""
@@ -241,10 +243,8 @@ class FilterBar(Widget):
 
         compiled = None
         if pattern_input:
-            try:
+            with contextlib.suppress(re.error):
                 compiled = re.compile(pattern_input)
-            except re.error:
-                pass
 
         self.post_message(self.Changed(FilterSpec(sources=sources, min_level=min_level, pattern=compiled)))
 

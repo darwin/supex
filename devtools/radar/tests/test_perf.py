@@ -6,8 +6,6 @@ import re
 import time
 from datetime import datetime, timedelta
 
-import pytest
-
 from radar.buffer import ObservableBuffer, RingBuffer
 from radar.models import FilterSpec, Level, LogEvent
 
@@ -145,7 +143,7 @@ class TestFilterPerformance:
 
         spec = FilterSpec(pattern=re.compile(r"event [0-9]*00 "))
         t0 = time.perf_counter()
-        result = buf.filter(spec)
+        buf.filter(spec)
         elapsed = time.perf_counter() - t0
 
         assert elapsed < 1.0, f"Filter by pattern took {elapsed:.3f}s (expected < 1s)"

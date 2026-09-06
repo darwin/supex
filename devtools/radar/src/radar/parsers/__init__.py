@@ -82,4 +82,6 @@ def detect_format(sample_lines: list[str]) -> BaseParser:
 
 
 # Import submodules to trigger registration
-from . import jsonl as _jsonl, pipe as _pipe, plain as _plain  # noqa: E402, F401
+from . import jsonl as _jsonl  # noqa: E402, F401
+from . import pipe as _pipe  # noqa: E402, F401
+from . import plain as _plain  # noqa: E402, F401

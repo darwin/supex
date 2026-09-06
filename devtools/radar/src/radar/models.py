@@ -59,6 +59,4 @@ class FilterSpec:
             return False
         if self.since and event.timestamp < self.since:
             return False
-        if self.until and event.timestamp > self.until:
-            return False
-        return True
+        return not (self.until and event.timestamp > self.until)

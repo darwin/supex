@@ -7,14 +7,14 @@ from radar.models import FilterSpec, Level, LogEvent
 
 
 def _make_event(**overrides) -> LogEvent:
-    defaults = dict(
-        eid="abc123",
-        timestamp=datetime(2025, 6, 15, 12, 0, 0),
-        level=Level.INFO,
-        source="test-source",
-        source_path="/tmp/logs/test.log",
-        message="test message",
-    )
+    defaults = {
+        "eid": "abc123",
+        "timestamp": datetime(2025, 6, 15, 12, 0, 0),
+        "level": Level.INFO,
+        "source": "test-source",
+        "source_path": "/tmp/logs/test.log",
+        "message": "test message",
+    }
     defaults.update(overrides)
     return LogEvent(**defaults)
 

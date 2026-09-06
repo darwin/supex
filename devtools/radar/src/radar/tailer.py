@@ -56,7 +56,7 @@ class FileTailer:
             return []
 
         try:
-            with open(self.path, "r", errors="replace") as f:
+            with open(self.path, errors="replace") as f:
                 f.seek(self.offset)
                 data = f.read()
                 self.offset = f.tell()

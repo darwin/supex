@@ -39,6 +39,15 @@ echo ""
 echo "--- Python: driver (mypy) ---"
 uv run mypy src/
 
+echo ""
+echo "--- Python: radar (ruff) ---"
+cd "$PROJECT_ROOT/devtools/radar"
+uv run ruff check src/ tests/
+
+echo ""
+echo "--- Python: radar (mypy) ---"
+uv run mypy src/
+
 # Rust linting - sidecar and viewer backend (release profile matches what SketchUp loads)
 echo ""
 echo "--- Rust: sidecar (fmt + clippy) ---"

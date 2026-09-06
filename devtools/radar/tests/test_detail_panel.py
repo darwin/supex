@@ -76,7 +76,7 @@ class TestRenderRawText:
         text = DetailPanel._render_raw_text(event)
         lines = text.plain.split("\n")
         # Find numbered lines (skip header and separator)
-        numbered = [l for l in lines if "\u2502" in l]
+        numbered = [line for line in lines if "\u2502" in line]
         assert len(numbered) == 3
         assert numbered[0].strip().startswith("1\u2502")
         assert numbered[1].strip().startswith("2\u2502")
@@ -85,7 +85,7 @@ class TestRenderRawText:
     def test_single_line_raw(self):
         event = _make_event(raw="single line")
         text = DetailPanel._render_raw_text(event)
-        numbered = [l for l in text.plain.split("\n") if "\u2502" in l]
+        numbered = [line for line in text.plain.split("\n") if "\u2502" in line]
         assert len(numbered) == 1
         assert "single line" in numbered[0]
 

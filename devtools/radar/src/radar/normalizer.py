@@ -11,7 +11,6 @@ from datetime import datetime
 from .models import Level, LogEvent
 from .parsers import BaseParser, ParsedRecord
 
-
 # Level string -> Level enum mapping
 _LEVEL_MAP: dict[str, Level] = {
     "DEBUG": Level.DEBUG,

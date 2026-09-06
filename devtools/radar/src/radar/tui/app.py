@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import subprocess
 import time
@@ -14,7 +15,7 @@ from textual.widgets import Input
 
 from radar.buffer import ObservableBuffer
 from radar.models import FilterSpec, Level, LogEvent
-from radar.tui.renderers import RendererReloader, RENDERERS
+from radar.tui.renderers import RENDERERS, RendererReloader
 from radar.tui.views import DetailPanel, FilterBar, LogListView, RadarStatusBar
 
 if TYPE_CHECKING:
@@ -169,7 +170,7 @@ class RadarApp(App):
     def run(self, **kwargs) -> None:
         """Launch the app, forwarding the mouse setting."""
         kwargs.setdefault("mouse", self._mouse)
-        return super().run(**kwargs)
+        super().run(**kwargs)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -205,14 +206,12 @@ class RadarApp(App):
 
     def _set_tmux_pane_title(self) -> None:
         if os.environ.get("TMUX") and self._pane_name:
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 subprocess.run(
                     ["tmux", "select-pane", "-T", self._pane_name],
                     check=False,
                     capture_output=True,
                 )
-            except FileNotFoundError:
-                pass
 
     def _log_terminal_info(self) -> None:
         """Show terminal capabilities in subtitle for diagnostics."""
@@ -258,10 +257,8 @@ class RadarApp(App):
     # ------------------------------------------------------------------
 
     async def _run_pipeline(self) -> None:
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await self._pipeline.run()
-        except asyncio.CancelledError:
-            pass
 
     # ------------------------------------------------------------------
     # Periodic poll for new events
@@ -325,10 +322,8 @@ class RadarApp(App):
         fb = self.query_one("#filter-bar")
         fb.toggle_class("visible")
         if fb.has_class("visible"):
-            try:
+            with contextlib.suppress(Exception):
                 self.query_one("#filter-source", Input).focus()
-            except Exception:
-                pass
 
     def action_toggle_raw(self) -> None:
         detail = self.query_one("#detail-panel", DetailPanel)
@@ -339,10 +334,8 @@ class RadarApp(App):
         fb = self.query_one("#filter-bar")
         if not fb.has_class("visible"):
             fb.add_class("visible")
-        try:
+        with contextlib.suppress(Exception):
             self.query_one("#filter-pattern", Input).focus()
-        except Exception:
-            pass
 
     def action_cursor_down(self) -> None:
         was_streaming = self._mode == "streaming"

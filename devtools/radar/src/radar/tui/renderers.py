@@ -13,6 +13,7 @@ renderer is kept and a warning is recorded.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -328,10 +329,8 @@ class RendererReloader:
     def snapshot_mtimes(self) -> None:
         """Record current mtime for all watched paths."""
         for path in self.registry.watched_paths:
-            try:
+            with contextlib.suppress(OSError):
                 self._mtimes[path] = os.path.getmtime(path)
-            except OSError:
-                pass
 
     def check(self) -> list[RendererLoadResult]:
         """Check all watched files for changes; reload if needed.

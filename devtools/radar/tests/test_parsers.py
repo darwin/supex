@@ -7,11 +7,10 @@ from datetime import datetime
 
 from radar.models import Level
 from radar.normalizer import Normalizer, _make_eid
-from radar.parsers import BaseParser, detect_format, get_parser
+from radar.parsers import detect_format, get_parser
 from radar.parsers.jsonl import JsonlParser
 from radar.parsers.pipe import PipeParser
 from radar.parsers.plain import PlainParser
-
 
 # ---------------------------------------------------------------------------
 # Pipe parser
