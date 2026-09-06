@@ -66,6 +66,11 @@ runtime/
 |   +-- supex_runtime/
 |       +-- main.rb        # Entry point, menu integration
 |       +-- bridge_server.rb # TCP server, tool dispatch
+|       +-- tools.rb        # Core tool implementations
+|       +-- batch_screenshot.rb # Multi-view screenshot batches
+|       +-- vcad_tools.rb   # VCAD node import and lifecycle
+|       +-- vcad_observer.rb # Model change queue for reactive VCAD
+|       +-- path_policy.rb  # File path guardrail
 |       +-- repl_server.rb # REPL server for interactive dev
 |       +-- export.rb      # Multi-format export
 |       +-- console_capture.rb # Output logging
@@ -84,6 +89,10 @@ runtime/
 | BridgeServer | TCP socket server, JSON-RPC protocol, tool execution |
 | REPLServer | Interactive Ruby development via TCP/JSON-RPC |
 | Tools | Model introspection tools (entities, selection, camera, screenshot) |
+| BatchScreenshot | Batch screenshots from standard or custom cameras with flicker-free camera restore and entity isolation |
+| VCADTools | VCAD node management: mesh import, attribute storage, instance lifecycle |
+| VcadObserverQueue / VcadModelObserver | Queue of model entity changes polled by the driver for reactive VCAD updates |
+| PathPolicy | Path validation guardrail for file operations (`SUPEX_ALLOWED_ROOTS`) |
 | Export | SKP, OBJ, STL, PNG, JPG export |
 | ConsoleCapture | stdout/stderr redirection to log files |
 | Utils | Logging, JSON-RPC response helpers, entity utilities |
