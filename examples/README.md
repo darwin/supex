@@ -37,17 +37,17 @@ cd simple-table
 
 ### 2. Configure MCP Server
 
-Create `.mcp.json` in your project root pointing to your Supex installation:
+Register the Supex MCP server in the project scope. This writes `.mcp.json` into the project root:
 
-```json
-{
-  "mcpServers": {
-    "supex": {
-      "command": "/path/to/supex/mcp"
-    }
-  }
-}
+```bash
+claude mcp add --scope project --transport stdio supex \
+  -e SUPEX_WORKSPACE="$(pwd)" \
+  -- /path/to/supex/mcp
 ```
+
+`SUPEX_WORKSPACE` is the project directory: relative paths in file tools resolve against it and logs and
+screenshots land in its `.tmp/`. If the variable is omitted, the `mcp` wrapper falls back to the directory
+the agent started the server in. See [MCP Configuration](#mcp-configuration) for the resulting file.
 
 ### 3. Launch SketchUp
 
@@ -112,7 +112,10 @@ This gives your AI agents access to:
 - `supex-guide/vcad.md` - VCAD workflow rules and constraints
 - `supex-guide/workflow.md` - Extended examples and visual QA
 - `supex-guide/mcp.md` - MCP tool inventory
+- `supex-guide/troubleshooting.md` - Common issues and solutions
 - `supex-guide/api/` - SketchUp API documentation
+- `supex-guide/stdlib/` - Ruby helper library (SupexStdlib) reference
+- `supex-guide/cad-lib/` - Loon CAD library source and constructor signatures
 
 ### Creating CLAUDE.md
 
@@ -132,19 +135,22 @@ Add `supex-guide` to your `.gitignore` since the symlink path varies per develop
 
 ### MCP Configuration
 
-The `.mcp.json` file should point to your Supex installation:
+`claude mcp add --scope project` (see above) produces a `.mcp.json` equivalent to:
 
 ```json
 {
   "mcpServers": {
     "supex": {
-      "command": "/path/to/supex/mcp"
+      "type": "stdio",
+      "command": "/path/to/supex/mcp",
+      "env": { "SUPEX_WORKSPACE": "/path/to/my-project" }
     }
   }
 }
 ```
 
-Add `.mcp.json` to `.gitignore` since paths vary per developer.
+Other MCP clients take the same command and environment variable (for example `gemini mcp add` or
+`codex mcp add`). Add `.mcp.json` to `.gitignore` since paths vary per developer.
 
 ## Creating New Examples
 
