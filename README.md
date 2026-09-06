@@ -156,7 +156,7 @@ Run tests and linters from the repository root:
 # Run E2E tests only (requires SketchUp running)
 ./test --e2e
 
-# Run all linters (RuboCop, ruff, mypy)
+# Run all linters (RuboCop, ruff, mypy, rustfmt, clippy)
 ./scripts/lint.sh
 
 # Rebuild Rust binaries (VCAD sidecar, viewer)

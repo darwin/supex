@@ -1,17 +1,15 @@
 use crate::adt_cache::AdtCache;
 use crate::dae_export::{brep_to_dae, mesh_to_dae};
-use crate::imports::{build_import_preamble, ResolvedImport};
-use loon_lang::interp::{
-    eval_program_with_env_and_base_dir, Env, Value,
-};
+use crate::imports::{ResolvedImport, build_import_preamble};
+use loon_lang::interp::{Env, Value, eval_program_with_env_and_base_dir};
 use loon_lang::parser::parse;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use vcad_eval::{evaluate_document, EvalOptions};
+use vcad_eval::{EvalOptions, evaluate_document};
 use vcad_ir::Document;
 use vcad_kernel_tessellate::TessellationParams;
-use vcad_loon::{value_to_document, VCAD_LIB_SOURCE};
+use vcad_loon::{VCAD_LIB_SOURCE, value_to_document};
 
 struct TempRetention {
     ttl_sec: u64,
@@ -240,6 +238,7 @@ impl Evaluator {
     /// - `export_mesh`: tessellate + DAE export to disk
     ///
     /// BRep conversion is skipped when `!inspect && !export_mesh` (REPL/display path).
+    #[allow(clippy::too_many_arguments)]
     pub fn eval_with_imports(
         &mut self,
         transformed_source: &str,
@@ -267,14 +266,21 @@ impl Evaluator {
                 if let Some(ref mesh_data) = import.native_mesh {
                     // Native SketchUp solid: build ImportedMesh ADT from mesh data
                     let positions = Value::Vec(
-                        mesh_data.positions.iter().map(|&v| Value::Float(v)).collect(),
+                        mesh_data
+                            .positions
+                            .iter()
+                            .map(|&v| Value::Float(v))
+                            .collect(),
                     );
                     let indices = Value::Vec(
-                        mesh_data.indices.iter().map(|&v| Value::Int(v as i64)).collect(),
+                        mesh_data
+                            .indices
+                            .iter()
+                            .map(|&v| Value::Int(v as i64))
+                            .collect(),
                     );
-                    let normals = Value::Vec(
-                        mesh_data.normals.iter().map(|&v| Value::Float(v)).collect(),
-                    );
+                    let normals =
+                        Value::Vec(mesh_data.normals.iter().map(|&v| Value::Float(v)).collect());
                     let mesh_value = Value::Adt(
                         "ImportedMesh".to_string(),
                         vec![positions, indices, normals],
@@ -313,15 +319,18 @@ impl Evaluator {
         };
 
         // B. Cache ADT
-        if cache_adt {
-            if let Some(nid) = node_id {
-                self.adt_cache.set(nid, result_value.clone());
-            }
+        if cache_adt && let Some(nid) = node_id {
+            self.adt_cache.set(nid, result_value.clone());
         }
 
         // C. Module tracking paths
         let module_paths = if track_modules {
-            Some(loaded_paths.iter().map(|p| p.to_string_lossy().into_owned()).collect())
+            Some(
+                loaded_paths
+                    .iter()
+                    .map(|p| p.to_string_lossy().into_owned())
+                    .collect(),
+            )
         } else {
             None
         };
@@ -401,7 +410,12 @@ impl Evaluator {
             let dae = brep_to_dae(brep, &params);
             (dae.into_bytes(), "dae")
         } else {
-            (mesh_to_dae(&part.mesh).map_err(EvalError::MeshMalformed)?.into_bytes(), "dae")
+            (
+                mesh_to_dae(&part.mesh)
+                    .map_err(EvalError::MeshMalformed)?
+                    .into_bytes(),
+                "dae",
+            )
         };
         let mesh_path = self.next_artifact_path(name, ext)?;
         let manifest_path = Self::manifest_path_for_mesh(&mesh_path, &self.temp_dir)?;
@@ -513,40 +527,38 @@ impl Evaluator {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) == Some("pending") {
                 // Read marker to find associated files
-                if let Ok(content) = std::fs::read_to_string(&path) {
-                    if let Ok(marker) = serde_json::from_str::<serde_json::Value>(&content) {
-                        // Clean up tmp files referenced in the marker
-                        if let Some(mesh_path) = marker.get("mesh_path").and_then(|v| v.as_str()) {
-                            let mesh = PathBuf::from(mesh_path);
-                            if is_inside_root(&mesh, &self.temp_dir) {
-                                let tmp_ext =
-                                    mesh.extension().and_then(|s| s.to_str()).unwrap_or("dae");
-                                std::fs::remove_file(
-                                    mesh.with_extension(format!("{tmp_ext}.tmp")),
-                                )
+                if let Ok(content) = std::fs::read_to_string(&path)
+                    && let Ok(marker) = serde_json::from_str::<serde_json::Value>(&content)
+                {
+                    // Clean up tmp files referenced in the marker
+                    if let Some(mesh_path) = marker.get("mesh_path").and_then(|v| v.as_str()) {
+                        let mesh = PathBuf::from(mesh_path);
+                        if is_inside_root(&mesh, &self.temp_dir) {
+                            let tmp_ext =
+                                mesh.extension().and_then(|s| s.to_str()).unwrap_or("dae");
+                            std::fs::remove_file(mesh.with_extension(format!("{tmp_ext}.tmp")))
                                 .ok();
-                                // Remove half-published files too
-                                std::fs::remove_file(&mesh).ok();
-                            } else {
-                                tracing::warn!(
-                                    "Recovery: skipping mesh path outside temp root: {}",
-                                    mesh.display()
-                                );
-                            }
+                            // Remove half-published files too
+                            std::fs::remove_file(&mesh).ok();
+                        } else {
+                            tracing::warn!(
+                                "Recovery: skipping mesh path outside temp root: {}",
+                                mesh.display()
+                            );
                         }
-                        if let Some(manifest_path) =
-                            marker.get("manifest_path").and_then(|v| v.as_str())
-                        {
-                            let manifest = PathBuf::from(manifest_path);
-                            if is_inside_root(&manifest, &self.temp_dir) {
-                                std::fs::remove_file(manifest.with_extension("json.tmp")).ok();
-                                std::fs::remove_file(&manifest).ok();
-                            } else {
-                                tracing::warn!(
-                                    "Recovery: skipping manifest path outside temp root: {}",
-                                    manifest.display()
-                                );
-                            }
+                    }
+                    if let Some(manifest_path) =
+                        marker.get("manifest_path").and_then(|v| v.as_str())
+                    {
+                        let manifest = PathBuf::from(manifest_path);
+                        if is_inside_root(&manifest, &self.temp_dir) {
+                            std::fs::remove_file(manifest.with_extension("json.tmp")).ok();
+                            std::fs::remove_file(&manifest).ok();
+                        } else {
+                            tracing::warn!(
+                                "Recovery: skipping manifest path outside temp root: {}",
+                                manifest.display()
+                            );
                         }
                     }
                 }
@@ -602,10 +614,10 @@ fn is_inside_root(candidate: &Path, root: &Path) -> bool {
         return canonical.starts_with(&canonical_root);
     }
     // For non-existing files, canonicalize the parent directory
-    if let Some(parent) = candidate.parent() {
-        if let Ok(canonical_parent) = parent.canonicalize() {
-            return canonical_parent.starts_with(&canonical_root);
-        }
+    if let Some(parent) = candidate.parent()
+        && let Ok(canonical_parent) = parent.canonicalize()
+    {
+        return canonical_parent.starts_with(&canonical_root);
     }
     false
 }
@@ -746,7 +758,10 @@ mod tests {
         assert_eq!(Evaluator::sanitize_artifact_name("hello"), "hello");
         assert_eq!(Evaluator::sanitize_artifact_name("my file"), "my_file");
         assert_eq!(Evaluator::sanitize_artifact_name("a/b/../c"), "a_b____c");
-        assert_eq!(Evaluator::sanitize_artifact_name("test-file_1"), "test-file_1");
+        assert_eq!(
+            Evaluator::sanitize_artifact_name("test-file_1"),
+            "test-file_1"
+        );
     }
 
     #[test]
@@ -785,9 +800,11 @@ mod tests {
         let result = Evaluator::manifest_path_for_mesh(&mesh_path, temp.path());
         assert!(result.is_ok());
         let manifest_path = result.unwrap();
-        assert!(manifest_path
-            .to_string_lossy()
-            .contains("test-00000000000000000001.manifest.json"));
+        assert!(
+            manifest_path
+                .to_string_lossy()
+                .contains("test-00000000000000000001.manifest.json")
+        );
     }
 
     #[test]
@@ -838,7 +855,11 @@ mod tests {
             .flatten()
             .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("dae"))
             .count();
-        assert!(mesh_count <= 3, "Expected <= 3 mesh files, got {}", mesh_count);
+        assert!(
+            mesh_count <= 3,
+            "Expected <= 3 mesh files, got {}",
+            mesh_count
+        );
     }
 
     #[test]
@@ -867,10 +888,12 @@ mod tests {
         let _evaluator = Evaluator::new(temp.path().to_path_buf(), 3600, 500, 256);
 
         // Pending marker should be gone
-        assert!(!temp
-            .path()
-            .join("eval-00000000000000000001.pair.pending")
-            .exists());
+        assert!(
+            !temp
+                .path()
+                .join("eval-00000000000000000001.pair.pending")
+                .exists()
+        );
         // Tmp files should be gone
         assert!(!mesh_path.with_extension("dae.tmp").exists());
         assert!(!manifest_path.with_extension("json.tmp").exists());
@@ -891,8 +914,13 @@ mod tests {
 [cube 10.0 10.0 10.0]"#;
 
         let imports = std::collections::HashMap::new();
-        let result = evaluator.eval_with_imports(source, None, &imports, None, false, false, false, false, true);
-        assert!(result.is_err(), "raw [import ...] must fail during evaluation");
+        let result = evaluator.eval_with_imports(
+            source, None, &imports, None, false, false, false, false, true,
+        );
+        assert!(
+            result.is_err(),
+            "raw [import ...] must fail during evaluation"
+        );
     }
 
     #[test]
@@ -953,11 +981,7 @@ mod tests {
     #[test]
     fn test_validate_mesh_arrays_valid() {
         // Valid mesh
-        assert!(validate_mesh_arrays(
-            &[0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
-            &[0, 1, 0]
-        )
-        .is_ok());
+        assert!(validate_mesh_arrays(&[0.0, 1.0, 2.0, 3.0, 4.0, 5.0], &[0, 1, 0]).is_ok());
 
         // Empty mesh
         assert!(validate_mesh_arrays(&[], &[]).is_ok());

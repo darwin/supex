@@ -67,10 +67,10 @@ impl FileWatcher {
 
     /// Stop watching. Idempotent.
     pub fn stop(&mut self) {
-        if let Some(ref mut w) = self.watcher {
-            if let Some(ref dir) = self.watch_dir {
-                let _ = w.unwatch(dir);
-            }
+        if let Some(ref mut w) = self.watcher
+            && let Some(ref dir) = self.watch_dir
+        {
+            let _ = w.unwatch(dir);
         }
         self.watcher = None;
         self.watch_dir = None;

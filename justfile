@@ -19,6 +19,6 @@ clear-rust-caches:
     cargo clean --manifest-path vcad/sidecar/Cargo.toml
     cargo clean --manifest-path vcad/viewer/src-tauri/Cargo.toml
 
-# Run all linters (RuboCop, ruff, mypy)
+# Run all linters (RuboCop, ruff, mypy, rustfmt, clippy)
 lint:
     ./scripts/lint.sh

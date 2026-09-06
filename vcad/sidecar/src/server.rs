@@ -9,7 +9,7 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
 const PROTOCOL_VERSION: &str = "1.0";
 const SIDECAR_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -524,18 +524,41 @@ fn dispatch_tools_call(
                 serde_json::from_value(raw_imports).unwrap_or_default();
 
             // Parse bool flags with defaults for eval_with_imports
-            let display = arguments.get("display").and_then(|v| v.as_bool()).unwrap_or(false);
-            let cache_adt = arguments.get("cache_adt").and_then(|v| v.as_bool()).unwrap_or(false);
-            let track_modules = arguments.get("track_modules").and_then(|v| v.as_bool()).unwrap_or(false);
-            let export_mesh = arguments.get("export_mesh").and_then(|v| v.as_bool()).unwrap_or(true);
+            let display = arguments
+                .get("display")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let cache_adt = arguments
+                .get("cache_adt")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let track_modules = arguments
+                .get("track_modules")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            let export_mesh = arguments
+                .get("export_mesh")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
 
             // Backwards compatibility: inspect_only=true → inspect=true, export_mesh=false
-            let inspect = if arguments.get("inspect_only").and_then(|v| v.as_bool()).unwrap_or(false) {
+            let inspect = if arguments
+                .get("inspect_only")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+            {
                 true
             } else {
-                arguments.get("inspect").and_then(|v| v.as_bool()).unwrap_or(false)
+                arguments
+                    .get("inspect")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
             };
-            let export_mesh = if arguments.get("inspect_only").and_then(|v| v.as_bool()).unwrap_or(false) {
+            let export_mesh = if arguments
+                .get("inspect_only")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+            {
                 false
             } else {
                 export_mesh
@@ -854,17 +877,14 @@ fn dispatch_eval(
             ) {
                 Ok(result) => {
                     // Record module dependencies in the tracker
-                    if *track_modules {
-                        if let Some(nid) = node_id.as_deref() {
-                            if let Some(ref paths) = result.loaded_module_paths {
-                                let path_bufs: Vec<std::path::PathBuf> = paths
-                                    .iter()
-                                    .map(std::path::PathBuf::from)
-                                    .collect();
-                                if let Ok(mut tracker) = module_tracker.lock() {
-                                    tracker.record_evaluation(nid, path_bufs);
-                                }
-                            }
+                    if *track_modules
+                        && let Some(nid) = node_id.as_deref()
+                        && let Some(ref paths) = result.loaded_module_paths
+                    {
+                        let path_bufs: Vec<std::path::PathBuf> =
+                            paths.iter().map(std::path::PathBuf::from).collect();
+                        if let Ok(mut tracker) = module_tracker.lock() {
+                            tracker.record_evaluation(nid, path_bufs);
                         }
                     }
                     eval_result_response(id.clone(), &result)
@@ -1061,22 +1081,6 @@ mod tests {
                 "pid": std::process::id(),
                 "protocol_version": PROTOCOL_VERSION,
                 "token": token
-            }
-        })
-    }
-
-    fn hello_request_with_workspace(id: u64, workspace: &str) -> serde_json::Value {
-        serde_json::json!({
-            "jsonrpc": "2.0",
-            "id": id,
-            "method": "hello",
-            "params": {
-                "name": "test-client",
-                "version": "0.1.0",
-                "agent": "test",
-                "pid": std::process::id(),
-                "protocol_version": PROTOCOL_VERSION,
-                "workspace": workspace
             }
         })
     }
@@ -1377,13 +1381,12 @@ mod tests {
                 serde_json::json!({ "transformed_source": "[cube 1.0 1.0 1.0]" }),
             );
             let resp = send_request(&mut stream1, &req);
-            if let Some(error) = resp.get("error") {
-                if let Some(data) = error.get("data") {
-                    if data.get("error_code").and_then(|v| v.as_str()) == Some("VCAD_QUEUE_FULL") {
-                        got_queue_full = true;
-                        break;
-                    }
-                }
+            if let Some(error) = resp.get("error")
+                && let Some(data) = error.get("data")
+                && data.get("error_code").and_then(|v| v.as_str()) == Some("VCAD_QUEUE_FULL")
+            {
+                got_queue_full = true;
+                break;
             }
         }
 
@@ -1416,14 +1419,14 @@ mod tests {
             resp.get("result").is_some() || resp.get("error").is_some(),
             "Expected result or error"
         );
-        if let Some(error) = resp.get("error") {
-            if let Some(data) = error.get("data") {
-                let code = data
-                    .get("error_code")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                assert_eq!(code, "VCAD_EVAL_TIMEOUT");
-            }
+        if let Some(error) = resp.get("error")
+            && let Some(data) = error.get("data")
+        {
+            let code = data
+                .get("error_code")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            assert_eq!(code, "VCAD_EVAL_TIMEOUT");
         }
 
         shutdown.store(true, Ordering::SeqCst);
@@ -1444,7 +1447,10 @@ mod tests {
                 serde_json::json!({ "path": "/some/file.cmp.oo" }),
             ),
         );
-        assert!(resp.get("error").is_some(), "vcad.eval_file should be unknown");
+        assert!(
+            resp.get("error").is_some(),
+            "vcad.eval_file should be unknown"
+        );
 
         shutdown.store(true, Ordering::SeqCst);
     }

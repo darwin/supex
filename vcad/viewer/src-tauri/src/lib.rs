@@ -30,7 +30,6 @@ type ObjResult = (Vec<f32>, Vec<u32>, Vec<f32>);
 /// - `f v1 v2 v3` — face with position indices only
 /// - `f v1//n1 v2//n2 v3//n3` — face with position and normal indices
 /// - `f v1/t1/n1 v2/t2/n2 v3/t3/n3` — face with position, texcoord, and normal indices
-
 pub fn parse_obj(content: &str) -> Result<ObjResult, String> {
     let mut positions: Vec<[f32; 3]> = Vec::new();
     let mut normals: Vec<[f32; 3]> = Vec::new();
@@ -79,11 +78,11 @@ pub fn parse_obj(content: &str) -> Result<ObjResult, String> {
                         }
                         let p = positions[vi];
                         out_positions.extend_from_slice(&p);
-                        if let Some(ni) = ni {
-                            if ni < normals.len() {
-                                let n = normals[ni];
-                                out_normals.extend_from_slice(&n);
-                            }
+                        if let Some(ni) = ni
+                            && ni < normals.len()
+                        {
+                            let n = normals[ni];
+                            out_normals.extend_from_slice(&n);
                         }
                         vertex_map.insert(key, idx);
                         idx
@@ -286,8 +285,8 @@ fn extract_dae_int_array(content: &str, tag: &str) -> Result<Vec<usize>, String>
 
 #[tauri::command]
 fn load_mesh(path: String) -> Result<MeshData, String> {
-    let content = std::fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
 
     let is_dae = path.ends_with(".dae");
     let (positions, indices, normals) = if is_dae {
@@ -326,16 +325,13 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_dae, parse_obj, MeshData, MeshMaterial};
+    use crate::{MeshData, MeshMaterial, parse_dae, parse_obj};
 
     #[test]
     fn test_parse_obj_simple_triangle() {
         let obj = "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
         let (positions, indices, normals) = parse_obj(obj).unwrap();
-        assert_eq!(
-            positions,
-            vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]
-        );
+        assert_eq!(positions, vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]);
         assert_eq!(indices, vec![0, 1, 2]);
         assert!(normals.is_empty());
     }
@@ -349,10 +345,7 @@ mod tests {
         let (positions, indices, normals) = parse_obj(obj).unwrap();
         assert_eq!(positions.len(), 9);
         assert_eq!(indices, vec![0, 1, 2]);
-        assert_eq!(
-            normals,
-            vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0]
-        );
+        assert_eq!(normals, vec![0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0]);
     }
 
     #[test]

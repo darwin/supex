@@ -3,7 +3,7 @@ use vcad_eval::EvaluatedMesh;
 use vcad_kernel_geom::{GeometryStore, SurfaceKind};
 use vcad_kernel_math::{Point2, Vec3};
 use vcad_kernel_primitives::BRepSolid;
-use vcad_kernel_tessellate::{tessellate_face, TessellationParams};
+use vcad_kernel_tessellate::{TessellationParams, tessellate_face};
 use vcad_kernel_topo::{Orientation, Topology};
 
 /// Convert a BRep solid to COLLADA (.dae) XML text.
@@ -95,7 +95,7 @@ fn emit_planar_polygon(
         geom_normal.z += (curr.x - next.x) * (curr.y + next.y);
     }
 
-    let dot = geom_normal.dot(&expected_normal);
+    let dot = geom_normal.dot(expected_normal);
     let winding_matches = dot > 0.0;
     let need_flip = !winding_matches;
 
@@ -265,7 +265,7 @@ fn build_collada_xml(positions: &[f64], vcount: &[usize], indices: &[usize]) -> 
     );
 
     // polylist
-    write!(xml, "        <polylist count=\"{}\">\n", num_faces).unwrap();
+    writeln!(xml, "        <polylist count=\"{}\">", num_faces).unwrap();
     xml.push_str(
         "          <input semantic=\"VERTEX\" source=\"#mesh0-vertices\" offset=\"0\"/>\n",
     );

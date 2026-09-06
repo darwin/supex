@@ -129,15 +129,14 @@ fn collect_imports_with_spans(
     for expr in exprs {
         if let ExprKind::List(items) = &expr.kind {
             // Check for bare [import ...] at top level
-            if !items.is_empty() {
-                if let ExprKind::Symbol(s) = &items[0].kind {
-                    if s == "import" {
-                        return Err(
-                            "IMPORT_FORM_INVALID: [import] must appear as the value in a [let ...] binding"
-                                .to_string(),
-                        );
-                    }
-                }
+            if !items.is_empty()
+                && let ExprKind::Symbol(s) = &items[0].kind
+                && s == "import"
+            {
+                return Err(
+                    "IMPORT_FORM_INVALID: [import] must appear as the value in a [let ...] binding"
+                        .to_string(),
+                );
             }
 
             if items.len() < 3 {
@@ -314,15 +313,14 @@ fn check_no_bare_imports(items: &[Expr]) -> Result<(), String> {
 /// Recursively check that [import ...] doesn't appear in unexpected positions.
 fn check_no_bare_imports_expr(expr: &Expr) -> Result<(), String> {
     if let ExprKind::List(items) = &expr.kind {
-        if !items.is_empty() {
-            if let ExprKind::Symbol(s) = &items[0].kind {
-                if s == "import" {
-                    return Err(
-                        "IMPORT_FORM_INVALID: [import] must appear as the value in a [let ...] binding"
-                            .to_string(),
-                    );
-                }
-            }
+        if !items.is_empty()
+            && let ExprKind::Symbol(s) = &items[0].kind
+            && s == "import"
+        {
+            return Err(
+                "IMPORT_FORM_INVALID: [import] must appear as the value in a [let ...] binding"
+                    .to_string(),
+            );
         }
         for item in items {
             check_no_bare_imports_expr(item)?;
@@ -683,7 +681,11 @@ mod tests {
 [cube 10.0 10.0 10.0]"#;
 
         let result = extract_and_rewrite_imports(source).unwrap();
-        assert_eq!(result.imports.len(), 1, "only the uncommented import is extracted");
+        assert_eq!(
+            result.imports.len(),
+            1,
+            "only the uncommented import is extracted"
+        );
         assert_eq!(result.imports[0].extracts, vec!["dims"]);
         assert_eq!(result.imports[0].selector, "entity:222");
         // The commented line stays in source text but is not extracted as an import

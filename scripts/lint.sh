@@ -39,6 +39,19 @@ echo ""
 echo "--- Python: driver (mypy) ---"
 uv run mypy src/
 
+# Rust linting - sidecar and viewer backend (release profile matches what SketchUp loads)
+echo ""
+echo "--- Rust: sidecar (fmt + clippy) ---"
+cd "$PROJECT_ROOT/vcad/sidecar"
+cargo fmt --check
+cargo clippy --release --all-targets --quiet -- -D warnings
+
+echo ""
+echo "--- Rust: viewer backend (fmt + clippy) ---"
+cd "$PROJECT_ROOT/vcad/viewer/src-tauri"
+cargo fmt --check
+cargo clippy --all-targets --quiet -- -D warnings
+
 # Markdown docs
 echo ""
 echo "--- Markdown: docs ---"
