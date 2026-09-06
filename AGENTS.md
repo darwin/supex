@@ -233,7 +233,8 @@ Available sources: `mcp-protocol`, `mcp-stderr`, `cli-driver`, `cli-stdout`, `cl
 
 ## Agent Prompts Convention
 
-User projects symlink `docs/agents/guide/` as `supex-guide/` in their project root. Therefore:
+User projects symlink `docs/agents/guide/` as `supex-guide/` in their project root, so the guide is read from two locations. Therefore:
 
-- Files in `docs/agents/guide/` (README.md, workflow.md, etc.) should reference paths as `supex-guide/...`
+- Files in `docs/agents/guide/` reference each other and the symlinked `api/`, `stdlib/` and `cad-lib/` directories by bare relative paths (`ruby.md`, `stdlib/README.md`), which resolve both in this repository and through the `supex-guide/` symlink
+- Do not use repository-relative paths (`docs/...`) inside the guide; anything outside `docs/agents/guide/` is not reachable from a user project
 - The exception is `docs/agents/README.md` which uses repository-relative paths because it describes this repository's structure for human readers, not agent consumption
