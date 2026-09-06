@@ -108,7 +108,7 @@ If neither `SUPEX_VCAD_TEMP_DIR` nor `SUPEX_WORKSPACE` is set, sidecar startup f
 
 All logs are written under a single canonical root: `$SUPEX_WORKSPACE/.tmp/logs/`
 
-The `supex`, `mcp` and `vcad-sidecar` wrappers honor `$SUPEX_LOG_DIR` as an override; `scripts/launch-sketchup.sh` always writes the `runtime-*` logs under the canonical root.
+The `supex`, `mcp` and `vcad-sidecar` wrappers and `scripts/launch-sketchup.sh` all honor `$SUPEX_LOG_DIR` as an override.
 
 - `cli-stdout.log`
 - `cli-stderr.log`

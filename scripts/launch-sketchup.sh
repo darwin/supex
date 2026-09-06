@@ -33,7 +33,7 @@ fi
 # Configuration
 APP_NAME="SketchUp"
 export SUPEX_WORKSPACE="${SUPEX_WORKSPACE:-$(pwd)}"
-LOG_DIR="$SUPEX_WORKSPACE/.tmp/logs"
+LOG_DIR="${SUPEX_LOG_DIR:-$SUPEX_WORKSPACE/.tmp/logs}"
 SKETCHUP_OUT_FILE="$LOG_DIR/runtime-stdout.log"
 SKETCHUP_ERR_FILE="$LOG_DIR/runtime-stderr.log"
 CONSOLE_LOG_FILE="$LOG_DIR/runtime-console.log"
