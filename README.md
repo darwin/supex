@@ -11,6 +11,7 @@ By the end of this tutorial, you'll know how to:
 - Write and execute Ruby scripts to create 3D geometry
 - Use introspection tools to verify your models
 - Save and iterate on your designs
+- Try parametric VCAD geometry in the playground
 - Start your own SketchUp automation projects
 
 ## Prerequisites
@@ -24,7 +25,7 @@ Download from [sketchup.com](https://www.sketchup.com) if you haven't already.
 **Verify installation:**
 - Can you launch SketchUp?
 - Is it version 2026? (Check SketchUp → About SketchUp)
-- Note: Only latest SketchUp is tested (project is experimental)
+- Note: Only the latest SketchUp is tested (project is experimental)
 
 ### 2. AI Coding Agent
 
@@ -39,33 +40,35 @@ You need one of these [MCP](https://modelcontextprotocol.io)-compatible AI agent
 **Codex CLI** - Install from [github.com/openai/codex](https://github.com/openai/codex)
 - Verify: `codex --version`
 
-### 3. Supex Installation
+### 3. Supex Checkout
 
-You should have cloned or downloaded the Supex repository.
+Clone Supex with its submodules (the VCAD part of this tutorial needs them):
+
+```bash
+git clone --recurse-submodules https://github.com/darwin/supex.git
+```
 
 **Verify you have Supex:**
 ```bash
-# Check if you have the Supex directory
 ls /path/to/supex/mcp  # Should show the mcp wrapper script
 ```
 
+Throughout this tutorial, replace `/path/to/supex` with the actual path to your Supex checkout.
+
 ### 4. Ruby Environment (Optional)
 
-This project uses Ruby 3.2.2 to match SketchUp 2026 runtime. If you use [mise](https://mise.jdx.dev/):
+This project pins Ruby 3.2.2 in `.ruby-version` to match the interpreter bundled with SketchUp 2026. You only need a local Ruby to run RuboCop on the scripts (`just lint`); SketchUp runs the scripts with its own Ruby. Any version manager that reads `.ruby-version` (rbenv, mise, chruby) will pick the right version:
 
 ```bash
-# mise will automatically use Ruby 3.2.2 from mise.toml
-mise install
+bundle install
+just lint
 ```
 
-## Step 1: Install Supex Extension in SketchUp
+## Step 1: Launch SketchUp with the Supex Extension
 
-### For Testing/Development
-
-If you're using Supex from the repository:
+The development launcher loads the extension directly from the Supex sources (no `.rbz` building required):
 
 ```bash
-# From the Supex repository root
 cd /path/to/supex
 ./scripts/launch-sketchup.sh
 ```
@@ -73,38 +76,64 @@ cd /path/to/supex
 This will:
 - Validate the extension sources
 - Launch SketchUp with the Supex extension loaded
-- The extension will start a socket server (port 9876)
+- Start the bridge server on `127.0.0.1:9876`
 
 **Verify the extension loaded:**
 1. SketchUp should launch
-2. Look for "Supex Runtime" in the Ruby Console
-3. You should see "Socket server started on port 9876"
+2. Open the Ruby Console (Window → Ruby Console)
+3. You should see `Supex: Bridge server started on 127.0.0.1:9876`
 
 If you see any errors, check the [Troubleshooting](#troubleshooting) section below.
 
-## Step 2: Configure Your AI Agent
+## Step 2: Link the Supex Agent Guide
 
-This project supports **Claude Code**, **Gemini CLI**, and **Codex CLI**. Configure whichever you prefer.
+`AGENTS.md` (the instructions your agent reads) points to `supex-guide/` for the Supex workflow rules, MCP tool reference, stdlib and SketchUp API docs. The guide lives in the Supex checkout, so link it into the project:
+
+```bash
+# From the project directory
+ln -s /path/to/supex/docs/agents/guide supex-guide
+```
+
+The symlink is listed in `.gitignore` because the path differs per developer. `CLAUDE.md` and `GEMINI.md` are symlinks to `AGENTS.md`, so all three agents read the same instructions; Codex CLI reads `AGENTS.md` natively.
+
+**Verify:** `ls supex-guide/README.md` should print the path.
+
+## Step 3: Configure Your AI Agent
+
+This project supports **Claude Code**, **Gemini CLI**, and **Codex CLI**. Configure whichever you prefer. All of them start the MCP server automatically - you don't need to run anything manually.
+
+Supex needs to know your project directory: it is the **workspace** that relative file paths (`src/create_table.rb`, `model.skp`) resolve against and where logs and screenshots land (`.tmp/`). Pass it as the `SUPEX_WORKSPACE` environment variable. If the variable is missing, the `mcp` wrapper falls back to the directory the agent started the server in, which is normally the project directory.
 
 ### Claude Code
 
-Configure the MCP server locally (stored in `~/.claude.json` under this project's path):
+Register the server in the project scope. This writes `.mcp.json` into the project directory (listed in `.gitignore`):
 
 ```bash
-claude mcp add supex /absolute/path/to/supex/mcp \
-  --scope local \
-  --transport stdio \
-  -e SUPEX_WORKSPACE="$(pwd)"
+claude mcp add --scope project --transport stdio supex \
+  -e SUPEX_WORKSPACE="$(pwd)" \
+  -- /path/to/supex/mcp
 ```
 
-The `SUPEX_WORKSPACE` environment variable tells Supex where your project is located. This enables relative path resolution for `eval_ruby_file` and other file operations.
+Equivalent `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "supex": {
+      "type": "stdio",
+      "command": "/path/to/supex/mcp",
+      "env": { "SUPEX_WORKSPACE": "/path/to/example-simple-table" }
+    }
+  }
+}
+```
+
+Claude Code asks you to approve project-scoped servers the first time you open the project.
 
 ### Gemini CLI
 
-Configure the MCP server locally (stored in `~/.gemini/settings.json`):
-
 ```bash
-gemini mcp add supex /absolute/path/to/supex/mcp \
+gemini mcp add supex /path/to/supex/mcp \
   --scope user \
   --transport stdio \
   -e SUPEX_WORKSPACE="$(pwd)"
@@ -112,56 +141,29 @@ gemini mcp add supex /absolute/path/to/supex/mcp \
 
 ### Codex CLI
 
-Configure the MCP server globally (stored in `~/.codex/`):
-
 ```bash
 codex mcp add supex \
   --env SUPEX_WORKSPACE="$(pwd)" \
-  -- /absolute/path/to/supex/mcp
+  -- /path/to/supex/mcp
 ```
 
-Generate the instructions file (Codex doesn't support `@` syntax):
+### Optional: Supex CLI
+
+The `supex` CLI lets you talk to SketchUp from the shell without an agent. It uses `~/.supex/tmp-workspace` as its workspace unless you tell it otherwise, so pass the project directory explicitly:
 
 ```bash
-./scripts/generate-agents-override.sh
+SUPEX_WORKSPACE="$(pwd)" /path/to/supex/supex status
 ```
 
-This creates `AGENTS.override.md` with resolved references.
-
-**Important**: Replace `/absolute/path/to/supex/mcp` with the actual absolute path to the `mcp` file in your Supex installation.
-
-### Create Symlink for Shared Instructions
-
-The project uses shared Supex instructions from the main repository. Due to security restrictions in some AI agents (Gemini CLI doesn't allow `..` in file references), you need to create a symlink:
-
-```bash
-# From the project directory
-ln -s ../supex/examples/SUPEX-AGENTS.md SUPEX-AGENTS.md
-```
-
-**Note**: Adjust the path if your Supex installation is in a different location. The symlink must point to `SUPEX-AGENTS.md` in the Supex `examples/` directory.
-
-### Optional: Symlink Supex CLI Tool
-
-For convenience, you can symlink the `supex` CLI tool to your project root:
-
-```bash
-# From the project directory
-ln -s /path/to/supex/supex supex
-```
-
-This allows you to run commands like `./supex status` directly from your project without specifying the full path.
+The `supex` symlink name is listed in `.gitignore` if you prefer `ln -s /path/to/supex/supex supex`.
 
 ### Verify Configuration
 
-Both agents automatically start the MCP server - you don't need to run anything manually.
-
-To verify it's working:
 1. Open your AI agent in this project directory
-2. The MCP server should automatically connect
-3. You should have access to Supex tools like `check_status`
+2. Ask it to call `check_status`
+3. The response should show the SketchUp connection as connected (the VCAD sidecar and viewer may be reported as not running yet; that is fine until Step 7)
 
-## Step 3: Create Your First Model
+## Step 4: Create Your First Model
 
 Now you're ready to create your first 3D model! Let's build a simple table.
 
@@ -169,41 +171,44 @@ Now you're ready to create your first 3D model! Let's build a simple table.
 
 ```
 example-simple-table/
-├── AGENTS.md                    # Shared AI agent instructions
-├── AGENTS.override.md           # Generated for Codex CLI (run script)
-├── CLAUDE.md                    # Claude Code entry point
-├── GEMINI.md                    # Gemini CLI entry point
-├── SUPEX-AGENTS.md              # Symlink to supex/examples/ (create this)
-├── README.md                    # This file
-├── mise.toml                    # Ruby version (3.2.2 for SketchUp 2026)
-├── Gemfile                      # Ruby dependencies
-├── scripts/
-│   └── generate-agents-override.sh  # Generate AGENTS.override.md
-└── src/
-    ├── helpers.rb               # Shared utilities
-    ├── create_table.rb          # Table creation functions
-    ├── add_decorations.rb       # Decoration functions
-    └── add_vase.rb              # Vase creation functions
+├── AGENTS.md                # Shared AI agent instructions
+├── CLAUDE.md                # Symlink to AGENTS.md (Claude Code)
+├── GEMINI.md                # Symlink to AGENTS.md (Gemini CLI)
+├── README.md                # This file
+├── .ruby-version            # Ruby 3.2.2 (matches SketchUp 2026)
+├── Gemfile                  # Ruby dependencies (RuboCop, API stubs)
+├── justfile                 # `just lint`
+├── supex-guide/             # Symlink to supex/docs/agents/guide (create it, Step 2)
+├── src/
+│   ├── helpers.rb           # Module definition, constants, cleanup utilities
+│   ├── sketchup_extensions.rb  # Chainable .move_to / .rotate on Group
+│   ├── create_table.rb      # Table creation (top + legs)
+│   ├── add_decorations.rb   # Decorative trim for the table edges
+│   └── add_vase.rb          # Ceramic vase (Follow Me revolution)
+└── playground/
+    └── examples/            # VCAD parametric parts (*.cmp.oo)
 ```
 
-### Execute the Table Script
+### Load and Run the Table Script
 
-The scripts use a **modular architecture** with the `SupexSimpleTable` module. To create a table, call the example method:
+The scripts define the `SupexSimpleTable` module. Each script loads its own dependencies via `require_relative`, so loading `create_table.rb` also pulls in `helpers.rb` and `sketchup_extensions.rb`.
 
 In your AI agent, ask:
 
 ```
-Call SupexSimpleTable.example_table to create a table in SketchUp
+Load src/create_table.rb and call SupexSimpleTable.example_table
 ```
 
-Or use the Ruby eval tool directly:
+The agent will use the Supex tools directly:
+
 ```ruby
-SupexSimpleTable.example_table
+eval_ruby_file('src/create_table.rb')   # relative to the project root (workspace)
+SupexSimpleTable.example_table          # via eval_ruby
 ```
 
 **What happens:**
-1. Your AI agent sends the command to the MCP server
-2. MCP server forwards it to SketchUp
+1. Your AI agent sends the commands to the MCP server
+2. The MCP server forwards them to SketchUp
 3. SketchUp executes the `example_table` orchestration method
 4. A table with 4 legs appears in your model!
 
@@ -217,15 +222,7 @@ Check what was created using introspection tools:
 get_model_info()
 ```
 
-This returns entity counts:
-```json
-{
-  "faces": 30,
-  "edges": 120,
-  "groups": 5,
-  "component_instances": 0
-}
-```
+This returns the model title, units and entity counts (faces, edges, groups, component instances).
 
 Take a screenshot to see the visual result:
 
@@ -233,38 +230,28 @@ Take a screenshot to see the visual result:
 take_screenshot()
 ```
 
-This saves a screenshot to `_tmp/screenshots/` and returns the file path.
+This saves a screenshot to `.tmp/screenshots/` in the project and returns the file path.
 
-**Note**: The tool returns just the file path (saves tokens). Only use `Read` on the screenshot if you need to see it.
+**Note**: The tool returns just the file path (saves tokens). Only read the screenshot if you need to see it.
 
 ### Inspect the Geometry
 
-See what groups were created:
+See what groups were created at the root of the model:
 
 ```
 list_entities('groups')
 ```
 
-This shows:
-```json
-[
-  {"name": "Table Top", "visible": true, "layer": "Layer0"},
-  {"name": "Leg 1", "visible": true, "layer": "Layer0"},
-  {"name": "Leg 2", "visible": true, "layer": "Layer0"},
-  {"name": "Leg 3", "visible": true, "layer": "Layer0"},
-  {"name": "Leg 4", "visible": true, "layer": "Layer0"}
-]
-```
+The response contains a `count` and an `entities` list with the type, entity ID, name and layer of each group. You will see a single root group named `Table`; the top and the legs are nested inside it. For a tree view, `get_entity_tree()` shows the nesting.
 
-## Step 4: Add Details
+## Step 5: Add Details
 
-Now let's add decorative trim to the table.
+Now let's add decorative trim and a vase.
 
 ### Execute the Decorations Script
 
-Call the decorations example method:
-
 ```ruby
+eval_ruby_file('src/add_decorations.rb')
 SupexSimpleTable.example_decorations
 ```
 
@@ -272,26 +259,60 @@ This will:
 1. Find the existing table in your model
 2. Add decorative trim around the table edges
 3. Apply a gold material to the trim
-4. Use boolean union to create clean geometry
+4. Use a boolean union to create clean geometry
+
+### Execute the Vase Script
+
+```ruby
+eval_ruby_file('src/add_vase.rb')
+SupexSimpleTable.example_vase
+```
+
+The vase profile is revolved with SketchUp's Follow Me and placed on the table top.
+
+### All at Once
+
+`example_full` loads all scripts and creates the table, trim and vase in one call:
+
+```ruby
+eval_ruby_file('src/create_table.rb')
+SupexSimpleTable.example_full
+```
 
 ### Verify the Changes
 
-Check the updated entity counts:
 ```
 get_model_info()
 ```
 
-The trim is nested inside the Table group, so you'll still see 1 group at the root level. The decorations are part of the table structure!
+The trim and the vase are nested inside the `Table` group, so you'll still see one group at the root level.
 
-## Step 5: Save Your Model
+## Step 6: Save Your Model
 
-Save the model to this project directory:
+Save the model into this project directory:
 
 ```
-save_model("model.skp")
+save_model('model.skp')
 ```
 
-Now you have a SketchUp file you can open and modify anytime!
+Relative paths resolve against the workspace, so the file lands next to `README.md`. Now you have a SketchUp file you can open and modify anytime!
+
+## Step 7: Try VCAD (Optional)
+
+Supex can also build geometry with VCAD, a parametric BRep kernel driven by Loon code. `playground/examples/` contains a few `.cmp.oo` parts (a plate, a bracket, a vent, a hub and a mascot). This needs the VCAD sidecar built once in your Supex checkout:
+
+```bash
+cd /path/to/supex
+./scripts/rebuild.sh sidecar
+```
+
+Then ask your agent:
+
+```
+Place playground/examples/bracket.cmp.oo in the model with vcad_place
+```
+
+The agent evaluates the Loon source in the sidecar and imports the resulting mesh as a component. Edit the `.cmp.oo` file and call `vcad_update` (or let the file watcher do it) to see the change. Rules and the constructor reference are in `supex-guide/vcad.md`.
 
 ## Understanding the Code
 
@@ -304,23 +325,23 @@ The scripts use a **procedural programming** approach organized into a module:
 ```ruby
 module SupexSimpleTable
   # Low-level: Create individual components
-  def self.create_table_leg(...)
-    # Creates a single leg
+  def self.create_table_top(parent_entities, length, width, height, thickness, material)
+    # Creates the top surface
   end
 
   # Mid-level: Create groups of components
-  def self.create_table_legs(...)
-    # Creates all 4 legs using create_table_leg
+  def self.create_table_legs(parent_entities, table_length, table_width, leg_size, leg_inset, ...)
+    # Creates all 4 legs from a shared component definition
   end
 
   # High-level: Assemble complete objects
   def self.create_simple_table(entities, params = {})
-    # Assembles complete table with defaults
+    # Assembles the complete table with defaults
   end
 
   # Orchestration: Transaction management and metadata
-  def self.example_table
-    # Wraps in operation, handles cleanup, adds metadata
+  def self.example_table(params = {})
+    # Wraps in an operation, handles cleanup, adds metadata, returns the group
   end
 end
 ```
@@ -328,21 +349,21 @@ end
 ### Function Levels
 
 **Low-level functions** create individual geometry:
-- `create_table_leg` - Creates one leg at a position
 - `create_table_top` - Creates the top surface
+- `find_or_create_leg_definition` - Creates (or reuses) the leg component definition
 
 **Mid-level functions** create collections:
-- `create_table_legs` - Creates all 4 legs by calling `create_table_leg`
+- `create_table_legs` - Places all 4 legs as instances of the leg definition
 
 **High-level functions** assemble complete objects:
 - `create_simple_table` - Combines top + legs into a table
-- Accepts optional `params` hash with defaults
+- Accepts an optional `params` hash with defaults
 - Returns clean geometry without metadata
 
 **Orchestration functions** manage transactions:
-- `example_table` - Wraps in operation, handles idempotence
+- `example_table` - Wraps in an operation, handles idempotence
 - Adds name and attributes to created objects
-- Provides error handling and user feedback
+- Provides error handling and returns the created group
 
 ### Hash Parameters with Defaults
 
@@ -362,27 +383,28 @@ table = SupexSimpleTable.create_simple_table(entities,
 
 ### Idempotence Pattern
 
-Example methods can be run multiple times safely:
+Example methods can be run multiple times safely. Each feature has an identifier constant in `helpers.rb` (`IDENT_TABLE`, `IDENT_DECORATIONS`, `IDENT_VASE`) that is stored as an attribute on the created group, so cleanup only removes geometry this script created:
 
 ```ruby
-def self.example_table
-  # Configuration
+def self.example_table(params = {})
+  model = Sketchup.active_model
+  entities = model.entities
   table_name = 'Table'
-  attribute_type = 'basic_table_example'
 
   model.start_operation('Create Simple Table', true)
   begin
-    # 1. Cleanup previous instances
-    cleanup_by_name_and_attribute(entities, table_name, 'supex', 'type', attribute_type)
+    # 1. Cleanup previous instances (by name, verified by attribute)
+    cleanup_by_name_and_attribute(entities, table_name, ATTR_DICT, ATTR_KEY, IDENT_TABLE)
 
     # 2. Create fresh geometry
-    table = create_simple_table(entities)
+    table = create_simple_table(entities, params)
 
     # 3. Apply metadata
     table.name = table_name
-    table.set_attribute('supex', 'type', attribute_type)
+    table.set_attribute(ATTR_DICT, ATTR_KEY, IDENT_TABLE)
 
     model.commit_operation
+    table
   rescue
     model.abort_operation
     raise
@@ -390,16 +412,17 @@ def self.example_table
 end
 ```
 
+Materials follow the same pattern: `create_wood_material(model, tag = IDENT_TABLE)` recreates the material tagged with the identifier instead of piling up copies.
+
 ### Key Concepts
 
 **Metric Units:**
 - Use `.cm`, `.m`, `.mm` for readable dimensions
 - Example: `120.cm` = 120 centimeters
 
-**Groups:**
+**Groups and Components:**
 - Organize geometry into named groups
-- Makes the model structure clear
-- Easier to select and modify
+- The four legs are instances of one component definition, so editing one leg updates all of them
 
 **Operations:**
 - `start_operation` / `commit_operation` enable undo/redo
@@ -419,12 +442,10 @@ Try making changes to learn more!
 
 ### Change Dimensions
 
-You can pass custom dimensions using the params hash:
+Pass custom dimensions to the orchestration method:
 
 ```ruby
-# Create a bigger table
-SupexSimpleTable.create_simple_table(
-  Sketchup.active_model.entities,
+SupexSimpleTable.example_table(
   table_length: 2.0.m,
   table_width: 1.5.m,
   table_height: 0.85.m,
@@ -433,38 +454,19 @@ SupexSimpleTable.create_simple_table(
 )
 ```
 
-Or wrap it in a custom orchestration method in the script, then call it:
+`verify_table` and `describe_table` check the result:
 
 ```ruby
-# Add to create_table.rb
-def self.example_large_table
-  model = Sketchup.active_model
-  entities = model.entities
-
-  model.start_operation('Create Large Table', true)
-  begin
-    table = create_simple_table(entities,
-      table_length: 2.0.m,
-      table_width: 1.5.m
-    )
-    table.name = 'Large Table'
-    model.commit_operation
-  rescue
-    model.abort_operation
-    raise
-  end
-end
-
-# Then call it
-SupexSimpleTable.example_large_table
+table = Sketchup.active_model.entities.find { |e| e.is_a?(Sketchup::Group) && e.name == 'Table' }
+SupexSimpleTable.describe_table(table)
 ```
 
 ### Change Colors
 
-Modify the material creation function in `create_table.rb`:
+Modify the material function in `create_table.rb`:
 
 ```ruby
-def self.create_wood_material(model, tag = 'basic_table_example')
+def self.create_wood_material(model, tag = IDENT_TABLE)
   # Change the color here
   recreate_material(model, 'Wood', Sketchup::Color.new(101, 67, 33), tag)  # Darker brown
 end
@@ -473,30 +475,23 @@ end
 Or create a new material function:
 
 ```ruby
-def self.create_mahogany_material(model, tag = 'basic_table_example')
+def self.create_mahogany_material(model, tag = IDENT_TABLE)
   recreate_material(model, 'Mahogany', Sketchup::Color.new(192, 64, 0), tag)
 end
 ```
 
+After editing a script, load it again with `eval_ruby_file` and re-run the example method.
+
 ### Add More Geometry
 
-Create new functions following the same pattern:
+Create new functions following the same pattern. `create_box` in `helpers.rb` does the face + pushpull work for you:
 
 ```ruby
 # Add to src/create_table.rb
-def self.create_drawer(parent_entities, position_x, position_y, width, depth, height)
+def self.create_drawer(parent_entities, x, y, width, depth, height)
   drawer = parent_entities.add_group
-  drawer.name = "Drawer"
-
-  # Create drawer box
-  face = drawer.entities.add_face(
-    [position_x, position_y, 0],
-    [position_x + width, position_y, 0],
-    [position_x + width, position_y + depth, 0],
-    [position_x, position_y + depth, 0]
-  )
-  face.pushpull(-height)
-
+  drawer.name = 'Drawer'
+  create_box(drawer.entities, x, y, 0, x + width, y + depth, height)
   drawer
 end
 
@@ -508,33 +503,32 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 
 ### Extension Not Loading
 
-**Symptom**: SketchUp launches but no "Supex Runtime" message in Ruby Console
+**Symptom**: SketchUp launches but no `Supex: Bridge server started` message in the Ruby Console
 
 **Solutions:**
 1. Check the Ruby Console for errors (Window → Ruby Console)
-2. Verify you're using `./scripts/launch-sketchup.sh` from the supex repo root
-3. Check file permissions on `runtime/` directory
-4. Try: `SUPEX_VERBOSE=1 ./scripts/launch-sketchup.sh` for detailed output
+2. Verify you're using `./scripts/launch-sketchup.sh` from the Supex repository root
+3. Check file permissions on the `runtime/` directory
 
 ### MCP Connection Failed
 
 **Symptom**: Your AI agent can't find Supex tools
 
 **Solutions:**
-1. Verify your MCP server is configured (`claude mcp list` for Claude Code, `.gemini/settings.json` for Gemini CLI)
-2. Check the path in config is absolute (not relative)
+1. Verify your MCP server is configured (`claude mcp list` for Claude Code, `gemini mcp list` for Gemini CLI, `codex mcp list` for Codex CLI)
+2. Check that the command path in the config is absolute (not relative)
 3. Make sure SketchUp is running with the extension
-4. Check `.tmp/supex-mcp.log` for error messages
+4. Check `.tmp/logs/mcp-stderr.log` and `.tmp/logs/mcp-protocol.jsonl` in the project for error messages
 
 ### Script Execution Fails
 
 **Symptom**: `eval_ruby_file` returns an error
 
 **Solutions:**
-1. Check Ruby Console in SketchUp for detailed error
+1. Check the Ruby Console in SketchUp for the detailed error
 2. Verify the script file path is correct
-3. Look for syntax errors in the Ruby code
-4. Make sure SketchUp model is active (not in startup screen)
+3. Look for syntax errors in the Ruby code (`just lint`)
+4. Make sure a SketchUp model is active (not the welcome screen)
 
 ### Socket Connection Refused
 
@@ -542,7 +536,7 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 
 **Solutions:**
 1. Verify SketchUp is running
-2. Check the extension is loaded (Ruby Console should show "Socket server started")
+2. Check the extension is loaded (Ruby Console should show `Supex: Bridge server started on 127.0.0.1:9876`)
 3. Verify port 9876 isn't used by another application:
    ```bash
    lsof -i :9876
@@ -551,12 +545,12 @@ drawer = SupexSimpleTable.create_drawer(entities, 0.3.m, 0.2.m, 0.4.m, 0.3.m, 0.
 
 ### Can't Find Files
 
-**Symptom**: "File not found" when using `eval_ruby_file`
+**Symptom**: "File not found" or "Path access denied" when using `eval_ruby_file`
 
 **Solutions:**
-1. Use paths relative to project root: `src/create_table.rb`
+1. Relative paths resolve against the workspace: make sure `SUPEX_WORKSPACE` in your MCP config points to this project (Step 3)
 2. Or use absolute paths: `/full/path/to/script.rb`
-3. Verify file exists: `ls src/create_table.rb`
+3. Paths outside the workspace are rejected by the path policy; see `supex-guide/troubleshooting.md`
 
 ## Next Steps
 
@@ -568,19 +562,28 @@ Now that you've completed this tutorial, you can:
 mkdir my-sketchup-project
 cd my-sketchup-project
 
-# Create project structure
+# Project structure
 mkdir src
-mkdir _tmp
-
-# Configure MCP server for Claude Code
-claude mcp add supex /path/to/supex/mcp --scope local --transport stdio -e SUPEX_WORKSPACE="$(pwd)"
-
-# Copy Ruby version config and helpers
-cp /path/to/example-simple-table/mise.toml .
+cp /path/to/example-simple-table/.ruby-version .
+cp /path/to/example-simple-table/.gitignore .
 cp /path/to/example-simple-table/src/helpers.rb src/
 
-# Create your first script
+# Agent guide and MCP server (see Steps 2 and 3)
+ln -s /path/to/supex/docs/agents/guide supex-guide
+claude mcp add --scope project --transport stdio supex -e SUPEX_WORKSPACE="$(pwd)" -- /path/to/supex/mcp
+
+# Agent instructions
+cat > AGENTS.md << 'EOF'
+# AGENTS.md
+
+For modeling guidance, workflow rules, and tool reference see `supex-guide/` (start with `supex-guide/README.md`).
+EOF
+ln -s AGENTS.md CLAUDE.md
+
+# Your first script
 cat > src/my_model.rb << 'EOF'
+# frozen_string_literal: true
+
 require_relative 'helpers'
 
 module SupexMyProject
@@ -604,32 +607,27 @@ end
 EOF
 ```
 
+Rename the module in `helpers.rb` to match your project.
+
 ### 2. Learn More About SketchUp Ruby API
 
+- `supex-guide/api/` - SketchUp API reference bundled with the guide
 - [SketchUp Ruby API Documentation](https://ruby.sketchup.com)
 - [SketchUp Developer Center](https://developer.sketchup.com)
 
-### 3. Explore Supex Tools
+### 3. Explore the Supex Guide
 
-See the main Supex repository README for:
-- Complete MCP tools reference
-- Advanced features
-- Architecture overview
-- More examples
+- `supex-guide/README.md` - Agent conventions and workflow rules
+- `supex-guide/mcp.md` - Complete MCP tool inventory
+- `supex-guide/workflow.md` - Extended examples and visual QA with batch screenshots
+- `supex-guide/ruby.md` - Ruby workflow rules, geometry lessons and pitfalls
+- `supex-guide/stdlib/` - Ruby helpers for geometry, materials and inspection
+- `supex-guide/vcad.md` - VCAD workflow rules and constructor reference
 
-### 4. Read the Workflow Guide
+### 4. Get Help
 
-Check `/path/to/supex/driver/resources/docs/workflow.md` for:
-- Best practices
-- Common patterns
-- Tips and tricks
-- Performance optimization
-
-### 5. Get Help
-
-- **Issues**: Report bugs on Supex GitHub repository
-- **Discussions**: Ask questions and share your projects
-- **Documentation**: Check the main Supex README
+- **Issues**: Report bugs on the [Supex GitHub repository](https://github.com/darwin/supex/issues)
+- **Documentation**: Check the main [Supex README](https://github.com/darwin/supex)
 
 ## Key Takeaways
 
@@ -641,6 +639,7 @@ Check `/path/to/supex/driver/resources/docs/workflow.md` for:
 - **Git-trackable**: All your modeling code is version controlled
 - **Iterative**: Edit scripts and re-run to see changes
 - **Introspection**: Use tools like `get_model_info()` and `take_screenshot()` to verify
+- **Parametric option**: VCAD parts in `playground/` for precise CAD geometry
 - **Learning platform**: Generated code teaches you SketchUp Ruby API patterns
 
 Happy modeling with Supex!

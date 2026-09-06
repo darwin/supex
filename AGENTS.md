@@ -36,7 +36,7 @@ For modeling guidance, workflow rules, and tool reference see `supex-guide/` (st
 - All scripts reopen `module SupexSimpleTable` to add their functions
 - Dependencies via `require_relative` at the top of each file (no auto-require)
 - Low-level functions create geometry; `example_*` functions handle transactions, cleanup, and error recovery
-- Idempotence via attribute-based tagging (`ATTR_DICT`/`ATTR_KEY` constants in `helpers.rb`)
+- Idempotence via attribute-based tagging (`ATTR_DICT`/`ATTR_KEY` plus per-feature `IDENT_*` constants in `helpers.rb`)
 - YARD documentation (`@param`, `@return`) on public methods
 
 ## Project Scripts
@@ -53,7 +53,7 @@ Each script loads its own dependencies via `require_relative`:
 
 ## Running the Examples
 
-File paths are relative to the project root (workspace directory).
+File paths are relative to the project root (the workspace directory passed to Supex via `SUPEX_WORKSPACE`; absolute paths work too).
 
 ```ruby
 # Load the main script (pulls in helpers.rb + sketchup_extensions.rb via require_relative)
@@ -83,7 +83,7 @@ get_model_info()
 list_entities('groups')
 
 # Get table group from model (find by name)
-table = Sketchup.active_model.entities.find { |e| e.is_a?(Sketchup::Group) && e.name == 'Simple Table' }
+table = Sketchup.active_model.entities.find { |e| e.is_a?(Sketchup::Group) && e.name == 'Table' }
 
 # Verify table structure
 SupexSimpleTable.verify_table(table)
