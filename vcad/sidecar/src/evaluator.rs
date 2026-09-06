@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use vcad_eval::{EvalOptions, evaluate_document};
 use vcad_ir::Document;
 use vcad_kernel_tessellate::TessellationParams;
-use vcad_loon::{VCAD_LIB_SOURCE, value_to_document};
+use vcad_loon::{VCAD_LIB_SOURCE, value_to_document_in};
 
 struct TempRetention {
     ttl_sec: u64,
@@ -335,15 +335,16 @@ impl Evaluator {
             None
         };
 
-        // D-F. BRep conversion path
+        // D-F. BRep conversion path. `base_dir` also anchors relative
+        // `import-mesh` / `import-step` paths to the source file's directory.
         if export_mesh {
-            let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
+            let doc = value_to_document_in(&result_value, base_dir).map_err(EvalError::Loon)?;
             let mut result = self.evaluate_and_export(&doc, "import-eval")?;
             result.display = display_str;
             result.loaded_module_paths = module_paths;
             Ok(result)
         } else if inspect {
-            let doc = value_to_document(&result_value).map_err(EvalError::Loon)?;
+            let doc = value_to_document_in(&result_value, base_dir).map_err(EvalError::Loon)?;
             let mut result = self.evaluate_metadata_only(&doc)?;
             result.display = display_str;
             result.loaded_module_paths = module_paths;
@@ -384,6 +385,14 @@ impl Evaluator {
         // Validate mesh arrays early if we'll need them (no BRep available)
         let has_brep = part.solid.as_ref().and_then(|s| s.brep()).is_some();
         if !has_brep {
+            // vcad-eval swallows a missing or unreadable `import-mesh` file and
+            // hands back an empty mesh; fail loudly instead of exporting nothing.
+            if part.mesh.indices.is_empty() {
+                return Err(EvalError::RootFailed(
+                    "mesh-backed root produced no triangles (missing or unreadable import file?)"
+                        .to_string(),
+                ));
+            }
             validate_mesh_arrays(&part.mesh.positions, &part.mesh.indices)?;
         }
 
@@ -670,9 +679,19 @@ fn compute_mesh_bbox(mesh: &vcad_eval::EvaluatedMesh) -> BBox {
 }
 
 /// Enforce single-part contract.
+///
+/// `evaluate_document` never fails on a broken root: it records the problem in
+/// `scene.failures` and emits an empty part instead. Surface that here so the
+/// caller sees the kernel message rather than a generic "no solid" error.
 fn select_single_part(
     scene: &vcad_eval::EvaluatedScene,
 ) -> Result<&vcad_eval::EvaluatedPart, EvalError> {
+    if let Some(failure) = scene.failures.first() {
+        return Err(EvalError::RootFailed(format!(
+            "{}: {}",
+            failure.scope, failure.error
+        )));
+    }
     match scene.parts.len() {
         0 => Err(EvalError::NoGeometry),
         1 => Ok(&scene.parts[0]),
@@ -693,6 +712,8 @@ pub enum EvalError {
     MultiPart(usize),
     /// Malformed mesh geometry (bad array sizes or out-of-range indices)
     MeshMalformed(String),
+    /// A scene root failed inside vcad-eval (recorded in `scene.failures`)
+    RootFailed(String),
     /// Internal error (IO, path, etc.)
     Internal(String),
 }
@@ -706,6 +727,7 @@ impl EvalError {
             EvalError::NoGeometry => "NO_GEOMETRY",
             EvalError::MultiPart(_) => "MULTI_PART_UNSUPPORTED",
             EvalError::MeshMalformed(_) => "MESH_MALFORMED",
+            EvalError::RootFailed(_) => "ROOT_EVAL_FAILED",
             EvalError::Internal(s) if s == "TEMP_SEQ_EXHAUSTED" => "TEMP_SEQ_EXHAUSTED",
             EvalError::Internal(s) if s.starts_with("PATH_NOT_ALLOWED") => "PATH_NOT_ALLOWED",
             EvalError::Internal(_) => "INTERNAL_ERROR",
@@ -730,6 +752,7 @@ impl EvalError {
             EvalError::NoGeometry => "Scene produced zero parts".to_string(),
             EvalError::MultiPart(n) => format!("Scene produced {} parts (expected 1)", n),
             EvalError::MeshMalformed(msg) => format!("Malformed mesh geometry: {}", msg),
+            EvalError::RootFailed(msg) => format!("Root evaluation failed: {}", msg),
             EvalError::Internal(msg) => msg.clone(),
         }
     }
@@ -786,6 +809,10 @@ mod tests {
         assert_eq!(
             EvalError::Internal("TEMP_SEQ_EXHAUSTED".into()).error_code(),
             "TEMP_SEQ_EXHAUSTED"
+        );
+        assert_eq!(
+            EvalError::RootFailed("root[0]: boom".into()).error_code(),
+            "ROOT_EVAL_FAILED"
         );
         assert_eq!(
             EvalError::Internal("PATH_NOT_ALLOWED: bad path".into()).error_code(),
@@ -920,6 +947,59 @@ mod tests {
         assert!(
             result.is_err(),
             "raw [import ...] must fail during evaluation"
+        );
+    }
+
+    /// Minimal ASCII STL: a single 10 mm x 5 mm right triangle in the XY plane.
+    /// vcad reads STL in metres (URDF convention) and scales to millimetres.
+    const TRIANGLE_STL: &str = "solid tri\n facet normal 0 0 1\n  outer loop\n   vertex 0 0 0\n   vertex 0.01 0 0\n   vertex 0 0.005 0\n  endloop\n endfacet\nendsolid tri\n";
+
+    #[test]
+    fn test_relative_import_mesh_resolves_against_base_dir() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join("project");
+        std::fs::create_dir_all(project.join("vendor")).unwrap();
+        std::fs::write(project.join("vendor").join("tri.stl"), TRIANGLE_STL).unwrap();
+
+        let mut evaluator = Evaluator::new(temp.path().join("artifacts"), 3600, 500, 256);
+        let imports = HashMap::new();
+        let source = "[import-mesh \"vendor/tri.stl\"]";
+
+        // With base_dir the relative path resolves against the project directory,
+        // the STL loads and the mesh is exported (mesh imports carry no BRep, so
+        // the export path with its mesh fallback is the one that applies).
+        let result = evaluator
+            .eval_with_imports(
+                source,
+                Some(&project),
+                &imports,
+                None,
+                false,
+                false,
+                false,
+                false,
+                true,
+            )
+            .expect("import-mesh with base_dir should evaluate");
+        assert!(!result.is_empty, "mesh import must produce geometry");
+        assert!(
+            (result.bbox.max[0] - 10.0).abs() < 1e-6 && (result.bbox.max[1] - 5.0).abs() < 1e-6,
+            "bbox should span the imported triangle in mm, got {:?}",
+            result.bbox
+        );
+        assert!(
+            Path::new(&result.mesh_path).exists(),
+            "DAE artifact must be written"
+        );
+
+        // Without base_dir the same source resolves against the process cwd,
+        // where the file does not exist, so evaluation must not succeed.
+        let result = evaluator.eval_with_imports(
+            source, None, &imports, None, false, false, false, false, true,
+        );
+        assert!(
+            result.is_err(),
+            "without base_dir the relative mesh path must not resolve"
         );
     }
 
