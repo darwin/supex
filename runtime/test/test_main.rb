@@ -27,6 +27,27 @@ class TestMain < Minitest::Test
   # Server status tests (before start)
   # ==========================================================================
 
+  # ==========================================================================
+  # Stdlib lookup
+  # ==========================================================================
+
+  def test_stdlib_candidates_order
+    ENV['SUPEX_STDLIB_PATH'] = '/custom/stdlib.rb'
+    candidates = SupexRuntime::Main.stdlib_candidates
+
+    assert_equal '/custom/stdlib.rb', candidates.first
+    assert candidates[1].end_with?('/stdlib/src/supex_stdlib.rb'), 'sibling checkout path expected'
+    assert candidates.last.end_with?('/supex_runtime/stdlib/supex_stdlib.rb'), 'bundled path expected'
+  ensure
+    ENV.delete('SUPEX_STDLIB_PATH')
+  end
+
+  def test_stdlib_candidates_without_override
+    ENV.delete('SUPEX_STDLIB_PATH')
+
+    assert_equal 2, SupexRuntime::Main.stdlib_candidates.size
+  end
+
   def test_bridge_running_initial
     refute SupexRuntime::Main.bridge_server_running?
   end

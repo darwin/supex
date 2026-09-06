@@ -216,7 +216,7 @@ bundle install
 
 | Command | Description |
 |---------|-------------|
-| `bundle exec rake build` | Build .rbz package |
+| `bundle exec rake build` | Build .rbz package (bundles the stdlib so it works without a supex checkout) |
 | `bundle exec rake install` | Install to SketchUp |
 | `bundle exec rake clean` | Clean generated files |
 | `bundle exec rubocop` | Code linting |

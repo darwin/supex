@@ -248,10 +248,9 @@ module SupexRuntime
     # Load the Supex Standard Library
     # @return [Boolean] true if stdlib was loaded successfully
     def self.load_stdlib
-      stdlib_path = ENV['SUPEX_STDLIB_PATH'] ||
-                    File.expand_path('../../../stdlib/src/supex_stdlib.rb', __dir__)
+      stdlib_path = stdlib_candidates.find { |path| File.exist?(path) }
 
-      if File.exist?(stdlib_path)
+      if stdlib_path
         require stdlib_path
         Utils.console_write("Supex: Stdlib v#{SupexStdlib::VERSION} loaded")
         true
@@ -262,6 +261,17 @@ module SupexRuntime
     rescue StandardError => e
       Utils.console_write("Supex: Failed to load stdlib: #{e.message}")
       false
+    end
+
+    # Candidate stdlib entry points in priority order: explicit override,
+    # sibling checkout (development), copy bundled into the .rbz package
+    # @return [Array<String>] candidate paths
+    def self.stdlib_candidates
+      [
+        ENV.fetch('SUPEX_STDLIB_PATH', nil),
+        File.expand_path('../../../stdlib/src/supex_stdlib.rb', __dir__),
+        File.expand_path('stdlib/supex_stdlib.rb', __dir__)
+      ].compact
     end
 
     # Add menu items to SketchUp's Extensions menu
