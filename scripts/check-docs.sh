@@ -48,6 +48,18 @@ if [ -f "$PROJECT_ROOT/.tmp/_selfcontain_err" ]; then
   errors=1
 fi
 
+# Repository-relative paths (docs/..., driver/..., runtime/...) do not resolve
+# through the supex-guide/ symlink, even as plain text. Fenced code blocks are
+# skipped: shell commands there are documented as run from a supex checkout.
+while IFS= read -r hit; do
+  echo "  $hit: repository-relative path in guide"
+  errors=1
+done < <(find "$GUIDE_DIR" -name '*.md' -not -type l -print0 2>/dev/null | xargs -0 awk '
+  /^```/ { fence = !fence; next }
+  !fence && /(^|[^A-Za-z0-9_.\/-])(docs|driver|runtime|vcad|scripts|devtools|tests)\/[A-Za-z0-9_.\/-]+/ \
+    && !/\.tmp\// && !/supex-guide\// { print FILENAME ":" FNR ":" $0 }
+')
+
 if [ "$errors" -ne 0 ]; then
   echo ""
   echo "Docs check failed."

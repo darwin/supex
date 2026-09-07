@@ -179,4 +179,4 @@ vcad_watch_resume()  # flushes as one merged cascade update
 
 - Router and chooser: `README.md`
 - Geometry QA: `ruby.md` § "Geometry Quality Rules"
-- VCAD architecture/details: the VCAD integration document in the supex repository (`docs/vcad.md` there; not reachable through `supex-guide/`)
+- VCAD architecture/details: the VCAD integration document in the supex repository (`vcad.md` in its top-level docs folder; not reachable through `supex-guide/`)
