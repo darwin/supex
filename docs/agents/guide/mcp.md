@@ -2,11 +2,7 @@
 
 Canonical MCP tool inventory for Supex.
 
-Source of truth in code:
-
-- `driver/src/supex_driver/mcp/mcp_server.py`
-- `driver/src/supex_driver/mcp/vcad_tools.py`
-- `driver/src/supex_driver/mcp/vcad_diagnostics.py`
+Source of truth: the tool registrations in the supex driver's `mcp` package (`mcp_server.py`, `vcad_tools.py`, `vcad_diagnostics.py`); a driver test keeps this inventory in sync with them.
 
 Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 
