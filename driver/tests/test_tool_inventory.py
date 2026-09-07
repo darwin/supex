@@ -17,6 +17,25 @@ DOCS = {
 }
 TOOL_ROW = re.compile(r"^\| `([a-z_]+)")
 
+# Tools that only read state. Everything else mutates the model, the viewer, the
+# sidecar watcher or the filesystem and must not carry readOnlyHint.
+READ_ONLY_TOOLS = {
+    "check_status",
+    "get_camera_info",
+    "get_entity",
+    "get_layers",
+    "get_materials",
+    "get_model_info",
+    "get_selection",
+    "list_entities",
+    "vcad_eval",
+    "vcad_inspect",
+    "vcad_list_nodes",
+    "vcad_metrics",
+    "vcad_reconcile_status",
+    "vcad_viewer_state",
+}
+
 
 def registered_tools() -> set[str]:
     tools = asyncio.run(mcp.list_tools())
@@ -54,3 +73,13 @@ def test_documented_tools_match_registered(doc: str) -> None:
     stale = sorted(documented - registered)
     assert not missing, f"{doc}: tools registered but undocumented: {missing}"
     assert not stale, f"{doc}: tools documented but not registered: {stale}"
+
+
+def test_read_only_annotations_match_inventory() -> None:
+    tools = asyncio.run(mcp.list_tools())
+    annotated = {
+        tool.name
+        for tool in tools
+        if tool.annotations is not None and tool.annotations.read_only_hint
+    }
+    assert annotated == READ_ONLY_TOOLS

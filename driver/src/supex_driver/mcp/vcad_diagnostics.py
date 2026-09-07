@@ -11,7 +11,7 @@ import logging
 from typing import Any
 
 from supex_driver.connection.vcad_metrics import get_vcad_metrics
-from supex_driver.mcp.mcp_server import McpContext, mcp
+from supex_driver.mcp.mcp_server import READ_ONLY, McpContext, mcp
 
 logger = logging.getLogger("supex.mcp.vcad.diagnostics")
 
@@ -66,7 +66,7 @@ def get_vcad_health_snapshot() -> dict[str, Any]:
     return {"vcad_sidecar": sidecar, "vcad_viewer": viewer}
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def vcad_metrics(ctx: McpContext) -> str:
     """Return current telemetry snapshot (stable JSON schema).
 
@@ -101,7 +101,7 @@ def vcad_metrics(ctx: McpContext) -> str:
     return json.dumps(snapshot)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def vcad_reconcile_status(ctx: McpContext) -> str:
     """Return last reconcile run: timestamp, drift summary, pending corrective actions.
 

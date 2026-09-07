@@ -34,6 +34,8 @@ The `./supex` wrapper defaults `SUPEX_WORKSPACE` to `~/.supex/tmp-workspace`, th
 
 ## MCP Tools
 
+Tools that only read state (`check_status`, `get_*`, `list_entities`, `vcad_inspect`, `vcad_eval`, `vcad_list_nodes`, `vcad_viewer_state` and the VCAD diagnostics) carry the MCP `readOnlyHint` annotation, so hosts such as Claude Code can run them concurrently. The server also sends short `instructions` during the MCP handshake; hosts that honor them add the text to the model's system prompt.
+
 ### Execution
 
 | Tool | Description |

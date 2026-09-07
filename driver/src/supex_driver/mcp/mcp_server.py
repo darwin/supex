@@ -16,6 +16,7 @@ _mcp_handler.setFormatter(_mcp_formatter)
 logging.basicConfig(level=logging.INFO, handlers=[_mcp_handler])
 
 from mcp.server.mcpserver import Context, MCPServer
+from mcp.types import ToolAnnotations
 
 # Type alias for MCP Context (generic with Any for lifespan/request types)
 McpContext = Context[Any, Any]
@@ -105,8 +106,22 @@ def log_startup_info() -> None:
     logger.info(f"SUPEX_WORKSPACE: {os.environ.get('SUPEX_WORKSPACE', 'not set')}")
 
 
+# Injected into the client's system prompt by MCP hosts that honor server instructions
+SERVER_INSTRUCTIONS = """\
+Supex connects this session to a running SketchUp instance. Build and edit models with Ruby
+through eval_ruby_file (preferred, keeps the model reproducible from project scripts) or
+eval_ruby; wrap edits in SupexStdlib.with_operation and verify results with get_entity,
+get_model_info or take_screenshot. VCAD tools evaluate parametric Loon (.cmp.oo) geometry
+in a sidecar and place it as SketchUp components. If a tool reports a connection error,
+call check_status first. Projects that link the agent guide expose it as supex-guide/;
+read supex-guide/README.md before modeling.
+"""
+
+# Annotation for tools that only read state; MCP hosts may run these concurrently
+READ_ONLY = ToolAnnotations(read_only_hint=True)
+
 # Create MCP server
-mcp = MCPServer("Supex")
+mcp = MCPServer("Supex", instructions=SERVER_INSTRUCTIONS)
 
 
 def call_tool(
@@ -213,7 +228,7 @@ def _check_console_capture(ctx: McpContext, sketchup_connected: bool) -> dict[st
         return {"capturing": False, "log_file": None}
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def check_status(ctx: McpContext) -> str:
     """Check overall system health: SketchUp bridge, console capture, VCAD sidecar, and VCAD viewer.
 
@@ -326,7 +341,7 @@ def eval_ruby_file(ctx: McpContext, file_path: str) -> str:
 
 
 # Introspection tools
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_model_info(ctx: McpContext) -> str:
     """Get basic information about the current SketchUp model
 
@@ -342,7 +357,7 @@ def get_model_info(ctx: McpContext) -> str:
     return call_tool(ctx, "get_model_info", {}, "get_model_info")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def list_entities(ctx: McpContext, entity_type: str = "all") -> str:
     """List entities in the model
 
@@ -356,7 +371,7 @@ def list_entities(ctx: McpContext, entity_type: str = "all") -> str:
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_entity(ctx: McpContext, entity_id: int) -> str:
     """Get the full state of one entity by its entity ID
 
@@ -370,7 +385,7 @@ def get_entity(ctx: McpContext, entity_id: int) -> str:
     return call_tool(ctx, "get_entity", {"entity_id": entity_id}, "get_entity")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_selection(ctx: McpContext) -> str:
     """Get currently selected entities in SketchUp
 
@@ -381,7 +396,7 @@ def get_selection(ctx: McpContext) -> str:
     return call_tool(ctx, "get_selection", {}, "get_selection")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_layers(ctx: McpContext) -> str:
     """Get list of layers (tags) in the model
 
@@ -390,7 +405,7 @@ def get_layers(ctx: McpContext) -> str:
     return call_tool(ctx, "get_layers", {}, "get_layers")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_materials(ctx: McpContext) -> str:
     """Get list of materials in the model
 
@@ -399,7 +414,7 @@ def get_materials(ctx: McpContext) -> str:
     return call_tool(ctx, "get_materials", {}, "get_materials")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def get_camera_info(ctx: McpContext) -> str:
     """Get current camera position and settings
 
@@ -590,7 +605,7 @@ def _handle_viewer_error(e: VCADViewerError, operation: str) -> str:
 
 
 # VCAD viewer tools
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def vcad_viewer_state(ctx: McpContext) -> str:
     """Get current VCAD viewer state: camera position, selection, visible nodes."""
     try:

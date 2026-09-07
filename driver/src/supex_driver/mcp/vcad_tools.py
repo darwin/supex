@@ -31,7 +31,7 @@ from supex_driver.connection.vcad_observer import (
     get_vcad_reactive_watcher,
 )
 from supex_driver.connection.vcad_schema import build_error
-from supex_driver.mcp.mcp_server import McpContext, get_agent_name, mcp
+from supex_driver.mcp.mcp_server import READ_ONLY, McpContext, get_agent_name, mcp
 
 logger = logging.getLogger("supex.mcp.vcad")
 
@@ -812,7 +812,7 @@ def vcad_update(ctx: McpContext, node_id: str, source_file: str | None = None, c
         return _handle_sketchup_error(e, "vcad_update:import")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def vcad_inspect(ctx: McpContext, source: str) -> str:
     """Inspect VCAD geometry: volume, surface area, bounding box.
 
@@ -871,7 +871,7 @@ def vcad_inspect(ctx: McpContext, source: str) -> str:
         return _handle_vcad_error(e, "vcad_inspect")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def vcad_eval(ctx: McpContext, code: str) -> str:
     """Evaluate Loon code in VCAD sidecar (REPL mode). Returns display string.
 
@@ -905,7 +905,7 @@ def vcad_eval(ctx: McpContext, code: str) -> str:
         return _handle_vcad_error(e, "vcad_eval")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 def vcad_list_nodes(ctx: McpContext) -> str:
     """List all VCAD nodes in the current SketchUp model."""
     try:
