@@ -20,6 +20,7 @@ Supex Runtime is part of the Supex platform:
 | `reload_extension()` | Hot reload without restart |
 | `get_model_info()` | Entity counts, units, modified state |
 | `list_entities(type)` | List geometry (all/faces/edges/groups/components) |
+| `get_entity(entity_id)` | Full state of one entity: bounds, dimensions, layer, material, flags, transformation |
 | `get_selection()` | Currently selected entities |
 | `get_layers()` | All layers/tags |
 | `get_materials()` | All materials with colors |

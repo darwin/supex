@@ -170,13 +170,29 @@ module Sketchup
   end
 
   class Group < Entity
-    attr_accessor :name, :bounds, :parent
+    attr_accessor :name, :bounds, :parent, :transformation, :material, :locked, :hidden
 
     def initialize(id: rand(10_000), name: '', parent: nil)
       super(id: id)
       @name = name
       @bounds = MockBounds.new
       @parent = parent  # Can be Model.entities or ComponentDefinition
+      @transformation = Geom::Transformation.new
+      @material = nil
+      @locked = false
+      @hidden = false
+    end
+
+    def locked?
+      @locked
+    end
+
+    def hidden?
+      @hidden
+    end
+
+    def visible?
+      !@hidden
     end
 
     def respond_to?(method, include_private = false)
@@ -650,6 +666,14 @@ module Geom
 
     def initialize(point = nil)
       @origin = point || Point3d.new(0, 0, 0)
+    end
+
+    # Row-major 4x4 identity with the origin in the translation slots
+    def to_a
+      [1.0, 0.0, 0.0, 0.0,
+       0.0, 1.0, 0.0, 0.0,
+       0.0, 0.0, 1.0, 0.0,
+       @origin.x.to_f, @origin.y.to_f, @origin.z.to_f, 1.0]
     end
   end
 end

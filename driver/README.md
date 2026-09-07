@@ -47,6 +47,7 @@ The `./supex` wrapper defaults `SUPEX_WORKSPACE` to `~/.supex/tmp-workspace`, th
 |------|-------------|
 | `get_model_info()` | Entity counts, units, modified state |
 | `list_entities(type)` | List geometry (all/faces/edges/groups/components) |
+| `get_entity(entity_id)` | Full state of one entity: bounds, dimensions (inches), layer, material, hidden/visible/locked; transformation, origin and definition for groups and component instances |
 | `get_selection()` | Currently selected entities |
 | `get_layers()` | All layers/tags |
 | `get_materials()` | All materials with colors |
@@ -109,6 +110,7 @@ The `./supex` wrapper defaults `SUPEX_WORKSPACE` to `~/.supex/tmp-workspace`, th
 | `eval-file <path>` | Execute Ruby script |
 | `info` | Model information |
 | `entities [type]` | List entities |
+| `entity <id>` | Full state of one entity |
 | `selection` | Selected entities |
 | `layers` | List layers |
 | `materials` | List materials |
@@ -121,7 +123,7 @@ The `./supex` wrapper defaults `SUPEX_WORKSPACE` to `~/.supex/tmp-workspace`, th
 **Common Options:**
 - `--host/-H` - SketchUp host (default: localhost)
 - `--port/-p` - SketchUp port (default: 9876)
-- `--raw/-r` - Output raw JSON (`eval`, `eval-file`, `info`, `entities`, `selection`, `layers`, `materials`, `camera`)
+- `--raw/-r` - Output raw JSON (`eval`, `eval-file`, `info`, `entities`, `entity`, `selection`, `layers`, `materials`, `camera`)
 
 ## Example Usage
 

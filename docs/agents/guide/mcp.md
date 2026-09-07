@@ -25,6 +25,7 @@ Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 |------|-------------|
 | `get_model_info` | Model title, units, entity counts, modified state |
 | `list_entities` | List entities with optional type filter |
+| `get_entity` | Full state of one entity by ID: bounds, dimensions, layer, material, flags; transformation and definition for groups/instances |
 | `get_selection` | List selected entities |
 | `get_layers` | List layers/tags |
 | `get_materials` | List materials |

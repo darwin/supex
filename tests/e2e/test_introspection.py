@@ -71,6 +71,32 @@ class TestListEntities:
         assert result.success
 
 
+class TestGetEntity:
+    """Tests for get_entity functionality."""
+
+    def test_group_details(self, fresh_model: CLIRunner) -> None:
+        """A named group reports its name, bounds and transformation."""
+        setup_result = fresh_model.call_snippet("group_create_probe")
+        assert setup_result.success, f"Setup failed: {setup_result.stderr}"
+        created = setup_result.json()
+
+        result = fresh_model.entity(created["entity_id"])
+        assert result.success, f"Entity failed: {result.stderr}"
+        data = result.json()
+        assert data["success"] is True
+        assert data["type"] == "Group"
+        assert data["name"] == "Probe"
+        assert data["entity_id"] == created["entity_id"]
+        assert len(data["transformation"]) == 16
+        assert data["dimensions"]["width"] > 0
+        assert data["locked"] is False
+
+    def test_unknown_entity_fails(self, fresh_model: CLIRunner) -> None:
+        """An unknown entity ID yields an error response."""
+        result = fresh_model.entity(999999999)
+        assert not result.success or '"success": false' in result.stdout
+
+
 class TestSelection:
     """Tests for selection functionality."""
 

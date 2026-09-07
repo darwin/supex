@@ -16,6 +16,7 @@ For interactive Ruby console usage, see [Interactive REPL](repl.md).
 | `./supex eval-file <path>` | Evaluate Ruby from a file (recommended workflow) |
 | `./supex info` | Show current model stats |
 | `./supex entities [type]` | List model entities (`all`, `faces`, `edges`, `groups`, `components`) |
+| `./supex entity <id>` | Show the full state of one entity (bounds, transformation, material, flags) |
 | `./supex selection` | Show current selection |
 | `./supex layers` | List layers/tags |
 | `./supex materials` | List materials |
@@ -35,6 +36,7 @@ For interactive Ruby console usage, see [Interactive REPL](repl.md).
 - `eval-file`
 - `info`
 - `entities`
+- `entity`
 - `selection`
 - `layers`
 - `materials`

@@ -42,6 +42,18 @@ module SupexTestSnippets
     { groups: model.entities.grep(Sketchup::Group).length }.to_json
   end
 
+  # Adds a named group containing a line.
+  # @return [String] JSON: {"entity_id": 123, "name": "Probe"}
+  def self.group_create_probe
+    model = Sketchup.active_model
+    model.start_operation('Add Named Group', true)
+    group = model.entities.add_group
+    group.name = 'Probe'
+    group.entities.add_line([0, 0, 0], [1.m, 0, 0])
+    model.commit_operation
+    { entity_id: group.entityID, name: group.name }.to_json
+  end
+
   # Adds a face and selects it.
   # @return [String] JSON: {"selected": 1}
   def self.selection_add_face

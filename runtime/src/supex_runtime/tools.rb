@@ -52,6 +52,23 @@ module SupexRuntime
       raise "Failed to get selection: #{e.message}"
     end
 
+    # Get detailed state of a single entity by ID
+    # @param params [Hash] parameters with entity_id
+    # @return [Hash] entity type, name, layer, material, visibility, bounds, dimensions and
+    #   (for groups and component instances) transformation and definition
+    def get_entity(params)
+      model = Sketchup.active_model
+      return { success: false, error: 'No active model' } unless model
+
+      entity_id = params['entity_id']
+      return { success: false, error: 'No entity_id provided' } unless entity_id
+
+      entity = model.find_entity_by_id(entity_id.to_i)
+      return { success: false, error: "Entity not found: #{entity_id}" } unless entity&.valid?
+
+      { success: true }.merge(build_entity_detail(entity))
+    end
+
     # Get list of layers (tags) in the model
     # @return [Hash] layers information
     def layers_info
@@ -212,6 +229,56 @@ module SupexRuntime
       end
 
       data
+    end
+
+    # Full state of one entity; lengths are in inches (SketchUp internal units)
+    def build_entity_detail(entity)
+      data = build_entity_data(entity)
+      data[:persistent_id] = entity.persistent_id if entity.respond_to?(:persistent_id)
+      data[:layer] = entity.layer.name if !data.key?(:layer) && entity.respond_to?(:layer)
+      add_bounds_data(data, entity)
+      add_drawingelement_data(data, entity)
+      add_instance_data(data, entity)
+      data
+    end
+
+    def add_bounds_data(data, entity)
+      return unless entity.respond_to?(:bounds)
+
+      bounds = entity.bounds
+      return if bounds.empty?
+
+      min = bounds.min
+      max = bounds.max
+      data[:bounds] = {
+        min: [min.x.to_f, min.y.to_f, min.z.to_f],
+        max: [max.x.to_f, max.y.to_f, max.z.to_f]
+      }
+      data[:dimensions] = {
+        width: (max.x - min.x).to_f,
+        depth: (max.y - min.y).to_f,
+        height: (max.z - min.z).to_f
+      }
+    end
+
+    def add_drawingelement_data(data, entity)
+      data[:material] = entity.material&.name if entity.respond_to?(:material)
+      data[:hidden] = entity.hidden? if entity.respond_to?(:hidden?)
+      data[:visible] = entity.visible? if entity.respond_to?(:visible?)
+      data[:locked] = entity.locked? if entity.respond_to?(:locked?)
+    end
+
+    def add_instance_data(data, entity)
+      return unless entity.is_a?(Sketchup::Group) || entity.is_a?(Sketchup::ComponentInstance)
+
+      data[:instance_name] = entity.name if entity.is_a?(Sketchup::ComponentInstance)
+      data[:definition] = entity.definition.name if entity.respond_to?(:definition)
+      return unless entity.respond_to?(:transformation)
+
+      transformation = entity.transformation
+      origin = transformation.origin
+      data[:transformation] = transformation.to_a.map(&:to_f)
+      data[:origin] = [origin.x.to_f, origin.y.to_f, origin.z.to_f]
     end
 
     def build_selection_entity_data(entity)

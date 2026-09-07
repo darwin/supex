@@ -21,6 +21,7 @@ class TestMCPServer:
             # Introspection
             "get_model_info",
             "list_entities",
+            "get_entity",
             "get_selection",
             "get_layers",
             "get_materials",

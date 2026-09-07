@@ -569,6 +569,7 @@ module SupexRuntime
       case tool_name
       when 'get_model_info' then model_info
       when 'list_entities' then list_entities(args)
+      when 'get_entity' then get_entity(args)
       when 'get_selection' then selection_info
       when 'get_layers' then layers_info
       when 'get_materials' then materials_info

@@ -164,6 +164,10 @@ class CLIRunner:
         """List entities in the model."""
         return self._run("entities", entity_type)
 
+    def entity(self, entity_id: int) -> CLIResult:
+        """Get one entity's full state as raw JSON."""
+        return self._run("entity", "--raw", str(entity_id))
+
     def selection(self) -> CLIResult:
         """Get current selection."""
         return self._run("selection")

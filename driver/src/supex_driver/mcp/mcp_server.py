@@ -357,6 +357,20 @@ def list_entities(ctx: McpContext, entity_type: str = "all") -> str:
 
 
 @mcp.tool()
+def get_entity(ctx: McpContext, entity_id: int) -> str:
+    """Get the full state of one entity by its entity ID
+
+    Args:
+        entity_id: SketchUp entity ID (as returned by list_entities or get_selection)
+
+    Returns type, name, layer, material, hidden/visible/locked flags, bounds and
+    dimensions (inches, SketchUp internal units). Groups and component instances
+    also report definition name, transformation (16 values, row-major) and origin.
+    """
+    return call_tool(ctx, "get_entity", {"entity_id": entity_id}, "get_entity")
+
+
+@mcp.tool()
 def get_selection(ctx: McpContext) -> str:
     """Get currently selected entities in SketchUp
 

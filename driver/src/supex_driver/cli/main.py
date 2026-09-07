@@ -335,6 +335,26 @@ def entities(
 
 
 @app.command()
+def entity(
+    entity_id: Annotated[int, typer.Argument(help="Entity ID (see `entities`)")],
+    host: HostOption = "localhost",
+    port: PortOption = 9876,
+    raw: Annotated[bool, typer.Option("--raw", "-r", help="Output raw JSON")] = False,
+):
+    """Show the full state of one entity."""
+    try:
+        conn = get_connection(host, port)
+        result = conn.send_command("get_entity", {"entity_id": entity_id})
+
+        if raw:
+            print(json.dumps(result))
+        else:
+            print_result(result)
+    except Exception as e:
+        handle_error(e)
+
+
+@app.command()
 def selection(
     host: HostOption = "localhost",
     port: PortOption = 9876,
