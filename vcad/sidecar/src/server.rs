@@ -578,39 +578,6 @@ fn dispatch_tools_call(
                 export_mesh,
             }
         }
-        "vcad.eval_repl_with_imports" => {
-            let transformed_source = arguments
-                .get("transformed_source")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            if transformed_source.is_empty() {
-                return make_error_response(
-                    request.id.clone(),
-                    JSONRPC_INVALID_REQUEST,
-                    "vcad.eval_repl_with_imports requires non-empty 'transformed_source' argument",
-                    None,
-                );
-            }
-            let base_dir = arguments
-                .get("base_dir")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string());
-            let raw_imports = arguments.get("imports").cloned().unwrap_or_default();
-            let resolved_imports: HashMap<String, ResolvedImport> =
-                serde_json::from_value(raw_imports).unwrap_or_default();
-            EvalRequest::Eval {
-                id: request.id.clone(),
-                transformed_source: transformed_source.to_string(),
-                base_dir,
-                imports: resolved_imports,
-                node_id: None,
-                display: true,
-                cache_adt: false,
-                track_modules: false,
-                inspect: false,
-                export_mesh: false,
-            }
-        }
         _ => {
             return make_error_response(
                 request.id.clone(),
@@ -1325,8 +1292,8 @@ mod tests {
             &mut stream,
             &tools_call_request(
                 2,
-                "vcad.eval_repl_with_imports",
-                serde_json::json!({ "transformed_source": "42" }),
+                "vcad.eval_with_imports",
+                serde_json::json!({ "transformed_source": "42", "display": true, "export_mesh": false }),
             ),
         );
         assert!(
@@ -1360,8 +1327,8 @@ mod tests {
             let mut s = stream2_clone;
             let req = tools_call_request(
                 10,
-                "vcad.eval_repl_with_imports",
-                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]" }),
+                "vcad.eval_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]", "display": true, "export_mesh": false }),
             );
             let mut msg = serde_json::to_string(&req).unwrap();
             msg.push('\n');
@@ -1378,8 +1345,8 @@ mod tests {
         for i in 0..5 {
             let req = tools_call_request(
                 100 + i,
-                "vcad.eval_repl_with_imports",
-                serde_json::json!({ "transformed_source": "[cube 1.0 1.0 1.0]" }),
+                "vcad.eval_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 1.0 1.0 1.0]", "display": true, "export_mesh": false }),
             );
             let resp = send_request(&mut stream1, &req);
             if let Some(error) = resp.get("error")
@@ -1411,8 +1378,8 @@ mod tests {
             &mut stream,
             &tools_call_request(
                 2,
-                "vcad.eval_repl_with_imports",
-                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]" }),
+                "vcad.eval_with_imports",
+                serde_json::json!({ "transformed_source": "[cube 10.0 10.0 10.0]", "display": true, "export_mesh": false }),
             ),
         );
         // Either result or timeout error is acceptable
