@@ -14,6 +14,6 @@ require_relative 'supex_stdlib/operation'
 # Provides utility functions for SketchUp model introspection and manipulation.
 # This module is loaded automatically when SupexRuntime starts.
 module SupexStdlib
-  VERSION = '0.2.0'
+  VERSION = '0.3.0'
   LOADED = true
 end
