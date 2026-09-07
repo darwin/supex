@@ -34,7 +34,7 @@ LOCK_FILES=(
 
 show_help() {
     cat << EOF
-Usage: $(basename "$0") [--bump-only] <version>
+Usage: $(basename "$0") [--bump-only] [--yes] <version>
 
 Create a new release by updating version numbers, committing, tagging,
 and fast-forwarding main to dev.
@@ -45,6 +45,8 @@ ARGUMENTS:
 OPTIONS:
     --bump-only Only update version files and lockfiles, no git operations
                 (useful to preview the diff; revert with git checkout)
+    --yes, -y   Skip the confirmation prompt (required when stdin is not a
+                terminal, e.g. when run through an agent's ! command)
 
 EXAMPLES:
     $(basename "$0") 0.2.0
@@ -161,13 +163,22 @@ main() {
     fi
 
     local bump_only=0
-    if [[ "$1" == "--bump-only" ]]; then
-        bump_only=1
+    local assume_yes=0
+    while [[ $# -gt 0 && "$1" == -* ]]; do
+        case "$1" in
+            --bump-only) bump_only=1 ;;
+            --yes|-y) assume_yes=1 ;;
+            *)
+                log_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
         shift
-        if [[ $# -lt 1 ]]; then
-            show_help
-            exit 1
-        fi
+    done
+    if [[ $# -lt 1 ]]; then
+        show_help
+        exit 1
     fi
 
     local new_version="$1"
@@ -238,7 +249,7 @@ main() {
     echo ""
 
     # Confirm
-    if ! confirm "Proceed with release?"; then
+    if (( ! assume_yes )) && ! confirm "Proceed with release?"; then
         log_warn "Aborted"
         exit 0
     fi
