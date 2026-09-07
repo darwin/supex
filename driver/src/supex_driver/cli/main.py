@@ -453,7 +453,9 @@ def screenshot(
 
         result = conn.send_command("take_screenshot", params)
 
-        content = result.get("content", [{}])
+        # The bridge answers with the tool result directly; MCP-style
+        # responses wrap it as a text content block.
+        content = result.get("content")
         if isinstance(content, list) and content:
             data = json.loads(content[0].get("text", "{}"))
         else:
