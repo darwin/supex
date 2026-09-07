@@ -48,7 +48,7 @@ Required params: `name`, `version`, `agent`, `pid`. `version` is the client's ow
 - `resources/list`
 - `tools/call`
 
-**Legacy command format (deprecated)**: the bridge still accepts requests carrying a top-level `command` and `parameters` instead of `method: "tools/call"`. Such requests are rewritten into the equivalent `tools/call` request (`command` becomes `name`, `parameters` becomes `arguments`) and a deprecation warning is logged once per session. New clients must use `tools/call`.
+The legacy command format (top-level `command` and `parameters` instead of `method: "tools/call"`), deprecated in 0.3.0, is no longer accepted: such requests get a `-32601` "Method not found" error.
 
 `tools/call` payload:
 
