@@ -2,27 +2,28 @@
 
 # Snippet Loader
 # Loads all Ruby snippet files from the src/ directory into the SketchUp Ruby context.
-# This file should be loaded once at the start of the test session.
+# This file is loaded at the start of every test session; snippet files are
+# loaded with `load` (not `require`) so edits take effect in a running SketchUp.
 
 # Get the directory where this loader file is located
-SNIPPETS_SRC_DIR = File.dirname(__FILE__)
+snippets_src_dir = File.dirname(__FILE__)
 
 # List of snippet files to load (in dependency order if needed)
-SNIPPET_FILES = [
+snippet_files = [
   'helpers.rb', # Load helpers first in case others depend on it
   'conftest.rb',
   'test_introspection.rb',
   'test_model_operations.rb',
   'test_error_handling.rb',
   'test_batch_screenshots.rb'
-].freeze
+]
 
 # Load all snippet files
-SNIPPET_FILES.each do |filename|
-  filepath = File.join(SNIPPETS_SRC_DIR, filename)
+snippet_files.each do |filename|
+  filepath = File.join(snippets_src_dir, filename)
   if File.exist?(filepath)
     begin
-      require filepath
+      load filepath
       puts "[Snippets] Loaded: #{filename}"
     rescue StandardError => e
       puts "[Snippets] ERROR loading #{filename}: #{e.message}"
