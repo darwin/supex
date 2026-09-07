@@ -26,6 +26,12 @@ puts SupexStdlib::Shell.tree(nil, max_depth: 2, show_ids: true)
 puts SupexStdlib::Shell.tree(123)
 ```
 
+### Operation
+
+Transaction helper for model edits.
+
+- `SupexStdlib.with_operation(name, model: Sketchup.active_model, disable_ui: true, transparent: false) { |model| ... }` - Run the block as one undoable SketchUp operation; commits on return, aborts and re-raises on error, returns the block value. Shorthand for `SupexStdlib::Operation.run`. Do not nest operations.
+
 ### Entity
 
 ```ruby

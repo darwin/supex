@@ -41,6 +41,18 @@ rescue StandardError => e
 end
 ```
 
+The stdlib wraps this pattern: the block runs as one undoable operation, is rolled back if it raises, and its value is returned. Prefer it for small edits of existing entities.
+
+```ruby
+group = SupexStdlib.with_operation('Move Table') do |model|
+  table = model.find_entity_by_id(entity_id)   # ID from list_entities / get_entity
+  table.transform!(Geom::Transformation.translation([10.cm, 0, 0]))
+  table
+end
+```
+
+Verify the result with `get_entity(entity_id)`, which returns the new bounds and transformation.
+
 ### 2. Organization (Required)
 
 - Group geometry; avoid loose edges/faces in root entities
