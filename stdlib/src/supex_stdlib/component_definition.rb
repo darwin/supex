@@ -109,17 +109,13 @@ module SupexStdlib
 
     # Recursively collect all paths to an instance.
     def collect_paths_to_instance(instance, current_path, paths)
-      new_path = current_path + [instance]
+      new_path = [instance] + current_path
 
       parent = instance.parent
       if parent.is_a?(Sketchup::ComponentDefinition)
-        if parent.instances.empty?
-          # Definition is in model root
-          paths << new_path
-        else
-          parent.instances.each do |parent_instance|
-            collect_paths_to_instance(parent_instance, new_path, paths)
-          end
+        # An unused parent definition has no path from the model root.
+        parent.instances.each do |parent_instance|
+          collect_paths_to_instance(parent_instance, new_path, paths)
         end
       else
         # Parent is model entities

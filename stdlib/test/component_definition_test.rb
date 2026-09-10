@@ -51,4 +51,38 @@ class ComponentDefinitionTest < Minitest::Test
 
     assert_empty result
   end
+
+  def test_all_instance_paths_orders_nested_shared_instances_from_root
+    root = Object.new
+    outer = Sketchup::ComponentDefinition.new('Outer')
+    middle = Sketchup::ComponentDefinition.new('Middle')
+    leaf = Sketchup::ComponentDefinition.new('Leaf')
+    first = add_instance(outer, root)
+    second = add_instance(outer, root)
+    nested = add_instance(middle, outer)
+    target = add_instance(leaf, middle)
+
+    assert_equal [[first, nested, target], [second, nested, target]],
+                 SupexStdlib::ComponentDefinition.all_instance_paths(leaf)
+  end
+
+  def test_all_instance_paths_excludes_unused_parent_definitions
+    root = Object.new
+    unused = Sketchup::ComponentDefinition.new('Unused')
+    leaf = Sketchup::ComponentDefinition.new('Leaf')
+    add_instance(leaf, unused)
+    reachable = add_instance(leaf, root)
+
+    assert_equal [[reachable]], SupexStdlib::ComponentDefinition.all_instance_paths(leaf)
+  end
+
+  private
+
+  def add_instance(definition, parent)
+    instance = Sketchup::ComponentInstance.new
+    instance.definition = definition
+    instance.parent = parent
+    definition.instances << instance
+    instance
+  end
 end
