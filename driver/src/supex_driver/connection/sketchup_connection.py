@@ -16,6 +16,7 @@ from supex_driver.connection.sketchup_exceptions import (
     SketchUpProtocolError,
     SketchUpRemoteError,
     SketchUpTimeoutError,
+    SketchUpUnknownResultError,
 )
 
 logger = logging.getLogger("supex.connection")
@@ -28,6 +29,37 @@ MAX_RETRIES = int(os.environ.get("SUPEX_RETRIES", "2"))
 MAX_RESPONSE_BYTES = int(os.environ.get("SUPEX_MAX_RESPONSE", "10485760"))  # 10 MB default
 MAX_IDLE_TIME = float(os.environ.get("SUPEX_IDLE_TIMEOUT", "300"))  # 5 min default
 AUTH_TOKEN = os.environ.get("SUPEX_AUTH_TOKEN")
+
+# Tools whose runtime handler only reads state. A request for one of these may be
+# sent again after the connection dropped or timed out while waiting for the
+# response. Every other tool mutates the model, the filesystem or the session,
+# so a request whose outcome is unknown is never replayed automatically.
+REPLAY_SAFE_TOOLS = frozenset({
+    "ping",
+    "console_capture_status",
+    "get_model_info",
+    "list_entities",
+    "get_entity",
+    "get_selection",
+    "get_layers",
+    "get_materials",
+    "get_camera_info",
+    "list_vcad_nodes",
+    "get_vcad_node",
+    "vcad.observer_poll",
+    "resources/list",
+})
+
+# Tools that are not bound to the currently open model, so the expected-model
+# guard (SUPEX_EXPECTED_MODEL / expected_model_path) is not injected for them.
+# open_model is exempt because it is the way to reach the expected model.
+MODEL_GUARD_EXEMPT_TOOLS = frozenset({
+    "ping",
+    "console_capture_status",
+    "reload_extension",
+    "open_model",
+    "resources/list",
+})
 
 # Client identification
 CLIENT_NAME = "supex-driver"
@@ -49,6 +81,29 @@ def _next_request_id() -> int:
         return _request_id_counter
 
 
+def resolve_expected_model(
+    value: str | None = None, workspace: str | None = None
+) -> str | None:
+    """Resolve the expected model path from an explicit value or SUPEX_EXPECTED_MODEL.
+
+    Relative paths resolve against the workspace (SUPEX_WORKSPACE), falling back
+    to the current directory. Returns an absolute, normalized path or None when
+    no expected model is configured.
+    """
+    raw = value if value is not None else os.environ.get("SUPEX_EXPECTED_MODEL")
+    if not raw:
+        return None
+    base = workspace or os.environ.get("SUPEX_WORKSPACE") or os.getcwd()
+    return os.path.normpath(os.path.join(base, os.path.expanduser(raw)))
+
+
+def _tool_name(method: str, params: dict[str, Any] | None) -> str:
+    """Name of the runtime tool a send_command call addresses."""
+    if method == "tools/call" and params and "name" in params:
+        return str(params["name"])
+    return method
+
+
 @dataclass
 class SketchupConnection:
     """Connection adapter for SketchUp socket server.
@@ -68,6 +123,7 @@ class SketchupConnection:
     agent: str = "unknown"
     token: str | None = AUTH_TOKEN
     workspace: str | None = field(default_factory=lambda: os.environ.get("SUPEX_WORKSPACE"))
+    expected_model: str | None = field(default_factory=resolve_expected_model)
     sock: socket.socket | None = field(default=None, repr=False)
     _identified: bool = field(default=False, repr=False)
     _last_activity: float = field(default=0.0, repr=False)
@@ -245,21 +301,84 @@ class SketchupConnection:
         except Exception:
             return False
 
+    def transport_info(self) -> dict[str, Any]:
+        """Effective transport policy of this driver process.
+
+        Reported by check_status so a session can verify what the running
+        driver actually does (environment variables are read at import time).
+        """
+        return {
+            "timeout_s": self.timeout,
+            "max_retries": MAX_RETRIES,
+            "replay_after_send": "read_only_tools_only",
+            "expected_model": self.expected_model,
+        }
+
+    def _build_request(
+        self, method: str, params: dict[str, Any] | None, request_id: Any
+    ) -> dict[str, Any]:
+        """Wrap a command into a JSON-RPC request, injecting the model guard."""
+        if method == "tools/call" and params and "name" in params and "arguments" in params:
+            name = str(params["name"])
+            arguments = dict(params["arguments"] or {})
+        elif method in ["resources/list"]:
+            # Direct JSON-RPC methods that shouldn't be wrapped as tools
+            return {
+                "jsonrpc": "2.0",
+                "method": method,
+                "params": params or {},
+                "id": request_id,
+            }
+        else:
+            name = method
+            arguments = dict(params or {})
+
+        if (
+            self.expected_model
+            and name not in MODEL_GUARD_EXEMPT_TOOLS
+            and "expected_model_path" not in arguments
+        ):
+            arguments["expected_model_path"] = self.expected_model
+
+        return {
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {"name": name, "arguments": arguments},
+            "id": request_id,
+        }
+
     def send_command(
-        self, method: str, params: dict[str, Any] | None = None, request_id: Any = None
+        self,
+        method: str,
+        params: dict[str, Any] | None = None,
+        request_id: Any = None,
+        replay_safe: bool | None = None,
     ) -> dict[str, Any]:
         """Send a JSON-RPC request to SketchUp and return the response.
+
+        Failures before the request bytes reach the socket (connect, handshake,
+        lock contention) are retried up to ``SUPEX_RETRIES`` times. Once the
+        request has been sent, a timeout or dropped connection means SketchUp
+        may still execute or may already have executed the request. Such a
+        request is sent again only when it is replay-safe: read-only tools
+        (``REPLAY_SAFE_TOOLS``) or an explicit ``replay_safe=True``. Otherwise
+        ``SketchUpUnknownResultError`` is raised and the caller must inspect the
+        model before repeating the operation.
 
         Args:
             method: The command/method name to invoke.
             params: Optional parameters for the command.
             request_id: Optional request ID for JSON-RPC.
+            replay_safe: Override the replay policy for this call. ``None``
+                derives it from the tool name.
 
         Returns:
             The result from the JSON-RPC response.
 
         Raises:
-            SketchUpConnectionError: If connection fails or is lost.
+            SketchUpConnectionError: If connection fails or is lost before sending.
+            SketchUpUnknownResultError: If the request was sent but no response arrived
+                and the tool is not replay-safe.
             SketchUpProtocolError: If response is invalid JSON.
             SketchUpTimeoutError: If socket operation times out.
         """
@@ -267,47 +386,24 @@ class SketchupConnection:
         if request_id is None:
             request_id = _next_request_id()
 
+        tool = _tool_name(method, params)
+        if replay_safe is None:
+            replay_safe = tool in REPLAY_SAFE_TOOLS
+
         # Reuse existing connection if healthy
         if not self._is_connection_healthy() and not self.connect():
             raise SketchUpConnectionError("Not connected to SketchUp")
         if self.sock is None:
             raise SketchUpConnectionError("Socket not initialized after connect")
 
-        # Convert to proper JSON-RPC format
-        if (
-            method == "tools/call"
-            and params
-            and "name" in params
-            and "arguments" in params
-        ):
-            # Already in correct format
-            request = {
-                "jsonrpc": "2.0",
-                "method": method,
-                "params": params,
-                "id": request_id,
-            }
-        elif method in ["resources/list"]:
-            # Direct JSON-RPC methods that shouldn't be wrapped as tools
-            request = {
-                "jsonrpc": "2.0",
-                "method": method,
-                "params": params or {},
-                "id": request_id,
-            }
-        else:
-            # Convert direct command to JSON-RPC tools/call format
-            request = {
-                "jsonrpc": "2.0",
-                "method": "tools/call",
-                "params": {"name": method, "arguments": params or {}},
-                "id": request_id,
-            }
+        request = self._build_request(method, params, request_id)
+        request_bytes = json.dumps(request).encode("utf-8") + b"\n"
 
         # Retry logic for connection issues
         retry_count = 0
 
         while retry_count <= MAX_RETRIES:
+            sent = False
             try:
                 acquired = self._rpc_lock.acquire(timeout=self.timeout)
                 if not acquired:
@@ -317,10 +413,10 @@ class SketchupConnection:
                     )
 
                 try:
-                    logger.debug(f"[req:{request_id}] Sending {method}")
+                    logger.debug(f"[req:{request_id}] Sending {tool}")
 
-                    request_bytes = json.dumps(request).encode("utf-8") + b"\n"
                     self.sock.sendall(request_bytes)
+                    sent = True
 
                     response_data = self.receive_full_response(self.sock)
                     response = json.loads(response_data.decode("utf-8"))
@@ -362,6 +458,18 @@ class SketchupConnection:
                 SketchUpTimeoutError,
                 SketchUpConnectionError,
             ) as e:
+                if sent and not replay_safe:
+                    logger.error(
+                        f"[req:{request_id}] {tool} was sent but no response arrived: {e}. "
+                        "Not replaying a request with unknown outcome."
+                    )
+                    self.disconnect()
+                    raise SketchUpUnknownResultError(
+                        f"{tool} was sent to SketchUp but no response arrived within "
+                        f"{self.timeout}s ({e}). SketchUp may still be executing it or may "
+                        "have finished it; inspect the model before repeating the request."
+                    ) from e
+
                 logger.warning(
                     f"[req:{request_id}] Connection error (attempt {retry_count + 1}/{MAX_RETRIES + 1}): {e}"
                 )
@@ -400,7 +508,7 @@ class SketchupConnection:
 # Global connection management with thread safety
 _connection_lock = threading.Lock()
 _sketchup_connection: SketchupConnection | None = None
-_connection_identity: tuple[str, str, int, str | None] | None = None  # (agent, host, port, workspace)
+_connection_identity: tuple[str, str, int, str | None, str | None] | None = None  # (agent, host, port, workspace, expected_model)
 
 
 def get_sketchup_connection(
@@ -409,8 +517,8 @@ def get_sketchup_connection(
     """Get or create a persistent SketchUp connection.
 
     Thread-safe singleton pattern for connection management.
-    Cache key includes (agent, host, port, workspace) — if any component
-    changes, the old connection is disconnected and a new one is created.
+    Cache key includes (agent, host, port, workspace, expected_model) — if any
+    component changes, the old connection is disconnected and a new one is created.
 
     Args:
         host: Host to connect to.
@@ -423,7 +531,8 @@ def get_sketchup_connection(
     global _sketchup_connection, _connection_identity
 
     workspace = os.environ.get("SUPEX_WORKSPACE")
-    new_identity = (agent, host, port, workspace)
+    expected_model = resolve_expected_model(workspace=workspace)
+    new_identity = (agent, host, port, workspace, expected_model)
 
     with _connection_lock:
         # If identity changed (agent, host, port, or workspace), rotate connection
@@ -449,6 +558,7 @@ def get_sketchup_connection(
         if _sketchup_connection is None:
             _sketchup_connection = SketchupConnection(
                 host=host, port=port, agent=agent, workspace=workspace,
+                expected_model=expected_model,
             )
             _connection_identity = new_identity
             # Note: Don't try to connect here - let individual commands handle connection attempts

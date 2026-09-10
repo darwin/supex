@@ -11,6 +11,7 @@ require_relative 'tools'
 require_relative 'vcad_tools'
 require_relative 'vcad_observer'
 require_relative 'path_policy'
+require_relative 'target_model'
 
 module SupexRuntime
   # TCP server for handling JSON-RPC requests from the Python MCP server
@@ -494,9 +495,14 @@ module SupexRuntime
       log "Calling #{tool_name}(#{format_args(args)})"
 
       begin
+        # Refuse the call before it runs when the caller pinned it to another document
+        args = TargetModel.enforce!(args)
         result = execute_tool(tool_name, args, context.workspace)
         log "Tool call result: #{result.inspect}"
         Utils.create_success_response(request, result)
+      rescue TargetModel::MismatchError => e
+        log "Tool call refused: #{e.message}"
+        Utils.create_error_response(request, e.message, -32_603, e.data)
       rescue StandardError => e
         log "Tool call error: #{e.message}"
         log e.backtrace.join("\n")

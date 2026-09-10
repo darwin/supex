@@ -10,7 +10,7 @@ Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 
 | Tool | Description |
 |------|-------------|
-| `check_status` | Unified health check: SketchUp bridge, console capture, VCAD sidecar, VCAD viewer |
+| `check_status` | Unified health check: SketchUp bridge, console capture, VCAD sidecar, VCAD viewer; `sketchup.transport` shows the effective timeout, retries, replay rule and expected model |
 
 ## Ruby Execution
 
@@ -18,6 +18,8 @@ Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 |------|-------------|
 | `eval_ruby` | Execute inline Ruby code |
 | `eval_ruby_file` | Execute Ruby from file path |
+
+Both accept an optional `expected_model_path`: the runtime refuses to run the code unless that `.skp` file is the active model. `SUPEX_EXPECTED_MODEL` applies the same guard to every model-bound tool. A request that was sent but got no response is not replayed; the result then carries `error_type: "unknown_result"` and the model must be inspected before running the code again (see `troubleshooting.md`).
 
 ## Model Introspection
 
@@ -43,7 +45,7 @@ Note: `reload_extension` is a CLI command (`./supex reload`), not an MCP tool.
 | Tool | Description |
 |------|-------------|
 | `open_model` | Open `.skp` model by path (relative paths resolve against the workspace) |
-| `save_model` | Save current model (optionally to path) |
+| `save_model` | Save current model (optionally to path); `expected_model_path` refuses to save another document |
 | `export_scene` | Export scene (`skp`, `obj`, `stl`, `png`, `jpg`, `jpeg`) |
 
 ## VCAD Authoring

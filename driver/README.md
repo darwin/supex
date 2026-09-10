@@ -24,7 +24,8 @@ Environment variables (all optional):
 | `SUPEX_HOST` | `localhost` | SketchUp runtime host |
 | `SUPEX_PORT` | `9876` | SketchUp runtime port |
 | `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
-| `SUPEX_RETRIES` | `2` | Max retry attempts |
+| `SUPEX_RETRIES` | `2` | Retries for failures before a request is sent; a sent request is replayed only for read-only tools |
+| `SUPEX_EXPECTED_MODEL` | not set | Path of the `.skp` file every model-bound tool must be running against (relative to the workspace); the runtime refuses calls when another document is active |
 | `SUPEX_AUTH_TOKEN` | not set | Token sent in the `hello` handshake when the runtime requires one |
 | `SUPEX_WORKSPACE` | see below | Project directory; relative paths in file tools resolve against it |
 | `SUPEX_LOG_DIR` | `$SUPEX_WORKSPACE/.tmp/logs` | Log file directory |
@@ -257,8 +258,17 @@ print(conn.send_command('ping'))
 Exception hierarchy:
 - `SketchUpError` - Base exception
 - `SketchUpConnectionError` - Connection failures
+- `SketchUpUnknownResultError` - Request was sent but no response arrived; SketchUp may have executed it (subclass of `SketchUpConnectionError`, reported by MCP tools as `error_type: "unknown_result"`)
 - `SketchUpTimeoutError` - Timeout errors
 - `SketchUpProtocolError` - JSON/protocol errors
+
+### Retry and replay policy
+
+`send_command` retries (up to `SUPEX_RETRIES` times, reconnecting in between) only when the failure happens before the request bytes reach SketchUp: refused connection, failed handshake, broken pipe on send. Once a request has been sent, a timeout or dropped connection leaves its outcome unknown, and the driver sends it again only for tools listed in `REPLAY_SAFE_TOOLS` (`ping`, `get_*`, `list_entities`, ...). Every other tool raises `SketchUpUnknownResultError`; the caller inspects the model and decides whether to repeat. `check_status` reports the effective policy under `sketchup.transport`.
+
+### Expected model guard
+
+`SUPEX_EXPECTED_MODEL` pins the session to one document: the driver adds `expected_model_path` to the arguments of every tool except `ping`, `console_capture_status`, `reload_extension` and `open_model`, and the runtime refuses the call (error data `error_type: "wrong_model"`, with the expected and the active path) unless `Sketchup.active_model` is that file. This matters on macOS, where several models can be open and the active one follows the window focus. `eval_ruby`, `eval_ruby_file`, `save_model` and `export_scene` also accept `expected_model_path` per call.
 
 ### Logging
 

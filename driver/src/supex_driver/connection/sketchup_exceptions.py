@@ -21,6 +21,19 @@ class SketchUpTimeoutError(SketchUpError):
     pass
 
 
+class SketchUpUnknownResultError(SketchUpConnectionError):
+    """Raised when a request reached SketchUp but its outcome is unknown.
+
+    The request bytes were sent and the connection then timed out or dropped
+    before a response arrived. SketchUp may still be executing the request or
+    may have completed it. The driver never replays such a request unless the
+    tool is known to be read-only; the caller has to inspect the model state
+    before deciding to repeat the operation.
+    """
+
+    pass
+
+
 class SketchUpProtocolError(SketchUpError):
     """Raised when there's a protocol error (invalid JSON, etc.)."""
 

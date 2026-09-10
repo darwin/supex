@@ -10,7 +10,7 @@ module SupexRuntime
   # Extracted from BridgeServer class to reduce class length
   module Tools
     # Get basic information about the current SketchUp model
-    # @return [Hash] model statistics and metadata
+    # @return [Hash] model statistics and metadata; +path+ is nil for an unsaved model
     def model_info
       model = Sketchup.active_model
       return { success: false, error: 'No active model' } unless model
@@ -191,6 +191,7 @@ module SupexRuntime
       {
         success: true,
         title: model.title.empty? ? 'Untitled' : model.title,
+        path: model.path.to_s.empty? ? nil : model.path.to_s,
         units: units_map[length_unit] || 'unknown',
         num_faces: model.entities.grep(Sketchup::Face).count,
         num_edges: model.entities.grep(Sketchup::Edge).count,

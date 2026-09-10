@@ -28,6 +28,7 @@ from supex_driver.connection.sketchup_exceptions import (
     SketchUpProtocolError,
     SketchUpRemoteError,
     SketchUpTimeoutError,
+    SketchUpUnknownResultError,
 )
 from supex_driver.connection.vcad_viewer_relay import (
     VCADViewerCapabilityError,
@@ -147,6 +148,11 @@ def call_tool(
             method=method, params=params or {}, request_id=ctx.request_id
         )
         return json.dumps(result)
+    except SketchUpUnknownResultError as e:
+        logger.error(f"Unknown result during {operation}: {e}")
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unknown_result"}
+        )
     except (SketchUpConnectionError, SketchUpTimeoutError) as e:
         logger.error(f"Connection error during {operation}: {e}")
         return json.dumps(
@@ -234,10 +240,13 @@ def check_status(ctx: McpContext) -> str:
 
     Returns a single JSON object with per-subsystem status and a top-level
     ``status`` field: ``"ok"`` (all reachable), ``"degraded"`` (SketchUp ok
-    but VCAD issue), or ``"error"`` (SketchUp unreachable).
+    but VCAD issue), or ``"error"`` (SketchUp unreachable). ``sketchup.transport``
+    reports the effective driver policy: timeout, retries, replay rule and the
+    expected model (SUPEX_EXPECTED_MODEL) every model-bound call is checked against.
     """
     sketchup = _check_sketchup(ctx)
     su_connected = sketchup["status"] == "connected"
+    sketchup["transport"] = get_sketchup_connection(agent=get_agent_name(ctx)).transport_info()
 
     console_capture = _check_console_capture(ctx, su_connected)
 
@@ -265,30 +274,46 @@ def check_status(ctx: McpContext) -> str:
 
 # Export functionality
 @mcp.tool()
-def export_scene(ctx: McpContext, format: str = "skp") -> str:
+def export_scene(
+    ctx: McpContext, format: str = "skp", expected_model_path: str | None = None
+) -> str:
     """Export the current SketchUp scene
 
     Args:
         format: Export format (skp, obj, stl, png, jpg, jpeg)
+        expected_model_path: Refuse to run unless the active model is this .skp file
     """
-    return call_tool(ctx, "export_scene", {"format": format}, "export_scene")
+    params: dict[str, Any] = {"format": format}
+    if expected_model_path:
+        params["expected_model_path"] = expected_model_path
+    return call_tool(ctx, "export_scene", params, "export_scene")
 
 
 # Ruby code evaluation
 @mcp.tool()
-def eval_ruby(ctx: McpContext, code: str) -> str:
+def eval_ruby(ctx: McpContext, code: str, expected_model_path: str | None = None) -> str:
     """Evaluate arbitrary Ruby code in SketchUp context
+
+    A request that was sent but got no response (timeout, dropped connection) is
+    never replayed; the result then has error_type "unknown_result" and the model
+    must be inspected before repeating the code.
 
     Args:
         code: Ruby code to execute
+        expected_model_path: Refuse to run unless the active model is this .skp file
+            (absolute path, or relative to the workspace). SUPEX_EXPECTED_MODEL
+            applies the same check to every model-bound tool.
     """
     try:
         logger.info(f"Evaluating Ruby code ({len(code)} characters)")
 
         sketchup = get_sketchup_connection(agent=get_agent_name(ctx))
 
+        params: dict[str, Any] = {"code": code}
+        if expected_model_path:
+            params["expected_model_path"] = expected_model_path
         result = sketchup.send_command(
-            method="eval_ruby", params={"code": code}, request_id=ctx.request_id
+            method="eval_ruby", params=params, request_id=ctx.request_id
         )
 
         # Format response consistently
@@ -303,6 +328,11 @@ def eval_ruby(ctx: McpContext, code: str) -> str:
         }
 
         return json.dumps(response)
+    except SketchUpUnknownResultError as e:
+        logger.error(f"Unknown result evaluating Ruby code: {e}")
+        return json.dumps(
+            {"success": False, "error": str(e), "error_type": "unknown_result"}
+        )
     except (SketchUpConnectionError, SketchUpTimeoutError) as e:
         logger.error(f"Connection error evaluating Ruby code: {e}")
         return json.dumps(
@@ -330,14 +360,26 @@ def eval_ruby(ctx: McpContext, code: str) -> str:
 
 # File-based Ruby evaluation tools
 @mcp.tool()
-def eval_ruby_file(ctx: McpContext, file_path: str) -> str:
+def eval_ruby_file(
+    ctx: McpContext, file_path: str, expected_model_path: str | None = None
+) -> str:
     """Evaluate Ruby code from a file in SketchUp context
+
+    A request that was sent but got no response (timeout, dropped connection) is
+    never replayed; the result then has error_type "unknown_result" and the model
+    must be inspected before running the file again.
 
     Args:
         file_path: Path to Ruby file to execute (relative paths resolve against the workspace)
+        expected_model_path: Refuse to run unless the active model is this .skp file
+            (absolute path, or relative to the workspace). SUPEX_EXPECTED_MODEL
+            applies the same check to every model-bound tool.
     """
     logger.info(f"Evaluating Ruby file: {file_path}")
-    return call_tool(ctx, "eval_ruby_file", {"file_path": file_path}, "eval_ruby_file")
+    params: dict[str, Any] = {"file_path": file_path}
+    if expected_model_path:
+        params["expected_model_path"] = expected_model_path
+    return call_tool(ctx, "eval_ruby_file", params, "eval_ruby_file")
 
 
 # Introspection tools
@@ -541,15 +583,21 @@ def open_model(ctx: McpContext, path: str) -> str:
 
 
 @mcp.tool()
-def save_model(ctx: McpContext, path: str | None = None) -> str:
+def save_model(
+    ctx: McpContext, path: str | None = None, expected_model_path: str | None = None
+) -> str:
     """Save the current SketchUp model
 
     Args:
         path: Optional path to save to (relative paths resolve against the workspace). If not provided, saves to current location
+        expected_model_path: Refuse to save unless the active model is this .skp file
+            (guards against saving over a different document that has the focus)
 
     Returns success status and saved file path
     """
-    params = {"path": path} if path else {}
+    params: dict[str, Any] = {"path": path} if path else {}
+    if expected_model_path:
+        params["expected_model_path"] = expected_model_path
     return call_tool(ctx, "save_model", params, "save_model")
 
 

@@ -38,7 +38,8 @@ Shell scripts under `scripts/` print `[DEBUG]` lines when `SUPEX_DEBUG=1` is set
 | `SUPEX_HOST` | `localhost` | SketchUp runtime host |
 | `SUPEX_PORT` | `9876` | SketchUp runtime port |
 | `SUPEX_TIMEOUT` | `15.0` | Socket timeout in seconds |
-| `SUPEX_RETRIES` | `2` | Retry count on connection failure |
+| `SUPEX_RETRIES` | `2` | Retry count for failures before a request is sent; a sent request with unknown outcome is replayed only for read-only tools |
+| `SUPEX_EXPECTED_MODEL` | (unset) | `.skp` path (relative to `SUPEX_WORKSPACE`) that model-bound tool calls are pinned to; the runtime refuses calls while another document is active |
 | `SUPEX_IDLE_TIMEOUT` | `300` | Reconnect after idle seconds |
 | `SUPEX_MAX_RESPONSE` | `10485760` | Max response payload bytes |
 | `SUPEX_LOG_DIR` | `$SUPEX_WORKSPACE/.tmp/logs` | CLI/MCP log directory |

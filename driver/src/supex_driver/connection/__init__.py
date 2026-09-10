@@ -13,6 +13,7 @@ from supex_driver.connection.sketchup_exceptions import (
     SketchUpError,
     SketchUpProtocolError,
     SketchUpTimeoutError,
+    SketchUpUnknownResultError,
 )
 from supex_driver.connection.vcad_connection import (
     VCADConnection,
@@ -55,6 +56,7 @@ __all__ = [
     "SketchUpError",
     "SketchUpConnectionError",
     "SketchUpTimeoutError",
+    "SketchUpUnknownResultError",
     "SketchUpProtocolError",
     "VCADConnection",
     "get_vcad_connection",

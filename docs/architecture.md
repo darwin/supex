@@ -109,12 +109,15 @@ The connection module provides reliable communication with the SketchUp runtime:
 
 **Exception Types**:
 - `SketchUpConnectionError` - Connection failures (socket errors, refused connections)
+- `SketchUpUnknownResultError` - Request sent, response never arrived; outcome unknown (subclass of `SketchUpConnectionError`)
 - `SketchUpTimeoutError` - Socket timeout exceeded
 - `SketchUpProtocolError` - Invalid JSON response or protocol violation
 
 **Reliability Features**:
-- Automatic reconnection with retries (2 retries default)
+- Automatic reconnection with retries (2 retries default) for failures before the request is sent
+- No automatic replay of a sent request with unknown outcome, except for read-only tools (`REPLAY_SAFE_TOOLS`)
 - Configurable timeout (15s default)
+- Optional expected-model guard (`SUPEX_EXPECTED_MODEL`): the runtime refuses model-bound calls while another document is active
 - Hello handshake for connection identification
 - Chunked response handling for large payloads
 

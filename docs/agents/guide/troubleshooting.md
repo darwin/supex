@@ -47,6 +47,27 @@ Common issues and solutions when using Supex.
 2. Break long operations into smaller chunks
 3. Check SketchUp is responsive (can you interact with the UI?)
 
+### Unknown Result
+
+**Symptom**: result with `"error_type": "unknown_result"` (`SketchUpUnknownResultError`)
+
+**Meaning**: the request reached SketchUp but no response arrived within the timeout. SketchUp is probably still running it or has finished it. The driver does not send it again, because a second run of `eval_ruby`, `eval_ruby_file`, `save_model` or a VCAD placement could apply the change twice. Only read-only tools are replayed automatically.
+
+**What to do**:
+1. Wait for SketchUp to become responsive, then inspect the model (`get_model_info`, `get_entity`, `take_screenshot`, the console log).
+2. Repeat the request only when the inspection shows the change is missing; make scripts idempotent so a repeat is safe.
+3. For work that needs more than the timeout, write progress to a file and split it into shorter steps rather than raising `SUPEX_TIMEOUT` indefinitely.
+
+### Wrong Model
+
+**Symptom**: error `Expected model ... but the active model is ...` with `"error_type": "wrong_model"`
+
+**Meaning**: the session is pinned to one `.skp` file (`SUPEX_EXPECTED_MODEL` or an explicit `expected_model_path`) and another document currently has the focus, or the active model is unsaved. On macOS `Sketchup.active_model` follows the front window, so a click into another model would otherwise redirect the next call there.
+
+**What to do**:
+1. Bring the expected document to the front (or `open_model` it) and repeat the call.
+2. Check `check_status`: `sketchup.transport.expected_model` shows what the running driver is pinned to.
+
 ## Authentication Errors
 
 ### Authentication Failed (-32001)
