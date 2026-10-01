@@ -11,4 +11,4 @@ gem 'yard', '~> 0.9'
 # but we include it here for explicit dependency management
 gem 'yard-sketchup', '~> 1.6'
 
-gem 'rubocop', '~> 1.75', require: false
+gem 'rubocop', '~> 1.91', require: false
